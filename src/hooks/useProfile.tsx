@@ -36,7 +36,16 @@ export function useProfile() {
 
         if (error) throw error;
         
-        setProfile(data);
+        // Type cast the role field to ensure it matches our expected type
+        const typedProfile: Profile = {
+          id: data.id,
+          full_name: data.full_name,
+          company: data.company,
+          role: data.role as Profile['role'],
+          avatar_url: data.avatar_url
+        };
+        
+        setProfile(typedProfile);
       } catch (error) {
         console.error('Error fetching profile:', error);
         setError(error as Error);
