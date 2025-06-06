@@ -4,19 +4,31 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { ProjectViewer } from "@/components/project/ProjectViewer";
-import { LoginPage } from "@/components/auth/LoginPage";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/providers/AuthProvider";
+import { LandingPage } from "@/components/landing/LandingPage";
 
 const Index = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user, loading } = useAuth();
   const [currentView, setCurrentView] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userRole, setUserRole] = useState<"engineer" | "planner" | "industrial">("engineer");
 
-  if (!isAuthenticated) {
-    return <LoginPage onLogin={() => setIsAuthenticated(true)} />;
+  // Show a simple loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
+      </div>
+    );
   }
 
+  // Show landing page if not authenticated
+  if (!user) {
+    return <LandingPage />;
+  }
+
+  // Show main app if authenticated
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       <Header 

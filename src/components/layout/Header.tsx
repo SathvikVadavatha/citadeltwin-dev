@@ -12,6 +12,9 @@ import {
   DropdownMenuSeparator 
 } from "@/components/ui/dropdown-menu";
 import { Bell, Search, Menu, Settings, LogOut, User, Shield } from "lucide-react";
+import { useAuth } from "@/providers/AuthProvider";
+import { useProfile } from "@/hooks/useProfile";
+import { toast } from "@/components/ui/use-toast";
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -22,6 +25,8 @@ interface HeaderProps {
 
 export const Header = ({ onToggleSidebar, currentView, setCurrentView, userRole }: HeaderProps) => {
   const [notifications] = useState(3);
+  const { signOut } = useAuth();
+  const { profile } = useProfile();
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -39,6 +44,33 @@ export const Header = ({ onToggleSidebar, currentView, setCurrentView, userRole 
       case "industrial": return "Industrial Lead";
       default: return "User";
     }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed out successfully",
+      });
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getUserInitials = () => {
+    if (profile?.full_name) {
+      const nameParts = profile.full_name.split(' ');
+      if (nameParts.length >= 2) {
+        return `${nameParts[0][0]}${nameParts[1][0]}`;
+      }
+      return profile.full_name[0];
+    }
+    return userRole === "engineer" ? "JD" : userRole === "planner" ? "RP" : "MG";
   };
 
   return (
@@ -93,9 +125,9 @@ export const Header = ({ onToggleSidebar, currentView, setCurrentView, userRole 
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder-avatar.jpg" alt="User" />
+                  <AvatarImage src={profile?.avatar_url || "/placeholder-avatar.jpg"} alt="User" />
                   <AvatarFallback>
-                    {userRole === "engineer" ? "JD" : userRole === "planner" ? "RP" : "MG"}
+                    {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -110,9 +142,9 @@ export const Header = ({ onToggleSidebar, currentView, setCurrentView, userRole 
                 <span>Settings</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
+                <span>Sign out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
