@@ -57,7 +57,7 @@ export const LoginForm = ({ showLogin, setShowLogin }: LoginFormProps) => {
       password: "",
       company: "",
       role: "engineer",
-      acceptTerms: false
+      acceptTerms: true
     }
   });
 
