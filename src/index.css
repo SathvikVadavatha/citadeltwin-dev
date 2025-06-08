@@ -6,43 +6,43 @@
 @layer base {
   :root {
     --background: 255 255 255; /* #FFFFFF */
-    --foreground: 51 65 85; /* #334155 */
+    --foreground: 0 0 0; /* #000000 */
 
-    --card: 255 255 255; /* #FFFFFF */
-    --card-foreground: 51 65 85;
+    --card: 249 250 251; /* #F9FAFB */
+    --card-foreground: 0 0 0;
 
     --popover: 255 255 255;
-    --popover-foreground: 51 65 85;
+    --popover-foreground: 0 0 0;
 
-    --primary: 30 136 229; /* #1E88E5 */
+    --primary: 0 0 0; /* #000000 */
     --primary-foreground: 255 255 255;
 
-    --secondary: 245 247 250; /* #F5F7FA */
-    --secondary-foreground: 71 85 105; /* #475569 */
+    --secondary: 243 244 246; /* #F3F4F6 */
+    --secondary-foreground: 55 65 81; /* #374151 */
 
-    --muted: 248 250 252; /* #F8FAFC */
-    --muted-foreground: 100 116 139; /* #64748B */
+    --muted: 243 244 246;
+    --muted-foreground: 107 114 128; /* #6B7280 */
 
-    --accent: 241 245 249; /* #F1F5F9 */
-    --accent-foreground: 51 65 85;
+    --accent: 229 231 235; /* #E5E7EB */
+    --accent-foreground: 0 0 0;
 
     --destructive: 239 68 68;
     --destructive-foreground: 255 255 255;
 
-    --border: 226 232 240; /* #E2E8F0 */
-    --input: 241 245 249;
-    --ring: 30 136 229;
+    --border: 229 231 235; /* #E5E7EB */
+    --input: 229 231 235;
+    --ring: 0 0 0;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    --sidebar-background: 255 255 255;
-    --sidebar-foreground: 71 85 105;
-    --sidebar-primary: 30 136 229;
+    --sidebar-background: 249 250 251;
+    --sidebar-foreground: 55 65 81;
+    --sidebar-primary: 0 0 0;
     --sidebar-primary-foreground: 255 255 255;
-    --sidebar-accent: 248 250 252;
-    --sidebar-accent-foreground: 71 85 105;
-    --sidebar-border: 226 232 240;
-    --sidebar-ring: 30 136 229;
+    --sidebar-accent: 243 244 246;
+    --sidebar-accent-foreground: 55 65 81;
+    --sidebar-border: 229 231 235;
+    --sidebar-ring: 0 0 0;
   }
 }
 
@@ -54,26 +54,17 @@
   body {
     @apply bg-background text-foreground font-sans;
     font-feature-settings: "rlig" 1, "calt" 1;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight text-foreground;
+    @apply font-semibold tracking-tight;
   }
 
   .glass-effect {
-    @apply backdrop-blur-sm bg-card/95 border border-border/50 shadow-sm;
+    @apply backdrop-blur-sm bg-card/80 border border-border/50;
   }
 
   .hover-lift {
-    @apply transition-all duration-200 hover:shadow-md hover:-translate-y-0.5;
-  }
-
-  .card-shadow {
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  }
-
-  .card-shadow-lg {
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5;
   }
 }
