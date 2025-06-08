@@ -3,224 +3,168 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Lock, Eye, EyeOff, Building2, Smartphone } from "lucide-react";
+import { AuthLayout } from "./AuthLayout";
+import { Eye, EyeOff, Shield, Chrome, Building, Smartphone } from "lucide-react";
+import { useAuth } from "@/providers/AuthProvider";
+import { toast } from "@/components/ui/use-toast";
 
 interface LoginPageProps {
-  onLogin: () => void;
+  onNavigateToSignup: () => void;
+  onNavigateToForgotPassword: () => void;
 }
 
-export const LoginPage = ({ onLogin }: LoginPageProps) => {
+export const LoginPage = ({ onNavigateToSignup, onNavigateToForgotPassword }: LoginPageProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { signIn } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin();
+    setLoading(true);
+
+    try {
+      const { error } = await signIn(email, password);
+      if (error) {
+        toast({
+          title: "Login Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo and Title */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Building2 className="w-8 h-8 text-white" />
+    <AuthLayout
+      title="Welcome Back"
+      subtitle="Sign in to access your digital twin projects"
+    >
+      <form onSubmit={handleLogin} className="space-y-6">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-foreground">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="engineer@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="bg-background border-border text-foreground"
+              required
+            />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            CitadelTwin
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-2">
-            Cloud-native digital-twin platform for civil engineering
-          </p>
+
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-foreground">Password</Label>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="bg-background border-border text-foreground pr-10"
+                required
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
 
-        <Card className="bg-white/50 backdrop-blur-sm border-white/20">
-          <CardHeader>
-            <CardTitle>Welcome Back</CardTitle>
-            <CardDescription>
-              Sign in to access your digital twin projects
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="signin">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="engineer@company.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Enter your password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="remember"
-                        checked={rememberMe}
-                        onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                      />
-                      <Label htmlFor="remember" className="text-sm">
-                        Remember me
-                      </Label>
-                    </div>
-                    <Button variant="link" className="px-0 text-sm">
-                      Forgot password?
-                    </Button>
-                  </div>
-
-                  <Button type="submit" className="w-full">
-                    <Lock className="h-4 w-4 mr-2" />
-                    Sign In
-                  </Button>
-                </form>
-
-                {/* SSO Options */}
-                <div className="mt-6">
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-slate-200 dark:border-slate-700" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-white dark:bg-slate-900 px-2 text-slate-500">
-                        Or continue with SSO
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 space-y-2">
-                    <Button variant="outline" className="w-full">
-                      <Shield className="h-4 w-4 mr-2" />
-                      Enterprise SSO
-                    </Button>
-                  </div>
-                </div>
-
-                {/* 2FA Notice */}
-                <div className="mt-6 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center space-x-2 text-sm text-blue-800 dark:text-blue-200">
-                    <Smartphone className="h-4 w-4" />
-                    <span>Two-factor authentication required for enhanced security</span>
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="signup">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input id="firstName" placeholder="Jane" required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" placeholder="Doe" required />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="engineer@company.com"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="organization">Organization</Label>
-                    <Input id="organization" placeholder="Your Company" required />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Role</Label>
-                    <select className="w-full px-3 py-2 border border-slate-200 rounded-md bg-white dark:bg-slate-800 dark:border-slate-700">
-                      <option>Residential Engineer</option>
-                      <option>Municipal Planner</option>
-                      <option>Industrial Lead</option>
-                      <option>Project Manager</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="newPassword">Password</Label>
-                    <Input
-                      id="newPassword"
-                      type="password"
-                      placeholder="Create a strong password"
-                      required
-                    />
-                  </div>
-
-                  <Button type="submit" className="w-full">
-                    Create Account
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-
-        {/* Security Features */}
-        <div className="mt-6 text-center space-y-2">
-          <div className="flex items-center justify-center space-x-4 text-sm text-slate-600 dark:text-slate-400">
-            <Badge variant="outline" className="bg-white/50">
-              <Shield className="h-3 w-3 mr-1" />
-              SOC 2 Type II
-            </Badge>
-            <Badge variant="outline" className="bg-white/50">
-              <Lock className="h-3 w-3 mr-1" />
-              End-to-End Encrypted
-            </Badge>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="remember"
+              checked={rememberMe}
+              onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+            />
+            <Label htmlFor="remember" className="text-sm text-muted-foreground">
+              Remember me
+            </Label>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Protected by enterprise-grade security and OWASP compliance
-          </p>
+          <Button
+            variant="link"
+            className="px-0 text-sm text-primary hover:text-primary/80"
+            onClick={onNavigateToForgotPassword}
+          >
+            Forgot password?
+          </Button>
         </div>
-      </div>
-    </div>
+
+        <Button 
+          type="submit" 
+          className="w-full bg-primary hover:bg-primary/90"
+          disabled={loading}
+        >
+          {loading ? "Signing in..." : "Sign In"}
+        </Button>
+
+        <div className="relative">
+          <Separator className="my-6" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="bg-card px-2 text-xs uppercase text-muted-foreground">
+              Or continue with SSO
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <Button variant="outline" className="w-full border-border hover:bg-secondary/20">
+            <Chrome className="h-4 w-4 mr-2" />
+            Continue with Google
+          </Button>
+          <Button variant="outline" className="w-full border-border hover:bg-secondary/20">
+            <Building className="h-4 w-4 mr-2" />
+            Continue with Azure AD
+          </Button>
+          <Button variant="outline" className="w-full border-border hover:bg-secondary/20">
+            <Shield className="h-4 w-4 mr-2" />
+            Continue with Okta
+          </Button>
+        </div>
+
+        <div className="mt-6 p-3 rounded-lg bg-primary/10 border border-primary/20">
+          <div className="flex items-center space-x-2 text-sm text-primary">
+            <Smartphone className="h-4 w-4" />
+            <span>Two-factor authentication enabled for enhanced security</span>
+          </div>
+        </div>
+
+        <div className="text-center">
+          <span className="text-sm text-muted-foreground">
+            Don't have an account?{" "}
+          </span>
+          <Button
+            variant="link"
+            className="px-0 text-sm text-primary hover:text-primary/80"
+            onClick={onNavigateToSignup}
+          >
+            Sign up
+          </Button>
+        </div>
+      </form>
+    </AuthLayout>
   );
 };

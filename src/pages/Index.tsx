@@ -1,66 +1,69 @@
 
 import { useState } from "react";
-import { Header } from "@/components/layout/Header";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Dashboard } from "@/components/dashboard/Dashboard";
-import { ProjectViewer } from "@/components/project/ProjectViewer";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/AuthProvider";
-import { LandingPage } from "@/components/landing/LandingPage";
+import { AuthManager } from "@/components/AuthManager";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/layout/AppSidebar";
+import { MainDashboard } from "@/components/dashboard/MainDashboard";
+import { ProjectsPage } from "@/components/projects/ProjectsPage";
+import { cn } from "@/lib/utils";
 
 const Index = () => {
   const { user, loading } = useAuth();
   const [currentView, setCurrentView] = useState("dashboard");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [userRole, setUserRole] = useState<"engineer" | "planner" | "industrial">("engineer");
 
-  // Show a simple loading state while checking authentication
+  // Show loading state
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  // Show landing page if not authenticated
+  // Show auth flow if not authenticated
   if (!user) {
-    return <LandingPage />;
+    return <AuthManager />;
   }
 
   // Show main app if authenticated
+  const handleNavigate = (view: string, projectId?: string) => {
+    setCurrentView(view);
+    // You can handle projectId here for project-specific navigation
+  };
+
+  const renderMainContent = () => {
+    switch (currentView) {
+      case "dashboard":
+        return <MainDashboard onNavigate={handleNavigate} />;
+      case "projects":
+        return <ProjectsPage onNavigate={handleNavigate} />;
+      case "team":
+        return <div className="text-foreground">Team Management - Coming Soon</div>;
+      case "upload":
+        return <div className="text-foreground">Blueprint Upload - Coming Soon</div>;
+      case "analytics":
+        return <div className="text-foreground">Analytics - Coming Soon</div>;
+      case "settings":
+        return <div className="text-foreground">Settings - Coming Soon</div>;
+      case "help":
+        return <div className="text-foreground">Help & Support - Coming Soon</div>;
+      default:
+        return <MainDashboard onNavigate={handleNavigate} />;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <Header 
-        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-        currentView={currentView}
-        setCurrentView={setCurrentView}
-        userRole={userRole}
-      />
-      
-      <div className="flex pt-16">
-        <Sidebar 
-          isOpen={sidebarOpen}
-          currentView={currentView}
-          setCurrentView={setCurrentView}
-          userRole={userRole}
-          setUserRole={setUserRole}
-        />
-        
-        <main className={cn(
-          "flex-1 transition-all duration-300 ease-in-out",
-          sidebarOpen ? "ml-64" : "ml-16"
-        )}>
-          <div className="p-6">
-            {currentView === "dashboard" && <Dashboard userRole={userRole} />}
-            {currentView === "projects" && <ProjectViewer userRole={userRole} />}
-            {currentView === "3d-viewer" && <ProjectViewer userRole={userRole} activeTab="3d" />}
-            {currentView === "compliance" && <ProjectViewer userRole={userRole} activeTab="compliance" />}
-            {currentView === "gis" && <ProjectViewer userRole={userRole} activeTab="gis" />}
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <AppSidebar currentView={currentView} onNavigate={handleNavigate} />
+        <main className="flex-1 overflow-auto">
+          <div className="p-8">
+            {renderMainContent()}
           </div>
         </main>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 
