@@ -6,11 +6,13 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { MainDashboard } from "@/components/dashboard/MainDashboard";
 import { ProjectsPage } from "@/components/projects/ProjectsPage";
-import { cn } from "@/lib/utils";
+import { ProjectDetailsPage } from "@/components/projects/ProjectDetailsPage";
+import { BlueprintUploadPage } from "@/components/upload/BlueprintUploadPage";
 
 const Index = () => {
   const { user, loading } = useAuth();
   const [currentView, setCurrentView] = useState("dashboard");
+  const [selectedProjectId, setSelectedProjectId] = useState<string>();
 
   // Show loading state
   if (loading) {
@@ -29,7 +31,9 @@ const Index = () => {
   // Show main app if authenticated
   const handleNavigate = (view: string, projectId?: string) => {
     setCurrentView(view);
-    // You can handle projectId here for project-specific navigation
+    if (projectId) {
+      setSelectedProjectId(projectId);
+    }
   };
 
   const renderMainContent = () => {
@@ -38,10 +42,12 @@ const Index = () => {
         return <MainDashboard onNavigate={handleNavigate} />;
       case "projects":
         return <ProjectsPage onNavigate={handleNavigate} />;
+      case "project-details":
+        return <ProjectDetailsPage onNavigate={handleNavigate} projectId={selectedProjectId} />;
+      case "upload":
+        return <BlueprintUploadPage onNavigate={handleNavigate} />;
       case "team":
         return <div className="text-foreground">Team Management - Coming Soon</div>;
-      case "upload":
-        return <div className="text-foreground">Blueprint Upload - Coming Soon</div>;
       case "analytics":
         return <div className="text-foreground">Analytics - Coming Soon</div>;
       case "settings":
