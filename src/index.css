@@ -5,44 +5,44 @@
 
 @layer base {
   :root {
-    --background: 0 0 0; /* #000000 - Pure black */
-    --foreground: 250 250 250; /* #FAFAFA - Off-white */
+    --background: 248 247 245; /* #F8F7F5 - Warm off-white */
+    --foreground: 44 39 37; /* #2C2725 - Dark warm brown */
 
-    --card: 43 43 43; /* #2B2B2B - Dark gray card background */
-    --card-foreground: 250 250 250;
+    --card: 255 254 252; /* #FFFCFC - Warm white card background */
+    --card-foreground: 44 39 37;
 
-    --popover: 43 43 43; /* #2B2B2B - Dark gray */
-    --popover-foreground: 250 250 250;
+    --popover: 255 254 252; /* #FFFCFC - Warm white */
+    --popover-foreground: 44 39 37;
 
-    --primary: 250 250 250; /* #FAFAFA - White for primary elements */
-    --primary-foreground: 0 0 0; /* #000000 - Black text on white */
+    --primary: 115 83 69; /* #735345 - Professional warm brown */
+    --primary-foreground: 255 254 252; /* #FFFCFC - Warm white text */
 
-    --secondary: 43 43 43; /* #2B2B2B - Dark gray */
-    --secondary-foreground: 250 250 250;
+    --secondary: 231 225 220; /* #E7E1DC - Light warm gray */
+    --secondary-foreground: 44 39 37;
 
-    --muted: 43 43 43; /* #2B2B2B - Dark gray */
-    --muted-foreground: 161 161 170; /* #A1A1AA - Light gray text */
+    --muted: 237 233 229; /* #EDE9E5 - Very light warm gray */
+    --muted-foreground: 120 113 108; /* #78716C - Medium warm gray text */
 
-    --accent: 43 43 43; /* #2B2B2B - Dark gray */
-    --accent-foreground: 250 250 250;
+    --accent: 194 165 148; /* #C2A594 - Warm accent color */
+    --accent-foreground: 44 39 37;
 
-    --destructive: 239 68 68; /* Keep red for destructive actions */
-    --destructive-foreground: 250 250 250;
+    --destructive: 185 76 76; /* #B94C4C - Warm red for errors */
+    --destructive-foreground: 255 254 252;
 
-    --border: 43 43 43; /* #2B2B2B - Dark gray borders */
-    --input: 43 43 43; /* #2B2B2B - Input backgrounds */
-    --ring: 161 161 170; /* #A1A1AA - Focus rings */
+    --border: 231 225 220; /* #E7E1DC - Light warm gray borders */
+    --input: 255 254 252; /* #FFFCFC - Warm white input backgrounds */
+    --ring: 115 83 69; /* #735345 - Primary color for focus rings */
 
     --radius: 0.5rem;
 
-    --sidebar-background: 43 43 43; /* #2B2B2B - Dark gray sidebar */
-    --sidebar-foreground: 250 250 250;
-    --sidebar-primary: 250 250 250;
-    --sidebar-primary-foreground: 0 0 0;
-    --sidebar-accent: 43 43 43;
-    --sidebar-accent-foreground: 250 250 250;
-    --sidebar-border: 43 43 43;
-    --sidebar-ring: 161 161 170;
+    --sidebar-background: 255 254 252; /* #FFFCFC - Warm white sidebar */
+    --sidebar-foreground: 44 39 37;
+    --sidebar-primary: 115 83 69;
+    --sidebar-primary-foreground: 255 254 252;
+    --sidebar-accent: 231 225 220;
+    --sidebar-accent-foreground: 44 39 37;
+    --sidebar-border: 231 225 220;
+    --sidebar-ring: 115 83 69;
   }
 }
 
@@ -63,14 +63,14 @@
 
   .glass-effect {
     @apply backdrop-blur-sm bg-card/90 border border-border/50;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 32px rgba(115, 83, 69, 0.1);
   }
 
   .hover-lift {
     @apply transition-all duration-200 hover:shadow-2xl hover:-translate-y-0.5;
   }
 
-  /* Custom scrollbar for dark theme */
+  /* Custom scrollbar for warm theme */
   ::-webkit-scrollbar {
     width: 8px;
   }
