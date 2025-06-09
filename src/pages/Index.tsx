@@ -2,15 +2,16 @@
 import { useState } from "react";
 import { useAuth } from "@/providers/AuthProvider";
 import { AuthManager } from "@/components/AuthManager";
+import { LandingPage } from "@/components/landing/LandingPage";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { MainDashboard } from "@/components/dashboard/MainDashboard";
 import { ProjectsPage } from "@/components/projects/ProjectsPage";
-import { cn } from "@/lib/utils";
 
 const Index = () => {
   const { user, loading } = useAuth();
   const [currentView, setCurrentView] = useState("dashboard");
+  const [showAuth, setShowAuth] = useState(false);
 
   // Show loading state
   if (loading) {
@@ -21,9 +22,14 @@ const Index = () => {
     );
   }
 
-  // Show auth flow if not authenticated
-  if (!user) {
+  // Show auth flow if not authenticated and auth is requested
+  if (!user && showAuth) {
     return <AuthManager />;
+  }
+
+  // Show landing page if not authenticated and auth is not requested
+  if (!user) {
+    return <LandingPage />;
   }
 
   // Show main app if authenticated

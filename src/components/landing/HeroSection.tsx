@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight } from "lucide-react";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { AuthManager } from "@/components/AuthManager";
+import { useState } from "react";
 
 interface HeroSectionProps {
   showLogin: boolean | null;
@@ -11,6 +13,12 @@ interface HeroSectionProps {
 }
 
 export const HeroSection = ({ showLogin, setShowLogin, scrollToSection }: HeroSectionProps) => {
+  const [showAuth, setShowAuth] = useState(false);
+
+  if (showAuth) {
+    return <AuthManager />;
+  }
+
   return (
     <section id="hero" className="py-20 lg:py-32 warm-gradient-subtle">
       <div className="container mx-auto px-6 flex flex-col lg:flex-row items-center">

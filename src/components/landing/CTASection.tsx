@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronRight } from "lucide-react";
 
 interface CTASectionProps {
-  setShowLogin: (show: boolean | null) => void;
+  setShowLogin: (isLogin: boolean) => void;
 }
 
 export const CTASection = ({ setShowLogin }: CTASectionProps) => {

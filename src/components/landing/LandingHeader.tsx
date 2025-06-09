@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Building2 } from "lucide-react";
 
 interface LandingHeaderProps {
-  setShowLogin: (show: boolean) => void;
+  setShowLogin: (isLogin: boolean) => void;
   scrollToSection: (sectionId: string) => void;
 }
 

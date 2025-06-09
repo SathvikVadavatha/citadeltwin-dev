@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ExternalLink } from "lucide-react";
 
 interface ExploreSectionProps {
-  setShowLogin: (show: boolean) => void;
+  setShowLogin: (isLogin: boolean) => void;
 }
 
 export const ExploreSection = ({ setShowLogin }: ExploreSectionProps) => {
