@@ -21,7 +21,7 @@
     --secondary-foreground: 0 0 0; /* #000000 - Black text for better visibility */
 
     --muted: 243 244 246; /* #F3F4F6 - Light gray for muted areas */
-    --muted-foreground: 107 114 128; /* #6B7280 - Medium gray text */
+    --muted-foreground: 0 0 0; /* #000000 - Black text for body text */
 
     --accent: 30 64 175; /* #1E40AF - Darker blue accent */
     --accent-foreground: 255 255 255; /* White text on dark blue background */
