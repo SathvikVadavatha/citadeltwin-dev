@@ -1,48 +1,55 @@
 
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 248 247 245; /* #F8F7F5 - Warm off-white */
-    --foreground: 44 39 37; /* #2C2725 - Dark warm brown */
+    --background: 245 245 220; /* #F5F5DC - Soft beige */
+    --foreground: 51 51 51; /* #333333 - Charcoal gray */
 
-    --card: 255 254 252; /* #FFFCFC - Warm white card background */
-    --card-foreground: 44 39 37;
+    --card: 240 240 240; /* #F0F0F0 - Light gray card background */
+    --card-foreground: 51 51 51;
 
-    --popover: 255 254 252; /* #FFFCFC - Warm white */
-    --popover-foreground: 44 39 37;
+    --popover: 240 240 240; /* #F0F0F0 - Light gray */
+    --popover-foreground: 51 51 51;
 
-    --primary: 115 83 69; /* #735345 - Professional warm brown */
-    --primary-foreground: 255 254 252; /* #FFFCFC - Warm white text */
+    --primary: 210 105 30; /* #D2691E - Terracotta primary */
+    --primary-foreground: 245 245 220; /* #F5F5DC - Soft beige text */
 
-    --secondary: 231 225 220; /* #E7E1DC - Light warm gray */
-    --secondary-foreground: 44 39 37;
+    --secondary: 205 183 158; /* #CDB79E - Sandstone */
+    --secondary-foreground: 51 51 51;
 
-    --muted: 237 233 229; /* #EDE9E5 - Very light warm gray */
-    --muted-foreground: 120 113 108; /* #78716C - Medium warm gray text */
+    --muted: 235 235 220; /* Slightly darker beige for muted areas */
+    --muted-foreground: 102 102 102; /* Medium gray text */
 
-    --accent: 194 165 148; /* #C2A594 - Warm accent color */
-    --accent-foreground: 44 39 37;
+    --accent: 204 85 0; /* #CC5500 - Burnt orange accent */
+    --accent-foreground: 245 245 220;
 
-    --destructive: 185 76 76; /* #B94C4C - Warm red for errors */
-    --destructive-foreground: 255 254 252;
+    --destructive: 185 76 76; /* Warm red for errors */
+    --destructive-foreground: 245 245 220;
 
-    --border: 231 225 220; /* #E7E1DC - Light warm gray borders */
-    --input: 255 254 252; /* #FFFCFC - Warm white input backgrounds */
-    --ring: 115 83 69; /* #735345 - Primary color for focus rings */
+    --border: 220 220 200; /* Light warm border */
+    --input: 240 240 240; /* #F0F0F0 - Light gray input backgrounds */
+    --ring: 210 105 30; /* #D2691E - Terracotta focus rings */
 
     --radius: 0.5rem;
 
-    --sidebar-background: 255 254 252; /* #FFFCFC - Warm white sidebar */
-    --sidebar-foreground: 44 39 37;
-    --sidebar-primary: 115 83 69;
-    --sidebar-primary-foreground: 255 254 252;
-    --sidebar-accent: 231 225 220;
-    --sidebar-accent-foreground: 44 39 37;
-    --sidebar-border: 231 225 220;
-    --sidebar-ring: 115 83 69;
+    --sidebar-background: 240 240 240; /* #F0F0F0 - Light gray sidebar */
+    --sidebar-foreground: 51 51 51;
+    --sidebar-primary: 210 105 30;
+    --sidebar-primary-foreground: 245 245 220;
+    --sidebar-accent: 205 183 158;
+    --sidebar-accent-foreground: 51 51 51;
+    --sidebar-border: 220 220 200;
+    --sidebar-ring: 210 105 30;
+
+    /* Additional custom properties for the warm theme */
+    --warm-gold: 184 134 11; /* #B8860B - Muted gold */
+    --warm-sandstone: 205 183 158; /* #CDB79E - Sandstone */
+    --warm-terracotta: 210 105 30; /* #D2691E - Terracotta */
+    --warm-burnt-orange: 204 85 0; /* #CC5500 - Burnt orange */
   }
 }
 
@@ -63,11 +70,16 @@
 
   .glass-effect {
     @apply backdrop-blur-sm bg-card/90 border border-border/50;
-    box-shadow: 0 8px 32px rgba(115, 83, 69, 0.1);
+    box-shadow: 0 8px 32px rgba(210, 105, 30, 0.1);
   }
 
   .hover-lift {
     @apply transition-all duration-200 hover:shadow-2xl hover:-translate-y-0.5;
+    box-shadow: 0 4px 16px rgba(210, 105, 30, 0.1);
+  }
+
+  .hover-lift:hover {
+    box-shadow: 0 12px 24px rgba(210, 105, 30, 0.15);
   }
 
   /* Custom scrollbar for warm theme */
@@ -80,10 +92,68 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted rounded-full;
+    background: rgb(205, 183, 158);
+    border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground;
+    background: rgb(210, 105, 30);
+  }
+
+  /* Custom gradients for the warm theme */
+  .warm-gradient {
+    background: linear-gradient(135deg, rgb(210, 105, 30) 0%, rgb(204, 85, 0) 100%);
+  }
+
+  .warm-gradient-subtle {
+    background: linear-gradient(135deg, rgb(245, 245, 220) 0%, rgb(240, 240, 240) 100%);
+  }
+
+  /* Professional button styles */
+  .btn-primary {
+    background: rgb(210, 105, 30);
+    color: rgb(245, 245, 220);
+    border: 1px solid rgb(210, 105, 30);
+  }
+
+  .btn-primary:hover {
+    background: rgb(204, 85, 0);
+    border-color: rgb(204, 85, 0);
+  }
+
+  .btn-secondary {
+    background: rgb(205, 183, 158);
+    color: rgb(51, 51, 51);
+    border: 1px solid rgb(205, 183, 158);
+  }
+
+  .btn-secondary:hover {
+    background: rgb(184, 134, 11);
+    color: rgb(245, 245, 220);
+  }
+
+  /* Section dividers */
+  .section-divider {
+    border-color: rgb(220, 220, 200);
+  }
+
+  /* Callout styles */
+  .callout-info {
+    background: rgb(240, 240, 240);
+    border-left: 4px solid rgb(210, 105, 30);
+    color: rgb(51, 51, 51);
+  }
+
+  .callout-warning {
+    background: rgb(245, 245, 220);
+    border-left: 4px solid rgb(204, 85, 0);
+    color: rgb(51, 51, 51);
+  }
+
+  .callout-success {
+    background: rgb(235, 235, 220);
+    border-left: 4px solid rgb(184, 134, 11);
+    color: rgb(51, 51, 51);
   }
 }
+
