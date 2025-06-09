@@ -1,55 +1,54 @@
 
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 245 245 220; /* #F5F5DC - Soft beige */
-    --foreground: 51 51 51; /* #333333 - Charcoal gray */
+    --background: 255 255 255; /* #FFFFFF - Clean white */
+    --foreground: 31 41 55; /* #1F2937 - Dark gray for text */
 
-    --card: 240 240 240; /* #F0F0F0 - Light gray card background */
-    --card-foreground: 51 51 51;
+    --card: 248 250 252; /* #F8FAFC - Light gray card background */
+    --card-foreground: 31 41 55;
 
-    --popover: 240 240 240; /* #F0F0F0 - Light gray */
-    --popover-foreground: 51 51 51;
+    --popover: 248 250 252; /* #F8FAFC - Light gray */
+    --popover-foreground: 31 41 55;
 
-    --primary: 210 105 30; /* #D2691E - Terracotta primary */
-    --primary-foreground: 245 245 220; /* #F5F5DC - Soft beige text */
+    --primary: 37 99 235; /* #2563EB - Professional blue */
+    --primary-foreground: 255 255 255; /* #FFFFFF - White text */
 
-    --secondary: 205 183 158; /* #CDB79E - Sandstone */
-    --secondary-foreground: 51 51 51;
+    --secondary: 107 114 128; /* #6B7280 - Medium gray */
+    --secondary-foreground: 255 255 255;
 
-    --muted: 235 235 220; /* Slightly darker beige for muted areas */
-    --muted-foreground: 102 102 102; /* Medium gray text */
+    --muted: 243 244 246; /* #F3F4F6 - Light gray for muted areas */
+    --muted-foreground: 107 114 128; /* #6B7280 - Medium gray text */
 
-    --accent: 204 85 0; /* #CC5500 - Burnt orange accent */
-    --accent-foreground: 245 245 220;
+    --accent: 30 64 175; /* #1E40AF - Darker blue accent */
+    --accent-foreground: 255 255 255;
 
-    --destructive: 185 76 76; /* Warm red for errors */
-    --destructive-foreground: 245 245 220;
+    --destructive: 239 68 68; /* #EF4444 - Red for errors */
+    --destructive-foreground: 255 255 255;
 
-    --border: 220 220 200; /* Light warm border */
-    --input: 240 240 240; /* #F0F0F0 - Light gray input backgrounds */
-    --ring: 210 105 30; /* #D2691E - Terracotta focus rings */
+    --border: 229 231 235; /* #E5E7EB - Light gray border */
+    --input: 248 250 252; /* #F8FAFC - Light gray input backgrounds */
+    --ring: 37 99 235; /* #2563EB - Professional blue focus rings */
 
     --radius: 0.5rem;
 
-    --sidebar-background: 240 240 240; /* #F0F0F0 - Light gray sidebar */
-    --sidebar-foreground: 51 51 51;
-    --sidebar-primary: 210 105 30;
-    --sidebar-primary-foreground: 245 245 220;
-    --sidebar-accent: 205 183 158;
-    --sidebar-accent-foreground: 51 51 51;
-    --sidebar-border: 220 220 200;
-    --sidebar-ring: 210 105 30;
+    --sidebar-background: 248 250 252; /* #F8FAFC - Light gray sidebar */
+    --sidebar-foreground: 31 41 55;
+    --sidebar-primary: 37 99 235;
+    --sidebar-primary-foreground: 255 255 255;
+    --sidebar-accent: 107 114 128;
+    --sidebar-accent-foreground: 255 255 255;
+    --sidebar-border: 229 231 235;
+    --sidebar-ring: 37 99 235;
 
-    /* Additional custom properties for the warm theme */
-    --warm-gold: 184 134 11; /* #B8860B - Muted gold */
-    --warm-sandstone: 205 183 158; /* #CDB79E - Sandstone */
-    --warm-terracotta: 210 105 30; /* #D2691E - Terracotta */
-    --warm-burnt-orange: 204 85 0; /* #CC5500 - Burnt orange */
+    /* Additional custom properties for the professional theme */
+    --professional-blue: 37 99 235; /* #2563EB - Professional blue */
+    --dark-blue: 30 64 175; /* #1E40AF - Darker blue */
+    --light-gray: 243 244 246; /* #F3F4F6 - Light gray */
+    --medium-gray: 107 114 128; /* #6B7280 - Medium gray */
   }
 }
 
@@ -70,19 +69,19 @@
 
   .glass-effect {
     @apply backdrop-blur-sm bg-card/90 border border-border/50;
-    box-shadow: 0 8px 32px rgba(210, 105, 30, 0.1);
+    box-shadow: 0 8px 32px rgba(37, 99, 235, 0.1);
   }
 
   .hover-lift {
     @apply transition-all duration-200 hover:shadow-2xl hover:-translate-y-0.5;
-    box-shadow: 0 4px 16px rgba(210, 105, 30, 0.1);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.1);
   }
 
   .hover-lift:hover {
-    box-shadow: 0 12px 24px rgba(210, 105, 30, 0.15);
+    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.15);
   }
 
-  /* Custom scrollbar for warm theme */
+  /* Custom scrollbar for professional theme */
   ::-webkit-scrollbar {
     width: 8px;
   }
@@ -92,68 +91,67 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgb(205, 183, 158);
+    background: rgb(107, 114, 128);
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgb(210, 105, 30);
+    background: rgb(37, 99, 235);
   }
 
-  /* Custom gradients for the warm theme */
+  /* Custom gradients for the professional theme */
   .warm-gradient {
-    background: linear-gradient(135deg, rgb(210, 105, 30) 0%, rgb(204, 85, 0) 100%);
+    background: linear-gradient(135deg, rgb(37, 99, 235) 0%, rgb(30, 64, 175) 100%);
   }
 
   .warm-gradient-subtle {
-    background: linear-gradient(135deg, rgb(245, 245, 220) 0%, rgb(240, 240, 240) 100%);
+    background: linear-gradient(135deg, rgb(255, 255, 255) 0%, rgb(248, 250, 252) 100%);
   }
 
   /* Professional button styles */
   .btn-primary {
-    background: rgb(210, 105, 30);
-    color: rgb(245, 245, 220);
-    border: 1px solid rgb(210, 105, 30);
+    background: rgb(37, 99, 235);
+    color: rgb(255, 255, 255);
+    border: 1px solid rgb(37, 99, 235);
   }
 
   .btn-primary:hover {
-    background: rgb(204, 85, 0);
-    border-color: rgb(204, 85, 0);
+    background: rgb(30, 64, 175);
+    border-color: rgb(30, 64, 175);
   }
 
   .btn-secondary {
-    background: rgb(205, 183, 158);
-    color: rgb(51, 51, 51);
-    border: 1px solid rgb(205, 183, 158);
+    background: rgb(107, 114, 128);
+    color: rgb(255, 255, 255);
+    border: 1px solid rgb(107, 114, 128);
   }
 
   .btn-secondary:hover {
-    background: rgb(184, 134, 11);
-    color: rgb(245, 245, 220);
+    background: rgb(75, 85, 99);
+    color: rgb(255, 255, 255);
   }
 
   /* Section dividers */
   .section-divider {
-    border-color: rgb(220, 220, 200);
+    border-color: rgb(229, 231, 235);
   }
 
   /* Callout styles */
   .callout-info {
-    background: rgb(240, 240, 240);
-    border-left: 4px solid rgb(210, 105, 30);
-    color: rgb(51, 51, 51);
+    background: rgb(248, 250, 252);
+    border-left: 4px solid rgb(37, 99, 235);
+    color: rgb(31, 41, 55);
   }
 
   .callout-warning {
-    background: rgb(245, 245, 220);
-    border-left: 4px solid rgb(204, 85, 0);
-    color: rgb(51, 51, 51);
+    background: rgb(255, 255, 255);
+    border-left: 4px solid rgb(30, 64, 175);
+    color: rgb(31, 41, 55);
   }
 
   .callout-success {
-    background: rgb(235, 235, 220);
-    border-left: 4px solid rgb(184, 134, 11);
-    color: rgb(51, 51, 51);
+    background: rgb(243, 244, 246);
+    border-left: 4px solid rgb(107, 114, 128);
+    color: rgb(31, 41, 55);
   }
 }
-
