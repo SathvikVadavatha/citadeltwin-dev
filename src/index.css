@@ -6,19 +6,19 @@
 @layer base {
   :root {
     --background: 248 250 252; /* #F8FAFC - Light gray background for better contrast */
-    --foreground: 31 41 55; /* #1F2937 - Dark gray for text */
+    --foreground: 0 0 0; /* #000000 - Black text for maximum contrast */
 
     --card: 255 255 255; /* #FFFFFF - Pure white cards for contrast against light gray background */
-    --card-foreground: 31 41 55;
+    --card-foreground: 0 0 0; /* #000000 - Black text on cards */
 
     --popover: 255 255 255; /* #FFFFFF - White popover background */
-    --popover-foreground: 31 41 55;
+    --popover-foreground: 0 0 0; /* #000000 - Black text on popovers */
 
     --primary: 37 99 235; /* #2563EB - Professional blue */
     --primary-foreground: 255 255 255; /* #FFFFFF - White text */
 
     --secondary: 107 114 128; /* #6B7280 - Medium gray */
-    --secondary-foreground: 31 41 55; /* #1F2937 - Dark gray text for better visibility */
+    --secondary-foreground: 0 0 0; /* #000000 - Black text for better visibility */
 
     --muted: 243 244 246; /* #F3F4F6 - Light gray for muted areas */
     --muted-foreground: 107 114 128; /* #6B7280 - Medium gray text */
@@ -36,11 +36,11 @@
     --radius: 0.5rem;
 
     --sidebar-background: 255 255 255; /* #FFFFFF - White sidebar background */
-    --sidebar-foreground: 31 41 55;
+    --sidebar-foreground: 0 0 0; /* #000000 - Black text in sidebar */
     --sidebar-primary: 37 99 235;
     --sidebar-primary-foreground: 255 255 255;
     --sidebar-accent: 107 114 128;
-    --sidebar-accent-foreground: 31 41 55; /* Dark gray text for visibility */
+    --sidebar-accent-foreground: 0 0 0; /* #000000 - Black text for visibility */
     --sidebar-border: 229 231 235;
     --sidebar-ring: 37 99 235;
 
