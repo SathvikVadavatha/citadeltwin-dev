@@ -26,7 +26,7 @@ export const HeroSection = ({ showLogin, setShowLogin, scrollToSection }: HeroSe
           <Badge className="mb-6 bg-primary text-primary-foreground border-none">
             Next-Generation Digital Twin Platform
           </Badge>
-          <h2 className="text-4xl md:text-6xl font-bold text-foreground leading-tight mb-6">
+          <h2 className="text-4xl md:text-6xl font-bold leading-tight mb-6">
             Transform Civil Engineering with 
             <span className="text-primary"> Intelligent Digital Twins</span>
           </h2>
