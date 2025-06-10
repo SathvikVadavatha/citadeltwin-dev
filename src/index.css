@@ -64,7 +64,14 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight text-foreground;
+    @apply font-semibold tracking-tight;
+    color: inherit; /* Allow child elements to override text color */
+  }
+
+  /* Default heading color when no specific color class is applied */
+  h1:not([class*="text-"]), h2:not([class*="text-"]), h3:not([class*="text-"]), 
+  h4:not([class*="text-"]), h5:not([class*="text-"]), h6:not([class*="text-"]) {
+    @apply text-foreground;
   }
 
   .glass-effect {
