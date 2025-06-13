@@ -59,8 +59,8 @@ serve(async (req) => {
     // Simulate processing time
     await new Promise(resolve => setTimeout(resolve, 3000));
 
-    // Generate a simple procedural 3D model based on detected objects
-    const mockGLBData = generateMockGLB(detectedObjects);
+    // Generate a valid GLB file based on detected objects
+    const mockGLBData = generateValidGLB(detectedObjects);
     const fileName = `${uploadId}/${modelRecord.id}.glb`;
 
     // Upload the mock 3D model to storage
@@ -72,15 +72,28 @@ serve(async (req) => {
       });
 
     if (uploadError) {
+      console.error('Storage upload error:', uploadError);
       throw uploadError;
     }
+
+    // Verify the file was uploaded by checking its existence
+    const { data: fileData, error: checkError } = await supabase.storage
+      .from('3d-models')
+      .download(fileName);
+
+    if (checkError) {
+      console.error('File verification error:', checkError);
+      throw new Error('Failed to verify uploaded 3D model');
+    }
+
+    console.log('File verified, size:', fileData.size);
 
     // Update the model record with file information
     const { error: updateError } = await supabase
       .from('generated_3d_models')
       .update({
         model_file_path: fileName,
-        file_size: mockGLBData.byteLength,
+        file_size: fileData.size,
         generation_status: 'completed',
         processing_time_ms: 3000
       })
@@ -96,7 +109,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         modelId: modelRecord.id,
-        message: 'This is a demo 3D model. In production, this would be generated using Hunyuan3D.' 
+        message: 'Demo 3D model generated successfully. In production, this would use Hunyuan3D.' 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -113,88 +126,183 @@ serve(async (req) => {
   }
 });
 
-// Mock GLB generation function (in production, this would be replaced with Hunyuan3D)
-function generateMockGLB(detectedObjects: any[]): Uint8Array {
-  // This is a minimal GLB file structure for demonstration
-  // In production, you would use Hunyuan3D to generate actual 3D models
+// Generate a valid GLB file with proper structure
+function generateValidGLB(detectedObjects: any[]): Uint8Array {
+  // Create a simple but valid cube geometry for demonstration
+  // This generates a proper GLB 2.0 file with correct binary structure
   
-  const jsonData = {
-    asset: { version: "2.0", generator: "Mock GLB Generator" },
+  const vertices = new Float32Array([
+    // Front face
+    -1, -1,  1,   1, -1,  1,   1,  1,  1,  -1,  1,  1,
+    // Back face
+    -1, -1, -1,  -1,  1, -1,   1,  1, -1,   1, -1, -1,
+    // Top face
+    -1,  1, -1,  -1,  1,  1,   1,  1,  1,   1,  1, -1,
+    // Bottom face
+    -1, -1, -1,   1, -1, -1,   1, -1,  1,  -1, -1,  1,
+    // Right face
+     1, -1, -1,   1,  1, -1,   1,  1,  1,   1, -1,  1,
+    // Left face
+    -1, -1, -1,  -1, -1,  1,  -1,  1,  1,  -1,  1, -1
+  ]);
+
+  const indices = new Uint16Array([
+     0,  1,  2,    0,  2,  3,    // front
+     4,  5,  6,    4,  6,  7,    // back
+     8,  9, 10,    8, 10, 11,    // top
+    12, 13, 14,   12, 14, 15,    // bottom
+    16, 17, 18,   16, 18, 19,    // right
+    20, 21, 22,   20, 22, 23     // left
+  ]);
+
+  const normals = new Float32Array([
+    // Front face
+     0,  0,  1,    0,  0,  1,    0,  0,  1,    0,  0,  1,
+    // Back face
+     0,  0, -1,    0,  0, -1,    0,  0, -1,    0,  0, -1,
+    // Top face
+     0,  1,  0,    0,  1,  0,    0,  1,  0,    0,  1,  0,
+    // Bottom face
+     0, -1,  0,    0, -1,  0,    0, -1,  0,    0, -1,  0,
+    // Right face
+     1,  0,  0,    1,  0,  0,    1,  0,  0,    1,  0,  0,
+    // Left face
+    -1,  0,  0,   -1,  0,  0,   -1,  0,  0,   -1,  0,  0
+  ]);
+
+  // Calculate buffer sizes
+  const vertexBufferSize = vertices.byteLength;
+  const normalBufferSize = normals.byteLength;
+  const indexBufferSize = indices.byteLength;
+  
+  // Align to 4-byte boundaries
+  const vertexBufferAligned = Math.ceil(vertexBufferSize / 4) * 4;
+  const normalBufferAligned = Math.ceil(normalBufferSize / 4) * 4;
+  const indexBufferAligned = Math.ceil(indexBufferSize / 4) * 4;
+  
+  const totalBinarySize = vertexBufferAligned + normalBufferAligned + indexBufferAligned;
+
+  // Create glTF JSON
+  const gltfJson = {
+    asset: {
+      version: "2.0",
+      generator: "Blueprint-to-3D Demo Generator"
+    },
     scene: 0,
     scenes: [{ nodes: [0] }],
     nodes: [{ mesh: 0 }],
     meshes: [{
       primitives: [{
-        attributes: { POSITION: 0 },
-        indices: 1
+        attributes: {
+          POSITION: 0,
+          NORMAL: 1
+        },
+        indices: 2
       }]
     }],
     accessors: [
       {
         bufferView: 0,
-        componentType: 5126,
-        count: 8,
+        componentType: 5126, // FLOAT
+        count: 24, // 24 vertices
         type: "VEC3",
         max: [1, 1, 1],
         min: [-1, -1, -1]
       },
       {
         bufferView: 1,
-        componentType: 5123,
-        count: 36,
+        componentType: 5126, // FLOAT
+        count: 24, // 24 normals
+        type: "VEC3"
+      },
+      {
+        bufferView: 2,
+        componentType: 5123, // UNSIGNED_SHORT
+        count: 36, // 36 indices
         type: "SCALAR"
       }
     ],
     bufferViews: [
-      { buffer: 0, byteOffset: 0, byteLength: 96 },
-      { buffer: 0, byteOffset: 96, byteLength: 72 }
+      {
+        buffer: 0,
+        byteOffset: 0,
+        byteLength: vertexBufferSize,
+        target: 34962 // ARRAY_BUFFER
+      },
+      {
+        buffer: 0,
+        byteOffset: vertexBufferAligned,
+        byteLength: normalBufferSize,
+        target: 34962 // ARRAY_BUFFER
+      },
+      {
+        buffer: 0,
+        byteOffset: vertexBufferAligned + normalBufferAligned,
+        byteLength: indexBufferSize,
+        target: 34963 // ELEMENT_ARRAY_BUFFER
+      }
     ],
-    buffers: [{ byteLength: 168 }]
+    buffers: [{
+      byteLength: totalBinarySize
+    }]
   };
 
-  const jsonString = JSON.stringify(jsonData);
+  // Convert JSON to buffer
+  const jsonString = JSON.stringify(gltfJson);
   const jsonBuffer = new TextEncoder().encode(jsonString);
-  
-  // Simple cube vertices and indices for demo
-  const vertices = new Float32Array([
-    -1, -1, -1,  1, -1, -1,  1,  1, -1, -1,  1, -1,
-    -1, -1,  1,  1, -1,  1,  1,  1,  1, -1,  1,  1
-  ]);
-  
-  const indices = new Uint16Array([
-    0,1,2, 0,2,3, 4,7,6, 4,6,5, 0,4,5, 0,5,1,
-    2,6,7, 2,7,3, 0,3,7, 0,7,4, 1,5,6, 1,6,2
-  ]);
+  const jsonPadding = (4 - (jsonBuffer.length % 4)) % 4;
+  const jsonPaddedLength = jsonBuffer.length + jsonPadding;
 
-  const binaryBuffer = new ArrayBuffer(168);
-  new Float32Array(binaryBuffer, 0, 24).set(vertices);
-  new Uint16Array(binaryBuffer, 96, 36).set(indices);
+  // Create binary buffer
+  const binaryBuffer = new ArrayBuffer(totalBinarySize);
+  const binaryView = new Uint8Array(binaryBuffer);
+  
+  // Copy vertex data
+  binaryView.set(new Uint8Array(vertices.buffer), 0);
+  
+  // Copy normal data
+  binaryView.set(new Uint8Array(normals.buffer), vertexBufferAligned);
+  
+  // Copy index data
+  binaryView.set(new Uint8Array(indices.buffer), vertexBufferAligned + normalBufferAligned);
 
-  // GLB header
+  // Calculate total GLB size
   const headerSize = 12;
-  const jsonChunkSize = ((jsonBuffer.length + 3) & ~3) + 8;
-  const binaryChunkSize = ((binaryBuffer.byteLength + 3) & ~3) + 8;
-  const totalSize = headerSize + jsonChunkSize + binaryChunkSize;
+  const jsonChunkHeaderSize = 8;
+  const binaryChunkHeaderSize = 8;
+  const totalSize = headerSize + jsonChunkHeaderSize + jsonPaddedLength + binaryChunkHeaderSize + totalBinarySize;
 
-  const glb = new ArrayBuffer(totalSize);
-  const view = new DataView(glb);
+  // Create final GLB buffer
+  const glbBuffer = new ArrayBuffer(totalSize);
+  const glbView = new DataView(glbBuffer);
+  const glbBytes = new Uint8Array(glbBuffer);
+  
   let offset = 0;
 
-  // GLB signature and version
-  view.setUint32(offset, 0x46546C67, true); offset += 4; // "glTF"
-  view.setUint32(offset, 2, true); offset += 4; // version
-  view.setUint32(offset, totalSize, true); offset += 4; // total length
+  // GLB header
+  glbView.setUint32(offset, 0x46546C67, true); offset += 4; // "glTF"
+  glbView.setUint32(offset, 2, true); offset += 4; // version
+  glbView.setUint32(offset, totalSize, true); offset += 4; // total length
 
-  // JSON chunk
-  view.setUint32(offset, jsonBuffer.length, true); offset += 4;
-  view.setUint32(offset, 0x4E4F534A, true); offset += 4; // "JSON"
-  new Uint8Array(glb, offset, jsonBuffer.length).set(jsonBuffer);
-  offset += ((jsonBuffer.length + 3) & ~3);
+  // JSON chunk header
+  glbView.setUint32(offset, jsonPaddedLength, true); offset += 4;
+  glbView.setUint32(offset, 0x4E4F534A, true); offset += 4; // "JSON"
+  
+  // JSON chunk data
+  glbBytes.set(jsonBuffer, offset);
+  offset += jsonBuffer.length;
+  
+  // Add JSON padding (spaces)
+  for (let i = 0; i < jsonPadding; i++) {
+    glbBytes[offset++] = 0x20; // space character
+  }
 
-  // Binary chunk
-  view.setUint32(offset, binaryBuffer.byteLength, true); offset += 4;
-  view.setUint32(offset, 0x004E4942, true); offset += 4; // "BIN\0"
-  new Uint8Array(glb, offset, binaryBuffer.byteLength).set(new Uint8Array(binaryBuffer));
+  // Binary chunk header
+  glbView.setUint32(offset, totalBinarySize, true); offset += 4;
+  glbView.setUint32(offset, 0x004E4942, true); offset += 4; // "BIN\0"
+  
+  // Binary chunk data
+  glbBytes.set(binaryView, offset);
 
-  return new Uint8Array(glb);
+  return new Uint8Array(glbBuffer);
 }

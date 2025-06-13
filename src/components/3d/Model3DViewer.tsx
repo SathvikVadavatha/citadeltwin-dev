@@ -6,7 +6,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Download, ZoomIn, ZoomOut, Eye } from "lucide-react";
+import { Loader2, Download, ZoomIn, ZoomOut, Eye, AlertCircle } from "lucide-react";
 import * as THREE from 'three';
 
 interface Model3DViewerProps {
@@ -17,7 +17,24 @@ interface Model3DViewerProps {
 
 const Model3D = ({ url }: { url: string }) => {
   const meshRef = useRef<THREE.Group>(null);
-  const gltf = useLoader(GLTFLoader, url);
+  const [error, setError] = useState<string | null>(null);
+  
+  let gltf;
+  
+  try {
+    gltf = useLoader(GLTFLoader, url);
+  } catch (err) {
+    console.error('Error loading 3D model:', err);
+    setError('Failed to load 3D model');
+    return (
+      <Html center>
+        <div className="flex items-center justify-center text-red-500">
+          <AlertCircle className="h-8 w-8 mr-2" />
+          <span>Failed to load 3D model</span>
+        </div>
+      </Html>
+    );
+  }
 
   useFrame(() => {
     if (meshRef.current) {
@@ -26,21 +43,37 @@ const Model3D = ({ url }: { url: string }) => {
   });
 
   useEffect(() => {
-    if (gltf.scene) {
-      // Center and scale the model
-      const box = new THREE.Box3().setFromObject(gltf.scene);
-      const center = box.getCenter(new THREE.Vector3());
-      const size = box.getSize(new THREE.Vector3());
-      
-      const maxDim = Math.max(size.x, size.y, size.z);
-      const scale = 2 / maxDim;
-      
-      gltf.scene.scale.setScalar(scale);
-      gltf.scene.position.sub(center.multiplyScalar(scale));
+    if (gltf?.scene) {
+      try {
+        // Center and scale the model
+        const box = new THREE.Box3().setFromObject(gltf.scene);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scale = maxDim > 0 ? 2 / maxDim : 1;
+        
+        gltf.scene.scale.setScalar(scale);
+        gltf.scene.position.sub(center.multiplyScalar(scale));
+      } catch (err) {
+        console.error('Error processing 3D model:', err);
+        setError('Error processing 3D model');
+      }
     }
   }, [gltf]);
 
-  return <primitive ref={meshRef} object={gltf.scene} />;
+  if (error) {
+    return (
+      <Html center>
+        <div className="flex items-center justify-center text-red-500">
+          <AlertCircle className="h-8 w-8 mr-2" />
+          <span>{error}</span>
+        </div>
+      </Html>
+    );
+  }
+
+  return gltf?.scene ? <primitive ref={meshRef} object={gltf.scene} /> : null;
 };
 
 const LoadingFallback = () => (
@@ -52,12 +85,27 @@ const LoadingFallback = () => (
   </Html>
 );
 
+const ErrorFallback = ({ error }: { error: Error }) => (
+  <Html center>
+    <div className="flex flex-col items-center justify-center text-red-500 max-w-md p-4">
+      <AlertCircle className="h-8 w-8 mb-2" />
+      <span className="text-center text-sm">
+        Failed to load 3D model. This is a demo environment.
+      </span>
+      <span className="text-xs text-gray-500 mt-2">
+        {error.message}
+      </span>
+    </div>
+  </Html>
+);
+
 export const Model3DViewer: React.FC<Model3DViewerProps> = ({ 
   modelUrl, 
   modelName, 
   onDownload 
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [modelError, setModelError] = useState<Error | null>(null);
 
   const handleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
@@ -73,6 +121,10 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
           far: 1000
         }}
         style={{ background: 'linear-gradient(to bottom, #f0f0f0, #ffffff)' }}
+        onError={(error) => {
+          console.error('Canvas error:', error);
+          setModelError(new Error('3D rendering error'));
+        }}
       >
         <ambientLight intensity={0.6} />
         <directionalLight 
@@ -83,7 +135,11 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
         <pointLight position={[-10, -10, -10]} intensity={0.3} />
         
         <Suspense fallback={<LoadingFallback />}>
-          <Model3D url={modelUrl} />
+          {modelError ? (
+            <ErrorFallback error={modelError} />
+          ) : (
+            <Model3D url={modelUrl} />
+          )}
         </Suspense>
         
         <OrbitControls 
@@ -149,6 +205,11 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
         {viewerContent}
         <div className="mt-4 text-sm text-muted-foreground text-center">
           <p>Use mouse to rotate, zoom, and pan the 3D model</p>
+          {modelError && (
+            <p className="text-red-500 mt-2">
+              Note: This is a demo environment with mock 3D models
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>
