@@ -7,6 +7,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { MainDashboard } from "@/components/dashboard/MainDashboard";
 import { ProjectsPage } from "@/components/projects/ProjectsPage";
+import { UploadPage } from "@/components/upload/UploadPage";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -44,10 +45,10 @@ const Index = () => {
         return <MainDashboard onNavigate={handleNavigate} />;
       case "projects":
         return <ProjectsPage onNavigate={handleNavigate} />;
+      case "upload":
+        return <UploadPage onNavigate={handleNavigate} />;
       case "team":
         return <div className="text-foreground">Team Management - Coming Soon</div>;
-      case "upload":
-        return <div className="text-foreground">Blueprint Upload - Coming Soon</div>;
       case "analytics":
         return <div className="text-foreground">Analytics - Coming Soon</div>;
       case "settings":

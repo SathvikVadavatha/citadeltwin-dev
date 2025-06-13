@@ -9,6 +9,86 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      blueprint_uploads: {
+        Row: {
+          created_at: string
+          file_size: number
+          file_type: string
+          filename: string
+          id: string
+          original_filename: string
+          project_id: string | null
+          storage_path: string
+          updated_at: string
+          upload_status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_size: number
+          file_type: string
+          filename: string
+          id?: string
+          original_filename: string
+          project_id?: string | null
+          storage_path: string
+          updated_at?: string
+          upload_status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_size?: number
+          file_type?: string
+          filename?: string
+          id?: string
+          original_filename?: string
+          project_id?: string | null
+          storage_path?: string
+          updated_at?: string
+          upload_status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      detection_results: {
+        Row: {
+          confidence_threshold: number | null
+          created_at: string
+          detected_objects: Json
+          id: string
+          model_used: string | null
+          processing_time_ms: number | null
+          upload_id: string
+        }
+        Insert: {
+          confidence_threshold?: number | null
+          created_at?: string
+          detected_objects: Json
+          id?: string
+          model_used?: string | null
+          processing_time_ms?: number | null
+          upload_id: string
+        }
+        Update: {
+          confidence_threshold?: number | null
+          created_at?: string
+          detected_objects?: Json
+          id?: string
+          model_used?: string | null
+          processing_time_ms?: number | null
+          upload_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "detection_results_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "blueprint_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
