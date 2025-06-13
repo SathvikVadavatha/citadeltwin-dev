@@ -89,6 +89,56 @@ export type Database = {
           },
         ]
       }
+      generated_3d_models: {
+        Row: {
+          created_at: string
+          file_size: number
+          generation_prompt: string | null
+          generation_status: string
+          id: string
+          model_description: string | null
+          model_file_path: string
+          model_name: string
+          processing_time_ms: number | null
+          updated_at: string
+          upload_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_size: number
+          generation_prompt?: string | null
+          generation_status?: string
+          id?: string
+          model_description?: string | null
+          model_file_path: string
+          model_name: string
+          processing_time_ms?: number | null
+          updated_at?: string
+          upload_id: string
+        }
+        Update: {
+          created_at?: string
+          file_size?: number
+          generation_prompt?: string | null
+          generation_status?: string
+          id?: string
+          model_description?: string | null
+          model_file_path?: string
+          model_name?: string
+          processing_time_ms?: number | null
+          updated_at?: string
+          upload_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_3d_models_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "blueprint_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
