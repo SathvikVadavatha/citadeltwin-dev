@@ -96,7 +96,6 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
           maxDistance={20}
         />
         
-        {/* Grid helper */}
         <gridHelper args={[10, 10, '#cccccc', '#eeeeee']} />
       </Canvas>
       
