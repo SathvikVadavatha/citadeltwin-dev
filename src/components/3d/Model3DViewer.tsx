@@ -2,7 +2,7 @@
 import React, { Suspense, useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -79,8 +79,6 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
           position={[10, 10, 5]} 
           intensity={1}
           castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
         />
         <pointLight position={[-10, -10, -10]} intensity={0.3} />
         
@@ -95,8 +93,6 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
           minDistance={1}
           maxDistance={20}
         />
-        
-        <gridHelper args={[10, 10, '#cccccc', '#eeeeee']} />
       </Canvas>
       
       {/* 3D Viewer Controls */}
