@@ -1,11 +1,10 @@
-
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Upload, FileImage, AlertCircle, CheckCircle, Loader2, Cube } from "lucide-react";
+import { Upload, FileImage, AlertCircle, CheckCircle, Loader2, Box } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/providers/AuthProvider";
 import { useToast } from "@/components/ui/use-toast";
@@ -134,7 +133,7 @@ export const BlueprintUpload = () => {
         .from('detection_results')
         .insert({
           upload_id: uploadRecord.id,
-          detected_objects: mockDetectedObjects,
+          detected_objects: mockDetectedObjects as any,
           processing_time_ms: 2500,
           model_used: 'mock-detector',
           confidence_threshold: 0.5
@@ -324,7 +323,7 @@ export const BlueprintUpload = () => {
                     <Card className="mt-4">
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                          <Cube className="h-5 w-5 text-blue-500" />
+                          <Box className="h-5 w-5 text-blue-500" />
                           3D Model Details
                         </CardTitle>
                       </CardHeader>
