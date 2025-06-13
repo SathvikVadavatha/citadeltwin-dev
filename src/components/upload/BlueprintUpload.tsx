@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -131,7 +130,7 @@ export const BlueprintUpload = () => {
 
       // Properly type the detected objects from Json type
       const detectedObjects = Array.isArray(detectionData.detected_objects) 
-        ? detectionData.detected_objects as DetectedObject[]
+        ? (detectionData.detected_objects as unknown) as DetectedObject[]
         : [];
 
       setUploadResult({
