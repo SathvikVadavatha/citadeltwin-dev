@@ -71,21 +71,22 @@ export const BlueprintUpload = () => {
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
-      // Upload to Supabase Storage
+      // Upload to Supabase Storage (without onUploadProgress as it's not supported)
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('blueprints')
-        .upload(fileName, file, {
-          onUploadProgress: (progress) => {
-            setUploadProgress((progress.loaded / progress.total) * 100);
-          }
-        });
+        .upload(fileName, file);
 
       if (uploadError) throw uploadError;
+
+      // Simulate progress for better UX
+      setUploadProgress(50);
 
       // Get public URL
       const { data: urlData } = supabase.storage
         .from('blueprints')
         .getPublicUrl(fileName);
+
+      setUploadProgress(75);
 
       // Save upload record
       const { data: uploadRecord, error: dbError } = await supabase
@@ -104,6 +105,7 @@ export const BlueprintUpload = () => {
 
       if (dbError) throw dbError;
 
+      setUploadProgress(100);
       setUploading(false);
       setProcessing(true);
 
@@ -127,17 +129,22 @@ export const BlueprintUpload = () => {
 
       if (detectionError) throw detectionError;
 
+      // Properly type the detected objects from Json type
+      const detectedObjects = Array.isArray(detectionData.detected_objects) 
+        ? detectionData.detected_objects as DetectedObject[]
+        : [];
+
       setUploadResult({
         id: uploadRecord.id,
         filename: file.name,
-        detectedObjects: detectionData.detected_objects,
+        detectedObjects,
         imageUrl: urlData.publicUrl,
         processingTime: detectionData.processing_time_ms
       });
 
       toast({
         title: "Upload successful",
-        description: `Detected ${detectionData.detected_objects.length} objects in your blueprint.`,
+        description: `Detected ${detectedObjects.length} objects in your blueprint.`,
       });
 
     } catch (error) {
