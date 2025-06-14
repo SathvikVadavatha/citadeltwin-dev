@@ -2,7 +2,7 @@
 import React, { Suspense, useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,7 @@ interface Model3DViewerProps {
 
 const Model3D = ({ url }: { url: string }) => {
   const meshRef = useRef<THREE.Group>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
   
   let gltf;
   
@@ -25,15 +25,22 @@ const Model3D = ({ url }: { url: string }) => {
     gltf = useLoader(GLTFLoader, url);
   } catch (err) {
     console.error('Error loading 3D model:', err);
-    setError('Failed to load 3D model');
-    return (
-      <Html center>
-        <div className="flex items-center justify-center text-red-500">
-          <AlertCircle className="h-8 w-8 mr-2" />
-          <span>Failed to load 3D model</span>
-        </div>
-      </Html>
-    );
+    // Use useEffect to avoid infinite re-renders
+    useEffect(() => {
+      setHasError(true);
+    }, []);
+    
+    if (hasError) {
+      return (
+        <Html center>
+          <div className="flex items-center justify-center text-red-500">
+            <AlertCircle className="h-8 w-8 mr-2" />
+            <span>Failed to load 3D model</span>
+          </div>
+        </Html>
+      );
+    }
+    return null;
   }
 
   useFrame(() => {
@@ -57,17 +64,17 @@ const Model3D = ({ url }: { url: string }) => {
         gltf.scene.position.sub(center.multiplyScalar(scale));
       } catch (err) {
         console.error('Error processing 3D model:', err);
-        setError('Error processing 3D model');
+        setHasError(true);
       }
     }
   }, [gltf]);
 
-  if (error) {
+  if (hasError) {
     return (
       <Html center>
         <div className="flex items-center justify-center text-red-500">
           <AlertCircle className="h-8 w-8 mr-2" />
-          <span>{error}</span>
+          <span>Error processing 3D model</span>
         </div>
       </Html>
     );
