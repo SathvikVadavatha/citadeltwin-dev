@@ -1,8 +1,6 @@
-
 import React, { Suspense, useRef, useEffect, useState } from 'react';
-import { Canvas, useFrame, useLoader } from '@react-three/fiber';
-import { OrbitControls, Html } from '@react-three/drei';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, Html, useGLTF } from '@react-three/drei';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,10 +20,10 @@ const Model3D = ({ url }: { url: string }) => {
   let gltf;
   
   try {
-    gltf = useLoader(GLTFLoader, url);
+    gltf = useGLTF(url);
   } catch (err) {
     console.error('Error loading 3D model:', err);
-    // Use useEffect to avoid infinite re-renders
+    
     useEffect(() => {
       setHasError(true);
     }, []);
