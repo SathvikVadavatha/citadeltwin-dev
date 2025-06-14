@@ -1,3 +1,4 @@
+
 import React, { Suspense, useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Html, useGLTF } from '@react-three/drei';
@@ -17,37 +18,31 @@ const Model3D = ({ url }: { url: string }) => {
   const meshRef = useRef<THREE.Group>(null);
   const [hasError, setHasError] = useState(false);
   
+  // Always call useGLTF - no conditional calling
   let gltf;
+  let loadError = false;
   
   try {
     gltf = useGLTF(url);
   } catch (err) {
     console.error('Error loading 3D model:', err);
-    
-    useEffect(() => {
-      setHasError(true);
-    }, []);
-    
-    if (hasError) {
-      return (
-        <Html center>
-          <div className="flex items-center justify-center text-red-500">
-            <AlertCircle className="h-8 w-8 mr-2" />
-            <span>Failed to load 3D model</span>
-          </div>
-        </Html>
-      );
-    }
-    return null;
+    loadError = true;
   }
 
+  // Always call useFrame - no conditional calling
   useFrame(() => {
-    if (meshRef.current) {
+    if (meshRef.current && !hasError && !loadError) {
       meshRef.current.rotation.y += 0.005;
     }
   });
 
+  // Always call useEffect - no conditional calling
   useEffect(() => {
+    if (loadError) {
+      setHasError(true);
+      return;
+    }
+
     if (gltf?.scene) {
       try {
         // Center and scale the model
@@ -65,14 +60,14 @@ const Model3D = ({ url }: { url: string }) => {
         setHasError(true);
       }
     }
-  }, [gltf]);
+  }, [gltf, loadError]);
 
-  if (hasError) {
+  if (hasError || loadError) {
     return (
       <Html center>
         <div className="flex items-center justify-center text-red-500">
           <AlertCircle className="h-8 w-8 mr-2" />
-          <span>Error processing 3D model</span>
+          <span>Failed to load 3D model</span>
         </div>
       </Html>
     );
