@@ -4,7 +4,11 @@ import { UploadForm } from './UploadForm';
 import { UploadResults } from './UploadResults';
 import { useBlueprintUpload } from '@/hooks/useBlueprintUpload';
 
-export const BlueprintUpload = () => {
+interface BlueprintUploadProps {
+  onUploadComplete?: (uploadId: string) => void;
+}
+
+export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComplete }) => {
   const {
     uploading,
     processing,
@@ -16,6 +20,13 @@ export const BlueprintUpload = () => {
     resetUpload,
     download3DModel
   } = useBlueprintUpload();
+
+  // Call onUploadComplete when upload is finished
+  React.useEffect(() => {
+    if (uploadResult && onUploadComplete) {
+      onUploadComplete(uploadResult.id);
+    }
+  }, [uploadResult, onUploadComplete]);
 
   if (uploadResult) {
     return (

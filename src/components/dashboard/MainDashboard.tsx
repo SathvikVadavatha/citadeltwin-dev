@@ -22,12 +22,12 @@ import { BIMElementsManager } from '@/components/bim/BIMElementsManager';
 import { FEAAnalysisManager } from '@/components/fea/FEAAnalysisManager';
 import { GISDataManager } from '@/components/gis/GISDataManager';
 import { ComplianceEngine } from '@/components/compliance/ComplianceEngine';
-import { useBlueprintUpload } from '@/hooks/useBlueprintUpload';
+import { useUploads } from '@/hooks/useUploads';
 
 export const MainDashboard = () => {
   const [activeTab, setActiveTab] = useState('upload');
   const [selectedUploadId, setSelectedUploadId] = useState<string | undefined>();
-  const { uploads } = useBlueprintUpload();
+  const { uploads } = useUploads();
 
   const recentUpload = uploads?.[0];
 
@@ -100,15 +100,26 @@ export const MainDashboard = () => {
             </TabsContent>
 
             <TabsContent value="3d-viewer" className="space-y-6">
-              <Model3DViewer uploadId={selectedUploadId || recentUpload?.id} />
+              {(selectedUploadId || recentUpload?.id) ? (
+                <Model3DViewer 
+                  modelUrl="/placeholder-model.glb" 
+                  modelName="Demo Model"
+                />
+              ) : (
+                <Card className="cyber-tool-palette">
+                  <CardContent className="p-6 text-center">
+                    <p className="text-gray-400">No project selected. Upload a blueprint first.</p>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="bim" className="space-y-6">
-              <BIMElementsManager uploadId={selectedUploadId || recentUpload?.id} />
+              <BIMElementsManager />
             </TabsContent>
 
             <TabsContent value="fea" className="space-y-6">
-              <FEAAnalysisManager uploadId={selectedUploadId || recentUpload?.id} />
+              <FEAAnalysisManager />
             </TabsContent>
 
             <TabsContent value="compliance" className="space-y-6">

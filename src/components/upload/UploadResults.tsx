@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { FloorPlanAnalyzer } from "@/components/analysis/FloorPlanAnalyzer";
 import { EnhancedBlueprintAnalysis } from "@/components/analysis/EnhancedBlueprintAnalysis";
 import { SceneGenerator } from "@/components/3d/SceneGenerator";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from '@tanstack/react-query';
 
 interface DetectedObject {
   label: string;
@@ -69,23 +71,72 @@ interface UploadResult {
 }
 
 interface UploadResultsProps {
-  uploadResult: UploadResult;
-  onReset: () => void;
-  onDownload3DModel: (model: Generated3DModel) => void;
+  uploadId?: string;
+  uploadResult?: UploadResult;
+  onReset?: () => void;
+  onDownload3DModel?: (model: Generated3DModel) => void;
 }
 
 export const UploadResults: React.FC<UploadResultsProps> = ({
-  uploadResult,
+  uploadId,
+  uploadResult: providedUploadResult,
   onReset,
   onDownload3DModel
 }) => {
+  // Fetch upload data if only uploadId is provided
+  const { data: fetchedUploadData } = useQuery({
+    queryKey: ['upload-results', uploadId],
+    queryFn: async () => {
+      if (!uploadId) return null;
+
+      const { data, error } = await supabase
+        .from('blueprint_uploads')
+        .select('*')
+        .eq('id', uploadId)
+        .single();
+
+      if (error) throw error;
+
+      // Get public URL for the uploaded file
+      const { data: urlData } = supabase.storage
+        .from('blueprints')
+        .getPublicUrl(data.storage_path);
+
+      return {
+        id: data.id,
+        filename: data.original_filename,
+        detectedObjects: [],
+        imageUrl: urlData.publicUrl,
+        processingTime: 0,
+        generated3DModels: [],
+        floorPlanData: undefined,
+        geminiAnalysis: undefined
+      };
+    },
+    enabled: !!uploadId && !providedUploadResult,
+  });
+
+  const uploadResult = providedUploadResult || fetchedUploadData;
+
+  if (!uploadResult) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <p className="text-center text-muted-foreground">No upload data available</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Enhanced Blueprint Analysis Results</h2>
-        <Button variant="outline" onClick={onReset}>
-          Upload Another Blueprint
-        </Button>
+        {onReset && (
+          <Button variant="outline" onClick={onReset}>
+            Upload Another Blueprint
+          </Button>
+        )}
       </div>
 
       <div className="space-y-6">
@@ -138,7 +189,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                   <Model3DViewer
                     modelUrl={modelUrl}
                     modelName={model.model_name}
-                    onDownload={() => onDownload3DModel(model)}
+                    onDownload={onDownload3DModel ? () => onDownload3DModel(model) : undefined}
                   />
                 </div>
               );
