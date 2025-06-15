@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Edit, Trash2, Copy, Layers, Settings } from 'lucide-react';
-import { useBIMElements } from '@/hooks/useBIMElements';
+import { useBIMElements, BIMElement } from '@/hooks/useBIMElements';
 import { useMaterials } from '@/hooks/useMaterials';
 import { CreateBIMElementModal } from './CreateBIMElementModal';
 import { MaterialsManager } from './MaterialsManager';
@@ -13,9 +13,10 @@ import { ElementConstraintsPanel } from './ElementConstraintsPanel';
 
 interface BIMElementsManagerProps {
   uploadId?: string;
+  projectId?: string;
 }
 
-export const BIMElementsManager = ({ uploadId }: BIMElementsManagerProps) => {
+export const BIMElementsManager = ({ uploadId, projectId }: BIMElementsManagerProps) => {
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeTab, setActiveTab] = useState('elements');
@@ -30,7 +31,7 @@ export const BIMElementsManager = ({ uploadId }: BIMElementsManagerProps) => {
     updateElement,
     deleteElement,
     duplicateElement,
-  } = useBIMElements(uploadId);
+  } = useBIMElements(projectId, uploadId);
 
   const { materials } = useMaterials();
 
@@ -167,13 +168,13 @@ export const BIMElementsManager = ({ uploadId }: BIMElementsManagerProps) => {
                       <div>
                         <span className="text-muted-foreground">Material:</span>
                         <p className="font-medium">
-                          {(element as any).materials?.name || 'None'}
+                          {element.materials?.name || 'None'}
                         </p>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Parent:</span>
                         <p className="font-medium">
-                          {(element as any).parent_element?.name || 'None'}
+                          {element.parent_element?.name || 'None'}
                         </p>
                       </div>
                       <div>
@@ -209,9 +210,10 @@ export const BIMElementsManager = ({ uploadId }: BIMElementsManagerProps) => {
         open={showCreateModal}
         onOpenChange={setShowCreateModal}
         onCreate={createElement}
-        materials={materials}
-        elements={elements}
+        materials={materials || []}
+        elements={elements || []}
         uploadId={uploadId}
+        projectId={projectId}
       />
     </div>
   );
