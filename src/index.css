@@ -5,51 +5,54 @@
 
 @layer base {
   :root {
-    /* AutoCAD Dark Theme Colors */
-    --background: 17 24 39; /* #111827 - Very dark gray, almost black */
-    --foreground: 229 231 235; /* #E5E7EB - Light gray text */
+    /* Futuristic Digital Theme - Cyberpunk Inspired */
+    --background: 8 8 14; /* #08080E - Deep space black */
+    --foreground: 224 231 255; /* #E0E7FF - Cool bright white */
 
-    --card: 31 41 55; /* #1F2937 - Dark card background */
-    --card-foreground: 229 231 235; /* #E5E7EB - Light text on cards */
+    --card: 15 15 25; /* #0F0F19 - Dark card with blue tint */
+    --card-foreground: 224 231 255; /* #E0E7FF - Light text on cards */
 
-    --popover: 31 41 55; /* #1F2937 - Dark popover background */
-    --popover-foreground: 229 231 235; /* #E5E7EB - Light text on popovers */
+    --popover: 15 15 25; /* #0F0F19 - Dark popover background */
+    --popover-foreground: 224 231 255; /* #E0E7FF - Light text on popovers */
 
-    --primary: 59 130 246; /* #3B82F6 - AutoCAD blue */
-    --primary-foreground: 255 255 255; /* #FFFFFF - White text */
+    --primary: 0 255 255; /* #00FFFF - Electric cyan */
+    --primary-foreground: 8 8 14; /* #08080E - Dark text on primary */
 
-    --secondary: 55 65 81; /* #374151 - Medium dark gray */
-    --secondary-foreground: 209 213 219; /* #D1D5DB - Light gray text */
+    --secondary: 25 25 40; /* #191928 - Medium dark with purple tint */
+    --secondary-foreground: 168 192 255; /* #A8C0FF - Light blue text */
 
-    --muted: 75 85 99; /* #4B5563 - Darker muted background */
-    --muted-foreground: 156 163 175; /* #9CA3AF - Muted text */
+    --muted: 35 35 50; /* #232332 - Darker muted background */
+    --muted-foreground: 139 149 191; /* #8B95BF - Muted text with blue tint */
 
-    --accent: 251 191 36; /* #FBBF24 - AutoCAD yellow accent */
-    --accent-foreground: 17 24 39; /* #111827 - Dark text on accent */
+    --accent: 255 0 255; /* #FF00FF - Electric magenta accent */
+    --accent-foreground: 8 8 14; /* #08080E - Dark text on accent */
 
-    --destructive: 239 68 68; /* #EF4444 - Red for errors */
+    --destructive: 255 50 80; /* #FF3250 - Neon red for errors */
     --destructive-foreground: 255 255 255;
 
-    --border: 75 85 99; /* #4B5563 - Subtle border */
-    --input: 31 41 55; /* #1F2937 - Dark input backgrounds */
-    --ring: 59 130 246; /* #3B82F6 - Blue focus rings */
+    --border: 55 65 120; /* #374378 - Glowing blue border */
+    --input: 15 15 25; /* #0F0F19 - Dark input backgrounds */
+    --ring: 0 255 255; /* #00FFFF - Cyan focus rings */
 
-    --radius: 0.25rem; /* Sharper corners like AutoCAD */
+    --radius: 0.375rem; /* Slightly rounded for modern feel */
 
-    --sidebar-background: 31 41 55; /* #1F2937 - Dark sidebar */
-    --sidebar-foreground: 229 231 235; /* #E5E7EB - Light text in sidebar */
-    --sidebar-primary: 59 130 246;
-    --sidebar-primary-foreground: 255 255 255;
-    --sidebar-accent: 55 65 81;
-    --sidebar-accent-foreground: 229 231 235;
-    --sidebar-border: 75 85 99;
-    --sidebar-ring: 59 130 246;
+    --sidebar-background: 15 15 25; /* #0F0F19 - Dark sidebar */
+    --sidebar-foreground: 224 231 255; /* #E0E7FF - Light text in sidebar */
+    --sidebar-primary: 0 255 255;
+    --sidebar-primary-foreground: 8 8 14;
+    --sidebar-accent: 25 25 40;
+    --sidebar-accent-foreground: 224 231 255;
+    --sidebar-border: 55 65 120;
+    --sidebar-ring: 0 255 255;
 
-    /* AutoCAD specific colors */
-    --autocad-canvas: 8 8 8; /* #080808 - Very dark canvas like AutoCAD */
-    --autocad-grid: 55 65 81; /* #374151 - Grid color */
-    --autocad-ribbon: 31 41 55; /* #1F2937 - Ribbon background */
-    --autocad-command: 17 24 39; /* #111827 - Command line background */
+    /* Futuristic specific colors */
+    --cyber-canvas: 5 5 10; /* #05050A - Very dark canvas */
+    --cyber-grid: 0 255 255; /* #00FFFF - Cyan grid */
+    --cyber-ribbon: 15 15 25; /* #0F0F19 - Ribbon background */
+    --cyber-command: 8 8 14; /* #08080E - Command line background */
+    --cyber-glow: 0 255 255; /* #00FFFF - Glow effect */
+    --cyber-warning: 255 165 0; /* #FFA500 - Orange warning */
+    --cyber-success: 0 255 127; /* #00FF7F - Spring green success */
   }
 }
 
@@ -61,62 +64,122 @@
   body {
     @apply bg-background text-foreground font-sans;
     font-feature-settings: "rlig" 1, "calt" 1;
-    font-family: 'Segoe UI', 'Roboto', sans-serif;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', monospace;
+    background: 
+      radial-gradient(circle at 20% 80%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(255, 0, 255, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 40% 40%, rgba(0, 255, 127, 0.05) 0%, transparent 50%),
+      rgb(var(--background));
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-medium tracking-tight text-foreground;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
   }
 
-  /* AutoCAD-style components */
-  .cad-ribbon {
-    @apply bg-[rgb(var(--autocad-ribbon))] border-b border-border shadow-sm;
+  /* Futuristic components */
+  .cyber-ribbon {
+    @apply bg-[rgb(var(--cyber-ribbon))] border-b shadow-lg;
+    border-color: rgb(var(--cyber-glow));
+    box-shadow: 0 4px 20px rgba(0, 255, 255, 0.2);
   }
 
-  .cad-canvas {
-    @apply bg-[rgb(var(--autocad-canvas))] relative overflow-hidden;
+  .cyber-canvas {
+    @apply bg-[rgb(var(--cyber-canvas))] relative overflow-hidden;
+    background-image: 
+      linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
   }
 
-  .cad-tool-palette {
-    @apply bg-card border border-border shadow-lg;
+  .cyber-tool-palette {
+    @apply bg-card border shadow-lg;
+    border-color: rgb(var(--cyber-glow));
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
   }
 
-  .cad-command-line {
-    @apply bg-[rgb(var(--autocad-command))] border-t border-border text-foreground;
+  .cyber-command-line {
+    @apply bg-[rgb(var(--cyber-command))] border-t text-foreground;
+    border-color: rgb(var(--cyber-glow));
+    box-shadow: 0 -4px 20px rgba(0, 255, 255, 0.1);
   }
 
-  .cad-button {
-    @apply bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border transition-colors;
+  .cyber-button {
+    @apply bg-secondary hover:bg-secondary/80 text-secondary-foreground border transition-all duration-200;
+    border-color: rgb(var(--cyber-glow));
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.1);
   }
 
-  .cad-button.active {
+  .cyber-button:hover {
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    transform: translateY(-1px);
+  }
+
+  .cyber-button.active {
     @apply bg-primary text-primary-foreground;
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.5);
   }
 
   /* Grid pattern for canvas */
-  .cad-grid {
+  .cyber-grid {
     background-image: 
-      linear-gradient(rgb(var(--autocad-grid)) 1px, transparent 1px),
-      linear-gradient(90deg, rgb(var(--autocad-grid)) 1px, transparent 1px);
+      linear-gradient(rgba(0, 255, 255, 0.2) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 255, 255, 0.2) 1px, transparent 1px);
     background-size: 20px 20px;
-    opacity: 0.3;
+    opacity: 0.4;
   }
 
-  /* Updated scrollbar for dark theme */
+  /* Glowing scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    background: rgb(31, 41, 55);
+    background: rgb(15, 15, 25);
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgb(75, 85, 99);
+    background: linear-gradient(45deg, rgb(0, 255, 255), rgb(255, 0, 255));
     border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgb(59, 130, 246);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+  }
+
+  /* Futuristic glow effects */
+  .glow-cyan {
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+  }
+
+  .glow-magenta {
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+  }
+
+  .glow-green {
+    box-shadow: 0 0 20px rgba(0, 255, 127, 0.3);
+  }
+
+  /* Animated gradient borders */
+  .gradient-border {
+    position: relative;
+    background: linear-gradient(45deg, transparent, rgba(0, 255, 255, 0.1), transparent);
+    border: 1px solid transparent;
+  }
+
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(45deg, rgb(0, 255, 255), rgb(255, 0, 255), rgb(0, 255, 127));
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    z-index: -1;
   }
 }

@@ -9,6 +9,103 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      assembly_elements: {
+        Row: {
+          assembly_id: string
+          element_id: string
+          id: string
+        }
+        Insert: {
+          assembly_id: string
+          element_id: string
+          id?: string
+        }
+        Update: {
+          assembly_id?: string
+          element_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembly_elements_assembly_id_fkey"
+            columns: ["assembly_id"]
+            isOneToOne: false
+            referencedRelation: "model_assemblies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembly_elements_element_id_fkey"
+            columns: ["element_id"]
+            isOneToOne: false
+            referencedRelation: "bim_elements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bim_elements: {
+        Row: {
+          created_at: string
+          description: string | null
+          element_type: Database["public"]["Enums"]["element_type"]
+          geometry: Json
+          id: string
+          material_id: string | null
+          name: string
+          parameters: Json
+          parent_element_id: string | null
+          updated_at: string
+          upload_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          element_type: Database["public"]["Enums"]["element_type"]
+          geometry: Json
+          id?: string
+          material_id?: string | null
+          name: string
+          parameters?: Json
+          parent_element_id?: string | null
+          updated_at?: string
+          upload_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          element_type?: Database["public"]["Enums"]["element_type"]
+          geometry?: Json
+          id?: string
+          material_id?: string | null
+          name?: string
+          parameters?: Json
+          parent_element_id?: string | null
+          updated_at?: string
+          upload_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bim_elements_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bim_elements_parent_element_id_fkey"
+            columns: ["parent_element_id"]
+            isOneToOne: false
+            referencedRelation: "bim_elements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bim_elements_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "blueprint_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blueprint_uploads: {
         Row: {
           created_at: string
@@ -89,6 +186,51 @@ export type Database = {
           },
         ]
       }
+      element_constraints: {
+        Row: {
+          constraint_data: Json
+          constraint_type: Database["public"]["Enums"]["constraint_type"]
+          created_at: string
+          element_id: string
+          id: string
+          is_active: boolean | null
+          target_element_id: string | null
+        }
+        Insert: {
+          constraint_data: Json
+          constraint_type: Database["public"]["Enums"]["constraint_type"]
+          created_at?: string
+          element_id: string
+          id?: string
+          is_active?: boolean | null
+          target_element_id?: string | null
+        }
+        Update: {
+          constraint_data?: Json
+          constraint_type?: Database["public"]["Enums"]["constraint_type"]
+          created_at?: string
+          element_id?: string
+          id?: string
+          is_active?: boolean | null
+          target_element_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "element_constraints_element_id_fkey"
+            columns: ["element_id"]
+            isOneToOne: false
+            referencedRelation: "bim_elements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "element_constraints_target_element_id_fkey"
+            columns: ["target_element_id"]
+            isOneToOne: false
+            referencedRelation: "bim_elements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generated_3d_models: {
         Row: {
           created_at: string
@@ -139,6 +281,80 @@ export type Database = {
           },
         ]
       }
+      materials: {
+        Row: {
+          cost_per_unit: number | null
+          created_at: string
+          id: string
+          material_type: Database["public"]["Enums"]["material_type"]
+          name: string
+          properties: Json
+          supplier: string | null
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          cost_per_unit?: number | null
+          created_at?: string
+          id?: string
+          material_type: Database["public"]["Enums"]["material_type"]
+          name: string
+          properties?: Json
+          supplier?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cost_per_unit?: number | null
+          created_at?: string
+          id?: string
+          material_type?: Database["public"]["Enums"]["material_type"]
+          name?: string
+          properties?: Json
+          supplier?: string | null
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      model_assemblies: {
+        Row: {
+          assembly_type: string
+          created_at: string
+          id: string
+          name: string
+          properties: Json | null
+          updated_at: string
+          upload_id: string
+        }
+        Insert: {
+          assembly_type: string
+          created_at?: string
+          id?: string
+          name: string
+          properties?: Json | null
+          updated_at?: string
+          upload_id: string
+        }
+        Update: {
+          assembly_type?: string
+          created_at?: string
+          id?: string
+          name?: string
+          properties?: Json | null
+          updated_at?: string
+          upload_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "model_assemblies_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "blueprint_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -177,7 +393,39 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      constraint_type:
+        | "dimensional"
+        | "geometric"
+        | "material"
+        | "structural"
+        | "thermal"
+      element_type:
+        | "wall"
+        | "beam"
+        | "column"
+        | "slab"
+        | "door"
+        | "window"
+        | "roof"
+        | "foundation"
+        | "stair"
+        | "railing"
+        | "mechanical"
+        | "electrical"
+        | "plumbing"
+        | "structural"
+        | "architectural"
+      material_type:
+        | "concrete"
+        | "steel"
+        | "wood"
+        | "glass"
+        | "aluminum"
+        | "brick"
+        | "stone"
+        | "composite"
+        | "insulation"
+        | "drywall"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -292,6 +540,43 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      constraint_type: [
+        "dimensional",
+        "geometric",
+        "material",
+        "structural",
+        "thermal",
+      ],
+      element_type: [
+        "wall",
+        "beam",
+        "column",
+        "slab",
+        "door",
+        "window",
+        "roof",
+        "foundation",
+        "stair",
+        "railing",
+        "mechanical",
+        "electrical",
+        "plumbing",
+        "structural",
+        "architectural",
+      ],
+      material_type: [
+        "concrete",
+        "steel",
+        "wood",
+        "glass",
+        "aluminum",
+        "brick",
+        "stone",
+        "composite",
+        "insulation",
+        "drywall",
+      ],
+    },
   },
 } as const
