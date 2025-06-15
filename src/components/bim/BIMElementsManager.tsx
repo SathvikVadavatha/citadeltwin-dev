@@ -211,7 +211,7 @@ export const BIMElementsManager = ({ uploadId, projectId }: BIMElementsManagerPr
         onOpenChange={setShowCreateModal}
         onCreate={createElement}
         materials={materials || []}
-        elements={elements || []}
+        elements={elements as any || []}
         uploadId={uploadId}
         projectId={projectId}
       />
