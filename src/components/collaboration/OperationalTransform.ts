@@ -1,6 +1,6 @@
 // Operational Transformation utilities for real-time collaboration
 export interface Operation {
-  type: 'create' | 'update' | 'delete' | 'move';
+  type: 'create' | 'update' | 'delete' | 'transform';
   elementId: string;
   elementType: string;
   data: any;
@@ -76,9 +76,9 @@ export class OperationalTransform {
         }
         break;
 
-      case 'move':
+      case 'transform':
         // Transform position-based operations
-        if (remoteOp.type === 'move') {
+        if (remoteOp.type === 'transform') {
           transformed.data = this.transformPosition(remoteOp.data, localOp.data);
         }
         break;
@@ -154,7 +154,7 @@ export class OperationalTransform {
         delete newState.elements[operation.elementId];
         break;
 
-      case 'move':
+      case 'transform':
         if (newState.elements[operation.elementId]) {
           newState.elements[operation.elementId] = {
             ...newState.elements[operation.elementId],

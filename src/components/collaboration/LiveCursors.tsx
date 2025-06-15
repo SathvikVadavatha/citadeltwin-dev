@@ -35,13 +35,22 @@ export const LiveCursors = ({ projectId, onCursorMove }: LiveCursorsProps) => {
   useEffect(() => {
     const activeCursors: CursorPosition[] = userPresence
       .filter(presence => presence.cursor_position && presence.is_active)
-      .map(presence => ({
-        x: presence.cursor_position.x,
-        y: presence.cursor_position.y,
-        userId: presence.user_id,
-        userName: (presence as any).profiles?.full_name || 'Anonymous',
-        userColor: presence.user_color,
-      }));
+      .map(presence => {
+        // Type guard and safe access to cursor position
+        const cursorPos = presence.cursor_position as { x: number; y: number } | null;
+        if (!cursorPos || typeof cursorPos !== 'object' || !('x' in cursorPos) || !('y' in cursorPos)) {
+          return null;
+        }
+
+        return {
+          x: cursorPos.x,
+          y: cursorPos.y,
+          userId: presence.user_id || '',
+          userName: (presence as any).profiles?.full_name || 'Anonymous',
+          userColor: presence.user_color,
+        };
+      })
+      .filter((cursor): cursor is CursorPosition => cursor !== null);
 
     setCursors(activeCursors);
   }, [userPresence]);

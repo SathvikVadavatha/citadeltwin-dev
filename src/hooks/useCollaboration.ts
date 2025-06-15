@@ -23,6 +23,7 @@ export interface OperationData {
   properties?: any;
   oldProperties?: any;
   position?: any;
+  [key: string]: any; // Add index signature for Json compatibility
 }
 
 export const useCollaboration = (projectId?: string) => {
@@ -179,7 +180,7 @@ export const useCollaboration = (projectId?: string) => {
           change_type: operation.type,
           element_id: operation.elementId,
           element_type: operation.elementType,
-          operation_data: operation,
+          operation_data: operation as any, // Cast to Json type
           operation_index: currentIndex,
         });
 
@@ -202,7 +203,7 @@ export const useCollaboration = (projectId?: string) => {
       const { error } = await supabase
         .from('user_presence')
         .update({
-          cursor_position: position,
+          cursor_position: position as any, // Cast to Json type
           last_seen: new Date().toISOString(),
         })
         .eq('session_id', activeSession.id)
