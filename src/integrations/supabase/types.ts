@@ -231,6 +231,230 @@ export type Database = {
           },
         ]
       }
+      fea_analyses: {
+        Row: {
+          analysis_type: Database["public"]["Enums"]["analysis_type"]
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          element_id: string | null
+          id: string
+          input_parameters: Json
+          name: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["analysis_status"]
+          updated_at: string
+          upload_id: string | null
+          user_id: string
+        }
+        Insert: {
+          analysis_type?: Database["public"]["Enums"]["analysis_type"]
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          element_id?: string | null
+          id?: string
+          input_parameters?: Json
+          name: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["analysis_status"]
+          updated_at?: string
+          upload_id?: string | null
+          user_id: string
+        }
+        Update: {
+          analysis_type?: Database["public"]["Enums"]["analysis_type"]
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          element_id?: string | null
+          id?: string
+          input_parameters?: Json
+          name?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["analysis_status"]
+          updated_at?: string
+          upload_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fea_analyses_element_id_fkey"
+            columns: ["element_id"]
+            isOneToOne: false
+            referencedRelation: "bim_elements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fea_analyses_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "blueprint_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fea_boundary_conditions: {
+        Row: {
+          analysis_id: string
+          condition_type: Database["public"]["Enums"]["boundary_condition_type"]
+          constraints: Json
+          created_at: string
+          id: string
+          location: Json
+          name: string
+          properties: Json | null
+        }
+        Insert: {
+          analysis_id: string
+          condition_type: Database["public"]["Enums"]["boundary_condition_type"]
+          constraints: Json
+          created_at?: string
+          id?: string
+          location: Json
+          name: string
+          properties?: Json | null
+        }
+        Update: {
+          analysis_id?: string
+          condition_type?: Database["public"]["Enums"]["boundary_condition_type"]
+          constraints?: Json
+          created_at?: string
+          id?: string
+          location?: Json
+          name?: string
+          properties?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fea_boundary_conditions_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "fea_analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fea_loads: {
+        Row: {
+          analysis_id: string
+          created_at: string
+          direction: Json
+          id: string
+          load_type: Database["public"]["Enums"]["load_type"]
+          location: Json
+          magnitude: number
+          name: string
+          properties: Json | null
+        }
+        Insert: {
+          analysis_id: string
+          created_at?: string
+          direction: Json
+          id?: string
+          load_type: Database["public"]["Enums"]["load_type"]
+          location: Json
+          magnitude: number
+          name: string
+          properties?: Json | null
+        }
+        Update: {
+          analysis_id?: string
+          created_at?: string
+          direction?: Json
+          id?: string
+          load_type?: Database["public"]["Enums"]["load_type"]
+          location?: Json
+          magnitude?: number
+          name?: string
+          properties?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fea_loads_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "fea_analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fea_meshes: {
+        Row: {
+          analysis_id: string
+          created_at: string
+          element_type: string
+          elements: Json
+          id: string
+          nodes: Json
+          properties: Json | null
+        }
+        Insert: {
+          analysis_id: string
+          created_at?: string
+          element_type: string
+          elements: Json
+          id?: string
+          nodes: Json
+          properties?: Json | null
+        }
+        Update: {
+          analysis_id?: string
+          created_at?: string
+          element_type?: string
+          elements?: Json
+          id?: string
+          nodes?: Json
+          properties?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fea_meshes_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "fea_analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fea_results: {
+        Row: {
+          analysis_id: string
+          created_at: string
+          data: Json
+          file_path: string | null
+          id: string
+          metadata: Json | null
+          result_type: string
+        }
+        Insert: {
+          analysis_id: string
+          created_at?: string
+          data: Json
+          file_path?: string | null
+          id?: string
+          metadata?: Json | null
+          result_type: string
+        }
+        Update: {
+          analysis_id?: string
+          created_at?: string
+          data?: Json
+          file_path?: string | null
+          id?: string
+          metadata?: Json | null
+          result_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fea_results_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "fea_analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generated_3d_models: {
         Row: {
           created_at: string
@@ -393,6 +617,19 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      analysis_status:
+        | "pending"
+        | "running"
+        | "completed"
+        | "failed"
+        | "cancelled"
+      analysis_type: "static" | "modal" | "buckling" | "thermal" | "dynamic"
+      boundary_condition_type:
+        | "fixed"
+        | "pinned"
+        | "roller"
+        | "free"
+        | "symmetry"
       constraint_type:
         | "dimensional"
         | "geometric"
@@ -415,6 +652,13 @@ export type Database = {
         | "plumbing"
         | "structural"
         | "architectural"
+      load_type:
+        | "point_load"
+        | "distributed_load"
+        | "moment"
+        | "pressure"
+        | "temperature"
+        | "gravity"
       material_type:
         | "concrete"
         | "steel"
@@ -541,6 +785,21 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      analysis_status: [
+        "pending",
+        "running",
+        "completed",
+        "failed",
+        "cancelled",
+      ],
+      analysis_type: ["static", "modal", "buckling", "thermal", "dynamic"],
+      boundary_condition_type: [
+        "fixed",
+        "pinned",
+        "roller",
+        "free",
+        "symmetry",
+      ],
       constraint_type: [
         "dimensional",
         "geometric",
@@ -564,6 +823,14 @@ export const Constants = {
         "plumbing",
         "structural",
         "architectural",
+      ],
+      load_type: [
+        "point_load",
+        "distributed_load",
+        "moment",
+        "pressure",
+        "temperature",
+        "gravity",
       ],
       material_type: [
         "concrete",

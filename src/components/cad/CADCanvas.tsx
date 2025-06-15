@@ -1,168 +1,190 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, Grid, Box, Text } from "@react-three/drei";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Grid3X3,
-  MousePointer,
-  ZoomIn,
-  ZoomOut,
-  RotateCw,
-  Move3D,
-  Maximize,
-  Settings,
-  Layers
-} from "lucide-react";
+import { BIMElementsManager } from "@/components/bim/BIMElementsManager";
+import { FEAAnalysisManager } from "@/components/fea/FEAAnalysisManager";
+import { Layers, Cube, Calculator, Zap, Settings, Eye, Grid3X3 } from "lucide-react";
 
 interface CADCanvasProps {
-  currentView?: string;
-  onNavigate?: (view: string) => void;
+  onNavigate: (view: string) => void;
 }
 
-export const CADCanvas = ({ currentView = "model", onNavigate }: CADCanvasProps) => {
-  const [isGridVisible, setIsGridVisible] = useState(true);
-  const [zoom, setZoom] = useState(100);
-  const canvasRef = useRef<HTMLDivElement>(null);
+export const CADCanvas = ({ onNavigate }: CADCanvasProps) => {
+  const [activeTab, setActiveTab] = useState("model");
+  const [showGrid, setShowGrid] = useState(true);
+  const [selectedElement, setSelectedElement] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   return (
-    <div className="flex-1 flex flex-col h-full">
-      {/* Canvas Tabs */}
-      <div className="flex items-center justify-between cyber-ribbon px-2 py-1">
-        <Tabs value={currentView} className="flex-1">
-          <TabsList className="h-7 bg-transparent p-0 space-x-1">
-            <TabsTrigger value="model" className="h-6 px-3 text-xs cyber-button">Model</TabsTrigger>
-            <TabsTrigger value="layout1" className="h-6 px-3 text-xs cyber-button">Layout1</TabsTrigger>
-            <TabsTrigger value="layout2" className="h-6 px-3 text-xs cyber-button">Layout2</TabsTrigger>
-          </TabsList>
-        </Tabs>
+    <div className="flex-1 flex bg-gray-950 overflow-hidden">
+      {/* Main 3D Viewport */}
+      <div className="flex-1 relative">
+        <Canvas
+          ref={canvasRef}
+          camera={{ position: [10, 10, 10], fov: 60 }}
+          className="bg-gradient-to-br from-gray-950 via-blue-950/20 to-cyan-950/20"
+        >
+          <ambientLight intensity={0.4} />
+          <directionalLight position={[10, 10, 5]} intensity={0.8} color="#00ffff" />
+          <directionalLight position={[-10, -10, -5]} intensity={0.3} color="#ff6b35" />
+          
+          {showGrid && (
+            <Grid 
+              args={[20, 20]} 
+              position={[0, -0.01, 0]}
+              cellColor="#00ffff"
+              sectionColor="#ff6b35"
+              fadeDistance={50}
+              fadeStrength={1}
+            />
+          )}
 
-        {/* View Controls */}
-        <div className="flex items-center space-x-2">
+          {/* Sample 3D Elements */}
+          <Box position={[0, 1, 0]} args={[2, 2, 0.2]} onClick={() => setSelectedElement("wall-1")}>
+            <meshStandardMaterial 
+              color={selectedElement === "wall-1" ? "#00ffff" : "#4a5568"} 
+              transparent
+              opacity={0.8}
+            />
+          </Box>
+          
+          <Box position={[0, 3, 0]} args={[2, 0.2, 0.2]} onClick={() => setSelectedElement("beam-1")}>
+            <meshStandardMaterial 
+              color={selectedElement === "beam-1" ? "#00ffff" : "#e53e3e"} 
+              transparent
+              opacity={0.8}
+            />
+          </Box>
+
+          <OrbitControls 
+            enablePan={true} 
+            enableZoom={true} 
+            enableRotate={true}
+            minDistance={2}
+            maxDistance={100}
+          />
+        </Canvas>
+
+        {/* Viewport Controls */}
+        <div className="absolute top-4 left-4 flex gap-2">
           <Button
             size="sm"
-            variant="ghost"
-            className="h-6 w-6 p-0 cyber-button"
-            onClick={() => setIsGridVisible(!isGridVisible)}
+            variant={showGrid ? "default" : "outline"}
+            onClick={() => setShowGrid(!showGrid)}
+            className="bg-gray-800/80 border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/20"
           >
-            <Grid3X3 className={`h-3 w-3 ${isGridVisible ? 'text-primary glow-cyan' : 'text-muted-foreground'}`} />
+            <Grid3X3 className="w-4 h-4" />
           </Button>
-          
-          <div className="flex items-center space-x-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-6 w-6 p-0 cyber-button"
-              onClick={() => setZoom(Math.max(10, zoom - 10))}
-            >
-              <ZoomOut className="h-3 w-3" />
-            </Button>
-            <Badge variant="outline" className="text-xs px-2 h-6 font-mono gradient-border">
-              {zoom}%
-            </Badge>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-6 w-6 p-0 cyber-button"
-              onClick={() => setZoom(Math.min(500, zoom + 10))}
-            >
-              <ZoomIn className="h-3 w-3" />
-            </Button>
-          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="bg-gray-800/80 border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/20"
+          >
+            <Eye className="w-4 h-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="bg-gray-800/80 border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/20"
+          >
+            <Settings className="w-4 h-4" />
+          </Button>
         </div>
-      </div>
 
-      {/* Main Canvas Area */}
-      <div className="flex-1 relative overflow-hidden">
-        <div
-          ref={canvasRef}
-          className={`cyber-canvas w-full h-full relative cursor-crosshair ${
-            isGridVisible ? 'cyber-grid' : ''
-          }`}
-          style={{
-            backgroundImage: isGridVisible ? 
-              'radial-gradient(circle at 20% 80%, rgba(0, 255, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 0, 255, 0.1) 0%, transparent 50%)' : 
-              'none'
-          }}
-        >
-          {/* Canvas Content */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center text-muted-foreground">
-              <div className="w-16 h-16 mx-auto mb-4 border-2 border-dashed border-primary/50 rounded-lg flex items-center justify-center glow-cyan">
-                <Layers className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-lg font-medium mb-2 text-foreground glow-cyan">Parametric BIM Canvas</h3>
-              <p className="text-sm max-w-md">
-                Create and manipulate parametric building elements in real-time.
-                Use the BIM tools to start modeling or upload a blueprint to begin.
-              </p>
-              {onNavigate && (
-                <div className="mt-4 space-x-2">
-                  <Button 
-                    className="cyber-button bg-primary text-primary-foreground glow-cyan" 
-                    onClick={() => onNavigate('upload')}
-                  >
-                    Upload Blueprint
+        {/* Element Info */}
+        {selectedElement && (
+          <Card className="absolute top-4 right-4 bg-gray-900/90 border-cyan-500/30 backdrop-blur">
+            <CardContent className="p-4">
+              <div className="space-y-2">
+                <Badge variant="outline" className="text-cyan-300 border-cyan-500">
+                  {selectedElement}
+                </Badge>
+                <p className="text-sm text-gray-300">
+                  Selected element: {selectedElement.replace("-", " ").toUpperCase()}
+                </p>
+                <div className="flex gap-2">
+                  <Button size="sm" className="bg-cyan-600 hover:bg-cyan-700">
+                    <Calculator className="w-3 h-3 mr-1" />
+                    Analyze
                   </Button>
-                  <Button 
-                    className="cyber-button" 
-                    onClick={() => onNavigate('bim')}
-                  >
-                    <Layers className="w-4 h-4 mr-2" />
-                    BIM Manager
+                  <Button size="sm" variant="outline" className="border-cyan-500/30 text-cyan-300">
+                    Edit
                   </Button>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Origin Indicator */}
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-            <div className="w-4 h-4 relative">
-              <div className="absolute w-8 h-0.5 bg-red-500 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 glow-magenta"></div>
-              <div className="absolute w-0.5 h-8 bg-green-500 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 glow-green"></div>
-              <div className="absolute w-2 h-2 border border-primary rounded-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 glow-cyan"></div>
-            </div>
-          </div>
-
-          {/* View Cube (3D Navigation) */}
-          <div className="absolute top-4 right-4 w-16 h-16 cyber-tool-palette rounded-lg shadow-lg glow-cyan">
-            <div className="w-full h-full flex items-center justify-center text-xs font-medium text-foreground cursor-pointer hover:bg-secondary/50 transition-colors rounded-lg">
-              <div className="text-center">
-                <RotateCw className="h-6 w-6 mx-auto mb-1 text-primary" />
-                <div className="text-primary">TOP</div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
-          {/* Navigation Controls */}
-          <div className="absolute bottom-4 right-4 flex flex-col space-y-2">
-            <Button size="sm" className="cyber-button w-10 h-10 p-0 glow-cyan">
-              <ZoomIn className="h-4 w-4" />
-            </Button>
-            <Button size="sm" className="cyber-button w-10 h-10 p-0 glow-cyan">
-              <ZoomOut className="h-4 w-4" />
-            </Button>
-            <Button size="sm" className="cyber-button w-10 h-10 p-0 glow-cyan">
-              <Maximize className="h-4 w-4" />
-            </Button>
-            <Button size="sm" className="cyber-button w-10 h-10 p-0 glow-cyan">
-              <Move3D className="h-4 w-4" />
-            </Button>
-          </div>
+      {/* Right Panel */}
+      <div className="w-96 border-l border-gray-800 bg-gray-900/95 backdrop-blur flex flex-col">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+          <TabsList className="grid w-full grid-cols-3 bg-gray-800 m-2">
+            <TabsTrigger 
+              value="model" 
+              className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white"
+            >
+              <Cube className="w-4 h-4 mr-1" />
+              Model
+            </TabsTrigger>
+            <TabsTrigger 
+              value="analysis"
+              className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white"
+            >
+              <Calculator className="w-4 h-4 mr-1" />
+              FEA
+            </TabsTrigger>
+            <TabsTrigger 
+              value="layers"
+              className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white"
+            >
+              <Layers className="w-4 h-4 mr-1" />
+              Layers
+            </TabsTrigger>
+          </TabsList>
 
-          {/* Floating HUD */}
-          <div className="absolute top-4 left-4 space-y-2">
-            <div className="cyber-tool-palette p-2 rounded-lg glow-cyan">
-              <div className="text-xs text-muted-foreground mb-1">Viewport</div>
-              <div className="text-sm font-medium text-primary">3D Perspective</div>
-            </div>
-            <div className="cyber-tool-palette p-2 rounded-lg glow-cyan">
-              <div className="text-xs text-muted-foreground mb-1">Elements</div>
-              <div className="text-sm font-medium text-primary">0 selected</div>
-            </div>
+          <div className="flex-1 overflow-hidden">
+            <TabsContent value="model" className="h-full p-2 overflow-y-auto">
+              <BIMElementsManager />
+            </TabsContent>
+
+            <TabsContent value="analysis" className="h-full p-2 overflow-y-auto">
+              <FEAAnalysisManager elementId={selectedElement || undefined} />
+            </TabsContent>
+
+            <TabsContent value="layers" className="h-full p-2 overflow-y-auto">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-cyan-300">Layer Management</h3>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-2 bg-gray-800 rounded">
+                    <span className="text-gray-200">Structural</span>
+                    <Badge variant="outline" className="text-emerald-400 border-emerald-400">
+                      Visible
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-gray-800 rounded">
+                    <span className="text-gray-200">Architectural</span>
+                    <Badge variant="outline" className="text-emerald-400 border-emerald-400">
+                      Visible
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-gray-800 rounded">
+                    <span className="text-gray-200">MEP</span>
+                    <Badge variant="outline" className="text-gray-500 border-gray-500">
+                      Hidden
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
           </div>
-        </div>
+        </Tabs>
       </div>
     </div>
   );

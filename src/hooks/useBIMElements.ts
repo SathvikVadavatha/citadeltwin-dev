@@ -6,8 +6,6 @@ import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 
 type BIMElement = Database['public']['Tables']['bim_elements']['Row'];
-type BIMElementInsert = Database['public']['Tables']['bim_elements']['Insert'];
-type BIMElementUpdate = Database['public']['Tables']['bim_elements']['Update'];
 
 export interface CreateBIMElementData {
   upload_id?: string;

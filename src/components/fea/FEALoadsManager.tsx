@@ -1,0 +1,287 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Trash2, Zap } from "lucide-react";
+import { useFEAAnalyses, type CreateLoadData } from "@/hooks/useFEAAnalyses";
+import type { Database } from '@/integrations/supabase/types';
+
+type FEALoad = Database['public']['Tables']['fea_loads']['Row'];
+
+interface FEALoadsManagerProps {
+  analysisId: string;
+  loads: FEALoad[];
+  onRefresh: () => void;
+}
+
+export const FEALoadsManager = ({ analysisId, loads, onRefresh }: FEALoadsManagerProps) => {
+  const [isCreating, setIsCreating] = useState(false);
+  const [newLoad, setNewLoad] = useState<Partial<CreateLoadData>>({
+    analysis_id: analysisId,
+    load_type: 'point_load',
+    name: '',
+    magnitude: 0,
+    direction: { x: 0, y: -1, z: 0 }, // Default downward force
+    location: { x: 0, y: 0, z: 0 },
+  });
+
+  const { createLoad } = useFEAAnalyses();
+
+  const handleCreateLoad = async () => {
+    if (!newLoad.name || newLoad.magnitude === 0) return;
+
+    await createLoad(newLoad as CreateLoadData);
+    setNewLoad({
+      analysis_id: analysisId,
+      load_type: 'point_load',
+      name: '',
+      magnitude: 0,
+      direction: { x: 0, y: -1, z: 0 },
+      location: { x: 0, y: 0, z: 0 },
+    });
+    setIsCreating(false);
+    onRefresh();
+  };
+
+  const getLoadTypeIcon = (loadType: string) => {
+    switch (loadType) {
+      case 'point_load':
+        return '📍';
+      case 'distributed_load':
+        return '📏';
+      case 'moment':
+        return '🔄';
+      case 'pressure':
+        return '💨';
+      case 'temperature':
+        return '🌡️';
+      case 'gravity':
+        return '⬇️';
+      default:
+        return '⚡';
+    }
+  };
+
+  return (
+    <Card className="bg-gray-900 border-gray-700">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-cyan-300 flex items-center gap-2">
+              <Zap className="w-5 h-5" />
+              Loads & Forces
+            </CardTitle>
+            <CardDescription className="text-gray-400">
+              Define forces and loads acting on the structure
+            </CardDescription>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => setIsCreating(!isCreating)}
+            className="bg-cyan-600 hover:bg-cyan-700"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Add Load
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        
+        {/* Create New Load Form */}
+        {isCreating && (
+          <div className="bg-gray-800 p-4 rounded-lg space-y-4">
+            <h4 className="font-medium text-gray-200">Create New Load</h4>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-gray-200">Load Name</Label>
+                <Input
+                  value={newLoad.name}
+                  onChange={(e) => setNewLoad({ ...newLoad, name: e.target.value })}
+                  placeholder="Enter load name"
+                  className="bg-gray-700 border-gray-600 text-gray-100"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-gray-200">Load Type</Label>
+                <Select 
+                  value={newLoad.load_type} 
+                  onValueChange={(value: any) => setNewLoad({ ...newLoad, load_type: value })}
+                >
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-gray-100">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-700 border-gray-600">
+                    <SelectItem value="point_load">Point Load</SelectItem>
+                    <SelectItem value="distributed_load">Distributed Load</SelectItem>
+                    <SelectItem value="moment">Moment</SelectItem>
+                    <SelectItem value="pressure">Pressure</SelectItem>
+                    <SelectItem value="temperature">Temperature</SelectItem>
+                    <SelectItem value="gravity">Gravity</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label className="text-gray-200">Magnitude (N)</Label>
+                <Input
+                  type="number"
+                  value={newLoad.magnitude}
+                  onChange={(e) => setNewLoad({ ...newLoad, magnitude: parseFloat(e.target.value) || 0 })}
+                  className="bg-gray-700 border-gray-600 text-gray-100"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-gray-200">Dir X</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={newLoad.direction?.x}
+                  onChange={(e) => setNewLoad({ 
+                    ...newLoad, 
+                    direction: { ...newLoad.direction!, x: parseFloat(e.target.value) || 0 }
+                  })}
+                  className="bg-gray-700 border-gray-600 text-gray-100"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-gray-200">Dir Y</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={newLoad.direction?.y}
+                  onChange={(e) => setNewLoad({ 
+                    ...newLoad, 
+                    direction: { ...newLoad.direction!, y: parseFloat(e.target.value) || 0 }
+                  })}
+                  className="bg-gray-700 border-gray-600 text-gray-100"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-gray-200">Dir Z</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={newLoad.direction?.z}
+                  onChange={(e) => setNewLoad({ 
+                    ...newLoad, 
+                    direction: { ...newLoad.direction!, z: parseFloat(e.target.value) || 0 }
+                  })}
+                  className="bg-gray-700 border-gray-600 text-gray-100"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-gray-200">Position X (m)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={newLoad.location?.x}
+                  onChange={(e) => setNewLoad({ 
+                    ...newLoad, 
+                    location: { ...newLoad.location!, x: parseFloat(e.target.value) || 0 }
+                  })}
+                  className="bg-gray-700 border-gray-600 text-gray-100"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-gray-200">Position Y (m)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={newLoad.location?.y}
+                  onChange={(e) => setNewLoad({ 
+                    ...newLoad, 
+                    location: { ...newLoad.location!, y: parseFloat(e.target.value) || 0 }
+                  })}
+                  className="bg-gray-700 border-gray-600 text-gray-100"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-gray-200">Position Z (m)</Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={newLoad.location?.z}
+                  onChange={(e) => setNewLoad({ 
+                    ...newLoad, 
+                    location: { ...newLoad.location!, z: parseFloat(e.target.value) || 0 }
+                  })}
+                  className="bg-gray-700 border-gray-600 text-gray-100"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleCreateLoad}
+                className="bg-emerald-600 hover:bg-emerald-700"
+                disabled={!newLoad.name || newLoad.magnitude === 0}
+              >
+                Create Load
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => setIsCreating(false)}
+                className="border-gray-600 text-gray-300 hover:bg-gray-800"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Existing Loads */}
+        {loads.length === 0 ? (
+          <div className="text-center text-gray-400 py-4">
+            No loads defined. Add loads to perform structural analysis.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {loads.map((load) => (
+              <div key={load.id} className="bg-gray-800 p-3 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{getLoadTypeIcon(load.load_type)}</span>
+                    <span className="font-medium text-gray-200">{load.name}</span>
+                    <Badge variant="outline" className="capitalize">
+                      {load.load_type.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                  <Button size="sm" variant="destructive">
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 text-sm text-gray-400">
+                  <div>
+                    <span className="font-medium">Magnitude:</span> {load.magnitude} N
+                  </div>
+                  <div>
+                    <span className="font-medium">Direction:</span> ({load.direction.x}, {load.direction.y}, {load.direction.z})
+                  </div>
+                  <div>
+                    <span className="font-medium">Position:</span> ({load.location.x}, {load.location.y}, {load.location.z})
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
