@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/providers/AuthProvider";
@@ -61,6 +62,7 @@ interface UploadResult {
   processingTime?: number;
   generated3DModels?: Generated3DModel[];
   floorPlanData?: FloorPlanData;
+  geminiAnalysis?: any;
 }
 
 export const useBlueprintUpload = () => {
