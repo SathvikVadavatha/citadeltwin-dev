@@ -148,6 +148,165 @@ export type Database = {
         }
         Relationships: []
       }
+      compliance_checks: {
+        Row: {
+          check_type: string
+          completed_at: string | null
+          id: string
+          metadata: Json | null
+          rules_checked: number | null
+          started_at: string
+          status: string
+          upload_id: string | null
+          user_id: string
+          violations_found: number | null
+        }
+        Insert: {
+          check_type: string
+          completed_at?: string | null
+          id?: string
+          metadata?: Json | null
+          rules_checked?: number | null
+          started_at?: string
+          status?: string
+          upload_id?: string | null
+          user_id: string
+          violations_found?: number | null
+        }
+        Update: {
+          check_type?: string
+          completed_at?: string | null
+          id?: string
+          metadata?: Json | null
+          rules_checked?: number | null
+          started_at?: string
+          status?: string
+          upload_id?: string | null
+          user_id?: string
+          violations_found?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_checks_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "blueprint_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_rules: {
+        Row: {
+          code_section: string
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean
+          jurisdiction: string
+          rule_logic: Json
+          rule_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          code_section: string
+          created_at?: string
+          description: string
+          id?: string
+          is_active?: boolean
+          jurisdiction: string
+          rule_logic: Json
+          rule_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          code_section?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_active?: boolean
+          jurisdiction?: string
+          rule_logic?: Json
+          rule_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      compliance_violations: {
+        Row: {
+          current_value: Json | null
+          description: string
+          detected_at: string
+          element_id: string | null
+          id: string
+          location: Json | null
+          remediation_suggestions: string[] | null
+          required_value: Json | null
+          resolved_at: string | null
+          rule_id: string
+          severity: string
+          status: string
+          upload_id: string | null
+          violation_type: string
+        }
+        Insert: {
+          current_value?: Json | null
+          description: string
+          detected_at?: string
+          element_id?: string | null
+          id?: string
+          location?: Json | null
+          remediation_suggestions?: string[] | null
+          required_value?: Json | null
+          resolved_at?: string | null
+          rule_id: string
+          severity: string
+          status?: string
+          upload_id?: string | null
+          violation_type: string
+        }
+        Update: {
+          current_value?: Json | null
+          description?: string
+          detected_at?: string
+          element_id?: string | null
+          id?: string
+          location?: Json | null
+          remediation_suggestions?: string[] | null
+          required_value?: Json | null
+          resolved_at?: string | null
+          rule_id?: string
+          severity?: string
+          status?: string
+          upload_id?: string | null
+          violation_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_violations_element_id_fkey"
+            columns: ["element_id"]
+            isOneToOne: false
+            referencedRelation: "bim_elements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_violations_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_violations_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "blueprint_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       detection_results: {
         Row: {
           confidence_threshold: number | null

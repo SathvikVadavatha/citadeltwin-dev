@@ -1,246 +1,142 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { 
-  Plus, 
   Upload, 
-  FolderOpen, 
-  Clock, 
-  CheckCircle, 
-  TrendingUp,
-  ArrowRight,
-  Activity,
-  AlertTriangle,
-  Users,
-  Building
-} from "lucide-react";
-import { useProfile } from "@/hooks/useProfile";
+  Cpu, 
+  FileText, 
+  Eye, 
+  BarChart3, 
+  Map,
+  Shield,
+  Zap,
+  Building2,
+  Settings
+} from 'lucide-react';
+import { BlueprintUpload } from '@/components/upload/BlueprintUpload';
+import { UploadResults } from '@/components/upload/UploadResults';
+import { Model3DViewer } from '@/components/3d/Model3DViewer';
+import { BIMElementsManager } from '@/components/bim/BIMElementsManager';
+import { FEAAnalysisManager } from '@/components/fea/FEAAnalysisManager';
+import { GISDataManager } from '@/components/gis/GISDataManager';
+import { ComplianceEngine } from '@/components/compliance/ComplianceEngine';
+import { useBlueprintUpload } from '@/hooks/useBlueprintUpload';
 
-interface MainDashboardProps {
-  onNavigate: (view: string) => void;
-}
+export const MainDashboard = () => {
+  const [activeTab, setActiveTab] = useState('upload');
+  const [selectedUploadId, setSelectedUploadId] = useState<string | undefined>();
+  const { uploads } = useBlueprintUpload();
 
-export const MainDashboard = ({ onNavigate }: MainDashboardProps) => {
-  const { profile } = useProfile();
-
-  const recentProjects = [
-    {
-      name: "Downtown Office Complex",
-      status: "In Progress",
-      progress: 75,
-      dueDate: "2024-02-15",
-      owner: "Sarah Chen",
-      type: "Commercial"
-    },
-    {
-      name: "Residential Tower A",
-      status: "Review",
-      progress: 90,
-      dueDate: "2024-02-20",
-      owner: "Mike Johnson",
-      type: "Residential"
-    },
-    {
-      name: "Bridge Infrastructure",
-      status: "FEA Analysis",
-      progress: 45,
-      dueDate: "2024-02-25",
-      owner: "Alex Kumar",
-      type: "Infrastructure"
-    }
-  ];
-
-  const stats = [
-    { label: "Active Projects", value: "12", change: "+3", icon: FolderOpen },
-    { label: "Completed This Month", value: "8", change: "+2", icon: CheckCircle },
-    { label: "Team Members", value: "24", change: "+1", icon: Users },
-    { label: "Avg. Processing Time", value: "2.3h", change: "-0.5h", icon: Clock },
-  ];
+  const recentUpload = uploads?.[0];
 
   return (
-    <div className="space-y-6">
-      {/* Welcome Section */}
-      <div className="glass-effect rounded-xl p-8 bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Welcome back, {profile?.full_name?.split(' ')[0] || 'User'}!
-            </h1>
-            <p className="text-muted-foreground text-lg mb-6">
-              Manage your digital twin projects and collaborate with your team
-            </p>
-            <div className="flex space-x-4">
-              <Button 
-                className="bg-primary hover:bg-primary/90"
-                onClick={() => onNavigate('upload')}
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Blueprint
-              </Button>
-              <Button 
-                variant="outline" 
-                className="border-border hover:bg-secondary/20"
-                onClick={() => onNavigate('projects')}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Project
-              </Button>
-            </div>
-          </div>
-          <div className="hidden lg:block">
-            <div className="w-32 h-32 bg-primary/10 rounded-full flex items-center justify-center">
-              <Building className="h-16 w-16 text-primary" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <Card key={index} className="glass-effect hover-lift">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
-                <stat.icon className="h-4 w-4 mr-2" />
-                {stat.label}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <span className="text-2xl font-bold text-foreground">{stat.value}</span>
-                <Badge variant="secondary" className="bg-green-500/10 text-green-400 border-green-500/20">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  {stat.change}
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <Card className="cyber-ribbon border-cyan-400/20">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                  CitadelTwin Engineering Platform
+                </CardTitle>
+                <CardDescription className="text-gray-300">
+                  Digital Twin Platform for Civil Engineering - Complete BIM, FEA, and Compliance Solution
+                </CardDescription>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Badge variant="outline" className="border-cyan-400 text-cyan-400">
+                  {uploads?.length || 0} Projects
+                </Badge>
+                <Badge variant="outline" className="border-green-400 text-green-400">
+                  System Online
                 </Badge>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Projects */}
-        <Card className="lg:col-span-2 glass-effect">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between text-foreground">
-              Recent Projects
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => onNavigate('projects')}
-              >
-                View All
-              </Button>
-            </CardTitle>
-            <CardDescription>
-              Your latest project activities and status updates
-            </CardDescription>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {recentProjects.map((project, index) => (
-              <div key={index} className="p-4 rounded-lg bg-background/50 border border-border hover-lift cursor-pointer">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h4 className="font-medium text-foreground">{project.name}</h4>
-                    <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
-                      <Badge variant="outline" className="border-border text-foreground">
-                        {project.status}
-                      </Badge>
-                      <span className="flex items-center">
-                        <Clock className="h-3 w-3 mr-1" />
-                        Due {project.dueDate}
-                      </span>
-                      <span>{project.owner}</span>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Progress</span>
-                    <span className="text-foreground font-medium">{project.progress}%</span>
-                  </div>
-                  <Progress value={project.progress} className="h-2" />
-                </div>
-              </div>
-            ))}
-          </CardContent>
         </Card>
 
-        {/* Quick Actions & System Status */}
-        <div className="space-y-6">
-          <Card className="glass-effect">
-            <CardHeader>
-              <CardTitle className="text-foreground">Quick Actions</CardTitle>
-              <CardDescription>
-                Common tasks and shortcuts
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button 
-                variant="outline" 
-                className="w-full justify-start h-12 border-border hover:bg-secondary/20"
-                onClick={() => onNavigate('upload')}
-              >
-                <Upload className="h-5 w-5 mr-3" />
-                Upload Blueprint
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start h-12 border-border hover:bg-secondary/20"
-                onClick={() => onNavigate('team')}
-              >
-                <Users className="h-5 w-5 mr-3" />
-                Invite Team Member
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start h-12 border-border hover:bg-secondary/20"
-                onClick={() => onNavigate('analytics')}
-              >
-                <Activity className="h-5 w-5 mr-3" />
-                View Analytics
-              </Button>
-            </CardContent>
-          </Card>
+        {/* Main Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-7 bg-gray-900/50 border border-cyan-400/20">
+            <TabsTrigger value="upload" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
+              <Upload className="w-4 h-4" />
+              <span>Upload</span>
+            </TabsTrigger>
+            <TabsTrigger value="3d-viewer" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
+              <Eye className="w-4 h-4" />
+              <span>3D View</span>
+            </TabsTrigger>
+            <TabsTrigger value="bim" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
+              <Building2 className="w-4 h-4" />
+              <span>BIM</span>
+            </TabsTrigger>
+            <TabsTrigger value="fea" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
+              <Cpu className="w-4 h-4" />
+              <span>FEA</span>
+            </TabsTrigger>
+            <TabsTrigger value="compliance" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
+              <Shield className="w-4 h-4" />
+              <span>Compliance</span>
+            </TabsTrigger>
+            <TabsTrigger value="gis" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
+              <Map className="w-4 h-4" />
+              <span>GIS</span>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
+              <BarChart3 className="w-4 h-4" />
+              <span>Analytics</span>
+            </TabsTrigger>
+          </TabsList>
 
-          <Card className="glass-effect">
-            <CardHeader>
-              <CardTitle className="text-foreground">System Status</CardTitle>
-              <CardDescription>
-                Platform health and performance
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm text-foreground">FEA Engine</span>
-                </div>
-                <span className="text-xs text-muted-foreground">2.3s avg</span>
+          <div className="mt-6">
+            <TabsContent value="upload" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <BlueprintUpload onUploadComplete={(uploadId) => setSelectedUploadId(uploadId)} />
+                <UploadResults uploadId={selectedUploadId || recentUpload?.id} />
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm text-foreground">AI Parser</span>
-                </div>
-                <span className="text-xs text-muted-foreground">1.7min avg</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm text-foreground">Render Engine</span>
-                </div>
-                <span className="text-xs text-muted-foreground">5.1s avg</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            </TabsContent>
+
+            <TabsContent value="3d-viewer" className="space-y-6">
+              <Model3DViewer uploadId={selectedUploadId || recentUpload?.id} />
+            </TabsContent>
+
+            <TabsContent value="bim" className="space-y-6">
+              <BIMElementsManager uploadId={selectedUploadId || recentUpload?.id} />
+            </TabsContent>
+
+            <TabsContent value="fea" className="space-y-6">
+              <FEAAnalysisManager uploadId={selectedUploadId || recentUpload?.id} />
+            </TabsContent>
+
+            <TabsContent value="compliance" className="space-y-6">
+              <ComplianceEngine uploadId={selectedUploadId || recentUpload?.id} />
+            </TabsContent>
+
+            <TabsContent value="gis" className="space-y-6">
+              <GISDataManager />
+            </TabsContent>
+
+            <TabsContent value="analytics" className="space-y-6">
+              <Card className="cyber-tool-palette">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <BarChart3 className="w-5 h-5 text-cyan-400" />
+                    <span>Analytics Dashboard</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Project analytics and insights coming soon
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-400">Advanced analytics and reporting features will be available in the next update.</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </div>
+        </Tabs>
       </div>
     </div>
   );
