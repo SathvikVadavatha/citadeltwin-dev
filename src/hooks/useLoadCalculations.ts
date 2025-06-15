@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -340,11 +341,11 @@ export const useLoadCalculations = () => {
 
       const { data: result, error } = await supabase
         .from('load_calculations')
-        .insert([{
+        .insert({
           user_id: user.id,
-          parameters: data.parameters,
-          results: data.results || {}
-        }])
+          parameters: data.parameters as any,
+          results: data.results || {} as any
+        })
         .select();
 
       if (error) throw error;

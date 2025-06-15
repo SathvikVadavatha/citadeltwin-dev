@@ -58,7 +58,7 @@ export const useVersionControl = (projectId: string) => {
   // Fetch project snapshots
   const { data: snapshots = [], isLoading: snapshotsLoading } = useQuery({
     queryKey: ['project-snapshots', projectId, currentBranch],
-    queryFn: async (): Promise<ProjectSnapshot[]> => {
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('project_snapshots')
         .select('*')
@@ -75,7 +75,7 @@ export const useVersionControl = (projectId: string) => {
   // Fetch branches
   const { data: branches = [], isLoading: branchesLoading } = useQuery({
     queryKey: ['project-branches', projectId],
-    queryFn: async (): Promise<Branch[]> => {
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('project_branches')
         .select('*')
@@ -90,11 +90,11 @@ export const useVersionControl = (projectId: string) => {
 
   // Create snapshot mutation
   const createSnapshotMutation = useMutation({
-    mutationFn: async ({ name, description, projectData }: {
+    mutationFn: async (params: {
       name: string;
       description?: string;
       projectData: any;
-    }): Promise<ProjectSnapshot> => {
+    }) => {
       if (!user?.id) throw new Error('User not authenticated');
 
       // Get current elements and project state
@@ -107,7 +107,7 @@ export const useVersionControl = (projectId: string) => {
 
       const snapshotData = {
         elements: elements || [],
-        project_data: projectData,
+        project_data: params.projectData,
         metadata: {
           snapshot_version: '1.0',
           created_by: user.id,
@@ -120,15 +120,15 @@ export const useVersionControl = (projectId: string) => {
         .insert({
           project_id: projectId,
           user_id: user.id,
-          snapshot_name: name,
-          description,
-          snapshot_data: snapshotData,
+          snapshot_name: params.name,
+          description: params.description,
+          snapshot_data: snapshotData as any,
           metadata: {
             elements_count: elements?.length || 0,
             file_size: JSON.stringify(snapshotData).length,
             timestamp: new Date().toISOString(),
             changes_summary: ['Snapshot created']
-          },
+          } as any,
           branch_name: currentBranch,
           is_current: true
         })
@@ -158,7 +158,7 @@ export const useVersionControl = (projectId: string) => {
 
   // Restore snapshot mutation
   const restoreSnapshotMutation = useMutation({
-    mutationFn: async (snapshotId: string): Promise<ProjectSnapshot> => {
+    mutationFn: async (snapshotId: string) => {
       if (!user?.id) throw new Error('User not authenticated');
 
       // Get snapshot data
@@ -219,21 +219,21 @@ export const useVersionControl = (projectId: string) => {
 
   // Create branch mutation
   const createBranchMutation = useMutation({
-    mutationFn: async ({ name, description, fromSnapshotId }: {
+    mutationFn: async (params: {
       name: string;
       description?: string;
       fromSnapshotId?: string;
-    }): Promise<Branch> => {
+    }) => {
       if (!user?.id) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
         .from('project_branches')
         .insert({
           project_id: projectId,
-          name,
-          description,
+          name: params.name,
+          description: params.description,
           created_by: user.id,
-          current_snapshot_id: fromSnapshotId
+          current_snapshot_id: params.fromSnapshotId
         })
         .select()
         .single();
