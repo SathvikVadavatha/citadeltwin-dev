@@ -3,15 +3,13 @@ import { useState } from "react";
 import { useAuth } from "@/providers/AuthProvider";
 import { AuthManager } from "@/components/AuthManager";
 import { LandingPage } from "@/components/landing/LandingPage";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/layout/AppSidebar";
-import { MainDashboard } from "@/components/dashboard/MainDashboard";
-import { ProjectsPage } from "@/components/projects/ProjectsPage";
+import { CADInterface } from "@/components/cad/CADInterface";
+import { ProjectViewer } from "@/components/project/ProjectViewer";
 import { UploadPage } from "@/components/upload/UploadPage";
 
 const Index = () => {
   const { user, loading } = useAuth();
-  const [currentView, setCurrentView] = useState("dashboard");
+  const [currentView, setCurrentView] = useState("cad");
   const [showAuth, setShowAuth] = useState(false);
 
   // Show loading state
@@ -33,7 +31,7 @@ const Index = () => {
     return <LandingPage />;
   }
 
-  // Show main app if authenticated
+  // Show main CAD interface if authenticated
   const handleNavigate = (view: string, projectId?: string) => {
     setCurrentView(view);
     // You can handle projectId here for project-specific navigation
@@ -41,36 +39,31 @@ const Index = () => {
 
   const renderMainContent = () => {
     switch (currentView) {
-      case "dashboard":
-        return <MainDashboard onNavigate={handleNavigate} />;
-      case "projects":
-        return <ProjectsPage onNavigate={handleNavigate} />;
+      case "cad":
+        return <CADInterface onNavigate={handleNavigate} />;
+      case "project":
+        return <ProjectViewer userRole="engineer" onNavigate={handleNavigate} />;
       case "upload":
         return <UploadPage onNavigate={handleNavigate} />;
+      case "projects":
+        return <div className="text-foreground p-8">Projects List - Coming Soon</div>;
       case "team":
-        return <div className="text-foreground">Team Management - Coming Soon</div>;
+        return <div className="text-foreground p-8">Team Management - Coming Soon</div>;
       case "analytics":
-        return <div className="text-foreground">Analytics - Coming Soon</div>;
+        return <div className="text-foreground p-8">Analytics - Coming Soon</div>;
       case "settings":
-        return <div className="text-foreground">Settings - Coming Soon</div>;
+        return <div className="text-foreground p-8">Settings - Coming Soon</div>;
       case "help":
-        return <div className="text-foreground">Help & Support - Coming Soon</div>;
+        return <div className="text-foreground p-8">Help & Support - Coming Soon</div>;
       default:
-        return <MainDashboard onNavigate={handleNavigate} />;
+        return <CADInterface onNavigate={handleNavigate} />;
     }
   };
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar currentView={currentView} onNavigate={handleNavigate} />
-        <main className="flex-1 overflow-auto">
-          <div className="p-8">
-            {renderMainContent()}
-          </div>
-        </main>
-      </div>
-    </SidebarProvider>
+    <div className="min-h-screen bg-background">
+      {renderMainContent()}
+    </div>
   );
 };
 
