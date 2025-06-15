@@ -50,6 +50,15 @@ const Index = () => {
         return <UploadPage onNavigate={handleNavigate} />;
       case "projects":
         return <ProjectsPage onNavigate={handleNavigate} />;
+      case "collaboration":
+        return (
+          <div className="lazy-import">
+            {(() => {
+              const Collaboration = require('@/pages/Collaboration').default;
+              return <Collaboration />;
+            })()}
+          </div>
+        );
       case "ai-service":
         return (
           <div className="container mx-auto p-6">

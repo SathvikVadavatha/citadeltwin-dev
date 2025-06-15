@@ -177,6 +177,132 @@ export type Database = {
           },
         ]
       }
+      collaboration_changes: {
+        Row: {
+          applied_at: string | null
+          change_type: string
+          conflict_resolved: boolean | null
+          created_at: string
+          element_id: string | null
+          element_type: string | null
+          id: string
+          operation_data: Json
+          operation_index: number
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          applied_at?: string | null
+          change_type: string
+          conflict_resolved?: boolean | null
+          created_at?: string
+          element_id?: string | null
+          element_type?: string | null
+          id?: string
+          operation_data: Json
+          operation_index: number
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          applied_at?: string | null
+          change_type?: string
+          conflict_resolved?: boolean | null
+          created_at?: string
+          element_id?: string | null
+          element_type?: string | null
+          id?: string
+          operation_data?: Json
+          operation_index?: number
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaboration_changes_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "collaboration_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collaboration_permissions: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          id: string
+          permission_level: string
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          permission_level?: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          permission_level?: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaboration_permissions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "collaboration_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collaboration_sessions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          project_id: string | null
+          settings: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          project_id?: string | null
+          settings?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          project_id?: string | null
+          settings?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaboration_sessions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compliance_checks: {
         Row: {
           check_type: string
@@ -1062,6 +1188,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_presence: {
+        Row: {
+          cursor_position: Json | null
+          id: string
+          is_active: boolean
+          last_seen: string
+          session_id: string | null
+          user_color: string
+          user_id: string | null
+        }
+        Insert: {
+          cursor_position?: Json | null
+          id?: string
+          is_active?: boolean
+          last_seen?: string
+          session_id?: string | null
+          user_color?: string
+          user_id?: string | null
+        }
+        Update: {
+          cursor_position?: Json | null
+          id?: string
+          is_active?: boolean
+          last_seen?: string
+          session_id?: string | null
+          user_color?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_presence_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "collaboration_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
