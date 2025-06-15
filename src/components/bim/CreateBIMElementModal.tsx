@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -21,6 +20,7 @@ interface CreateBIMElementModalProps {
   materials: Material[];
   elements: BIMElement[];
   uploadId?: string;
+  projectId?: string;
 }
 
 export const CreateBIMElementModal = ({
@@ -29,10 +29,12 @@ export const CreateBIMElementModal = ({
   onCreate,
   materials,
   elements,
-  uploadId
+  uploadId,
+  projectId
 }: CreateBIMElementModalProps) => {
   const [formData, setFormData] = useState<CreateBIMElementData>({
     upload_id: uploadId,
+    project_id: projectId,
     element_type: 'wall',
     name: '',
     description: '',
@@ -72,6 +74,8 @@ export const CreateBIMElementModal = ({
     
     const elementData: CreateBIMElementData = {
       ...formData,
+      upload_id: uploadId,
+      project_id: projectId,
       geometry: {
         type: 'box',
         dimensions: {
@@ -101,6 +105,7 @@ export const CreateBIMElementModal = ({
       // Reset form
       setFormData({
         upload_id: uploadId,
+        project_id: projectId,
         element_type: 'wall',
         name: '',
         description: '',
