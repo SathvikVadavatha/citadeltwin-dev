@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { AuthLayout } from "./AuthLayout";
 import { ArrowLeft, Mail } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ForgotPasswordPageProps {
   onNavigateToLogin: () => void;
@@ -20,15 +21,34 @@ export const ForgotPasswordPage = ({ onNavigateToLogin }: ForgotPasswordPageProp
     e.preventDefault();
     setLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setSent(true);
-      setLoading(false);
-      toast({
-        title: "Reset Link Sent",
-        description: "If an account exists with this email, you'll receive a reset link.",
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/`,
       });
-    }, 1000);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        setSent(true);
+        toast({
+          title: "Reset Link Sent",
+          description: "Check your email for the password reset link.",
+        });
+      }
+    } catch (error) {
+      console.error("Reset password error:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (sent) {

@@ -31,10 +31,20 @@ export const SignupPage = ({ onNavigateToLogin }: SignupPageProps) => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!formData.acceptTerms) {
       toast({
         title: "Terms Required",
         description: "Please accept the terms and conditions to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast({
+        title: "Password Too Short",
+        description: "Password must be at least 6 characters long.",
         variant: "destructive",
       });
       return;
@@ -49,19 +59,33 @@ export const SignupPage = ({ onNavigateToLogin }: SignupPageProps) => {
       });
 
       if (error) {
-        toast({
-          title: "Signup Failed",
-          description: error.message,
-          variant: "destructive",
-        });
+        if (error.message.includes('User already registered')) {
+          toast({
+            title: "Account Exists",
+            description: "An account with this email already exists. Please sign in instead.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Signup Failed",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
       } else {
-        toast({
-          title: "Account Created",
-          description: "Please check your email to verify your account.",
-        });
+        // Success case is handled in AuthProvider
+        // Switch to login view after successful signup
+        setTimeout(() => {
+          onNavigateToLogin();
+        }, 2000);
       }
     } catch (error) {
       console.error("Signup error:", error);
+      toast({
+        title: "Signup Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -147,11 +171,12 @@ export const SignupPage = ({ onNavigateToLogin }: SignupPageProps) => {
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
-              placeholder="Create a strong password"
+              placeholder="Create a strong password (min. 6 characters)"
               value={formData.password}
               onChange={(e) => updateFormData("password", e.target.value)}
               className="bg-background border-border text-foreground pr-10"
               required
+              minLength={6}
             />
             <Button
               type="button"

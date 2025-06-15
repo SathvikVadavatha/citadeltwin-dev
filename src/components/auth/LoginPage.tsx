@@ -30,15 +30,18 @@ export const LoginPage = ({ onNavigateToSignup, onNavigateToForgotPassword }: Lo
 
     try {
       const { error } = await signIn(email, password);
+      
       if (error) {
-        toast({
-          title: "Login Failed",
-          description: error.message,
-          variant: "destructive",
-        });
+        // Error handling is now done in the AuthProvider
+        console.error("Login error:", error);
       }
     } catch (error) {
       console.error("Login error:", error);
+      toast({
+        title: "Login Failed",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -105,6 +108,7 @@ export const LoginPage = ({ onNavigateToSignup, onNavigateToForgotPassword }: Lo
             </Label>
           </div>
           <Button
+            type="button"
             variant="link"
             className="px-0 text-sm text-primary hover:text-primary/80"
             onClick={onNavigateToForgotPassword}
