@@ -48,7 +48,7 @@ export const useBIMElements = (projectIdOrUploadId?: string, filterType: 'projec
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
-  const [deleting, setDelating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { user } = useAuth();
 
   const fetchElements = async () => {

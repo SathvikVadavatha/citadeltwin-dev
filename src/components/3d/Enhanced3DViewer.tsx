@@ -1,3 +1,4 @@
+
 import React, { Suspense, useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, Line, Text, Box, Sphere, Cylinder } from '@react-three/drei';
@@ -38,9 +39,9 @@ interface BIMElement {
 }
 
 interface FEAResults {
-  displacement?: { values: number[]; max: number; min: number };
-  stress?: { values: number[]; max: number; min: number };
-  safety_factor?: { values: number[]; max: number; min: number };
+  stress?: { values: number[]; max: number; min: number; unit: string };
+  displacement?: { values: number[]; max: number; min: number; unit: string };
+  safety_factor?: { values: number[]; max: number; min: number; unit?: string };
 }
 
 interface Enhanced3DViewerProps {

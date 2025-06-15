@@ -21,6 +21,10 @@ export const BIMElementsManager = ({ uploadId, projectId }: BIMElementsManagerPr
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeTab, setActiveTab] = useState('elements');
   
+  // Use project-based filtering if projectId is provided, otherwise use upload-based
+  const filterType = projectId ? 'project' : 'upload';
+  const filterId = projectId || uploadId;
+  
   const {
     elements,
     loading,
@@ -31,7 +35,7 @@ export const BIMElementsManager = ({ uploadId, projectId }: BIMElementsManagerPr
     updateElement,
     deleteElement,
     duplicateElement,
-  } = useBIMElements(projectId, uploadId);
+  } = useBIMElements(filterId, filterType);
 
   const { materials } = useMaterials();
 
