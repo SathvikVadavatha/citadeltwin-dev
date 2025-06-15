@@ -89,12 +89,12 @@ export const useVersionControl = (projectId: string) => {
   });
 
   // Create snapshot mutation
-  const createSnapshotMutation = useMutation({
-    mutationFn: async (params: {
-      name: string;
-      description?: string;
-      projectData: any;
-    }) => {
+  const createSnapshotMutation = useMutation<any, Error, {
+    name: string;
+    description?: string;
+    projectData: any;
+  }>({
+    mutationFn: async (params) => {
       if (!user?.id) throw new Error('User not authenticated');
 
       // Get current elements and project state
@@ -145,7 +145,7 @@ export const useVersionControl = (projectId: string) => {
         .eq('branch_name', currentBranch)
         .neq('id', data.id);
 
-      return data as ProjectSnapshot;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-snapshots'] });
@@ -157,8 +157,8 @@ export const useVersionControl = (projectId: string) => {
   });
 
   // Restore snapshot mutation
-  const restoreSnapshotMutation = useMutation({
-    mutationFn: async (snapshotId: string) => {
+  const restoreSnapshotMutation = useMutation<any, Error, string>({
+    mutationFn: async (snapshotId) => {
       if (!user?.id) throw new Error('User not authenticated');
 
       // Get snapshot data
@@ -170,8 +170,6 @@ export const useVersionControl = (projectId: string) => {
 
       if (snapshotError) throw snapshotError;
 
-      const typedSnapshot = snapshot as ProjectSnapshot;
-
       // Clear current elements
       await supabase
         .from('bim_elements')
@@ -179,7 +177,9 @@ export const useVersionControl = (projectId: string) => {
         .eq('project_id', projectId);
 
       // Restore elements from snapshot
-      const elements = typedSnapshot.snapshot_data.elements;
+      const snapshotData = snapshot.snapshot_data as any;
+      const elements = snapshotData?.elements || [];
+      
       if (elements && elements.length > 0) {
         const { error: insertError } = await supabase
           .from('bim_elements')
@@ -205,7 +205,7 @@ export const useVersionControl = (projectId: string) => {
         .update({ is_current: true })
         .eq('id', snapshotId);
 
-      return typedSnapshot;
+      return snapshot;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-snapshots'] });
@@ -218,12 +218,12 @@ export const useVersionControl = (projectId: string) => {
   });
 
   // Create branch mutation
-  const createBranchMutation = useMutation({
-    mutationFn: async (params: {
-      name: string;
-      description?: string;
-      fromSnapshotId?: string;
-    }) => {
+  const createBranchMutation = useMutation<any, Error, {
+    name: string;
+    description?: string;
+    fromSnapshotId?: string;
+  }>({
+    mutationFn: async (params) => {
       if (!user?.id) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
@@ -239,7 +239,7 @@ export const useVersionControl = (projectId: string) => {
         .single();
 
       if (error) throw error;
-      return data as Branch;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-branches'] });
@@ -259,9 +259,11 @@ export const useVersionControl = (projectId: string) => {
 
     if (error) throw error;
 
-    const [snap1, snap2] = snapshots as ProjectSnapshot[];
-    const elements1 = snap1.snapshot_data.elements || [];
-    const elements2 = snap2.snapshot_data.elements || [];
+    const [snap1, snap2] = snapshots;
+    const snap1Data = snap1.snapshot_data as any;
+    const snap2Data = snap2.snapshot_data as any;
+    const elements1 = snap1Data?.elements || [];
+    const elements2 = snap2Data?.elements || [];
 
     const diffs: VersionDiff[] = [];
 
