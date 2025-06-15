@@ -11,9 +11,11 @@ import { FileText, Plus, Edit, Trash2 } from 'lucide-react';
 import { useDocumentTemplates, DocumentTemplate } from '@/hooks/useDocumentTemplates';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
+type CreateTemplateData = Omit<DocumentTemplate, 'id' | 'created_at' | 'updated_at' | 'created_by'>;
+
 export const DocumentTemplateManager: React.FC = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [formData, setFormData] = useState<Partial<DocumentTemplate>>({
+  const [formData, setFormData] = useState<CreateTemplateData>({
     name: '',
     template_type: 'custom',
     category: 'general',
@@ -21,6 +23,7 @@ export const DocumentTemplateManager: React.FC = () => {
     format_type: 'both',
     template_content: {},
     variables: [],
+    is_active: true,
   });
 
   const { templates, createTemplate } = useDocumentTemplates();
@@ -37,6 +40,7 @@ export const DocumentTemplateManager: React.FC = () => {
           format_type: 'both',
           template_content: {},
           variables: [],
+          is_active: true,
         });
       },
     });
