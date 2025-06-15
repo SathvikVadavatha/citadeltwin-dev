@@ -5,50 +5,50 @@
 
 @layer base {
   :root {
-    --background: 248 250 252; /* #F8FAFC - Light gray background for better contrast */
-    --foreground: 0 0 0; /* #000000 - Black text for maximum contrast */
+    --background: 107 114 128; /* #6B7280 - Medium gray background */
+    --foreground: 255 255 255; /* #FFFFFF - White text for maximum contrast */
 
-    --card: 255 255 255; /* #FFFFFF - Pure white cards for contrast against light gray background */
-    --card-foreground: 0 0 0; /* #000000 - Black text on cards */
+    --card: 75 85 99; /* #4B5563 - Darker gray cards for contrast */
+    --card-foreground: 255 255 255; /* #FFFFFF - White text on cards */
 
-    --popover: 255 255 255; /* #FFFFFF - White popover background */
-    --popover-foreground: 0 0 0; /* #000000 - Black text on popovers */
+    --popover: 75 85 99; /* #4B5563 - Dark gray popover background */
+    --popover-foreground: 255 255 255; /* #FFFFFF - White text on popovers */
 
-    --primary: 37 99 235; /* #2563EB - Professional blue */
+    --primary: 59 130 246; /* #3B82F6 - Bright blue for visibility on gray */
     --primary-foreground: 255 255 255; /* #FFFFFF - White text */
 
-    --secondary: 107 114 128; /* #6B7280 - Medium gray */
-    --secondary-foreground: 0 0 0; /* #000000 - Black text for better visibility */
+    --secondary: 156 163 175; /* #9CA3AF - Light gray */
+    --secondary-foreground: 31 41 55; /* #1F2937 - Dark text for contrast */
 
-    --muted: 243 244 246; /* #F3F4F6 - Light gray for muted areas */
-    --muted-foreground: 0 0 0; /* #000000 - Black text for body text */
+    --muted: 55 65 81; /* #374151 - Dark gray for muted areas */
+    --muted-foreground: 209 213 219; /* #D1D5DB - Light gray text */
 
-    --accent: 30 64 175; /* #1E40AF - Darker blue accent */
-    --accent-foreground: 255 255 255; /* White text on dark blue background */
+    --accent: 99 102 241; /* #6366F1 - Bright purple accent */
+    --accent-foreground: 255 255 255; /* White text on accent background */
 
     --destructive: 239 68 68; /* #EF4444 - Red for errors */
     --destructive-foreground: 255 255 255;
 
-    --border: 229 231 235; /* #E5E7EB - Light gray border */
-    --input: 255 255 255; /* #FFFFFF - White input backgrounds for contrast */
-    --ring: 37 99 235; /* #2563EB - Professional blue focus rings */
+    --border: 156 163 175; /* #9CA3AF - Light gray border for visibility */
+    --input: 55 65 81; /* #374151 - Dark gray input backgrounds */
+    --ring: 59 130 246; /* #3B82F6 - Blue focus rings */
 
     --radius: 0.5rem;
 
-    --sidebar-background: 255 255 255; /* #FFFFFF - White sidebar background */
-    --sidebar-foreground: 0 0 0; /* #000000 - Black text in sidebar */
-    --sidebar-primary: 37 99 235;
+    --sidebar-background: 55 65 81; /* #374151 - Dark gray sidebar */
+    --sidebar-foreground: 255 255 255; /* #FFFFFF - White text in sidebar */
+    --sidebar-primary: 59 130 246;
     --sidebar-primary-foreground: 255 255 255;
-    --sidebar-accent: 107 114 128;
-    --sidebar-accent-foreground: 0 0 0; /* #000000 - Black text for visibility */
-    --sidebar-border: 229 231 235;
-    --sidebar-ring: 37 99 235;
+    --sidebar-accent: 75 85 99;
+    --sidebar-accent-foreground: 255 255 255;
+    --sidebar-border: 156 163 175;
+    --sidebar-ring: 59 130 246;
 
-    /* Additional custom properties for the professional theme */
-    --professional-blue: 37 99 235; /* #2563EB - Professional blue */
-    --dark-blue: 30 64 175; /* #1E40AF - Darker blue */
-    --light-gray: 243 244 246; /* #F3F4F6 - Light gray */
-    --medium-gray: 107 114 128; /* #6B7280 - Medium gray */
+    /* Updated custom properties for the gray theme */
+    --professional-blue: 59 130 246; /* #3B82F6 - Brighter blue for visibility */
+    --dark-blue: 99 102 241; /* #6366F1 - Purple-blue */
+    --light-gray: 156 163 175; /* #9CA3AF - Light gray */
+    --medium-gray: 75 85 99; /* #4B5563 - Medium gray */
   }
 }
 
@@ -64,101 +64,94 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight;
-    color: inherit; /* Allow child elements to override text color */
-  }
-
-  /* Default heading color when no specific color class is applied */
-  h1:not([class*="text-"]), h2:not([class*="text-"]), h3:not([class*="text-"]), 
-  h4:not([class*="text-"]), h5:not([class*="text-"]), h6:not([class*="text-"]) {
-    @apply text-foreground;
+    @apply font-semibold tracking-tight text-foreground;
   }
 
   .glass-effect {
     @apply backdrop-blur-sm bg-card/90 border border-border/50;
-    box-shadow: 0 8px 32px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.2);
   }
 
   .hover-lift {
     @apply transition-all duration-200 hover:shadow-2xl hover:-translate-y-0.5;
-    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
   }
 
   .hover-lift:hover {
-    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.15);
+    box-shadow: 0 12px 24px rgba(59, 130, 246, 0.3);
   }
 
-  /* Custom scrollbar for professional theme */
+  /* Updated scrollbar for gray theme */
   ::-webkit-scrollbar {
     width: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-background;
+    background: rgb(75, 85, 99);
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgb(107, 114, 128);
+    background: rgb(156, 163, 175);
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgb(37, 99, 235);
+    background: rgb(59, 130, 246);
   }
 
-  /* Custom gradients for the professional theme */
+  /* Updated gradients for the gray theme */
   .warm-gradient {
-    background: linear-gradient(135deg, rgb(37, 99, 235) 0%, rgb(30, 64, 175) 100%);
+    background: linear-gradient(135deg, rgb(59, 130, 246) 0%, rgb(99, 102, 241) 100%);
   }
 
   .warm-gradient-subtle {
-    background: linear-gradient(135deg, rgb(255, 255, 255) 0%, rgb(248, 250, 252) 100%);
+    background: linear-gradient(135deg, rgb(75, 85, 99) 0%, rgb(107, 114, 128) 100%);
   }
 
-  /* Professional button styles */
+  /* Updated button styles for gray theme */
   .btn-primary {
-    background: rgb(37, 99, 235);
+    background: rgb(59, 130, 246);
     color: rgb(255, 255, 255);
-    border: 1px solid rgb(37, 99, 235);
+    border: 1px solid rgb(59, 130, 246);
   }
 
   .btn-primary:hover {
-    background: rgb(30, 64, 175);
-    border-color: rgb(30, 64, 175);
+    background: rgb(99, 102, 241);
+    border-color: rgb(99, 102, 241);
   }
 
   .btn-secondary {
-    background: rgb(107, 114, 128);
-    color: rgb(255, 255, 255);
-    border: 1px solid rgb(107, 114, 128);
+    background: rgb(156, 163, 175);
+    color: rgb(31, 41, 55);
+    border: 1px solid rgb(156, 163, 175);
   }
 
   .btn-secondary:hover {
-    background: rgb(75, 85, 99);
-    color: rgb(255, 255, 255);
+    background: rgb(209, 213, 219);
+    color: rgb(31, 41, 55);
   }
 
   /* Section dividers */
   .section-divider {
-    border-color: rgb(229, 231, 235);
+    border-color: rgb(156, 163, 175);
   }
 
-  /* Callout styles */
+  /* Updated callout styles for gray theme */
   .callout-info {
-    background: rgb(248, 250, 252);
-    border-left: 4px solid rgb(37, 99, 235);
-    color: rgb(31, 41, 55);
+    background: rgb(55, 65, 81);
+    border-left: 4px solid rgb(59, 130, 246);
+    color: rgb(255, 255, 255);
   }
 
   .callout-warning {
-    background: rgb(255, 255, 255);
-    border-left: 4px solid rgb(30, 64, 175);
-    color: rgb(31, 41, 55);
+    background: rgb(75, 85, 99);
+    border-left: 4px solid rgb(99, 102, 241);
+    color: rgb(255, 255, 255);
   }
 
   .callout-success {
-    background: rgb(243, 244, 246);
-    border-left: 4px solid rgb(107, 114, 128);
-    color: rgb(31, 41, 55);
+    background: rgb(55, 65, 81);
+    border-left: 4px solid rgb(156, 163, 175);
+    color: rgb(255, 255, 255);
   }
 }
