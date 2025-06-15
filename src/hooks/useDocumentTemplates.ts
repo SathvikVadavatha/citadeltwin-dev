@@ -39,15 +39,24 @@ export const useDocumentTemplates = () => {
   });
 
   const createTemplate = useMutation({
-    mutationFn: async (templateData: Partial<DocumentTemplate>) => {
+    mutationFn: async (templateData: Omit<DocumentTemplate, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
       if (!user) throw new Error('User not authenticated');
+
+      // Ensure all required fields are present
+      const insertData = {
+        name: templateData.name,
+        template_type: templateData.template_type,
+        category: templateData.category,
+        description: templateData.description,
+        template_content: templateData.template_content,
+        format_type: templateData.format_type,
+        variables: templateData.variables,
+        is_active: templateData.is_active ?? true,
+      };
 
       const { data, error } = await supabase
         .from('document_templates')
-        .insert({
-          ...templateData,
-          created_by: user.id,
-        })
+        .insert(insertData)
         .select()
         .single();
 
