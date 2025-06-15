@@ -1,16 +1,72 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { AlertTriangle, CheckCircle, Info, Zap, Building, Hammer, FileText, Brain } from "lucide-react";
+import { Building, Zap, CheckCircle, AlertTriangle, FileText, Download } from "lucide-react";
+
+interface ArchitecturalElement {
+  id: string;
+  type: 'wall' | 'door' | 'window' | 'column' | 'beam' | 'stair' | 'elevator' | 'room' | 'fixture';
+  label: string;
+  description: string;
+  dimensions: {
+    length?: number;
+    width?: number;
+    height?: number;
+    area?: number;
+  };
+  location: {
+    x: number;
+    y: number;
+    floor?: string;
+  };
+  properties: {
+    material?: string;
+    loadBearing?: boolean;
+    structuralRole?: string;
+    compliance?: string[];
+  };
+  confidence: number;
+}
+
+interface StructuralAnalysis {
+  loadBearingElements: ArchitecturalElement[];
+  structuralSystem: string;
+  foundationType: string;
+  seismicConsiderations: string[];
+  codeCompliance: {
+    building: string[];
+    fire: string[];
+    accessibility: string[];
+  };
+  recommendations: string[];
+}
+
+interface TechnicalInsights {
+  buildingType: string;
+  constructionMethod: string;
+  estimatedArea: number;
+  floorCount: number;
+  occupancyType: string;
+  energyEfficiencyNotes: string[];
+  sustainabilityFeatures: string[];
+  potentialIssues: string[];
+}
+
+interface GeminiAnalysisResult {
+  architecturalElements: ArchitecturalElement[];
+  structuralAnalysis: StructuralAnalysis;
+  technicalInsights: TechnicalInsights;
+  engineeringDescription: string;
+  processingTime: number;
+}
 
 interface EnhancedBlueprintAnalysisProps {
-  analysisResult: any;
+  analysisResult: GeminiAnalysisResult;
   imageUrl: string;
-  onGenerateReport?: () => void;
+  onGenerateReport: () => void;
 }
 
 export const EnhancedBlueprintAnalysis: React.FC<EnhancedBlueprintAnalysisProps> = ({
@@ -18,325 +74,216 @@ export const EnhancedBlueprintAnalysis: React.FC<EnhancedBlueprintAnalysisProps>
   imageUrl,
   onGenerateReport
 }) => {
-  const getElementTypeIcon = (type: string) => {
-    switch (type) {
-      case 'wall': return '🧱';
-      case 'door': return '🚪';
-      case 'window': return '🪟';
-      case 'column': return '🏛️';
-      case 'beam': return '⚡';
-      case 'stair': return '🪜';
-      case 'room': return '🏠';
-      default: return '📐';
-    }
-  };
-
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.8) return 'bg-green-500/10 text-green-400 border-green-500/20';
-    if (confidence >= 0.6) return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
-    return 'bg-red-500/10 text-red-400 border-red-500/20';
+  const getElementTypeColor = (type: string) => {
+    const colors: Record<string, string> = {
+      'wall': 'bg-blue-100 text-blue-800',
+      'door': 'bg-green-100 text-green-800',
+      'window': 'bg-yellow-100 text-yellow-800',
+      'column': 'bg-purple-100 text-purple-800',
+      'beam': 'bg-red-100 text-red-800',
+      'room': 'bg-indigo-100 text-indigo-800',
+      'fixture': 'bg-gray-100 text-gray-800'
+    };
+    return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <Card className="glass-effect">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-primary" />
-            Advanced Blueprint Analysis
-            <Badge variant="outline" className="ml-auto">
-              Gemini AI Enhanced
-            </Badge>
-          </CardTitle>
-          <CardDescription>
-            Comprehensive architectural and engineering analysis powered by Gemini AI
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">
-                {analysisResult.architecturalElements.length}
-              </div>
-              <div className="text-sm text-muted-foreground">Elements Identified</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">
-                {analysisResult.structuralAnalysis.loadBearingElements.length}
-              </div>
-              <div className="text-sm text-muted-foreground">Load-Bearing Elements</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">
-                {(analysisResult.processingTime / 1000).toFixed(1)}s
-              </div>
-              <div className="text-sm text-muted-foreground">Analysis Time</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Zap className="h-5 w-5 text-yellow-500" />
+          Enhanced Gemini AI Blueprint Analysis
+          <Badge variant="secondary">
+            {analysisResult.processingTime}ms
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <Tabs defaultValue="elements" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="elements">Elements</TabsTrigger>
+            <TabsTrigger value="structural">Structural</TabsTrigger>
+            <TabsTrigger value="insights">Insights</TabsTrigger>
+            <TabsTrigger value="description">Description</TabsTrigger>
+          </TabsList>
 
-      {/* Detailed Analysis Tabs */}
-      <Tabs defaultValue="elements" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="elements">Elements</TabsTrigger>
-          <TabsTrigger value="structural">Structural</TabsTrigger>
-          <TabsTrigger value="insights">Insights</TabsTrigger>
-          <TabsTrigger value="description">Description</TabsTrigger>
-        </TabsList>
-
-        {/* Architectural Elements */}
-        <TabsContent value="elements">
-          <Card className="glass-effect">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building className="h-5 w-5" />
-                Architectural Elements
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
-                {analysisResult.architecturalElements.map((element: any, index: number) => (
-                  <div key={element.id || index} className="border rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{getElementTypeIcon(element.type)}</span>
-                        <div>
-                          <h4 className="font-semibold">{element.label}</h4>
-                          <p className="text-sm text-muted-foreground">{element.description}</p>
-                        </div>
+          <TabsContent value="elements" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Architectural Elements ({analysisResult.architecturalElements.length})</h3>
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {analysisResult.architecturalElements.map((element) => (
+                    <div key={element.id} className="p-3 border rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge className={getElementTypeColor(element.type)}>
+                          {element.type}
+                        </Badge>
+                        <span className="text-sm text-muted-foreground">
+                          {(element.confidence * 100).toFixed(1)}%
+                        </span>
                       </div>
-                      <Badge className={getConfidenceColor(element.confidence)}>
-                        {(element.confidence * 100).toFixed(0)}%
-                      </Badge>
+                      <h4 className="font-medium">{element.label}</h4>
+                      <p className="text-sm text-muted-foreground">{element.description}</p>
+                      {element.dimensions.area && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Area: {element.dimensions.area.toFixed(1)} sq ft
+                        </p>
+                      )}
+                      {element.properties.material && (
+                        <p className="text-xs text-muted-foreground">
+                          Material: {element.properties.material}
+                        </p>
+                      )}
                     </div>
-                    
-                    {element.dimensions && Object.keys(element.dimensions).length > 0 && (
-                      <div className="text-sm space-y-1">
-                        <div className="font-medium">Dimensions:</div>
-                        <div className="grid grid-cols-2 gap-2 text-muted-foreground">
-                          {element.dimensions.length && (
-                            <span>Length: {element.dimensions.length}ft</span>
-                          )}
-                          {element.dimensions.width && (
-                            <span>Width: {element.dimensions.width}ft</span>
-                          )}
-                          {element.dimensions.height && (
-                            <span>Height: {element.dimensions.height}ft</span>
-                          )}
-                          {element.dimensions.area && (
-                            <span>Area: {element.dimensions.area.toFixed(1)}sq ft</span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {element.properties && (
-                      <div className="mt-2 flex gap-2 flex-wrap">
-                        {element.properties.material && (
-                          <Badge variant="outline">{element.properties.material}</Badge>
-                        )}
-                        {element.properties.loadBearing && (
-                          <Badge variant="outline" className="bg-orange-500/10 text-orange-400">
-                            Load-Bearing
-                          </Badge>
-                        )}
-                        {element.properties.structuralRole && (
-                          <Badge variant="outline">{element.properties.structuralRole}</Badge>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Structural Analysis */}
-        <TabsContent value="structural">
-          <Card className="glass-effect">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Hammer className="h-5 w-5" />
-                Structural Analysis
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
               <div>
-                <h4 className="font-semibold mb-2">Structural System</h4>
-                <p className="text-muted-foreground">{analysisResult.structuralAnalysis.structuralSystem}</p>
+                <h3 className="text-lg font-semibold mb-3">Blueprint Preview</h3>
+                <div className="relative">
+                  <img 
+                    src={imageUrl} 
+                    alt="Blueprint" 
+                    className="w-full h-64 object-contain border rounded-lg bg-gray-50"
+                  />
+                </div>
               </div>
+            </div>
+          </TabsContent>
 
-              <Separator />
-
+          <TabsContent value="structural" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <h4 className="font-semibold mb-2">Foundation Type</h4>
-                <p className="text-muted-foreground">{analysisResult.structuralAnalysis.foundationType}</p>
-              </div>
-
-              <Separator />
-
-              <div>
-                <h4 className="font-semibold mb-2">Code Compliance</h4>
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Building className="h-5 w-5" />
+                  Structural Analysis
+                </h3>
                 <div className="space-y-3">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
+                  <div className="p-3 border rounded-lg">
+                    <h4 className="font-medium">Structural System</h4>
+                    <p className="text-sm text-muted-foreground">{analysisResult.structuralAnalysis.structuralSystem}</p>
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <h4 className="font-medium">Foundation Type</h4>
+                    <p className="text-sm text-muted-foreground">{analysisResult.structuralAnalysis.foundationType}</p>
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <h4 className="font-medium">Load-Bearing Elements</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {analysisResult.structuralAnalysis.loadBearingElements.length} identified
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Code Compliance</h3>
+                <div className="space-y-3">
+                  <div className="p-3 border rounded-lg">
+                    <h4 className="font-medium flex items-center gap-2">
                       <CheckCircle className="h-4 w-4 text-green-500" />
-                      <span className="font-medium">Building Code</span>
-                    </div>
-                    <div className="ml-6 space-y-1">
-                      {analysisResult.structuralAnalysis.codeCompliance.building.map((item: string, index: number) => (
-                        <div key={index} className="text-sm text-muted-foreground">• {item}</div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <AlertTriangle className="h-4 w-4 text-orange-500" />
-                      <span className="font-medium">Fire Safety</span>
-                    </div>
-                    <div className="ml-6 space-y-1">
-                      {analysisResult.structuralAnalysis.codeCompliance.fire.map((item: string, index: number) => (
-                        <div key={index} className="text-sm text-muted-foreground">• {item}</div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Info className="h-4 w-4 text-blue-500" />
-                      <span className="font-medium">Accessibility</span>
-                    </div>
-                    <div className="ml-6 space-y-1">
-                      {analysisResult.structuralAnalysis.codeCompliance.accessibility.map((item: string, index: number) => (
-                        <div key={index} className="text-sm text-muted-foreground">• {item}</div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {analysisResult.structuralAnalysis.recommendations.length > 0 && (
-                <>
-                  <Separator />
-                  <div>
-                    <h4 className="font-semibold mb-2">Engineering Recommendations</h4>
-                    <div className="space-y-1">
-                      {analysisResult.structuralAnalysis.recommendations.map((rec: string, index: number) => (
-                        <div key={index} className="text-sm text-muted-foreground">• {rec}</div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Technical Insights */}
-        <TabsContent value="insights">
-          <Card className="glass-effect">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5" />
-                Technical Insights
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-semibold">Building Classification</h4>
-                  <p className="text-muted-foreground">{analysisResult.technicalInsights.buildingType}</p>
-                </div>
-                <div>
-                  <h4 className="font-semibold">Construction Method</h4>
-                  <p className="text-muted-foreground">{analysisResult.technicalInsights.constructionMethod}</p>
-                </div>
-                <div>
-                  <h4 className="font-semibold">Estimated Area</h4>
-                  <p className="text-muted-foreground">{analysisResult.technicalInsights.estimatedArea.toLocaleString()} sq ft</p>
-                </div>
-                <div>
-                  <h4 className="font-semibold">Occupancy Type</h4>
-                  <p className="text-muted-foreground">{analysisResult.technicalInsights.occupancyType}</p>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-semibold mb-2">Energy Efficiency Notes</h4>
-                  <div className="space-y-1">
-                    {analysisResult.technicalInsights.energyEfficiencyNotes.map((note: string, index: number) => (
-                      <div key={index} className="text-sm text-muted-foreground">• {note}</div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">Sustainability Features</h4>
-                  <div className="space-y-1">
-                    {analysisResult.technicalInsights.sustainabilityFeatures.map((feature: string, index: number) => (
-                      <div key={index} className="text-sm text-muted-foreground">• {feature}</div>
-                    ))}
-                  </div>
-                </div>
-
-                {analysisResult.technicalInsights.potentialIssues.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold mb-2 flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-orange-500" />
-                      Potential Issues
+                      Building Code
                     </h4>
-                    <div className="space-y-1">
-                      {analysisResult.technicalInsights.potentialIssues.map((issue: string, index: number) => (
-                        <div key={index} className="text-sm text-orange-400">• {issue}</div>
+                    <ul className="text-sm text-muted-foreground mt-1">
+                      {analysisResult.structuralAnalysis.codeCompliance.building.map((item, index) => (
+                        <li key={index}>• {item}</li>
                       ))}
-                    </div>
+                    </ul>
                   </div>
-                )}
+                  <div className="p-3 border rounded-lg">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-orange-500" />
+                      Recommendations
+                    </h4>
+                    <ul className="text-sm text-muted-foreground mt-1">
+                      {analysisResult.structuralAnalysis.recommendations.map((item, index) => (
+                        <li key={index}>• {item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          </TabsContent>
 
-        {/* Engineering Description */}
-        <TabsContent value="description">
-          <Card className="glass-effect">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <TabsContent value="insights" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Technical Insights</h3>
+                <div className="space-y-3">
+                  <div className="p-3 border rounded-lg">
+                    <h4 className="font-medium">Building Classification</h4>
+                    <p className="text-sm text-muted-foreground">{analysisResult.technicalInsights.buildingType}</p>
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <h4 className="font-medium">Construction Method</h4>
+                    <p className="text-sm text-muted-foreground">{analysisResult.technicalInsights.constructionMethod}</p>
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <h4 className="font-medium">Estimated Area</h4>
+                    <p className="text-sm text-muted-foreground">{analysisResult.technicalInsights.estimatedArea.toLocaleString()} sq ft</p>
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <h4 className="font-medium">Occupancy Type</h4>
+                    <p className="text-sm text-muted-foreground">{analysisResult.technicalInsights.occupancyType}</p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Sustainability & Efficiency</h3>
+                <div className="space-y-3">
+                  <div className="p-3 border rounded-lg">
+                    <h4 className="font-medium">Energy Efficiency</h4>
+                    <ul className="text-sm text-muted-foreground mt-1">
+                      {analysisResult.technicalInsights.energyEfficiencyNotes.map((note, index) => (
+                        <li key={index}>• {note}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="p-3 border rounded-lg">
+                    <h4 className="font-medium">Sustainability Features</h4>
+                    <ul className="text-sm text-muted-foreground mt-1">
+                      {analysisResult.technicalInsights.sustainabilityFeatures.map((feature, index) => (
+                        <li key={index}>• {feature}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  {analysisResult.technicalInsights.potentialIssues.length > 0 && (
+                    <div className="p-3 border rounded-lg border-orange-200 bg-orange-50">
+                      <h4 className="font-medium text-orange-800">Potential Issues</h4>
+                      <ul className="text-sm text-orange-700 mt-1">
+                        {analysisResult.technicalInsights.potentialIssues.map((issue, index) => (
+                          <li key={index}>• {issue}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="description" className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                 <FileText className="h-5 w-5" />
                 Engineering Description
-              </CardTitle>
-              <CardDescription>
-                Detailed technical description suitable for engineering documentation
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="prose prose-sm max-w-none">
-                <div className="bg-muted/30 p-4 rounded-lg">
-                  <pre className="whitespace-pre-wrap text-sm font-mono">
-                    {analysisResult.engineeringDescription}
-                  </pre>
-                </div>
+              </h3>
+              <div className="p-4 border rounded-lg bg-gray-50">
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  {analysisResult.engineeringDescription}
+                </p>
               </div>
-              
-              {onGenerateReport && (
-                <div className="mt-4">
-                  <Button onClick={onGenerateReport} className="w-full">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Generate Technical Report
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        <div className="flex justify-end gap-2 pt-4 border-t">
+          <Button variant="outline" onClick={onGenerateReport} className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            Generate Technical Report
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 };

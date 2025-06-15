@@ -3,12 +3,13 @@ import React from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Upload, Loader2 } from "lucide-react";
+import { Upload, Loader2, Zap } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 interface UploadFormProps {
   uploading: boolean;
   processing: boolean;
+  enhancedAnalyzing: boolean;
   generating3D: boolean;
   uploadProgress: number;
   onFileUpload: (file: File) => void;
@@ -17,6 +18,7 @@ interface UploadFormProps {
 export const UploadForm: React.FC<UploadFormProps> = ({
   uploading,
   processing,
+  enhancedAnalyzing,
   generating3D,
   uploadProgress,
   onFileUpload
@@ -59,8 +61,10 @@ export const UploadForm: React.FC<UploadFormProps> = ({
       'application/pdf': ['.pdf']
     },
     multiple: false,
-    disabled: uploading || processing || generating3D
+    disabled: uploading || processing || enhancedAnalyzing || generating3D
   });
+
+  const isProcessing = uploading || processing || enhancedAnalyzing || generating3D;
 
   return (
     <Card>
@@ -70,14 +74,20 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           className={`
             border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
             ${isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'}
-            ${uploading || processing || generating3D ? 'cursor-not-allowed opacity-50' : 'hover:border-primary hover:bg-primary/5'}
+            ${isProcessing ? 'cursor-not-allowed opacity-50' : 'hover:border-primary hover:bg-primary/5'}
           `}
         >
           <input {...getInputProps()} />
           
-          {uploading || processing || generating3D ? (
+          {isProcessing ? (
             <div className="space-y-4">
-              <Loader2 className="h-8 w-8 mx-auto animate-spin text-primary" />
+              <div className="flex items-center justify-center">
+                {enhancedAnalyzing ? (
+                  <Zap className="h-8 w-8 mx-auto animate-pulse text-yellow-500" />
+                ) : (
+                  <Loader2 className="h-8 w-8 mx-auto animate-spin text-primary" />
+                )}
+              </div>
               <div>
                 {uploading && (
                   <>
@@ -87,6 +97,16 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                 )}
                 {processing && !uploading && (
                   <p className="text-lg font-medium">Analyzing blueprint with AI...</p>
+                )}
+                {enhancedAnalyzing && (
+                  <div className="space-y-2">
+                    <p className="text-lg font-medium text-yellow-600">
+                      Gemini AI Enhanced Analysis
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Extracting architectural elements and engineering insights...
+                    </p>
+                  </div>
                 )}
                 {generating3D && (
                   <p className="text-lg font-medium">Generating 3D model...</p>
@@ -107,9 +127,10 @@ export const UploadForm: React.FC<UploadFormProps> = ({
               <div className="text-sm text-muted-foreground">
                 <p>Supported formats: JPEG, PNG, GIF, PDF</p>
                 <p>Maximum file size: 10MB</p>
-                <p className="text-primary font-medium mt-2">
-                  ✨ Now with Gemini AI-powered engineering analysis!
-                </p>
+                <div className="flex items-center justify-center gap-2 text-primary font-medium mt-2">
+                  <Zap className="h-4 w-4" />
+                  <span>Enhanced with Gemini AI engineering analysis!</span>
+                </div>
               </div>
             </div>
           )}

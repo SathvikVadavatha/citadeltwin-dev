@@ -8,6 +8,7 @@ export const BlueprintUpload = () => {
   const {
     uploading,
     processing,
+    enhancedAnalyzing,
     generating3D,
     uploadProgress,
     uploadResult,
@@ -31,13 +32,14 @@ export const BlueprintUpload = () => {
       <div>
         <h2 className="text-2xl font-bold mb-2">Upload Blueprint</h2>
         <p className="text-muted-foreground">
-          Upload a 2D blueprint to extract architectural elements and generate 3D models using AI.
+          Upload a 2D blueprint to extract architectural elements and generate 3D models using enhanced Gemini AI analysis.
         </p>
       </div>
 
       <UploadForm
         uploading={uploading}
         processing={processing}
+        enhancedAnalyzing={enhancedAnalyzing}
         generating3D={generating3D}
         uploadProgress={uploadProgress}
         onFileUpload={uploadFile}
