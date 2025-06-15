@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGISData } from "@/hooks/useGISData";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -17,8 +18,14 @@ import {
   Layers, 
   Database,
   Calendar,
-  Activity
+  Activity,
+  Shield,
+  Home
 } from "lucide-react";
+import { EnvironmentalDataPanel } from "./EnvironmentalDataPanel";
+import { PropertyBoundaryViewer } from "./PropertyBoundaryViewer";
+import { ZoningAnalysisPanel } from "./ZoningAnalysisPanel";
+import { SpatialAnalysisPanel } from "./SpatialAnalysisPanel";
 
 export const GISDataManager = () => {
   const [selectedLocation, setSelectedLocation] = useState<string>("");
@@ -71,6 +78,8 @@ export const GISDataManager = () => {
       case 'parcels': return MapPin;
       case 'roads': return Building;
       case 'utilities': return Zap;
+      case 'flood_zones': return Shield;
+      case 'boundaries': return Home;
       default: return Layers;
     }
   };
@@ -84,147 +93,130 @@ export const GISDataManager = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Card className="bg-gray-900 border-gray-700">
         <CardHeader>
           <CardTitle className="text-cyan-300 flex items-center gap-2">
             <Map className="w-5 h-5" />
-            GIS Data Integration
+            Advanced GIS Data Integration
           </CardTitle>
           <CardDescription className="text-gray-400">
-            Fetch and manage municipal GIS data layers
+            Comprehensive GIS management with environmental data, property boundaries, and zoning analysis
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-200">Select Location</label>
-            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-              <SelectTrigger className="bg-gray-800 border-gray-600 text-gray-200">
-                <SelectValue placeholder="Choose a city or county..." />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-600">
-                <SelectItem value="nyc">New York City, NY</SelectItem>
-                <SelectItem value="la">Los Angeles, CA</SelectItem>
-                <SelectItem value="chicago">Chicago, IL</SelectItem>
-                <SelectItem value="houston">Houston, TX</SelectItem>
-                <SelectItem value="phoenix">Phoenix, AZ</SelectItem>
-                <SelectItem value="cuyahoga">Cuyahoga County, OH</SelectItem>
-                <SelectItem value="orange-fl">Orange County, FL</SelectItem>
-                <SelectItem value="hillsborough-fl">Hillsborough County, FL</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <CardContent>
+          <Tabs defaultValue="basic" className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="basic">Basic GIS</TabsTrigger>
+              <TabsTrigger value="environmental">Environmental</TabsTrigger>
+              <TabsTrigger value="boundaries">Boundaries</TabsTrigger>
+              <TabsTrigger value="zoning">Zoning</TabsTrigger>
+              <TabsTrigger value="analysis">Analysis</TabsTrigger>
+            </TabsList>
 
-          <Button 
-            onClick={handleFetchData}
-            disabled={isLoading || !selectedLocation}
-            className="w-full bg-cyan-600 hover:bg-cyan-700"
-          >
-            {isLoading ? (
-              <>
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                Fetching Data...
-              </>
-            ) : (
-              <>
-                <Download className="w-4 h-4 mr-2" />
-                Fetch GIS Data
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
+            <TabsContent value="basic" className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-200">Select Location</label>
+                <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+                  <SelectTrigger className="bg-gray-800 border-gray-600 text-gray-200">
+                    <SelectValue placeholder="Choose a city or county..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-600">
+                    <SelectItem value="nyc">New York City, NY</SelectItem>
+                    <SelectItem value="la">Los Angeles, CA</SelectItem>
+                    <SelectItem value="chicago">Chicago, IL</SelectItem>
+                    <SelectItem value="houston">Houston, TX</SelectItem>
+                    <SelectItem value="phoenix">Phoenix, AZ</SelectItem>
+                    <SelectItem value="miami">Miami, FL</SelectItem>
+                    <SelectItem value="seattle">Seattle, WA</SelectItem>
+                    <SelectItem value="denver">Denver, CO</SelectItem>
+                    <SelectItem value="austin">Austin, TX</SelectItem>
+                    <SelectItem value="atlanta">Atlanta, GA</SelectItem>
+                    <SelectItem value="cuyahoga">Cuyahoga County, OH</SelectItem>
+                    <SelectItem value="orange-fl">Orange County, FL</SelectItem>
+                    <SelectItem value="hillsborough-fl">Hillsborough County, FL</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-      {gisLayers.length > 0 && (
-        <Card className="bg-gray-900 border-gray-700">
-          <CardHeader>
-            <CardTitle className="text-cyan-300 flex items-center gap-2">
-              <Database className="w-5 h-5" />
-              Available GIS Layers
-            </CardTitle>
-            <CardDescription className="text-gray-400">
-              Manage loaded GIS data layers
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {gisLayers.map((layer) => {
-                const IconComponent = getLayerIcon(layer.layer_type);
-                return (
-                  <div 
-                    key={layer.id} 
-                    className="bg-gray-800 p-4 rounded-lg border border-gray-700"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3">
-                        <IconComponent className="w-5 h-5 text-cyan-400 mt-0.5" />
-                        <div className="space-y-1">
-                          <h4 className="font-medium text-gray-200">{layer.layer_name}</h4>
-                          <p className="text-sm text-gray-400">{layer.description}</p>
-                          <div className="flex items-center gap-4 text-xs text-gray-500">
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {new Date(layer.last_updated).toLocaleDateString()}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Activity className="w-3 h-3" />
-                              {formatFileSize(layer.data_size || 0)}
-                            </span>
+              <Button 
+                onClick={handleFetchData}
+                disabled={isLoading || !selectedLocation}
+                className="w-full bg-cyan-600 hover:bg-cyan-700"
+              >
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Fetching Data...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-2" />
+                    Fetch GIS Data
+                  </>
+                )}
+              </Button>
+
+              {gisLayers.length > 0 && (
+                <div className="space-y-3 mt-4">
+                  <h3 className="text-cyan-300 font-medium flex items-center gap-2">
+                    <Database className="w-4 h-4" />
+                    Available GIS Layers ({gisLayers.length})
+                  </h3>
+                  {gisLayers.slice(0, 5).map((layer) => {
+                    const IconComponent = getLayerIcon(layer.layer_type);
+                    return (
+                      <div 
+                        key={layer.id} 
+                        className="bg-gray-800 p-3 rounded-lg border border-gray-700"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <IconComponent className="w-4 h-4 text-cyan-400" />
+                            <span className="text-sm font-medium text-gray-200">{layer.layer_name}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {layer.feature_count} features
+                            </Badge>
                           </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRefreshLayer(layer.id)}
+                            className="border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/20"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge 
-                          variant="outline" 
-                          className={
-                            layer.status === 'active' 
-                              ? "text-emerald-400 border-emerald-400" 
-                              : "text-yellow-400 border-yellow-400"
-                          }
-                        >
-                          {layer.status}
-                        </Badge>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleRefreshLayer(layer.id)}
-                          className="border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/20"
-                        >
-                          <RefreshCw className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
+                    );
+                  })}
+                  {gisLayers.length > 5 && (
+                    <p className="text-sm text-gray-400 text-center">
+                      ... and {gisLayers.length - 5} more layers
+                    </p>
+                  )}
+                </div>
+              )}
+            </TabsContent>
 
-                    <Separator className="my-3 bg-gray-700" />
-                    
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-400">Source:</span>
-                        <p className="text-gray-200 truncate">{layer.source_url}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">Features:</span>
-                        <p className="text-gray-200">{layer.feature_count || 'Unknown'}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            <TabsContent value="environmental">
+              <EnvironmentalDataPanel />
+            </TabsContent>
 
-      {gisLayers.length === 0 && (
-        <Card className="bg-gray-900 border-gray-700">
-          <CardContent className="flex flex-col items-center justify-center py-8">
-            <Map className="w-12 h-12 text-gray-400 mb-4" />
-            <p className="text-gray-400 text-center">
-              No GIS data loaded. Select a location and fetch data to get started.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+            <TabsContent value="boundaries">
+              <PropertyBoundaryViewer />
+            </TabsContent>
+
+            <TabsContent value="zoning">
+              <ZoningAnalysisPanel />
+            </TabsContent>
+
+            <TabsContent value="analysis">
+              <SpatialAnalysisPanel />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 };

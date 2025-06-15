@@ -968,14 +968,60 @@ export type Database = {
           },
         ]
       }
+      gis_data_updates: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          layer_id: string | null
+          processed_at: string | null
+          processing_status: string
+          update_data: Json
+          update_source: string
+          update_type: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          layer_id?: string | null
+          processed_at?: string | null
+          processing_status?: string
+          update_data: Json
+          update_source: string
+          update_type: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          layer_id?: string | null
+          processed_at?: string | null
+          processing_status?: string
+          update_data?: Json
+          update_source?: string
+          update_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gis_data_updates_layer_id_fkey"
+            columns: ["layer_id"]
+            isOneToOne: false
+            referencedRelation: "gis_layers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gis_layers: {
         Row: {
           bbox: Json | null
           city: string
           coordinate_system: string | null
           created_at: string
+          data_freshness_hours: number | null
           data_size: number | null
           description: string | null
+          environmental_type: string | null
           feature_count: number | null
           geometry_data: Json | null
           id: string
@@ -984,17 +1030,21 @@ export type Database = {
           layer_type: string
           metadata: Json | null
           processing_status: string | null
+          real_time_enabled: boolean | null
           source_url: string
           state: string
           status: string
+          update_frequency: string | null
         }
         Insert: {
           bbox?: Json | null
           city: string
           coordinate_system?: string | null
           created_at?: string
+          data_freshness_hours?: number | null
           data_size?: number | null
           description?: string | null
+          environmental_type?: string | null
           feature_count?: number | null
           geometry_data?: Json | null
           id?: string
@@ -1003,17 +1053,21 @@ export type Database = {
           layer_type: string
           metadata?: Json | null
           processing_status?: string | null
+          real_time_enabled?: boolean | null
           source_url: string
           state: string
           status?: string
+          update_frequency?: string | null
         }
         Update: {
           bbox?: Json | null
           city?: string
           coordinate_system?: string | null
           created_at?: string
+          data_freshness_hours?: number | null
           data_size?: number | null
           description?: string | null
+          environmental_type?: string | null
           feature_count?: number | null
           geometry_data?: Json | null
           id?: string
@@ -1022,9 +1076,11 @@ export type Database = {
           layer_type?: string
           metadata?: Json | null
           processing_status?: string | null
+          real_time_enabled?: boolean | null
           source_url?: string
           state?: string
           status?: string
+          update_frequency?: string | null
         }
         Relationships: []
       }
@@ -1285,6 +1341,63 @@ export type Database = {
           name?: string
           owner_id?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      property_boundaries: {
+        Row: {
+          area_sqft: number | null
+          boundary_geometry: Json
+          city: string
+          county: string | null
+          created_at: string
+          environmental_constraints: Json | null
+          flood_zone: string | null
+          id: string
+          last_surveyed: string | null
+          owner_name: string | null
+          parcel_id: string
+          property_address: string | null
+          soil_type: string | null
+          state: string
+          updated_at: string
+          zoning_designation: string | null
+        }
+        Insert: {
+          area_sqft?: number | null
+          boundary_geometry: Json
+          city: string
+          county?: string | null
+          created_at?: string
+          environmental_constraints?: Json | null
+          flood_zone?: string | null
+          id?: string
+          last_surveyed?: string | null
+          owner_name?: string | null
+          parcel_id: string
+          property_address?: string | null
+          soil_type?: string | null
+          state: string
+          updated_at?: string
+          zoning_designation?: string | null
+        }
+        Update: {
+          area_sqft?: number | null
+          boundary_geometry?: Json
+          city?: string
+          county?: string | null
+          created_at?: string
+          environmental_constraints?: Json | null
+          flood_zone?: string | null
+          id?: string
+          last_surveyed?: string | null
+          owner_name?: string | null
+          parcel_id?: string
+          property_address?: string | null
+          soil_type?: string | null
+          state?: string
+          updated_at?: string
+          zoning_designation?: string | null
         }
         Relationships: []
       }
