@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Grid, Box, Text } from "@react-three/drei";
@@ -7,7 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BIMElementsManager } from "@/components/bim/BIMElementsManager";
 import { FEAAnalysisManager } from "@/components/fea/FEAAnalysisManager";
-import { Layers, Package, Calculator, Zap, Settings, Eye, Grid3X3 } from "lucide-react";
+import { GISDataManager } from "@/components/gis/GISDataManager";
+import { Layers, Package, Calculator, Zap, Settings, Eye, Grid3X3, Map } from "lucide-react";
 
 interface CADCanvasProps {
   onNavigate: (view: string) => void;
@@ -124,7 +126,7 @@ export const CADCanvas = ({ onNavigate }: CADCanvasProps) => {
       {/* Right Panel */}
       <div className="w-96 border-l border-gray-800 bg-gray-900/95 backdrop-blur flex flex-col">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-800 m-2">
+          <TabsList className="grid w-full grid-cols-4 bg-gray-800 m-2">
             <TabsTrigger 
               value="model" 
               className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white"
@@ -138,6 +140,13 @@ export const CADCanvas = ({ onNavigate }: CADCanvasProps) => {
             >
               <Calculator className="w-4 h-4 mr-1" />
               FEA
+            </TabsTrigger>
+            <TabsTrigger 
+              value="gis"
+              className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white"
+            >
+              <Map className="w-4 h-4 mr-1" />
+              GIS
             </TabsTrigger>
             <TabsTrigger 
               value="layers"
@@ -155,6 +164,10 @@ export const CADCanvas = ({ onNavigate }: CADCanvasProps) => {
 
             <TabsContent value="analysis" className="h-full p-2 overflow-y-auto">
               <FEAAnalysisManager elementId={selectedElement || undefined} />
+            </TabsContent>
+
+            <TabsContent value="gis" className="h-full p-2 overflow-y-auto">
+              <GISDataManager />
             </TabsContent>
 
             <TabsContent value="layers" className="h-full p-2 overflow-y-auto">
@@ -177,6 +190,12 @@ export const CADCanvas = ({ onNavigate }: CADCanvasProps) => {
                     <span className="text-gray-200">MEP</span>
                     <Badge variant="outline" className="text-gray-500 border-gray-500">
                       Hidden
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-gray-800 rounded">
+                    <span className="text-gray-200">GIS Data</span>
+                    <Badge variant="outline" className="text-emerald-400 border-emerald-400">
+                      Visible
                     </Badge>
                   </div>
                 </div>
