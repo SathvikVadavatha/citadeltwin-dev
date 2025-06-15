@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CreateProjectData, useProjects } from '@/hooks/useProjects';
 
 interface CreateProjectModalProps {
@@ -18,7 +17,6 @@ export const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }: Create
   const [formData, setFormData] = useState<CreateProjectData>({
     name: '',
     description: '',
-    project_type: 'residential',
   });
   
   const { createProject, creating } = useProjects();
@@ -37,7 +35,6 @@ export const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }: Create
       setFormData({
         name: '',
         description: '',
-        project_type: 'residential',
       });
       onClose();
     }
@@ -47,7 +44,6 @@ export const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }: Create
     setFormData({
       name: '',
       description: '',
-      project_type: 'residential',
     });
     onClose();
   };
@@ -83,24 +79,6 @@ export const CreateProjectModal = ({ isOpen, onClose, onProjectCreated }: Create
               placeholder="Brief project description (optional)"
               rows={3}
             />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="project_type">Project Type</Label>
-            <Select
-              value={formData.project_type}
-              onValueChange={(value: any) => setFormData({ ...formData, project_type: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select project type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="residential">Residential</SelectItem>
-                <SelectItem value="commercial">Commercial</SelectItem>
-                <SelectItem value="industrial">Industrial</SelectItem>
-                <SelectItem value="infrastructure">Infrastructure</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
           
           <div className="flex justify-end space-x-2 pt-4">

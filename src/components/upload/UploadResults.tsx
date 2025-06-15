@@ -1,12 +1,13 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Box } from "lucide-react";
+import { Box, MapPin, Activity } from "lucide-react";
 import { Model3DViewer } from "@/components/3d/Model3DViewer";
 import { FloorPlanAnalyzer } from "@/components/analysis/FloorPlanAnalyzer";
 import { EnhancedBlueprintAnalysis } from "@/components/analysis/EnhancedBlueprintAnalysis";
 import { SceneGenerator } from "@/components/3d/SceneGenerator";
+import { SpatialAnalysisPanel } from "@/components/gis/SpatialAnalysisPanel";
+import { RealFEAPanel } from "@/components/fea/RealFEAPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from '@tanstack/react-query';
 
@@ -159,6 +160,32 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
             analysisData={uploadResult.floorPlanData}
           />
         )}
+
+        {/* Real GIS Integration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-green-500" />
+              Real-World Spatial Data Integration
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SpatialAnalysisPanel />
+          </CardContent>
+        </Card>
+
+        {/* Real FEA Integration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-purple-500" />
+              Advanced FEA Analysis Engine
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RealFEAPanel />
+          </CardContent>
+        </Card>
 
         {/* 3D Scene Generation */}
         {uploadResult.floorPlanData && (

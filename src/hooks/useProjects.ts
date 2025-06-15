@@ -6,12 +6,9 @@ import { toast } from 'sonner';
 
 export interface Project {
   id: string;
-  user_id: string;
   name: string;
   description?: string;
-  project_type: 'residential' | 'commercial' | 'industrial' | 'infrastructure';
-  status: 'active' | 'completed' | 'archived';
-  location_data?: any;
+  owner_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -19,8 +16,6 @@ export interface Project {
 export interface CreateProjectData {
   name: string;
   description?: string;
-  project_type: 'residential' | 'commercial' | 'industrial' | 'infrastructure';
-  location_data?: any;
 }
 
 export const useProjects = () => {
@@ -39,10 +34,10 @@ export const useProjects = () => {
     
     try {
       setLoading(true);
-      // Use type assertion to work around missing types
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('projects')
         .select('*')
+        .eq('owner_id', user.id)
         .order('updated_at', { ascending: false });
 
       if (error) {
@@ -65,11 +60,11 @@ export const useProjects = () => {
 
     try {
       setCreating(true);
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('projects')
         .insert({
           ...projectData,
-          user_id: user.id,
+          owner_id: user.id,
         })
         .select()
         .single();
@@ -81,7 +76,7 @@ export const useProjects = () => {
       }
 
       toast.success('Project created successfully');
-      await fetchProjects(); // Refresh the list
+      await fetchProjects();
       return data as Project;
     } catch (error) {
       console.error('Error creating project:', error);
@@ -95,7 +90,7 @@ export const useProjects = () => {
   const updateProject = async (id: string, updates: Partial<CreateProjectData>): Promise<Project | null> => {
     try {
       setUpdating(true);
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('projects')
         .update(updates)
         .eq('id', id)
@@ -109,7 +104,7 @@ export const useProjects = () => {
       }
 
       toast.success('Project updated successfully');
-      await fetchProjects(); // Refresh the list
+      await fetchProjects();
       return data as Project;
     } catch (error) {
       console.error('Error updating project:', error);
@@ -123,7 +118,7 @@ export const useProjects = () => {
   const deleteProject = async (id: string): Promise<boolean> => {
     try {
       setDeleting(true);
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('projects')
         .delete()
         .eq('id', id);
@@ -135,7 +130,7 @@ export const useProjects = () => {
       }
 
       toast.success('Project deleted successfully');
-      await fetchProjects(); // Refresh the list
+      await fetchProjects();
       return true;
     } catch (error) {
       console.error('Error deleting project:', error);

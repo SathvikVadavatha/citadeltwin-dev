@@ -104,6 +104,27 @@ export type Database = {
             referencedRelation: "blueprint_uploads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_bim_elements_material_id"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_bim_elements_parent_id"
+            columns: ["parent_element_id"]
+            isOneToOne: false
+            referencedRelation: "bim_elements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_bim_elements_upload_id"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "blueprint_uploads"
+            referencedColumns: ["id"]
+          },
         ]
       }
       blueprint_uploads: {
@@ -146,7 +167,15 @@ export type Database = {
           upload_status?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_blueprint_uploads_project_id"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       compliance_checks: {
         Row: {
@@ -815,7 +844,9 @@ export type Database = {
       }
       gis_layers: {
         Row: {
+          bbox: Json | null
           city: string
+          coordinate_system: string | null
           created_at: string
           data_size: number | null
           description: string | null
@@ -826,12 +857,15 @@ export type Database = {
           layer_name: string
           layer_type: string
           metadata: Json | null
+          processing_status: string | null
           source_url: string
           state: string
           status: string
         }
         Insert: {
+          bbox?: Json | null
           city: string
+          coordinate_system?: string | null
           created_at?: string
           data_size?: number | null
           description?: string | null
@@ -842,12 +876,15 @@ export type Database = {
           layer_name: string
           layer_type: string
           metadata?: Json | null
+          processing_status?: string | null
           source_url: string
           state: string
           status?: string
         }
         Update: {
+          bbox?: Json | null
           city?: string
+          coordinate_system?: string | null
           created_at?: string
           data_size?: number | null
           description?: string | null
@@ -858,6 +895,7 @@ export type Database = {
           layer_name?: string
           layer_type?: string
           metadata?: Json | null
+          processing_status?: string | null
           source_url?: string
           state?: string
           status?: string
@@ -965,6 +1003,63 @@ export type Database = {
           id?: string
           role?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      spatial_analysis_results: {
+        Row: {
+          analysis_type: string
+          created_at: string | null
+          id: string
+          input_layer_ids: string[]
+          parameters: Json | null
+          result_data: Json
+          user_id: string
+        }
+        Insert: {
+          analysis_type: string
+          created_at?: string | null
+          id?: string
+          input_layer_ids: string[]
+          parameters?: Json | null
+          result_data: Json
+          user_id: string
+        }
+        Update: {
+          analysis_type?: string
+          created_at?: string | null
+          id?: string
+          input_layer_ids?: string[]
+          parameters?: Json | null
+          result_data?: Json
+          user_id?: string
         }
         Relationships: []
       }
