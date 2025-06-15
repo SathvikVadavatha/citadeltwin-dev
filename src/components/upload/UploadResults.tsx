@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Box } from "lucide-react";
 import { Model3DViewer } from "@/components/3d/Model3DViewer";
 import { FloorPlanAnalyzer } from "@/components/analysis/FloorPlanAnalyzer";
+import { EnhancedBlueprintAnalysis } from "@/components/analysis/EnhancedBlueprintAnalysis";
 import { SceneGenerator } from "@/components/3d/SceneGenerator";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -65,6 +65,7 @@ interface UploadResult {
   processingTime?: number;
   generated3DModels?: Generated3DModel[];
   floorPlanData?: FloorPlanData;
+  geminiAnalysis?: any;
 }
 
 interface UploadResultsProps {
@@ -81,13 +82,25 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Plan2Scene Analysis Results</h2>
+        <h2 className="text-2xl font-bold">Enhanced Blueprint Analysis Results</h2>
         <Button variant="outline" onClick={onReset}>
           Upload Another Blueprint
         </Button>
       </div>
 
       <div className="space-y-6">
+        {/* Enhanced Gemini Analysis */}
+        {uploadResult.geminiAnalysis && (
+          <EnhancedBlueprintAnalysis
+            analysisResult={uploadResult.geminiAnalysis}
+            imageUrl={uploadResult.imageUrl}
+            onGenerateReport={() => {
+              // Future enhancement: Generate technical report
+              console.log('Generate technical report');
+            }}
+          />
+        )}
+
         {/* Floor Plan Analysis */}
         {uploadResult.floorPlanData && (
           <FloorPlanAnalyzer

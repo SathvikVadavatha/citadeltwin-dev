@@ -1,8 +1,8 @@
-
 import { useState, useCallback } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/providers/AuthProvider";
 import { useToast } from "@/components/ui/use-toast";
+import { useGeminiBlueprintAnalyzer } from './useGeminiBlueprintAnalyzer';
 
 interface DetectedObject {
   label: string;
@@ -69,8 +69,11 @@ export const useBlueprintUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [generating3D, setGenerating3D] = useState(false);
+  const [enhancedAnalyzing, setEnhancedAnalyzing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
+  
+  const { analyzeBlueprint } = useGeminiBlueprintAnalyzer();
 
   const generateMockFloorPlanData = (): FloorPlanData => {
     return {
@@ -176,7 +179,7 @@ export const useBlueprintUpload = () => {
       setUploading(false);
       setProcessing(true);
 
-      // Enhanced Plan2Scene-inspired analysis
+      // Enhanced Plan2Scene-inspired analysis with basic object detection
       const mockDetectedObjects: DetectedObject[] = [
         { label: 'door', confidence: 0.92, bbox: { x: 25, y: 45, width: 8, height: 15 } },
         { label: 'window', confidence: 0.88, bbox: { x: 60, y: 30, width: 12, height: 10 } },
@@ -202,6 +205,18 @@ export const useBlueprintUpload = () => {
         });
 
       setProcessing(false);
+      
+      // Start enhanced Gemini analysis
+      setEnhancedAnalyzing(true);
+
+      // Perform advanced Gemini analysis
+      const geminiAnalysis = await analyzeBlueprint(
+        urlData.publicUrl,
+        uploadRecord.id,
+        mockDetectedObjects
+      );
+
+      setEnhancedAnalyzing(false);
       setGenerating3D(true);
 
       // Generate 3D model with enhanced data
@@ -211,7 +226,8 @@ export const useBlueprintUpload = () => {
             uploadId: uploadRecord.id,
             detectedObjects: mockDetectedObjects,
             imageUrl: urlData.publicUrl,
-            floorPlanData
+            floorPlanData,
+            geminiAnalysis
           }
         });
 
@@ -232,14 +248,15 @@ export const useBlueprintUpload = () => {
         imageUrl: urlData.publicUrl,
         processingTime: 3500,
         generated3DModels: modelsData,
-        floorPlanData
+        floorPlanData,
+        geminiAnalysis
       });
 
       setGenerating3D(false);
 
       toast({
-        title: "Enhanced analysis complete",
-        description: `Analyzed floor plan, detected ${mockDetectedObjects.length} elements, and generated 3D scene.`,
+        title: "Enhanced AI analysis complete",
+        description: `Analyzed floor plan with Gemini AI, detected ${mockDetectedObjects.length} elements, and generated comprehensive engineering insights.`,
       });
 
     } catch (error) {
@@ -252,10 +269,11 @@ export const useBlueprintUpload = () => {
     } finally {
       setUploading(false);
       setProcessing(false);
+      setEnhancedAnalyzing(false);
       setGenerating3D(false);
       setUploadProgress(0);
     }
-  }, [user, toast]);
+  }, [user, toast, analyzeBlueprint]);
 
   const resetUpload = () => {
     setUploadResult(null);
@@ -296,6 +314,7 @@ export const useBlueprintUpload = () => {
   return {
     uploading,
     processing,
+    enhancedAnalyzing,
     generating3D,
     uploadProgress,
     uploadResult,

@@ -85,7 +85,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                     <Progress value={uploadProgress} className="mt-2" />
                   </>
                 )}
-                {processing && (
+                {processing && !uploading && (
                   <p className="text-lg font-medium">Analyzing blueprint with AI...</p>
                 )}
                 {generating3D && (
@@ -108,7 +108,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                 <p>Supported formats: JPEG, PNG, GIF, PDF</p>
                 <p>Maximum file size: 10MB</p>
                 <p className="text-primary font-medium mt-2">
-                  ✨ Now with AI-powered 3D model generation!
+                  ✨ Now with Gemini AI-powered engineering analysis!
                 </p>
               </div>
             </div>
