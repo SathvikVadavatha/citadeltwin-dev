@@ -1,103 +1,20 @@
 
-import { useState, useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
-
-// Raw database types (what comes from Supabase)
-interface DatabaseSnapshot {
-  id: string;
-  project_id: string;
-  user_id: string;
-  snapshot_name: string;
-  description?: string;
-  parent_snapshot_id?: string;
-  branch_name: string;
-  is_current: boolean;
-  created_at: string;
-  snapshot_data: any; // Json from database
-  metadata: any; // Json from database
-}
-
-interface DatabaseBranch {
-  id: string;
-  project_id: string;
-  name: string;
-  description?: string;
-  created_by: string;
-  current_snapshot_id?: string;
-  created_at: string;
-}
-
-// Application types (what we use in the app)
-export interface SnapshotData {
-  elements: any[];
-  project_data: any;
-  metadata: {
-    snapshot_version: string;
-    created_by: string;
-    element_types: string[];
-  };
-}
-
-export interface SnapshotMetadata {
-  elements_count: number;
-  file_size: number;
-  timestamp: string;
-  changes_summary: string[];
-}
-
-export interface ProjectSnapshot {
-  id: string;
-  project_id: string;
-  user_id: string;
-  snapshot_name: string;
-  description?: string;
-  parent_snapshot_id?: string;
-  branch_name: string;
-  is_current: boolean;
-  created_at: string;
-  snapshot_data: SnapshotData;
-  metadata: SnapshotMetadata;
-}
-
-export interface Branch {
-  id: string;
-  project_id: string;
-  name: string;
-  description?: string;
-  created_by: string;
-  current_snapshot_id?: string;
-  created_at: string;
-}
-
-export interface VersionDiff {
-  element_id: string;
-  change_type: 'added' | 'modified' | 'deleted';
-  before: any;
-  after: any;
-  properties_changed: string[];
-}
-
-// Helper function to convert database snapshot to app snapshot
-const convertDatabaseSnapshot = (dbSnapshot: DatabaseSnapshot): ProjectSnapshot => {
-  return {
-    ...dbSnapshot,
-    snapshot_data: dbSnapshot.snapshot_data as SnapshotData,
-    metadata: dbSnapshot.metadata as SnapshotMetadata,
-  };
-};
+import { SimpleSnapshot, SimpleBranch, CreateSnapshotParams, CreateBranchParams, VersionDiff } from '@/types/version-control';
 
 export const useVersionControl = (projectId: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [currentBranch, setCurrentBranch] = useState('main');
 
-  // Fetch snapshots
+  // Fetch snapshots with simple query
   const { data: snapshots = [], isLoading: snapshotsLoading } = useQuery({
     queryKey: ['project-snapshots', projectId, currentBranch],
-    queryFn: async () => {
+    queryFn: async (): Promise<SimpleSnapshot[]> => {
       const { data, error } = await supabase
         .from('project_snapshots')
         .select('*')
@@ -107,15 +24,15 @@ export const useVersionControl = (projectId: string) => {
 
       if (error) throw error;
       
-      return (data || []).map(convertDatabaseSnapshot);
+      return (data || []) as SimpleSnapshot[];
     },
     enabled: !!projectId && !!user,
   });
 
-  // Fetch branches
+  // Fetch branches with simple query
   const { data: branches = [], isLoading: branchesLoading } = useQuery({
     queryKey: ['project-branches', projectId],
-    queryFn: async () => {
+    queryFn: async (): Promise<SimpleBranch[]> => {
       const { data, error } = await supabase
         .from('project_branches')
         .select('*')
@@ -123,16 +40,16 @@ export const useVersionControl = (projectId: string) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return (data || []) as Branch[];
+      return (data || []) as SimpleBranch[];
     },
     enabled: !!projectId && !!user,
   });
 
-  // Create snapshot mutation
-  const createSnapshotMutation = useMutation({
-    mutationFn: async (params: { name: string; description?: string; projectData: any }) => {
-      if (!user?.id) throw new Error('User not authenticated');
+  // Simple create snapshot function
+  const createSnapshot = async (params: CreateSnapshotParams): Promise<void> => {
+    if (!user?.id) throw new Error('User not authenticated');
 
+    try {
       // Get current elements
       const { data: elements, error: elementsError } = await supabase
         .from('bim_elements')
@@ -183,22 +100,19 @@ export const useVersionControl = (projectId: string) => {
         .eq('branch_name', currentBranch)
         .neq('id', data.id);
 
-      return data;
-    },
-    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-snapshots'] });
       toast.success('Snapshot created successfully');
-    },
-    onError: (error: Error) => {
+    } catch (error: any) {
       toast.error(`Failed to create snapshot: ${error.message}`);
-    },
-  });
+      throw error;
+    }
+  };
 
-  // Restore snapshot mutation
-  const restoreSnapshotMutation = useMutation({
-    mutationFn: async (snapshotId: string) => {
-      if (!user?.id) throw new Error('User not authenticated');
+  // Simple restore snapshot function
+  const restoreSnapshot = async (snapshotId: string): Promise<void> => {
+    if (!user?.id) throw new Error('User not authenticated');
 
+    try {
       // Get snapshot data
       const { data: snapshot, error: snapshotError } = await supabase
         .from('project_snapshots')
@@ -243,23 +157,20 @@ export const useVersionControl = (projectId: string) => {
         .update({ is_current: true })
         .eq('id', snapshotId);
 
-      return snapshot;
-    },
-    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-snapshots'] });
       queryClient.invalidateQueries({ queryKey: ['bim-elements'] });
       toast.success('Snapshot restored successfully');
-    },
-    onError: (error: Error) => {
+    } catch (error: any) {
       toast.error(`Failed to restore snapshot: ${error.message}`);
-    },
-  });
+      throw error;
+    }
+  };
 
-  // Create branch mutation
-  const createBranchMutation = useMutation({
-    mutationFn: async (params: { name: string; description?: string; fromSnapshotId?: string }) => {
-      if (!user?.id) throw new Error('User not authenticated');
+  // Simple create branch function
+  const createBranch = async (params: CreateBranchParams): Promise<void> => {
+    if (!user?.id) throw new Error('User not authenticated');
 
+    try {
       const { data, error } = await supabase
         .from('project_branches')
         .insert({
@@ -273,18 +184,16 @@ export const useVersionControl = (projectId: string) => {
         .single();
 
       if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
+      
       queryClient.invalidateQueries({ queryKey: ['project-branches'] });
       toast.success('Branch created successfully');
-    },
-    onError: (error: Error) => {
+    } catch (error: any) {
       toast.error(`Failed to create branch: ${error.message}`);
-    },
-  });
+      throw error;
+    }
+  };
 
-  // Compare snapshots function
+  // Simple compare snapshots function
   const compareSnapshots = async (snapshot1Id: string, snapshot2Id: string): Promise<VersionDiff[]> => {
     const { data: snapshots, error } = await supabase
       .from('project_snapshots')
@@ -351,12 +260,12 @@ export const useVersionControl = (projectId: string) => {
     snapshotsLoading,
     branchesLoading,
     setCurrentBranch,
-    createSnapshot: createSnapshotMutation.mutateAsync,
-    restoreSnapshot: restoreSnapshotMutation.mutateAsync,
-    createBranch: createBranchMutation.mutateAsync,
+    createSnapshot,
+    restoreSnapshot,
+    createBranch,
     compareSnapshots,
-    isCreatingSnapshot: createSnapshotMutation.isPending,
-    isRestoringSnapshot: restoreSnapshotMutation.isPending,
-    isCreatingBranch: createBranchMutation.isPending,
+    isCreatingSnapshot: false,
+    isRestoringSnapshot: false,
+    isCreatingBranch: false,
   };
 };
