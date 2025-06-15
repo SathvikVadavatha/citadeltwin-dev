@@ -12,7 +12,7 @@ import {
   Download, 
   RefreshCw, 
   MapPin, 
-  Road, 
+  Building, 
   Zap, 
   Layers, 
   Database,
@@ -21,25 +21,25 @@ import {
 } from "lucide-react";
 
 export const GISDataManager = () => {
-  const [selectedCity, setSelectedCity] = useState<string>("");
+  const [selectedLocation, setSelectedLocation] = useState<string>("");
   const { toast } = useToast();
   const { gisLayers, isLoading, fetchCityData, refreshLayer } = useGISData();
 
   const handleFetchData = async () => {
-    if (!selectedCity) {
+    if (!selectedLocation) {
       toast({
-        title: "City Required",
-        description: "Please select a city to fetch GIS data.",
+        title: "Location Required",
+        description: "Please select a location to fetch GIS data.",
         variant: "destructive"
       });
       return;
     }
 
     try {
-      await fetchCityData(selectedCity);
+      await fetchCityData(selectedLocation);
       toast({
         title: "GIS Data Fetched",
-        description: `Successfully fetched GIS data for ${selectedCity}`,
+        description: `Successfully fetched GIS data for ${selectedLocation}`,
       });
     } catch (error) {
       toast({
@@ -69,7 +69,7 @@ export const GISDataManager = () => {
   const getLayerIcon = (layerType: string) => {
     switch (layerType) {
       case 'parcels': return MapPin;
-      case 'roads': return Road;
+      case 'roads': return Building;
       case 'utilities': return Zap;
       default: return Layers;
     }
@@ -97,10 +97,10 @@ export const GISDataManager = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-200">Select City</label>
-            <Select value={selectedCity} onValueChange={setSelectedCity}>
+            <label className="text-sm font-medium text-gray-200">Select Location</label>
+            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
               <SelectTrigger className="bg-gray-800 border-gray-600 text-gray-200">
-                <SelectValue placeholder="Choose a city..." />
+                <SelectValue placeholder="Choose a city or county..." />
               </SelectTrigger>
               <SelectContent className="bg-gray-800 border-gray-600">
                 <SelectItem value="nyc">New York City, NY</SelectItem>
@@ -108,13 +108,16 @@ export const GISDataManager = () => {
                 <SelectItem value="chicago">Chicago, IL</SelectItem>
                 <SelectItem value="houston">Houston, TX</SelectItem>
                 <SelectItem value="phoenix">Phoenix, AZ</SelectItem>
+                <SelectItem value="cuyahoga">Cuyahoga County, OH</SelectItem>
+                <SelectItem value="orange-fl">Orange County, FL</SelectItem>
+                <SelectItem value="hillsborough-fl">Hillsborough County, FL</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <Button 
             onClick={handleFetchData}
-            disabled={isLoading || !selectedCity}
+            disabled={isLoading || !selectedLocation}
             className="w-full bg-cyan-600 hover:bg-cyan-700"
           >
             {isLoading ? (
@@ -217,7 +220,7 @@ export const GISDataManager = () => {
           <CardContent className="flex flex-col items-center justify-center py-8">
             <Map className="w-12 h-12 text-gray-400 mb-4" />
             <p className="text-gray-400 text-center">
-              No GIS data loaded. Select a city and fetch data to get started.
+              No GIS data loaded. Select a location and fetch data to get started.
             </p>
           </CardContent>
         </Card>

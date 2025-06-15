@@ -2,10 +2,37 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
 
-type GISLayer = Database['public']['Tables']['gis_layers']['Row'];
-type GISLayerInsert = Database['public']['Tables']['gis_layers']['Insert'];
+type GISLayer = {
+  id: string;
+  layer_name: string;
+  layer_type: 'parcels' | 'roads' | 'utilities';
+  description: string | null;
+  source_url: string;
+  city: string;
+  state: string;
+  geometry_data: any;
+  feature_count: number | null;
+  data_size: number | null;
+  status: string;
+  metadata: any;
+  created_at: string;
+  last_updated: string;
+};
+
+type GISLayerInsert = {
+  layer_name: string;
+  layer_type: 'parcels' | 'roads' | 'utilities';
+  description?: string;
+  source_url: string;
+  city: string;
+  state: string;
+  geometry_data?: any;
+  feature_count?: number;
+  data_size?: number;
+  status?: string;
+  metadata?: any;
+};
 
 export const useGISData = () => {
   const queryClient = useQueryClient();
@@ -30,11 +57,11 @@ export const useGISData = () => {
 
   // Mutation to fetch city data
   const fetchCityDataMutation = useMutation({
-    mutationFn: async (cityCode: string) => {
+    mutationFn: async (locationCode: string) => {
       const { data, error } = await supabase.functions.invoke('gis-ingestion', {
         body: { 
           action: 'fetch_city_data',
-          city: cityCode 
+          location: locationCode 
         }
       });
 

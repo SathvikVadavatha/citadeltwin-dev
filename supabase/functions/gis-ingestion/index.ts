@@ -36,21 +36,51 @@ const LA_API_ENDPOINTS = {
   utilities: 'https://data.lacity.org/resource/9yda-i4ya.json'
 };
 
-const getCityEndpoints = (cityCode: string) => {
-  switch (cityCode) {
+// Cuyahoga County API endpoints
+const CUYAHOGA_API_ENDPOINTS = {
+  parcels: 'https://opendata.arcgis.com/datasets/cuyahogacounty::parcels.geojson',
+  roads: 'https://opendata.arcgis.com/datasets/cuyahogacounty::centerline.geojson',
+  utilities: 'https://opendata.arcgis.com/datasets/cuyahogacounty::utilities.geojson'
+};
+
+// Orange County FL API endpoints
+const ORANGE_FL_API_ENDPOINTS = {
+  parcels: 'https://services1.arcgis.com/NkWDB5HNHlGOz4FW/arcgis/rest/services/Parcels/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson',
+  roads: 'https://services1.arcgis.com/NkWDB5HNHlGOz4FW/arcgis/rest/services/Roads/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson',
+  utilities: 'https://services1.arcgis.com/NkWDB5HNHlGOz4FW/arcgis/rest/services/Utilities/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson'
+};
+
+// Hillsborough County FL API endpoints
+const HILLSBOROUGH_FL_API_ENDPOINTS = {
+  parcels: 'https://gis-hillsboroughcounty.opendata.arcgis.com/datasets/hillsboroughcounty::parcels.geojson',
+  roads: 'https://gis-hillsboroughcounty.opendata.arcgis.com/datasets/hillsboroughcounty::centerline.geojson',
+  utilities: 'https://gis-hillsboroughcounty.opendata.arcgis.com/datasets/hillsboroughcounty::utilities.geojson'
+};
+
+const getLocationEndpoints = (locationCode: string) => {
+  switch (locationCode) {
     case 'nyc': return NYC_API_ENDPOINTS;
     case 'la': return LA_API_ENDPOINTS;
+    case 'chicago': return NYC_API_ENDPOINTS; // Default fallback
+    case 'houston': return NYC_API_ENDPOINTS; // Default fallback
+    case 'phoenix': return NYC_API_ENDPOINTS; // Default fallback
+    case 'cuyahoga': return CUYAHOGA_API_ENDPOINTS;
+    case 'orange-fl': return ORANGE_FL_API_ENDPOINTS;
+    case 'hillsborough-fl': return HILLSBOROUGH_FL_API_ENDPOINTS;
     default: return NYC_API_ENDPOINTS; // Default to NYC
   }
 };
 
-const getCityInfo = (cityCode: string) => {
-  switch (cityCode) {
+const getLocationInfo = (locationCode: string) => {
+  switch (locationCode) {
     case 'nyc': return { name: 'New York City', state: 'NY' };
     case 'la': return { name: 'Los Angeles', state: 'CA' };
     case 'chicago': return { name: 'Chicago', state: 'IL' };
     case 'houston': return { name: 'Houston', state: 'TX' };
     case 'phoenix': return { name: 'Phoenix', state: 'AZ' };
+    case 'cuyahoga': return { name: 'Cuyahoga County', state: 'OH' };
+    case 'orange-fl': return { name: 'Orange County', state: 'FL' };
+    case 'hillsborough-fl': return { name: 'Hillsborough County', state: 'FL' };
     default: return { name: 'New York City', state: 'NY' };
   }
 };
@@ -103,13 +133,13 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { action, city, layer_id } = await req.json();
+    const { action, location, layer_id } = await req.json();
 
     if (action === 'fetch_city_data') {
-      console.log(`Fetching GIS data for city: ${city}`);
+      console.log(`Fetching GIS data for location: ${location}`);
       
-      const cityInfo = getCityInfo(city);
-      const endpoints = getCityEndpoints(city);
+      const locationInfo = getLocationInfo(location);
+      const endpoints = getLocationEndpoints(location);
       const results = [];
 
       // Fetch data for each layer type
@@ -122,12 +152,12 @@ serve(async (req) => {
           const dataSize = JSON.stringify(processedData).length;
 
           const layerData: GISLayerData = {
-            layer_name: `${cityInfo.name} ${layerType.charAt(0).toUpperCase() + layerType.slice(1)}`,
+            layer_name: `${locationInfo.name} ${layerType.charAt(0).toUpperCase() + layerType.slice(1)}`,
             layer_type: layerType as 'parcels' | 'roads' | 'utilities',
-            description: `${layerType.charAt(0).toUpperCase() + layerType.slice(1)} data for ${cityInfo.name}, ${cityInfo.state}`,
+            description: `${layerType.charAt(0).toUpperCase() + layerType.slice(1)} data for ${locationInfo.name}, ${locationInfo.state}`,
             source_url: url,
-            city: cityInfo.name,
-            state: cityInfo.state,
+            city: locationInfo.name,
+            state: locationInfo.state,
             geometry_data: processedData,
             feature_count: processedData.features.length,
             data_size: dataSize,
@@ -178,7 +208,7 @@ serve(async (req) => {
 
       return new Response(JSON.stringify({
         success: true,
-        message: `Processed GIS data for ${cityInfo.name}`,
+        message: `Processed GIS data for ${locationInfo.name}`,
         results
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

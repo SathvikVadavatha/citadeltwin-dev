@@ -505,6 +505,57 @@ export type Database = {
           },
         ]
       }
+      gis_layers: {
+        Row: {
+          city: string
+          created_at: string
+          data_size: number | null
+          description: string | null
+          feature_count: number | null
+          geometry_data: Json | null
+          id: string
+          last_updated: string
+          layer_name: string
+          layer_type: string
+          metadata: Json | null
+          source_url: string
+          state: string
+          status: string
+        }
+        Insert: {
+          city: string
+          created_at?: string
+          data_size?: number | null
+          description?: string | null
+          feature_count?: number | null
+          geometry_data?: Json | null
+          id?: string
+          last_updated?: string
+          layer_name: string
+          layer_type: string
+          metadata?: Json | null
+          source_url: string
+          state: string
+          status?: string
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          data_size?: number | null
+          description?: string | null
+          feature_count?: number | null
+          geometry_data?: Json | null
+          id?: string
+          last_updated?: string
+          layer_name?: string
+          layer_type?: string
+          metadata?: Json | null
+          source_url?: string
+          state?: string
+          status?: string
+        }
+        Relationships: []
+      }
       materials: {
         Row: {
           cost_per_unit: number | null
