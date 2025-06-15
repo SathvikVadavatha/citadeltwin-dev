@@ -13,10 +13,10 @@ export const ExploreSection = ({ setShowLogin }: ExploreSectionProps) => {
       <div className="container mx-auto px-6 text-center">
         <div className="max-w-4xl mx-auto">
           <Badge className="mb-6 bg-accent text-accent-foreground">Interactive Demo</Badge>
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-foreground">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">
             Experience CitadelTwin in Action
           </h2>
-          <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
+          <p className="text-lg text-white/80 mb-8 leading-relaxed">
             See how our platform transforms traditional civil engineering workflows. 
             Explore live demos of 3D model generation, structural analysis, and compliance checking.
           </p>

@@ -26,11 +26,11 @@ export const HeroSection = ({ showLogin, setShowLogin, scrollToSection }: HeroSe
           <Badge className="mb-6 bg-primary text-primary-foreground border-none">
             Next-Generation Digital Twin Platform
           </Badge>
-          <h2 className="text-4xl md:text-6xl font-bold leading-tight mb-6">
+          <h2 className="text-4xl md:text-6xl font-bold leading-tight mb-6 text-white">
             Transform Civil Engineering with 
             <span className="text-primary"> Intelligent Digital Twins</span>
           </h2>
-          <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
+          <p className="text-lg text-white/90 mb-8 leading-relaxed">
             CitadelTwin revolutionizes how civil engineers design, analyze, and deliver projects. 
             Upload blueprints, generate interactive 3D models, perform real-time structural analysis, 
             and ensure code compliance — all in one intelligent platform.
@@ -46,7 +46,7 @@ export const HeroSection = ({ showLogin, setShowLogin, scrollToSection }: HeroSe
             <Button 
               size="lg" 
               variant="outline" 
-              className="border-primary text-primary hover:bg-primary/10"
+              className="border-white text-white hover:bg-white hover:text-gray-800"
               onClick={() => scrollToSection('explore')}
             >
               Explore Platform

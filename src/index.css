@@ -17,11 +17,11 @@
     --primary: 59 130 246; /* #3B82F6 - Bright blue for visibility on gray */
     --primary-foreground: 255 255 255; /* #FFFFFF - White text */
 
-    --secondary: 156 163 175; /* #9CA3AF - Light gray */
+    --secondary: 209 213 219; /* #D1D5DB - Light gray for better contrast */
     --secondary-foreground: 31 41 55; /* #1F2937 - Dark text for contrast */
 
     --muted: 55 65 81; /* #374151 - Dark gray for muted areas */
-    --muted-foreground: 209 213 219; /* #D1D5DB - Light gray text */
+    --muted-foreground: 229 231 235; /* #E5E7EB - Much lighter gray text for visibility */
 
     --accent: 99 102 241; /* #6366F1 - Bright purple accent */
     --accent-foreground: 255 255 255; /* White text on accent background */
@@ -99,9 +99,9 @@
     background: rgb(59, 130, 246);
   }
 
-  /* Updated gradients for the gray theme */
+  /* Updated gradients for the gray theme - darker backgrounds */
   .warm-gradient {
-    background: linear-gradient(135deg, rgb(59, 130, 246) 0%, rgb(99, 102, 241) 100%);
+    background: linear-gradient(135deg, rgb(55, 65, 81) 0%, rgb(75, 85, 99) 100%);
   }
 
   .warm-gradient-subtle {
@@ -121,13 +121,13 @@
   }
 
   .btn-secondary {
-    background: rgb(156, 163, 175);
+    background: rgb(209, 213, 219);
     color: rgb(31, 41, 55);
-    border: 1px solid rgb(156, 163, 175);
+    border: 1px solid rgb(209, 213, 219);
   }
 
   .btn-secondary:hover {
-    background: rgb(209, 213, 219);
+    background: rgb(229, 231, 235);
     color: rgb(31, 41, 55);
   }
 
