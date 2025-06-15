@@ -31,6 +31,10 @@ const Index = () => {
     return <AuthManager />;
   }
 
+  const handleNavigate = (view: string) => {
+    setActiveTab(view);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-4">
@@ -86,15 +90,15 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="projects">
-            <ProjectsPage />
+            <ProjectsPage onNavigate={handleNavigate} />
           </TabsContent>
 
           <TabsContent value="upload">
-            <UploadPage />
+            <UploadPage onNavigate={handleNavigate} />
           </TabsContent>
 
           <TabsContent value="collaboration">
-            <CollaborationPanel />
+            <CollaborationPanel projectId="default-project" />
           </TabsContent>
 
           <TabsContent value="ai" className="space-y-6">

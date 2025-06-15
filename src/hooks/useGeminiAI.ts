@@ -1,10 +1,9 @@
-
 import { useState } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/providers/AuthProvider'
 import { toast } from 'sonner'
 
-export type AIRequestType = 'text-analysis' | 'code-generation' | 'technical-consulting'
+export type AIRequestType = 'text-analysis' | 'code-generation' | 'technical-consulting' | 'engineering-calculations'
 
 export interface AIRequest {
   prompt: string
