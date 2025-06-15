@@ -110,19 +110,17 @@ export const useLoadCalculations = () => {
   const calculateLiveLoads = (params: LoadCalculationParameters): LoadResult[] => {
     const loads: LoadResult[] = [];
     
-    // Get live load intensity based on occupancy with type safety
+    // Get live load intensity based on occupancy with proper type handling
     const getLiveLoadIntensity = (occupancyType: LoadCalculationParameters['occupancyType']): number => {
-      const occupancyLoads = LIVE_LOADS_IBC[occupancyType];
-      
       switch (occupancyType) {
         case 'residential':
-          return occupancyLoads.dwelling_units;
+          return LIVE_LOADS_IBC.residential.dwelling_units;
         case 'commercial':
-          return occupancyLoads.offices;
+          return LIVE_LOADS_IBC.commercial.offices;
         case 'industrial':
-          return occupancyLoads.light_manufacturing;
+          return LIVE_LOADS_IBC.industrial.light_manufacturing;
         case 'institutional':
-          return occupancyLoads.hospitals;
+          return LIVE_LOADS_IBC.institutional.hospitals;
         default:
           return 50; // Default fallback
       }
@@ -293,21 +291,19 @@ export const useLoadCalculations = () => {
     const warnings: string[] = [];
     const references: string[] = [];
     
-    // Check minimum live loads with type safety
+    // Check minimum live loads with proper type handling
     const liveLoads = loads.filter(l => l.loadType === 'live');
     
     const getMinLiveLoad = (occupancyType: LoadCalculationParameters['occupancyType']): number => {
-      const occupancyLoads = LIVE_LOADS_IBC[occupancyType];
-      
       switch (occupancyType) {
         case 'residential':
-          return occupancyLoads.dwelling_units;
+          return LIVE_LOADS_IBC.residential.dwelling_units;
         case 'commercial':
-          return occupancyLoads.offices;
+          return LIVE_LOADS_IBC.commercial.offices;
         case 'industrial':
-          return occupancyLoads.light_manufacturing;
+          return LIVE_LOADS_IBC.industrial.light_manufacturing;
         case 'institutional':
-          return occupancyLoads.hospitals;
+          return LIVE_LOADS_IBC.institutional.hospitals;
         default:
           return 40; // Default minimum
       }
