@@ -34,6 +34,29 @@ export const FEAResultsViewer = ({ analysisId, results }: FEAResultsViewerProps)
     return { color: 'text-red-400', icon: AlertTriangle, status: 'Unsafe' };
   };
 
+  // Helper function to safely access JSON data
+  const getJsonValue = (json: any, path: string, defaultValue: any = null) => {
+    try {
+      if (typeof json === 'string') {
+        json = JSON.parse(json);
+      }
+      return json?.[path] ?? defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  };
+
+  const getNestedJsonValue = (json: any, path1: string, path2: string, defaultValue: any = null) => {
+    try {
+      if (typeof json === 'string') {
+        json = JSON.parse(json);
+      }
+      return json?.[path1]?.[path2] ?? defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  };
+
   if (results.length === 0) {
     return (
       <Card className="bg-gray-900 border-gray-700">
@@ -67,7 +90,7 @@ export const FEAResultsViewer = ({ analysisId, results }: FEAResultsViewerProps)
               <div className="flex items-center justify-between">
                 <h4 className="font-semibold text-gray-200">Safety Factor</h4>
                 {(() => {
-                  const factor = safetyFactorResult.data?.value || 0;
+                  const factor = getJsonValue(safetyFactorResult.data, 'value', 0);
                   const { color, icon: Icon, status } = getSafetyFactorStatus(factor);
                   return (
                     <Badge variant="outline" className={`${color} border-current`}>
@@ -79,7 +102,7 @@ export const FEAResultsViewer = ({ analysisId, results }: FEAResultsViewerProps)
               </div>
               <div className="bg-gray-800 p-3 rounded-lg">
                 <div className="text-2xl font-bold text-cyan-300">
-                  {safetyFactorResult.data?.value?.toFixed(2) || 'N/A'}
+                  {getJsonValue(safetyFactorResult.data, 'value', 0)?.toFixed(2) || 'N/A'}
                 </div>
                 <div className="text-sm text-gray-400">
                   Ratio of material strength to applied stress
@@ -97,8 +120,8 @@ export const FEAResultsViewer = ({ analysisId, results }: FEAResultsViewerProps)
               <div className="bg-gray-800 p-3 rounded-lg">
                 <div className="text-xl font-bold text-orange-300">
                   {formatValue(
-                    displacementResult.data?.max || 0, 
-                    displacementResult.metadata?.units || 'm',
+                    getJsonValue(displacementResult.data, 'max', 0), 
+                    getNestedJsonValue(displacementResult.metadata, 'units', '', 'm'),
                     3
                   )}
                 </div>
@@ -116,8 +139,8 @@ export const FEAResultsViewer = ({ analysisId, results }: FEAResultsViewerProps)
               <div className="bg-gray-800 p-3 rounded-lg">
                 <div className="text-xl font-bold text-red-300">
                   {formatValue(
-                    stressResult.data?.max || 0, 
-                    stressResult.metadata?.units || 'Pa',
+                    getJsonValue(stressResult.data, 'max', 0), 
+                    getNestedJsonValue(stressResult.metadata, 'units', '', 'Pa'),
                     3
                   )}
                 </div>
@@ -138,10 +161,10 @@ export const FEAResultsViewer = ({ analysisId, results }: FEAResultsViewerProps)
               <div className="bg-gray-800 p-3 rounded-lg">
                 <div className="font-medium text-gray-200 mb-2">Displacement Data</div>
                 <div className="text-sm text-gray-400">
-                  Values: {displacementResult.data?.values?.length || 0} nodes
+                  Values: {getJsonValue(displacementResult.data, 'values', [])?.length || 0} nodes
                 </div>
                 <div className="text-sm text-gray-400">
-                  Units: {displacementResult.metadata?.units || 'm'}
+                  Units: {getNestedJsonValue(displacementResult.metadata, 'units', '', 'm')}
                 </div>
               </div>
             )}
@@ -150,13 +173,13 @@ export const FEAResultsViewer = ({ analysisId, results }: FEAResultsViewerProps)
               <div className="bg-gray-800 p-3 rounded-lg">
                 <div className="font-medium text-gray-200 mb-2">Stress Data</div>
                 <div className="text-sm text-gray-400">
-                  Values: {stressResult.data?.values?.length || 0} elements
+                  Values: {getJsonValue(stressResult.data, 'values', [])?.length || 0} elements
                 </div>
                 <div className="text-sm text-gray-400">
-                  Type: {stressResult.metadata?.type || 'von_mises'}
+                  Type: {getNestedJsonValue(stressResult.metadata, 'type', '', 'von_mises')}
                 </div>
                 <div className="text-sm text-gray-400">
-                  Units: {stressResult.metadata?.units || 'Pa'}
+                  Units: {getNestedJsonValue(stressResult.metadata, 'units', '', 'Pa')}
                 </div>
               </div>
             )}
@@ -165,10 +188,10 @@ export const FEAResultsViewer = ({ analysisId, results }: FEAResultsViewerProps)
               <div className="bg-gray-800 p-3 rounded-lg">
                 <div className="font-medium text-gray-200 mb-2">Reaction Forces</div>
                 <div className="text-sm text-gray-400">
-                  Supports: {reactionResult.data?.values?.length || 0}
+                  Supports: {getJsonValue(reactionResult.data, 'values', [])?.length || 0}
                 </div>
                 <div className="text-sm text-gray-400">
-                  Units: {reactionResult.metadata?.units || 'N'}
+                  Units: {getNestedJsonValue(reactionResult.metadata, 'units', '', 'N')}
                 </div>
               </div>
             )}

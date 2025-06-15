@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Grid, Box, Text } from "@react-three/drei";
@@ -8,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BIMElementsManager } from "@/components/bim/BIMElementsManager";
 import { FEAAnalysisManager } from "@/components/fea/FEAAnalysisManager";
-import { Layers, Cube, Calculator, Zap, Settings, Eye, Grid3X3 } from "lucide-react";
+import { Layers, Package, Calculator, Zap, Settings, Eye, Grid3X3 } from "lucide-react";
 
 interface CADCanvasProps {
   onNavigate: (view: string) => void;
@@ -130,7 +129,7 @@ export const CADCanvas = ({ onNavigate }: CADCanvasProps) => {
               value="model" 
               className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white"
             >
-              <Cube className="w-4 h-4 mr-1" />
+              <Package className="w-4 h-4 mr-1" />
               Model
             </TabsTrigger>
             <TabsTrigger 

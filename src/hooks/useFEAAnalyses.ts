@@ -47,6 +47,18 @@ export const useFEAAnalyses = (elementId?: string) => {
   const [running, setRunning] = useState(false);
   const { user } = useAuth();
 
+  // Helper function to safely access JSON data
+  const getJsonValue = (json: any, path: string, defaultValue: any = null) => {
+    try {
+      if (typeof json === 'string') {
+        json = JSON.parse(json);
+      }
+      return json?.[path] ?? defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  };
+
   const fetchAnalyses = async () => {
     if (!user) return;
 
@@ -244,7 +256,7 @@ export const useFEAAnalyses = (elementId?: string) => {
           material: analysis.bim_elements?.materials || {},
           loads: loadsResult.data || [],
           boundaryConditions: bcResult.data || [],
-          meshSettings: analysis.input_parameters?.mesh || {}
+          meshSettings: getJsonValue(analysis.input_parameters, 'mesh', {})
         }
       });
 

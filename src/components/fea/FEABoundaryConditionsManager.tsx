@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +35,18 @@ export const FEABoundaryConditionsManager = ({
 
   const { createBoundaryCondition } = useFEAAnalyses();
 
+  // Helper function to safely access JSON data
+  const getJsonValue = (json: any, path: string, defaultValue: any = 0) => {
+    try {
+      if (typeof json === 'string') {
+        json = JSON.parse(json);
+      }
+      return json?.[path] ?? defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  };
+
   const handleCreateBC = async () => {
     if (!newBC.name) return;
 
@@ -68,12 +81,12 @@ export const FEABoundaryConditionsManager = ({
 
   const getConstraintString = (constraints: any) => {
     const activeConstraints = [];
-    if (constraints.x) activeConstraints.push('X');
-    if (constraints.y) activeConstraints.push('Y');
-    if (constraints.z) activeConstraints.push('Z');
-    if (constraints.rx) activeConstraints.push('RX');
-    if (constraints.ry) activeConstraints.push('RY');
-    if (constraints.rz) activeConstraints.push('RZ');
+    if (getJsonValue(constraints, 'x', false)) activeConstraints.push('X');
+    if (getJsonValue(constraints, 'y', false)) activeConstraints.push('Y');
+    if (getJsonValue(constraints, 'z', false)) activeConstraints.push('Z');
+    if (getJsonValue(constraints, 'rx', false)) activeConstraints.push('RX');
+    if (getJsonValue(constraints, 'ry', false)) activeConstraints.push('RY');
+    if (getJsonValue(constraints, 'rz', false)) activeConstraints.push('RZ');
     return activeConstraints.length > 0 ? activeConstraints.join(', ') : 'None';
   };
 
@@ -272,7 +285,8 @@ export const FEABoundaryConditionsManager = ({
                 
                 <div className="grid grid-cols-2 gap-4 text-sm text-gray-400">
                   <div>
-                    <span className="font-medium">Position:</span> ({bc.location.x}, {bc.location.y}, {bc.location.z})
+                    <span className="font-medium">Position:</span> (
+                    {getJsonValue(bc.location, 'x', 0)}, {getJsonValue(bc.location, 'y', 0)}, {getJsonValue(bc.location, 'z', 0)})
                   </div>
                   <div>
                     <span className="font-medium">Constraints:</span> {getConstraintString(bc.constraints)}

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +30,18 @@ export const FEALoadsManager = ({ analysisId, loads, onRefresh }: FEALoadsManage
   });
 
   const { createLoad } = useFEAAnalyses();
+
+  // Helper function to safely access JSON data
+  const getJsonValue = (json: any, path: string, defaultValue: any = 0) => {
+    try {
+      if (typeof json === 'string') {
+        json = JSON.parse(json);
+      }
+      return json?.[path] ?? defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  };
 
   const handleCreateLoad = async () => {
     if (!newLoad.name || newLoad.magnitude === 0) return;
@@ -271,10 +284,12 @@ export const FEALoadsManager = ({ analysisId, loads, onRefresh }: FEALoadsManage
                     <span className="font-medium">Magnitude:</span> {load.magnitude} N
                   </div>
                   <div>
-                    <span className="font-medium">Direction:</span> ({load.direction.x}, {load.direction.y}, {load.direction.z})
+                    <span className="font-medium">Direction:</span> (
+                    {getJsonValue(load.direction, 'x', 0)}, {getJsonValue(load.direction, 'y', 0)}, {getJsonValue(load.direction, 'z', 0)})
                   </div>
                   <div>
-                    <span className="font-medium">Position:</span> ({load.location.x}, {load.location.y}, {load.location.z})
+                    <span className="font-medium">Position:</span> (
+                    {getJsonValue(load.location, 'x', 0)}, {getJsonValue(load.location, 'y', 0)}, {getJsonValue(load.location, 'z', 0)})
                   </div>
                 </div>
               </div>
