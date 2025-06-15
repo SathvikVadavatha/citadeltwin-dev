@@ -1,26 +1,12 @@
-
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Grid, 
-  List, 
-  Calendar,
-  MapPin,
-  Users,
-  Clock,
-  MoreHorizontal
-} from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { useProjects } from "@/hooks/useProjects";
-import { CreateProjectModal } from "./CreateProjectModal";
-import { format } from "date-fns";
+import { useState, useMemo } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Search, Calendar, MapPin, Building, Factory, Home, Bridge, Brain } from 'lucide-react';
+import { useProjects } from '@/hooks/useProjects';
+import { CreateProjectModal } from './CreateProjectModal';
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -51,6 +37,7 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   
   const { projects, loading } = useProjects();
 
@@ -79,20 +66,27 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Projects</h1>
           <p className="text-muted-foreground mt-1">
-            Manage and monitor your digital twin projects
+            Manage your civil engineering projects and digital twins
           </p>
         </div>
-        <Button 
-          className="bg-primary hover:bg-primary/90"
-          onClick={() => setShowCreateModal(true)}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          New Project
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => onNavigate('ai-service')}
+            className="flex items-center gap-2"
+          >
+            <Brain className="h-4 w-4" />
+            AI Services
+          </Button>
+          <Button onClick={() => setIsCreateModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Project
+          </Button>
+        </div>
       </div>
 
       {/* Filters and Search */}

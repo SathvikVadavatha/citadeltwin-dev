@@ -50,6 +50,25 @@ const Index = () => {
         return <UploadPage onNavigate={handleNavigate} />;
       case "projects":
         return <ProjectsPage onNavigate={handleNavigate} />;
+      case "ai-service":
+        return (
+          <div className="container mx-auto p-6">
+            <div className="max-w-4xl mx-auto">
+              <div className="mb-6">
+                <h1 className="text-3xl font-bold text-foreground">AI Services</h1>
+                <p className="text-muted-foreground mt-2">
+                  Leverage Google Gemini AI for technical analysis, code generation, and engineering consulting
+                </p>
+              </div>
+              <div className="lazy-import">
+                {(() => {
+                  const { AIServicePanel } = require('@/components/ai/AIServicePanel');
+                  return <AIServicePanel />;
+                })()}
+              </div>
+            </div>
+          </div>
+        );
       case "team":
         return <div className="text-foreground p-8">Team Management - Coming Soon</div>;
       case "analytics":
