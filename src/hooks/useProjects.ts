@@ -36,7 +36,7 @@ export const useProjects = () => {
     
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('projects')
         .select('*')
         .order('updated_at', { ascending: false });
@@ -56,12 +56,12 @@ export const useProjects = () => {
     }
   };
 
-  const createProject = async (projectData: CreateProjectData) => {
+  const createProject = async (projectData: CreateProjectData): Promise<Project | null> => {
     if (!user) return null;
 
     try {
       setCreating(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('projects')
         .insert({
           ...projectData,
@@ -88,10 +88,10 @@ export const useProjects = () => {
     }
   };
 
-  const updateProject = async (id: string, updates: Partial<CreateProjectData>) => {
+  const updateProject = async (id: string, updates: Partial<CreateProjectData>): Promise<Project | null> => {
     try {
       setUpdating(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('projects')
         .update(updates)
         .eq('id', id)
@@ -116,10 +116,10 @@ export const useProjects = () => {
     }
   };
 
-  const deleteProject = async (id: string) => {
+  const deleteProject = async (id: string): Promise<boolean> => {
     try {
       setDeleting(true);
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('projects')
         .delete()
         .eq('id', id);
