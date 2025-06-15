@@ -5,12 +5,15 @@ import { OrbitControls, Html, useGLTF } from '@react-three/drei';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Download, ZoomIn, ZoomOut, Eye, AlertCircle } from "lucide-react";
+import { Loader2, Download, ZoomIn, ZoomOut, Eye, AlertCircle, Package } from "lucide-react";
+import { Enhanced3DViewer } from './Enhanced3DViewer';
+import { use3DViewer } from '@/hooks/use3DViewer';
 import * as THREE from 'three';
 
 interface Model3DViewerProps {
-  modelUrl: string;
-  modelName: string;
+  modelUrl?: string;
+  modelName?: string;
+  uploadId?: string;
   onDownload?: () => void;
 }
 
@@ -101,16 +104,33 @@ const ErrorFallback = ({ error }: { error: Error }) => (
 
 export const Model3DViewer: React.FC<Model3DViewerProps> = ({ 
   modelUrl, 
-  modelName, 
+  modelName = "3D Model",
+  uploadId,
   onDownload 
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [modelError, setModelError] = useState<Error | null>(null);
+  const [useEnhancedViewer, setUseEnhancedViewer] = useState(true);
+
+  // Use enhanced viewer with BIM data if uploadId is provided
+  const { hasElements, elements, feaResults } = use3DViewer(uploadId);
 
   const handleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
   };
 
+  // If we have BIM elements, use the enhanced viewer
+  if (useEnhancedViewer && (hasElements || uploadId)) {
+    return (
+      <Enhanced3DViewer
+        elements={elements}
+        feaResults={feaResults}
+        onDownload={onDownload}
+      />
+    );
+  }
+
+  // Fallback to basic GLB/GLTF viewer
   const viewerContent = (
     <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'h-96'}`}>
       <Canvas
@@ -137,8 +157,23 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
         <Suspense fallback={<LoadingFallback />}>
           {modelError ? (
             <ErrorFallback error={modelError} />
-          ) : (
+          ) : modelUrl ? (
             <Model3D url={modelUrl} />
+          ) : (
+            <Html center>
+              <div className="flex flex-col items-center justify-center text-gray-500">
+                <Package className="h-12 w-12 mb-4" />
+                <span>No 3D model available</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setUseEnhancedViewer(true)}
+                  className="mt-2"
+                >
+                  Switch to Enhanced Viewer
+                </Button>
+              </div>
+            </Html>
           )}
         </Suspense>
         
@@ -171,6 +206,14 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
             <Download className="h-4 w-4" />
           </Button>
         )}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setUseEnhancedViewer(true)}
+          className="bg-background/80 backdrop-blur-sm"
+        >
+          <Package className="h-4 w-4" />
+        </Button>
       </div>
 
       {isFullscreen && (

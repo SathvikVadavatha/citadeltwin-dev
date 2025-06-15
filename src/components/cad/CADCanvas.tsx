@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Grid, Box, Text } from "@react-three/drei";
@@ -11,7 +10,10 @@ import { FEAAnalysisManager } from "@/components/fea/FEAAnalysisManager";
 import { GISDataManager } from "@/components/gis/GISDataManager";
 import { CADDrawingCanvas } from "./CADDrawingCanvas";
 import { CADMeasurementTool } from "./CADMeasurementTool";
+import { Enhanced3DViewer } from "@/components/3d/Enhanced3DViewer";
+import { FEAResultsOverlay } from "@/components/3d/FEAResultsOverlay";
 import { useCADDrawing } from "@/hooks/useCADDrawing";
+import { use3DViewer } from "@/hooks/use3DViewer";
 import { Layers, Package, Calculator, Zap, Settings, Eye, Grid3X3, Map, PenTool } from "lucide-react";
 
 interface CADCanvasProps {
@@ -25,6 +27,7 @@ export const CADCanvas = ({ onNavigate }: CADCanvasProps) => {
   const [viewMode, setViewMode] = useState<"2d" | "3d">("2d");
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // CAD Drawing hooks
   const {
     shapes,
     measurements,
@@ -37,6 +40,19 @@ export const CADCanvas = ({ onNavigate }: CADCanvasProps) => {
     removeMeasurement,
     clearDrawing
   } = useCADDrawing();
+
+  // Enhanced 3D Viewer hooks
+  const {
+    elements,
+    feaResults,
+    viewerState,
+    selectedElementIndex,
+    selectElement,
+    toggleFEAOverlay,
+    hasElements,
+    hasFEAResults,
+    isLoading
+  } = use3DViewer();
 
   const handleShapeCreated = (shape: any) => {
     // Convert Fabric.js shape to CAD shape format
@@ -96,84 +112,87 @@ export const CADCanvas = ({ onNavigate }: CADCanvasProps) => {
             />
           </div>
         ) : (
-          <>
-            <Canvas
-              ref={canvasRef}
-              camera={{ position: [10, 10, 10], fov: 60 }}
-              className="bg-gradient-to-br from-gray-950 via-blue-950/20 to-cyan-950/20"
+          <div className="h-full relative">
+            {hasElements ? (
+              <>
+                <Enhanced3DViewer
+                  elements={elements}
+                  feaResults={feaResults}
+                  onElementSelect={selectElement}
+                  onDownload={() => console.log('Download 3D model')}
+                />
+                
+                {/* FEA Results Overlay */}
+                {viewerState.feaOverlayEnabled && hasFEAResults && (
+                  <FEAResultsOverlay
+                    results={feaResults}
+                    selectedElementIndex={selectedElementIndex}
+                    analysisType={viewerState.feaAnalysisType}
+                  />
+                )}
+              </>
+            ) : (
+              <div className="h-full flex items-center justify-center">
+                <Card className="bg-gray-900/90 border-cyan-500/30">
+                  <CardContent className="p-8 text-center">
+                    <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-200 mb-2">No 3D Model Available</h3>
+                    <p className="text-gray-400 mb-4">
+                      Upload a blueprint or create BIM elements to view in 3D
+                    </p>
+                    <Button 
+                      onClick={() => onNavigate('upload')}
+                      className="bg-cyan-600 hover:bg-cyan-700"
+                    >
+                      Upload Blueprint
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 3D Viewport Controls */}
+        {viewMode === "3d" && hasElements && (
+          <div className="absolute top-4 right-4 flex gap-2">
+            <Button
+              size="sm"
+              variant={viewerState.feaOverlayEnabled ? "default" : "outline"}
+              onClick={() => toggleFEAOverlay()}
+              className="bg-gray-800/80 border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/20"
+              disabled={!hasFEAResults}
             >
-              <ambientLight intensity={0.4} />
-              <directionalLight position={[10, 10, 5]} intensity={0.8} color="#00ffff" />
-              <directionalLight position={[-10, -10, -5]} intensity={0.3} color="#ff6b35" />
-              
-              {showGrid && (
-                <Grid 
-                  args={[20, 20]} 
-                  position={[0, -0.01, 0]}
-                  cellColor="#00ffff"
-                  sectionColor="#ff6b35"
-                  fadeDistance={50}
-                  fadeStrength={1}
-                />
-              )}
-
-              {/* Sample 3D Elements */}
-              <Box position={[0, 1, 0]} args={[2, 2, 0.2]} onClick={() => setSelectedElement("wall-1")}>
-                <meshStandardMaterial 
-                  color={selectedElement === "wall-1" ? "#00ffff" : "#4a5568"} 
-                  transparent
-                  opacity={0.8}
-                />
-              </Box>
-              
-              <Box position={[0, 3, 0]} args={[2, 0.2, 0.2]} onClick={() => setSelectedElement("beam-1")}>
-                <meshStandardMaterial 
-                  color={selectedElement === "beam-1" ? "#00ffff" : "#e53e3e"} 
-                  transparent
-                  opacity={0.8}
-                />
-              </Box>
-
-              <OrbitControls 
-                enablePan={true} 
-                enableZoom={true} 
-                enableRotate={true}
-                minDistance={2}
-                maxDistance={100}
-              />
-            </Canvas>
-
-            {/* 3D Viewport Controls */}
-            <div className="absolute top-4 right-4 flex gap-2">
-              <Button
-                size="sm"
-                variant={showGrid ? "default" : "outline"}
-                onClick={() => setShowGrid(!showGrid)}
-                className="bg-gray-800/80 border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/20"
-              >
-                <Grid3X3 className="w-4 h-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-gray-800/80 border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/20"
-              >
-                <Eye className="w-4 h-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="bg-gray-800/80 border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/20"
-              >
-                <Settings className="w-4 h-4" />
-              </Button>
-            </div>
-          </>
+              <Zap className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant={showGrid ? "default" : "outline"}
+              onClick={() => setShowGrid(!showGrid)}
+              className="bg-gray-800/80 border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/20"
+            >
+              <Grid3X3 className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-gray-800/80 border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/20"
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-gray-800/80 border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/20"
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
+          </div>
         )}
 
         {/* Element Info for 3D mode */}
         {viewMode === "3d" && selectedElement && (
-          <Card className="absolute top-4 right-4 bg-gray-900/90 border-cyan-500/30 backdrop-blur">
+          <Card className="absolute bottom-4 right-4 bg-gray-900/90 border-cyan-500/30 backdrop-blur">
             <CardContent className="p-4">
               <div className="space-y-2">
                 <Badge variant="outline" className="text-cyan-300 border-cyan-500">
