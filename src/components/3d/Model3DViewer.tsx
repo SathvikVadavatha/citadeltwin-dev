@@ -14,6 +14,7 @@ interface Model3DViewerProps {
   modelUrl?: string;
   modelName?: string;
   uploadId?: string;
+  projectId?: string;
   onDownload?: () => void;
 }
 
@@ -106,21 +107,37 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
   modelUrl, 
   modelName = "3D Model",
   uploadId,
+  projectId,
   onDownload 
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [modelError, setModelError] = useState<Error | null>(null);
   const [useEnhancedViewer, setUseEnhancedViewer] = useState(true);
 
-  // Use enhanced viewer with BIM data if uploadId is provided
-  const { hasElements, elements, feaResults } = use3DViewer(uploadId);
+  // Use enhanced viewer with BIM data if uploadId or projectId is provided
+  const { 
+    hasElements, 
+    elements, 
+    feaResults, 
+    loading,
+    elementCount 
+  } = use3DViewer(uploadId, projectId);
+
+  console.log('Model3DViewer state:', {
+    hasElements,
+    elementCount,
+    loading,
+    uploadId,
+    projectId,
+    useEnhancedViewer
+  });
 
   const handleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
   };
 
-  // If we have BIM elements, use the enhanced viewer
-  if (useEnhancedViewer && (hasElements || uploadId)) {
+  // If we have BIM elements or are in loading state, use the enhanced viewer
+  if (useEnhancedViewer && (hasElements || loading || uploadId || projectId)) {
     return (
       <Enhanced3DViewer
         elements={elements}
@@ -252,6 +269,17 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
             <p className="text-red-500 mt-2">
               Note: This is a demo environment with mock 3D models
             </p>
+          )}
+          {!hasElements && !loading && (
+            <div className="mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setUseEnhancedViewer(true)}
+              >
+                Switch to Enhanced BIM Viewer
+              </Button>
+            </div>
           )}
         </div>
       </CardContent>

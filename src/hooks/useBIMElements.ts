@@ -43,12 +43,12 @@ export interface CreateBIMElementData {
   parent_element_id?: string;
 }
 
-export const useBIMElements = (projectId?: string, uploadId?: string) => {
+export const useBIMElements = (projectIdOrUploadId?: string, filterType: 'project' | 'upload' = 'upload') => {
   const [elements, setElements] = useState<BIMElement[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [deleting, setDelating] = useState(false);
   const { user } = useAuth();
 
   const fetchElements = async () => {
@@ -77,10 +77,12 @@ export const useBIMElements = (projectId?: string, uploadId?: string) => {
         `)
         .order('created_at', { ascending: false });
 
-      if (projectId) {
-        query = query.eq('project_id', projectId);
-      } else if (uploadId) {
-        query = query.eq('upload_id', uploadId);
+      if (projectIdOrUploadId) {
+        if (filterType === 'project') {
+          query = query.eq('project_id', projectIdOrUploadId);
+        } else {
+          query = query.eq('upload_id', projectIdOrUploadId);
+        }
       }
 
       const { data, error } = await query;
@@ -229,7 +231,7 @@ export const useBIMElements = (projectId?: string, uploadId?: string) => {
       setElements([]);
       setLoading(false);
     }
-  }, [user, projectId, uploadId]);
+  }, [user, projectIdOrUploadId, filterType]);
 
   return {
     elements,

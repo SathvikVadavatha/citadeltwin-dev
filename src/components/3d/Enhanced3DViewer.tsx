@@ -1,5 +1,4 @@
-
-import React, { Suspense, useRef, useEffect, useState, useCallback } from 'react';
+import React, { Suspense, useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, Line, Text, Box, Sphere, Cylinder } from '@react-three/drei';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,8 +19,10 @@ import {
   Package,
   Palette,
   Sun,
-  Camera
+  Camera,
+  RefreshCw
 } from "lucide-react";
+import { FEAResultsOverlay } from './FEAResultsOverlay';
 import * as THREE from 'three';
 
 interface BIMElement {
@@ -49,6 +50,26 @@ interface Enhanced3DViewerProps {
   onDownload?: () => void;
 }
 
+const ErrorBoundary = ({ children, fallback }: { children: React.ReactNode; fallback: React.ReactNode }) => {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    const handleError = (error: ErrorEvent) => {
+      console.error('3D Viewer Error:', error);
+      setHasError(true);
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+  if (hasError) {
+    return <>{fallback}</>;
+  }
+
+  return <>{children}</>;
+};
+
 const BIMElementMesh = ({ 
   element, 
   feaValue, 
@@ -67,12 +88,13 @@ const BIMElementMesh = ({
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
 
-  // Get color based on FEA results
-  const getFEAColor = useCallback((value?: number, type?: string) => {
-    if (!value || !type) return '#4a5568';
+  // Get color based on FEA results with better normalization
+  const getFEAColor = useCallback((value?: number, type?: string, minVal?: number, maxVal?: number) => {
+    if (!value || !type || minVal === undefined || maxVal === undefined) return '#4a5568';
     
-    // Normalize value between 0 and 1
-    const normalized = Math.max(0, Math.min(1, value));
+    // Handle edge case where min equals max
+    const range = maxVal - minVal;
+    const normalized = range > 0 ? Math.max(0, Math.min(1, (value - minVal) / range)) : 0.5;
     
     switch (type) {
       case 'stress':
@@ -82,8 +104,8 @@ const BIMElementMesh = ({
         // Green (low) to Yellow (high) displacement
         return `hsl(${120 - (normalized * 60)}, 70%, 50%)`;
       case 'safety_factor':
-        // Red (low) to Green (high) safety factor
-        return `hsl(${normalized * 120}, 70%, 50%)`;
+        // Red (low) to Green (high) safety factor (inverted)
+        return `hsl(${(1 - normalized) * 120}, 70%, 50%)`;
       default:
         return '#4a5568';
     }
@@ -103,58 +125,86 @@ const BIMElementMesh = ({
     ] as [number, number, number];
   }, [element.position, explodeDistance]);
 
-  // Render different geometries based on element type
+  // Render different geometries based on element type with better error handling
   const renderGeometry = () => {
-    const color = getFEAColor(feaValue, feaType);
-    const material = (
-      <meshStandardMaterial 
-        color={color}
-        transparent
-        opacity={isSelected ? 0.8 : (hovered ? 0.9 : 1.0)}
-        emissive={isSelected ? color : undefined}
-        emissiveIntensity={isSelected ? 0.2 : 0}
-      />
-    );
+    try {
+      const color = getFEAColor(feaValue, feaType);
+      const material = (
+        <meshStandardMaterial 
+          color={color}
+          transparent
+          opacity={isSelected ? 0.8 : (hovered ? 0.9 : 1.0)}
+          emissive={isSelected ? color : undefined}
+          emissiveIntensity={isSelected ? 0.2 : 0}
+          roughness={0.3}
+          metalness={0.1}
+        />
+      );
 
-    switch (element.element_type) {
-      case 'wall':
-        const wallDims = element.geometry?.dimensions || { width: 2, height: 3, thickness: 0.2 };
-        return (
-          <Box args={[wallDims.width, wallDims.height, wallDims.thickness]}>
-            {material}
-          </Box>
-        );
+      const dimensions = element.geometry?.dimensions || {};
       
-      case 'beam':
-        const beamDims = element.geometry?.dimensions || { width: 0.3, height: 0.5, length: 4 };
-        return (
-          <Box args={[beamDims.length, beamDims.height, beamDims.width]}>
-            {material}
-          </Box>
-        );
-      
-      case 'column':
-        const columnDims = element.geometry?.dimensions || { diameter: 0.4, height: 3 };
-        return (
-          <Cylinder args={[columnDims.diameter/2, columnDims.diameter/2, columnDims.height, 16]}>
-            {material}
-          </Cylinder>
-        );
-      
-      case 'slab':
-        const slabDims = element.geometry?.dimensions || { width: 5, length: 5, thickness: 0.2 };
-        return (
-          <Box args={[slabDims.width, slabDims.thickness, slabDims.length]}>
-            {material}
-          </Box>
-        );
-      
-      default:
-        return (
-          <Box args={[1, 1, 1]}>
-            {material}
-          </Box>
-        );
+      switch (element.element_type) {
+        case 'wall':
+          const wallDims = {
+            width: dimensions.width || 2,
+            height: dimensions.height || 3,
+            thickness: dimensions.thickness || 0.2
+          };
+          return (
+            <Box args={[wallDims.width, wallDims.height, wallDims.thickness]}>
+              {material}
+            </Box>
+          );
+        
+        case 'beam':
+          const beamDims = {
+            width: dimensions.width || 0.3,
+            height: dimensions.height || 0.5,
+            length: dimensions.length || 4
+          };
+          return (
+            <Box args={[beamDims.length, beamDims.height, beamDims.width]}>
+              {material}
+            </Box>
+          );
+        
+        case 'column':
+          const columnDims = {
+            diameter: dimensions.diameter || 0.4,
+            height: dimensions.height || 3
+          };
+          return (
+            <Cylinder args={[columnDims.diameter/2, columnDims.diameter/2, columnDims.height, 16]}>
+              {material}
+            </Cylinder>
+          );
+        
+        case 'slab':
+          const slabDims = {
+            width: dimensions.width || 5,
+            length: dimensions.length || 5,
+            thickness: dimensions.thickness || 0.2
+          };
+          return (
+            <Box args={[slabDims.width, slabDims.thickness, slabDims.length]}>
+              {material}
+            </Box>
+          );
+        
+        default:
+          return (
+            <Box args={[1, 1, 1]}>
+              {material}
+            </Box>
+          );
+      }
+    } catch (error) {
+      console.error('Error rendering geometry for element:', element.id, error);
+      return (
+        <Box args={[1, 1, 1]}>
+          <meshBasicMaterial color="#ff0000" transparent opacity={0.5} />
+        </Box>
+      );
     }
   };
 
@@ -172,7 +222,7 @@ const BIMElementMesh = ({
       {renderGeometry()}
       {hovered && (
         <Html>
-          <div className="bg-black/80 text-white px-2 py-1 rounded text-xs">
+          <div className="bg-black/80 text-white px-2 py-1 rounded text-xs whitespace-nowrap">
             {element.name}
             {feaValue && (
               <div>{feaType}: {feaValue.toFixed(3)}</div>
@@ -223,7 +273,8 @@ const Scene = ({
   selectedElementId, 
   onElementSelect,
   crossSectionEnabled,
-  crossSectionPosition 
+  crossSectionPosition,
+  lightingIntensity 
 }: {
   elements: BIMElement[];
   feaResults?: FEAResults;
@@ -233,8 +284,15 @@ const Scene = ({
   onElementSelect: (id: string) => void;
   crossSectionEnabled: boolean;
   crossSectionPosition: [number, number, number];
+  lightingIntensity: number;
 }) => {
   const { scene } = useThree();
+
+  // Memoize FEA values for performance
+  const feaData = useMemo(() => {
+    if (!feaResults || !feaResults[feaType as keyof FEAResults]) return null;
+    return feaResults[feaType as keyof FEAResults];
+  }, [feaResults, feaType]);
 
   // Setup clipping plane for cross-section
   useEffect(() => {
@@ -272,39 +330,50 @@ const Scene = ({
 
   return (
     <>
-      {/* Lighting setup */}
-      <ambientLight intensity={0.4} />
+      {/* Enhanced lighting setup */}
+      <ambientLight intensity={0.4 * lightingIntensity} />
       <directionalLight 
         position={[10, 10, 5]} 
-        intensity={1}
+        intensity={1 * lightingIntensity}
         castShadow
         shadow-mapSize={[2048, 2048]}
+        shadow-camera-far={50}
+        shadow-camera-left={-10}
+        shadow-camera-right={10}
+        shadow-camera-top={10}
+        shadow-camera-bottom={-10}
       />
-      <pointLight position={[-10, -10, -10]} intensity={0.3} />
+      <pointLight position={[-10, -10, -10]} intensity={0.3 * lightingIntensity} />
       <spotLight
         position={[0, 10, 0]}
         angle={0.3}
         penumbra={1}
-        intensity={0.5}
+        intensity={0.5 * lightingIntensity}
         castShadow
       />
 
-      {/* BIM Elements */}
-      {elements.map((element) => {
-        const feaValue = feaResults?.[feaType as keyof FEAResults]?.values?.[
-          parseInt(element.id.split('-')[1]) || 0
-        ];
+      {/* BIM Elements with error boundaries */}
+      {elements.map((element, index) => {
+        const feaValue = feaData?.values?.[index];
         
         return (
-          <BIMElementMesh
+          <ErrorBoundary
             key={element.id}
-            element={element}
-            feaValue={feaValue}
-            feaType={feaType}
-            explodeDistance={explodeDistance}
-            isSelected={selectedElementId === element.id}
-            onClick={() => onElementSelect(element.id)}
-          />
+            fallback={
+              <Box position={element.position || [index * 2, 0, 0]} args={[1, 1, 1]}>
+                <meshBasicMaterial color="#ff0000" transparent opacity={0.3} />
+              </Box>
+            }
+          >
+            <BIMElementMesh
+              element={element}
+              feaValue={feaValue}
+              feaType={feaType}
+              explodeDistance={explodeDistance}
+              isSelected={selectedElementId === element.id}
+              onClick={() => onElementSelect(element.id)}
+            />
+          </ErrorBoundary>
         );
       })}
 
@@ -335,54 +404,107 @@ export const Enhanced3DViewer: React.FC<Enhanced3DViewerProps> = ({
   const [crossSectionEnabled, setCrossSectionEnabled] = useState(false);
   const [crossSectionPosition, setCrossSectionPosition] = useState<[number, number, number]>([0, 0, 0]);
   const [lightingIntensity, setLightingIntensity] = useState(1);
+  const [renderError, setRenderError] = useState<string | null>(null);
 
   const handleElementSelect = useCallback((elementId: string) => {
     setSelectedElementId(elementId);
     onElementSelect?.(elementId);
   }, [onElementSelect]);
 
+  const selectedElementIndex = useMemo(() => {
+    if (!selectedElementId) return undefined;
+    return elements.findIndex(el => el.id === selectedElementId);
+  }, [selectedElementId, elements]);
+
   const viewerContent = (
     <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'h-[600px]'}`}>
-      <Canvas
-        camera={{ 
-          position: [10, 10, 10], 
-          fov: 60,
-          near: 0.1,
-          far: 1000
-        }}
-        shadows
-        gl={{ localClippingEnabled: true }}
-        style={{ background: 'linear-gradient(to bottom, #1a1a2e, #16213e)' }}
-      >
-        <Suspense fallback={
-          <Html center>
-            <div className="flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="ml-2 text-sm">Loading 3D model...</span>
+      {renderError ? (
+        <div className="flex items-center justify-center h-full bg-muted">
+          <div className="text-center">
+            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">3D Rendering Error</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setRenderError(null)}
+              className="mt-2"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <ErrorBoundary fallback={
+          <div className="flex items-center justify-center h-full bg-muted">
+            <div className="text-center">
+              <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">Failed to render 3D scene</p>
             </div>
-          </Html>
+          </div>
         }>
-          <Scene
-            elements={elements}
-            feaResults={feaResults}
-            feaType={feaType}
-            explodeDistance={explodeDistance}
-            selectedElementId={selectedElementId}
-            onElementSelect={handleElementSelect}
-            crossSectionEnabled={crossSectionEnabled}
-            crossSectionPosition={crossSectionPosition}
-          />
-        </Suspense>
-        
-        <OrbitControls 
-          enablePan={true}
-          enableZoom={true}
-          enableRotate={true}
-          minDistance={2}
-          maxDistance={100}
-          maxPolarAngle={Math.PI}
+          <Canvas
+            camera={{ 
+              position: [10, 10, 10], 
+              fov: 60,
+              near: 0.1,
+              far: 1000
+            }}
+            shadows
+            gl={{ 
+              localClippingEnabled: true,
+              antialias: true,
+              powerPreference: "high-performance"
+            }}
+            style={{ background: 'linear-gradient(to bottom, #1a1a2e, #16213e)' }}
+            onError={(error) => {
+              console.error('Canvas error:', error);
+              setRenderError('3D rendering failed');
+            }}
+          >
+            <Suspense fallback={
+              <Html center>
+                <div className="flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="ml-2 text-sm">Loading 3D model...</span>
+                </div>
+              </Html>
+            }>
+              <Scene
+                elements={elements}
+                feaResults={feaResults}
+                feaType={feaType}
+                explodeDistance={explodeDistance}
+                selectedElementId={selectedElementId}
+                onElementSelect={handleElementSelect}
+                crossSectionEnabled={crossSectionEnabled}
+                crossSectionPosition={crossSectionPosition}
+                lightingIntensity={lightingIntensity}
+              />
+            </Suspense>
+            
+            <OrbitControls 
+              enablePan={true}
+              enableZoom={true}
+              enableRotate={true}
+              minDistance={2}
+              maxDistance={100}
+              maxPolarAngle={Math.PI}
+              dampingFactor={0.05}
+              enableDamping={true}
+            />
+          </Canvas>
+        </ErrorBoundary>
+      )}
+      
+      {/* FEA Results Overlay */}
+      {feaResults && (
+        <FEAResultsOverlay
+          results={feaResults}
+          selectedElementIndex={selectedElementIndex}
+          analysisType={feaType}
         />
-      </Canvas>
+      )}
       
       {/* Controls overlay */}
       <div className="absolute top-4 right-4 space-y-2">
