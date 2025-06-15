@@ -6,10 +6,12 @@ import { LandingPage } from "@/components/landing/LandingPage";
 import { CADInterface } from "@/components/cad/CADInterface";
 import { ProjectViewer } from "@/components/project/ProjectViewer";
 import { UploadPage } from "@/components/upload/UploadPage";
+import { ProjectsPage } from "@/components/projects/ProjectsPage";
 
 const Index = () => {
   const { user, loading } = useAuth();
-  const [currentView, setCurrentView] = useState("cad");
+  const [currentView, setCurrentView] = useState("projects");
+  const [currentProjectId, setCurrentProjectId] = useState<string | undefined>();
   const [showAuth, setShowAuth] = useState(false);
 
   // Show loading state
@@ -31,10 +33,10 @@ const Index = () => {
     return <LandingPage />;
   }
 
-  // Show main CAD interface if authenticated
+  // Show main interface if authenticated
   const handleNavigate = (view: string, projectId?: string) => {
     setCurrentView(view);
-    // You can handle projectId here for project-specific navigation
+    setCurrentProjectId(projectId);
   };
 
   const renderMainContent = () => {
@@ -42,11 +44,12 @@ const Index = () => {
       case "cad":
         return <CADInterface onNavigate={handleNavigate} />;
       case "project":
-        return <ProjectViewer userRole="engineer" onNavigate={handleNavigate} />;
+      case "project-details":
+        return <ProjectViewer onNavigate={handleNavigate} />;
       case "upload":
         return <UploadPage onNavigate={handleNavigate} />;
       case "projects":
-        return <div className="text-foreground p-8">Projects List - Coming Soon</div>;
+        return <ProjectsPage onNavigate={handleNavigate} />;
       case "team":
         return <div className="text-foreground p-8">Team Management - Coming Soon</div>;
       case "analytics":
@@ -56,7 +59,7 @@ const Index = () => {
       case "help":
         return <div className="text-foreground p-8">Help & Support - Coming Soon</div>;
       default:
-        return <CADInterface onNavigate={handleNavigate} />;
+        return <ProjectsPage onNavigate={handleNavigate} />;
     }
   };
 

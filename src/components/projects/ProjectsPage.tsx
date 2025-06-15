@@ -18,69 +18,25 @@ import {
   MoreHorizontal
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-
-const projects = [
-  {
-    id: "1",
-    name: "Downtown Office Complex",
-    description: "Modern 25-story office building with sustainable design",
-    status: "In Progress",
-    progress: 75,
-    location: "Seattle, WA",
-    owner: "Sarah Chen",
-    team: ["Sarah Chen", "Mike Johnson", "Alex Kumar"],
-    dueDate: "2024-02-15",
-    type: "Commercial",
-    lastModified: "2 hours ago"
-  },
-  {
-    id: "2",
-    name: "Residential Tower A",
-    description: "Luxury residential complex with 200 units",
-    status: "Review",
-    progress: 90,
-    location: "Portland, OR",
-    owner: "Mike Johnson",
-    team: ["Mike Johnson", "Lisa Zhang"],
-    dueDate: "2024-02-20",
-    type: "Residential",
-    lastModified: "5 hours ago"
-  },
-  {
-    id: "3",
-    name: "Bridge Infrastructure",
-    description: "Cable-stayed bridge spanning 500m",
-    status: "FEA Analysis",
-    progress: 45,
-    location: "Vancouver, BC",
-    owner: "Alex Kumar",
-    team: ["Alex Kumar", "Tom Wilson", "Sarah Chen"],
-    dueDate: "2024-02-25",
-    type: "Infrastructure",
-    lastModified: "1 day ago"
-  },
-  {
-    id: "4",
-    name: "Shopping Mall Renovation",
-    description: "Complete renovation of existing shopping center",
-    status: "Planning",
-    progress: 20,
-    location: "San Francisco, CA",
-    owner: "Lisa Zhang",
-    team: ["Lisa Zhang", "Tom Wilson"],
-    dueDate: "2024-03-10",
-    type: "Renovation",
-    lastModified: "3 days ago"
-  }
-];
+import { useProjects } from "@/hooks/useProjects";
+import { CreateProjectModal } from "./CreateProjectModal";
+import { format } from "date-fns";
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case "In Progress": return "bg-blue-500/10 text-blue-400 border-blue-500/20";
-    case "Review": return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
-    case "FEA Analysis": return "bg-purple-500/10 text-purple-400 border-purple-500/20";
-    case "Planning": return "bg-gray-500/10 text-gray-400 border-gray-500/20";
-    case "Completed": return "bg-green-500/10 text-green-400 border-green-500/20";
+    case "active": return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+    case "completed": return "bg-green-500/10 text-green-400 border-green-500/20";
+    case "archived": return "bg-gray-500/10 text-gray-400 border-gray-500/20";
+    default: return "bg-gray-500/10 text-gray-400 border-gray-500/20";
+  }
+};
+
+const getProjectTypeColor = (type: string) => {
+  switch (type) {
+    case "residential": return "bg-green-500/10 text-green-400 border-green-500/20";
+    case "commercial": return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+    case "industrial": return "bg-purple-500/10 text-purple-400 border-purple-500/20";
+    case "infrastructure": return "bg-orange-500/10 text-orange-400 border-orange-500/20";
     default: return "bg-gray-500/10 text-gray-400 border-gray-500/20";
   }
 };
@@ -94,15 +50,31 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  
+  const { projects, loading } = useProjects();
 
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         (project.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
     const matchesStatus = filterStatus === "all" || project.status === filterStatus;
-    const matchesType = filterType === "all" || project.type === filterType;
+    const matchesType = filterType === "all" || project.project_type === filterType;
     
     return matchesSearch && matchesStatus && matchesType;
   });
+
+  const handleProjectCreated = (project: any) => {
+    // Navigate to the new project
+    onNavigate('project-details', project.id);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -114,7 +86,10 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
             Manage and monitor your digital twin projects
           </p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90">
+        <Button 
+          className="bg-primary hover:bg-primary/90"
+          onClick={() => setShowCreateModal(true)}
+        >
           <Plus className="h-4 w-4 mr-2" />
           New Project
         </Button>
@@ -140,11 +115,9 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="In Progress">In Progress</SelectItem>
-                  <SelectItem value="Review">Review</SelectItem>
-                  <SelectItem value="FEA Analysis">FEA Analysis</SelectItem>
-                  <SelectItem value="Planning">Planning</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={filterType} onValueChange={setFilterType}>
@@ -153,10 +126,10 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="Commercial">Commercial</SelectItem>
-                  <SelectItem value="Residential">Residential</SelectItem>
-                  <SelectItem value="Infrastructure">Infrastructure</SelectItem>
-                  <SelectItem value="Renovation">Renovation</SelectItem>
+                  <SelectItem value="residential">Residential</SelectItem>
+                  <SelectItem value="commercial">Commercial</SelectItem>
+                  <SelectItem value="industrial">Industrial</SelectItem>
+                  <SelectItem value="infrastructure">Infrastructure</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -183,7 +156,29 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
       </Card>
 
       {/* Projects Grid/List */}
-      {viewMode === "grid" ? (
+      {filteredProjects.length === 0 ? (
+        <Card className="glass-effect">
+          <CardContent className="p-12 text-center">
+            <div className="text-muted-foreground">
+              {projects.length === 0 ? (
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
+                  <p className="mb-4">Create your first project to get started</p>
+                  <Button onClick={() => setShowCreateModal(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Project
+                  </Button>
+                </div>
+              ) : (
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">No projects match your filters</h3>
+                  <p>Try adjusting your search criteria</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProjects.map((project) => (
             <Card 
@@ -196,7 +191,7 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
                   <div className="space-y-1">
                     <CardTitle className="text-lg text-foreground">{project.name}</CardTitle>
                     <CardDescription className="text-sm">
-                      {project.description}
+                      {project.description || "No description provided"}
                     </CardDescription>
                   </div>
                   <Button variant="ghost" size="sm">
@@ -207,35 +202,20 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
                   <Badge className={getStatusColor(project.status)}>
                     {project.status}
                   </Badge>
-                  <Badge variant="outline" className="border-border text-muted-foreground">
-                    {project.type}
+                  <Badge className={getProjectTypeColor(project.project_type)}>
+                    {project.project_type}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Progress</span>
-                    <span className="text-foreground font-medium">{project.progress}%</span>
-                  </div>
-                  <Progress value={project.progress} className="h-2" />
-                </div>
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <div className="flex items-center">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    {project.location}
-                  </div>
-                  <div className="flex items-center">
-                    <Users className="h-4 w-4 mr-2" />
-                    {project.team.length} team members
-                  </div>
-                  <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-2" />
-                    Due {project.dueDate}
+                    Created {format(new Date(project.created_at), "MMM d, yyyy")}
                   </div>
                   <div className="flex items-center">
                     <Clock className="h-4 w-4 mr-2" />
-                    Modified {project.lastModified}
+                    Updated {format(new Date(project.updated_at), "MMM d, yyyy")}
                   </div>
                 </div>
               </CardContent>
@@ -259,35 +239,23 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
                         <Badge className={getStatusColor(project.status)}>
                           {project.status}
                         </Badge>
-                        <Badge variant="outline" className="border-border text-muted-foreground">
-                          {project.type}
+                        <Badge className={getProjectTypeColor(project.project_type)}>
+                          {project.project_type}
                         </Badge>
                       </div>
-                      <p className="text-muted-foreground">{project.description}</p>
+                      <p className="text-muted-foreground">{project.description || "No description provided"}</p>
                       <div className="flex items-center space-x-6 text-sm text-muted-foreground">
                         <div className="flex items-center">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          {project.location}
-                        </div>
-                        <div className="flex items-center">
-                          <Users className="h-4 w-4 mr-1" />
-                          {project.team.length} members
-                        </div>
-                        <div className="flex items-center">
                           <Calendar className="h-4 w-4 mr-1" />
-                          Due {project.dueDate}
+                          Created {format(new Date(project.created_at), "MMM d, yyyy")}
                         </div>
                         <div className="flex items-center">
                           <Clock className="h-4 w-4 mr-1" />
-                          {project.lastModified}
+                          Updated {format(new Date(project.updated_at), "MMM d, yyyy")}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-4">
-                      <div className="text-right">
-                        <div className="text-sm font-medium text-foreground">{project.progress}%</div>
-                        <Progress value={project.progress} className="w-24 h-2 mt-1" />
-                      </div>
                       <Button variant="ghost" size="sm">
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
@@ -299,6 +267,13 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
           </CardContent>
         </Card>
       )}
+
+      {/* Create Project Modal */}
+      <CreateProjectModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onProjectCreated={handleProjectCreated}
+      />
     </div>
   );
 };

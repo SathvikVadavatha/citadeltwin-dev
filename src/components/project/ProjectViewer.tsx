@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,11 +21,12 @@ import {
 } from "lucide-react";
 
 interface ProjectViewerProps {
-  userRole: "engineer" | "planner" | "industrial";
+  userRole?: "engineer" | "planner" | "industrial";
   activeTab?: string;
+  onNavigate: (view: string, projectId?: string) => void;
 }
 
-export const ProjectViewer = ({ userRole, activeTab = "overview" }: ProjectViewerProps) => {
+export const ProjectViewer = ({ userRole = "engineer", activeTab = "overview", onNavigate }: ProjectViewerProps) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   return (
@@ -51,7 +51,7 @@ export const ProjectViewer = ({ userRole, activeTab = "overview" }: ProjectViewe
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-            <Button size="sm">
+            <Button size="sm" onClick={() => onNavigate('upload')}>
               <Upload className="h-4 w-4 mr-2" />
               Upload Files
             </Button>
@@ -253,11 +253,11 @@ export const ProjectViewer = ({ userRole, activeTab = "overview" }: ProjectViewe
                 {/* Layer Controls */}
                 <div className="absolute top-4 left-4 bg-white/80 backdrop-blur-sm rounded-lg p-3 space-y-2">
                   <label className="flex items-center space-x-2 text-sm">
-                    <input type="checkbox" checked className="rounded" />
+                    <input type="checkbox" defaultChecked className="rounded" />
                     <span>Zoning Districts</span>
                   </label>
                   <label className="flex items-center space-x-2 text-sm">
-                    <input type="checkbox" checked className="rounded" />
+                    <input type="checkbox" defaultChecked className="rounded" />
                     <span>Utilities</span>
                   </label>
                   <label className="flex items-center space-x-2 text-sm">
