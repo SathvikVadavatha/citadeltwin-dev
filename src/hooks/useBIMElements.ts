@@ -9,6 +9,7 @@ type BIMElement = Database['public']['Tables']['bim_elements']['Row'];
 
 export interface CreateBIMElementData {
   upload_id?: string;
+  project_id?: string;
   element_type: Database['public']['Enums']['element_type'];
   name: string;
   description?: string;
@@ -18,7 +19,7 @@ export interface CreateBIMElementData {
   parent_element_id?: string;
 }
 
-export const useBIMElements = (uploadId?: string) => {
+export const useBIMElements = (projectId?: string, uploadId?: string) => {
   const [elements, setElements] = useState<BIMElement[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -27,7 +28,10 @@ export const useBIMElements = (uploadId?: string) => {
   const { user } = useAuth();
 
   const fetchElements = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);
@@ -49,7 +53,9 @@ export const useBIMElements = (uploadId?: string) => {
         `)
         .order('created_at', { ascending: false });
 
-      if (uploadId) {
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      } else if (uploadId) {
         query = query.eq('upload_id', uploadId);
       }
 
@@ -179,6 +185,7 @@ export const useBIMElements = (uploadId?: string) => {
 
     const duplicateData: CreateBIMElementData = {
       upload_id: element.upload_id || undefined,
+      project_id: element.project_id || undefined,
       element_type: element.element_type,
       name: `${element.name} (Copy)`,
       description: element.description || undefined,
@@ -194,8 +201,11 @@ export const useBIMElements = (uploadId?: string) => {
   useEffect(() => {
     if (user) {
       fetchElements();
+    } else {
+      setElements([]);
+      setLoading(false);
     }
-  }, [user, uploadId]);
+  }, [user, projectId, uploadId]);
 
   return {
     elements,

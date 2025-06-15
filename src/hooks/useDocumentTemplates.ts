@@ -42,7 +42,6 @@ export const useDocumentTemplates = () => {
     mutationFn: async (templateData: Omit<DocumentTemplate, 'id' | 'created_at' | 'updated_at' | 'created_by'>) => {
       if (!user) throw new Error('User not authenticated');
 
-      // Ensure all required fields are present
       const insertData = {
         name: templateData.name,
         template_type: templateData.template_type,
@@ -52,6 +51,7 @@ export const useDocumentTemplates = () => {
         format_type: templateData.format_type,
         variables: templateData.variables,
         is_active: templateData.is_active ?? true,
+        created_by: user.id,
       };
 
       const { data, error } = await supabase

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 export interface DocumentExport {
   id: string;
   upload_id?: string;
+  project_id?: string;
   template_id?: string;
   document_type: string;
   title: string;
@@ -22,12 +23,12 @@ export interface DocumentExport {
   completed_at?: string;
 }
 
-export const useDocumentExports = (uploadId?: string) => {
+export const useDocumentExports = (projectId?: string, uploadId?: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: exports, isLoading } = useQuery({
-    queryKey: ['document-exports', uploadId, user?.id],
+    queryKey: ['document-exports', projectId, uploadId, user?.id],
     queryFn: async () => {
       let query = supabase
         .from('document_exports')
@@ -35,7 +36,9 @@ export const useDocumentExports = (uploadId?: string) => {
         .eq('generated_by', user!.id)
         .order('generated_at', { ascending: false });
 
-      if (uploadId) {
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      } else if (uploadId) {
         query = query.eq('upload_id', uploadId);
       }
 
@@ -50,6 +53,7 @@ export const useDocumentExports = (uploadId?: string) => {
   const generateDocument = useMutation({
     mutationFn: async ({
       templateId,
+      projectId,
       uploadId,
       documentType,
       title,
@@ -57,6 +61,7 @@ export const useDocumentExports = (uploadId?: string) => {
       generationData
     }: {
       templateId: string;
+      projectId?: string;
       uploadId?: string;
       documentType: string;
       title: string;
@@ -65,10 +70,10 @@ export const useDocumentExports = (uploadId?: string) => {
     }) => {
       if (!user) throw new Error('User not authenticated');
 
-      // First create the export record
       const { data: exportRecord, error: exportError } = await supabase
         .from('document_exports')
         .insert({
+          project_id: projectId,
           upload_id: uploadId,
           template_id: templateId,
           document_type: documentType,
@@ -82,11 +87,11 @@ export const useDocumentExports = (uploadId?: string) => {
 
       if (exportError) throw exportError;
 
-      // Call the document generation edge function
       const { data, error } = await supabase.functions.invoke('generate-document', {
         body: {
           exportId: exportRecord.id,
           templateId,
+          projectId,
           uploadId,
           formatType,
           generationData,

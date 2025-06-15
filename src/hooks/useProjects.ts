@@ -32,11 +32,14 @@ export const useProjects = () => {
   const { user } = useAuth();
 
   const fetchProjects = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('projects')
         .select('*')
         .order('updated_at', { ascending: false });
@@ -61,7 +64,7 @@ export const useProjects = () => {
 
     try {
       setCreating(true);
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('projects')
         .insert({
           ...projectData,
@@ -91,7 +94,7 @@ export const useProjects = () => {
   const updateProject = async (id: string, updates: Partial<CreateProjectData>): Promise<Project | null> => {
     try {
       setUpdating(true);
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('projects')
         .update(updates)
         .eq('id', id)
@@ -119,7 +122,7 @@ export const useProjects = () => {
   const deleteProject = async (id: string): Promise<boolean> => {
     try {
       setDeleting(true);
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('projects')
         .delete()
         .eq('id', id);
@@ -145,6 +148,9 @@ export const useProjects = () => {
   useEffect(() => {
     if (user) {
       fetchProjects();
+    } else {
+      setProjects([]);
+      setLoading(false);
     }
   }, [user]);
 
