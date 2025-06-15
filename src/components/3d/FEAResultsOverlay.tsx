@@ -156,7 +156,7 @@ export const FEAResultsOverlay = ({
                 <div className="flex items-center gap-2 text-red-500">
                   <AlertTriangle className="w-3 h-3" />
                   <span className="text-xs">
-                    {currentResult.values.filter(v => v < 1.5).length} critical elements (SF < 1.5)
+                    {currentResult.values.filter(v => v < 1.5).length} critical elements (SF &lt; 1.5)
                   </span>
                 </div>
               )}
@@ -164,7 +164,7 @@ export const FEAResultsOverlay = ({
                 <div className="flex items-center gap-2 text-yellow-500">
                   <AlertTriangle className="w-3 h-3" />
                   <span className="text-xs">
-                    {currentResult.values.filter(v => v < 2.0 && v >= 1.5).length} elements need attention (SF < 2.0)
+                    {currentResult.values.filter(v => v < 2.0 && v >= 1.5).length} elements need attention (SF &lt; 2.0)
                   </span>
                 </div>
               )}
