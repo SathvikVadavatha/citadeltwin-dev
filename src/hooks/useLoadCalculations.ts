@@ -330,14 +330,17 @@ export const useLoadCalculations = () => {
 
   const saveCalculationMutation = useMutation({
     mutationFn: async (result: LoadCalculationResult) => {
+      if (!user?.id) throw new Error('User not authenticated');
+      
       const { data, error } = await supabase
         .from('load_calculations')
         .insert({
-          user_id: user?.id,
+          user_id: user.id,
           parameters: result.parameters,
-          results: result,
-          created_at: new Date().toISOString()
-        });
+          results: result
+        })
+        .select()
+        .single();
 
       if (error) throw error;
       return data;
