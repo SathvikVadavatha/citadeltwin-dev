@@ -59,7 +59,7 @@ export const useBIMElements = (projectId?: string, uploadId?: string) => {
     
     try {
       setLoading(true);
-      let query = supabase
+      let query = (supabase as any)
         .from('bim_elements')
         .select(`
           *,
@@ -105,7 +105,7 @@ export const useBIMElements = (projectId?: string, uploadId?: string) => {
 
     try {
       setCreating(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('bim_elements')
         .insert({
           ...elementData,
@@ -144,7 +144,7 @@ export const useBIMElements = (projectId?: string, uploadId?: string) => {
   const updateElement = async (id: string, updates: Partial<CreateBIMElementData>): Promise<BIMElement | null> => {
     try {
       setUpdating(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('bim_elements')
         .update(updates)
         .eq('id', id)
@@ -180,7 +180,7 @@ export const useBIMElements = (projectId?: string, uploadId?: string) => {
   const deleteElement = async (id: string): Promise<boolean> => {
     try {
       setDeleting(true);
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('bim_elements')
         .delete()
         .eq('id', id);
