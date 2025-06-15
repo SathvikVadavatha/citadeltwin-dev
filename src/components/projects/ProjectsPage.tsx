@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import { useProjects } from '@/hooks/useProjects';
 import { CreateProjectModal } from './CreateProjectModal';
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status?: string) => {
   switch (status) {
     case "active": return "bg-blue-500/10 text-blue-400 border-blue-500/20";
     case "completed": return "bg-green-500/10 text-green-400 border-green-500/20";
@@ -19,7 +19,7 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const getProjectTypeColor = (type: string) => {
+const getProjectTypeColor = (type?: string) => {
   switch (type) {
     case "residential": return "bg-green-500/10 text-green-400 border-green-500/20";
     case "commercial": return "bg-blue-500/10 text-blue-400 border-blue-500/20";
@@ -46,8 +46,8 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (project.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
-    const matchesStatus = filterStatus === "all" || project.status === filterStatus;
-    const matchesType = filterType === "all" || project.project_type === filterType;
+    const matchesStatus = filterStatus === "all" || (project.status && project.status === filterStatus);
+    const matchesType = filterType === "all" || (project.project_type && project.project_type === filterType);
     
     return matchesSearch && matchesStatus && matchesType;
   });
@@ -196,10 +196,10 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Badge className={getStatusColor(project.status)}>
-                    {project.status}
+                    {project.status || 'active'}
                   </Badge>
                   <Badge className={getProjectTypeColor(project.project_type)}>
-                    {project.project_type}
+                    {project.project_type || 'general'}
                   </Badge>
                 </div>
               </CardHeader>
@@ -233,10 +233,10 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
                       <div className="flex items-center space-x-4">
                         <h3 className="text-lg font-semibold text-foreground">{project.name}</h3>
                         <Badge className={getStatusColor(project.status)}>
-                          {project.status}
+                          {project.status || 'active'}
                         </Badge>
                         <Badge className={getProjectTypeColor(project.project_type)}>
-                          {project.project_type}
+                          {project.project_type || 'general'}
                         </Badge>
                       </div>
                       <p className="text-muted-foreground">{project.description || "No description provided"}</p>
@@ -266,8 +266,8 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
 
       {/* Create Project Modal */}
       <CreateProjectModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
         onProjectCreated={handleProjectCreated}
       />
     </div>

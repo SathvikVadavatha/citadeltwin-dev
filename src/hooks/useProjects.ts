@@ -11,6 +11,8 @@ export interface Project {
   owner_id: string;
   created_at: string;
   updated_at: string;
+  status?: string;
+  project_type?: string;
 }
 
 export interface CreateProjectData {

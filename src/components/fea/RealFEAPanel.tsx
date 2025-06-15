@@ -23,6 +23,12 @@ interface FEAParameters {
   numberOfModes?: number;
 }
 
+interface MaterialProperties {
+  youngs_modulus?: number;
+  poissons_ratio?: number;
+  density?: number;
+}
+
 export const RealFEAPanel = () => {
   const { elements } = useBIMElements();
   const { materials } = useMaterials();
@@ -56,15 +62,22 @@ export const RealFEAPanel = () => {
 
     try {
       const selectedMaterial = materials.find(m => m.id === parameters.materialId);
-      const materialProperties = selectedMaterial ? {
-        youngsModulus: selectedMaterial.properties.youngs_modulus || 200000000000,
-        poissonsRatio: selectedMaterial.properties.poissons_ratio || 0.3,
-        density: selectedMaterial.properties.density || 7850
-      } : undefined;
+      let materialProperties;
+      
+      if (selectedMaterial && selectedMaterial.properties) {
+        // Type assertion for JSONB properties
+        const props = selectedMaterial.properties as MaterialProperties;
+        materialProperties = {
+          youngsModulus: props.youngs_modulus || 200000000000,
+          poissonsRatio: props.poissons_ratio || 0.3,
+          density: props.density || 7850
+        };
+      }
 
       const analysisParams = {
         analysisId: selectedAnalysisId,
         elementId: parameters.elementId,
+        analysisType: parameters.analysisType,
         materialProperties,
         forces: parameters.forces,
         constraints: parameters.constraints
