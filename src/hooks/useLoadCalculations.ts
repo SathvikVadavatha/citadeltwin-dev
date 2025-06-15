@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -111,11 +110,25 @@ export const useLoadCalculations = () => {
   const calculateLiveLoads = (params: LoadCalculationParameters): LoadResult[] => {
     const loads: LoadResult[] = [];
     
-    // Get live load intensity based on occupancy
-    const liveLoadPsf = LIVE_LOADS_IBC[params.occupancyType]?.dwelling_units || 
-                       LIVE_LOADS_IBC[params.occupancyType]?.offices || 
-                       50; // Default to 50 psf
+    // Get live load intensity based on occupancy with type safety
+    const getLiveLoadIntensity = (occupancyType: LoadCalculationParameters['occupancyType']): number => {
+      const occupancyLoads = LIVE_LOADS_IBC[occupancyType];
+      
+      switch (occupancyType) {
+        case 'residential':
+          return occupancyLoads.dwelling_units;
+        case 'commercial':
+          return occupancyLoads.offices;
+        case 'industrial':
+          return occupancyLoads.light_manufacturing;
+        case 'institutional':
+          return occupancyLoads.hospitals;
+        default:
+          return 50; // Default fallback
+      }
+    };
     
+    const liveLoadPsf = getLiveLoadIntensity(params.occupancyType);
     const liveLoadIntensity = liveLoadPsf * 47.88; // Convert to N/m²
     
     // Floor live loads (not applied to roof typically)
@@ -280,9 +293,27 @@ export const useLoadCalculations = () => {
     const warnings: string[] = [];
     const references: string[] = [];
     
-    // Check minimum live loads
+    // Check minimum live loads with type safety
     const liveLoads = loads.filter(l => l.loadType === 'live');
-    const minLiveLoad = LIVE_LOADS_IBC[params.occupancyType]?.dwelling_units || 40;
+    
+    const getMinLiveLoad = (occupancyType: LoadCalculationParameters['occupancyType']): number => {
+      const occupancyLoads = LIVE_LOADS_IBC[occupancyType];
+      
+      switch (occupancyType) {
+        case 'residential':
+          return occupancyLoads.dwelling_units;
+        case 'commercial':
+          return occupancyLoads.offices;
+        case 'industrial':
+          return occupancyLoads.light_manufacturing;
+        case 'institutional':
+          return occupancyLoads.hospitals;
+        default:
+          return 40; // Default minimum
+      }
+    };
+    
+    const minLiveLoad = getMinLiveLoad(params.occupancyType);
     
     liveLoads.forEach(load => {
       const loadPsf = load.magnitude / 47.88; // Convert back to psf
