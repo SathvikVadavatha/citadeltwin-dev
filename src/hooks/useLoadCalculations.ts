@@ -11,6 +11,12 @@ import {
   LIVE_LOADS_IBC 
 } from '@/types/loads';
 
+// Add the missing type definition
+interface LoadCalculationData {
+  parameters: LoadCalculationParameters;
+  results?: LoadCalculationResult;
+}
+
 export const useLoadCalculations = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -335,9 +341,9 @@ export const useLoadCalculations = () => {
       const { data: result, error } = await supabase
         .from('load_calculations')
         .insert([{
-          user_id: user.id, // This is the correct field name in the load_calculations table
-          parameters: data,
-          results: {} // Will be populated when calculation is complete
+          user_id: user.id,
+          parameters: data.parameters,
+          results: data.results || {}
         }])
         .select();
 

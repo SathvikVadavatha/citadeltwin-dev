@@ -11,7 +11,15 @@ export interface ProjectSnapshot {
   user_id: string;
   snapshot_name: string;
   description?: string;
-  snapshot_data: any;
+  snapshot_data: {
+    elements: any[];
+    project_data: any;
+    metadata: {
+      snapshot_version: string;
+      created_by: string;
+      element_types: string[];
+    };
+  };
   metadata: {
     elements_count: number;
     file_size: number;
@@ -50,7 +58,7 @@ export const useVersionControl = (projectId: string) => {
   // Fetch project snapshots
   const { data: snapshots = [], isLoading: snapshotsLoading } = useQuery({
     queryKey: ['project-snapshots', projectId, currentBranch],
-    queryFn: async () => {
+    queryFn: async (): Promise<ProjectSnapshot[]> => {
       const { data, error } = await supabase
         .from('project_snapshots')
         .select('*')
@@ -59,7 +67,7 @@ export const useVersionControl = (projectId: string) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as ProjectSnapshot[];
+      return (data || []) as ProjectSnapshot[];
     },
     enabled: !!projectId && !!user,
   });
@@ -67,7 +75,7 @@ export const useVersionControl = (projectId: string) => {
   // Fetch branches
   const { data: branches = [], isLoading: branchesLoading } = useQuery({
     queryKey: ['project-branches', projectId],
-    queryFn: async () => {
+    queryFn: async (): Promise<Branch[]> => {
       const { data, error } = await supabase
         .from('project_branches')
         .select('*')
@@ -75,7 +83,7 @@ export const useVersionControl = (projectId: string) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as Branch[];
+      return (data || []) as Branch[];
     },
     enabled: !!projectId && !!user,
   });
@@ -86,7 +94,7 @@ export const useVersionControl = (projectId: string) => {
       name: string;
       description?: string;
       projectData: any;
-    }) => {
+    }): Promise<ProjectSnapshot> => {
       if (!user?.id) throw new Error('User not authenticated');
 
       // Get current elements and project state
@@ -137,7 +145,7 @@ export const useVersionControl = (projectId: string) => {
         .eq('branch_name', currentBranch)
         .neq('id', data.id);
 
-      return data;
+      return data as ProjectSnapshot;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-snapshots'] });
@@ -150,7 +158,7 @@ export const useVersionControl = (projectId: string) => {
 
   // Restore snapshot mutation
   const restoreSnapshotMutation = useMutation({
-    mutationFn: async (snapshotId: string) => {
+    mutationFn: async (snapshotId: string): Promise<ProjectSnapshot> => {
       if (!user?.id) throw new Error('User not authenticated');
 
       // Get snapshot data
@@ -162,6 +170,8 @@ export const useVersionControl = (projectId: string) => {
 
       if (snapshotError) throw snapshotError;
 
+      const typedSnapshot = snapshot as ProjectSnapshot;
+
       // Clear current elements
       await supabase
         .from('bim_elements')
@@ -169,7 +179,7 @@ export const useVersionControl = (projectId: string) => {
         .eq('project_id', projectId);
 
       // Restore elements from snapshot
-      const elements = snapshot.snapshot_data.elements;
+      const elements = typedSnapshot.snapshot_data.elements;
       if (elements && elements.length > 0) {
         const { error: insertError } = await supabase
           .from('bim_elements')
@@ -195,7 +205,7 @@ export const useVersionControl = (projectId: string) => {
         .update({ is_current: true })
         .eq('id', snapshotId);
 
-      return snapshot;
+      return typedSnapshot;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-snapshots'] });
@@ -213,7 +223,7 @@ export const useVersionControl = (projectId: string) => {
       name: string;
       description?: string;
       fromSnapshotId?: string;
-    }) => {
+    }): Promise<Branch> => {
       if (!user?.id) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
@@ -229,7 +239,7 @@ export const useVersionControl = (projectId: string) => {
         .single();
 
       if (error) throw error;
-      return data;
+      return data as Branch;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-branches'] });
@@ -249,7 +259,7 @@ export const useVersionControl = (projectId: string) => {
 
     if (error) throw error;
 
-    const [snap1, snap2] = snapshots;
+    const [snap1, snap2] = snapshots as ProjectSnapshot[];
     const elements1 = snap1.snapshot_data.elements || [];
     const elements2 = snap2.snapshot_data.elements || [];
 
