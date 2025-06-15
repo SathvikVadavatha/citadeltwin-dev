@@ -68,8 +68,8 @@ export const CADDrawingCanvas = ({
     const canvasWidth = canvas.getWidth();
     const canvasHeight = canvas.getHeight();
 
-    // Remove existing grid
-    const existingGrid = canvas.getObjects().filter(obj => obj.name === 'grid');
+    // Remove existing grid lines
+    const existingGrid = canvas.getObjects().filter(obj => (obj as any).isGrid === true);
     existingGrid.forEach(obj => canvas.remove(obj));
 
     // Create vertical lines
@@ -78,11 +78,11 @@ export const CADDrawingCanvas = ({
         stroke: '#e0e0e0',
         strokeWidth: 0.5,
         selectable: false,
-        evented: false,
-        name: 'grid'
+        evented: false
       });
+      (line as any).isGrid = true;
       canvas.add(line);
-      canvas.sendToBack(line);
+      canvas.sendObjectToBack(line);
     }
 
     // Create horizontal lines
@@ -91,11 +91,11 @@ export const CADDrawingCanvas = ({
         stroke: '#e0e0e0',
         strokeWidth: 0.5,
         selectable: false,
-        evented: false,
-        name: 'grid'
+        evented: false
       });
+      (line as any).isGrid = true;
       canvas.add(line);
-      canvas.sendToBack(line);
+      canvas.sendObjectToBack(line);
     }
 
     canvas.renderAll();
@@ -292,7 +292,11 @@ export const CADDrawingCanvas = ({
 
   const handleSave = () => {
     if (!fabricCanvas) return;
-    const dataURL = fabricCanvas.toDataURL('image/png');
+    const dataURL = fabricCanvas.toDataURL({
+      format: 'png',
+      quality: 1,
+      multiplier: 1
+    });
     const link = document.createElement('a');
     link.download = `cad-drawing-${Date.now()}.png`;
     link.href = dataURL;

@@ -12,7 +12,7 @@ import { GISDataManager } from "@/components/gis/GISDataManager";
 import { CADDrawingCanvas } from "./CADDrawingCanvas";
 import { CADMeasurementTool } from "./CADMeasurementTool";
 import { useCADDrawing } from "@/hooks/useCADDrawing";
-import { Layers, Package, Calculator, Zap, Settings, Eye, Grid3X3, Map, Drafting } from "lucide-react";
+import { Layers, Package, Calculator, Zap, Settings, Eye, Grid3X3, Map, PenTool } from "lucide-react";
 
 interface CADCanvasProps {
   onNavigate: (view: string) => void;
@@ -76,7 +76,7 @@ export const CADCanvas = ({ onNavigate }: CADCanvasProps) => {
         <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "2d" | "3d")} className="absolute top-4 left-4 z-10">
           <TabsList className="bg-gray-800/80 border-cyan-500/30">
             <TabsTrigger value="2d" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
-              <Drafting className="w-4 h-4 mr-1" />
+              <PenTool className="w-4 h-4 mr-1" />
               2D Drawing
             </TabsTrigger>
             <TabsTrigger value="3d" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
@@ -205,7 +205,7 @@ export const CADCanvas = ({ onNavigate }: CADCanvasProps) => {
               value="drawing" 
               className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white"
             >
-              <Drafting className="w-4 h-4 mr-1" />
+              <PenTool className="w-4 h-4 mr-1" />
               Draw
             </TabsTrigger>
             <TabsTrigger 
