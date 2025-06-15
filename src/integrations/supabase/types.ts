@@ -345,6 +345,155 @@ export type Database = {
           },
         ]
       }
+      document_exports: {
+        Row: {
+          ai_generated_content: Json | null
+          completed_at: string | null
+          document_type: string
+          error_message: string | null
+          file_path: string | null
+          file_size: number | null
+          format_type: string
+          generated_at: string
+          generated_by: string
+          generation_data: Json
+          id: string
+          status: string
+          template_id: string | null
+          title: string
+          upload_id: string | null
+        }
+        Insert: {
+          ai_generated_content?: Json | null
+          completed_at?: string | null
+          document_type: string
+          error_message?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          format_type: string
+          generated_at?: string
+          generated_by: string
+          generation_data?: Json
+          id?: string
+          status?: string
+          template_id?: string | null
+          title: string
+          upload_id?: string | null
+        }
+        Update: {
+          ai_generated_content?: Json | null
+          completed_at?: string | null
+          document_type?: string
+          error_message?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          format_type?: string
+          generated_at?: string
+          generated_by?: string
+          generation_data?: Json
+          id?: string
+          status?: string
+          template_id?: string | null
+          title?: string
+          upload_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_exports_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_exports_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "blueprint_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_templates: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          format_type: string
+          id: string
+          is_active: boolean
+          name: string
+          template_content: Json
+          template_type: string
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          format_type: string
+          id?: string
+          is_active?: boolean
+          name: string
+          template_content: Json
+          template_type: string
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          format_type?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          template_content?: Json
+          template_type?: string
+          updated_at?: string
+          variables?: Json
+        }
+        Relationships: []
+      }
+      document_variables: {
+        Row: {
+          created_at: string
+          data_source: string | null
+          export_id: string
+          id: string
+          variable_name: string
+          variable_value: Json
+        }
+        Insert: {
+          created_at?: string
+          data_source?: string | null
+          export_id: string
+          id?: string
+          variable_name: string
+          variable_value: Json
+        }
+        Update: {
+          created_at?: string
+          data_source?: string | null
+          export_id?: string
+          id?: string
+          variable_name?: string
+          variable_value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_variables_export_id_fkey"
+            columns: ["export_id"]
+            isOneToOne: false
+            referencedRelation: "document_exports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       element_constraints: {
         Row: {
           constraint_data: Json

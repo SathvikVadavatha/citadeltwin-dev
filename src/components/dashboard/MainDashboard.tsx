@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,6 +21,8 @@ import { BIMElementsManager } from '@/components/bim/BIMElementsManager';
 import { FEAAnalysisManager } from '@/components/fea/FEAAnalysisManager';
 import { GISDataManager } from '@/components/gis/GISDataManager';
 import { ComplianceEngine } from '@/components/compliance/ComplianceEngine';
+import { DocumentGenerator } from '@/components/documents/DocumentGenerator';
+import { DocumentTemplateManager } from '@/components/documents/DocumentTemplateManager';
 import { useUploads } from '@/hooks/useUploads';
 
 export const MainDashboard = () => {
@@ -60,7 +61,7 @@ export const MainDashboard = () => {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-7 bg-gray-900/50 border border-cyan-400/20">
+          <TabsList className="grid w-full grid-cols-8 bg-gray-900/50 border border-cyan-400/20">
             <TabsTrigger value="upload" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
               <Upload className="w-4 h-4" />
               <span>Upload</span>
@@ -80,6 +81,10 @@ export const MainDashboard = () => {
             <TabsTrigger value="compliance" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
               <Shield className="w-4 h-4" />
               <span>Compliance</span>
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
+              <FileText className="w-4 h-4" />
+              <span>Documents</span>
             </TabsTrigger>
             <TabsTrigger value="gis" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
               <Map className="w-4 h-4" />
@@ -124,6 +129,13 @@ export const MainDashboard = () => {
 
             <TabsContent value="compliance" className="space-y-6">
               <ComplianceEngine uploadId={selectedUploadId || recentUpload?.id} />
+            </TabsContent>
+
+            <TabsContent value="documents" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <DocumentGenerator uploadId={selectedUploadId || recentUpload?.id} />
+                <DocumentTemplateManager />
+              </div>
             </TabsContent>
 
             <TabsContent value="gis" className="space-y-6">
