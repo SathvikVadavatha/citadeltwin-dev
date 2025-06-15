@@ -39,7 +39,8 @@ export const useProjects = () => {
     
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      // Use type assertion to work around missing types
+      const { data, error } = await (supabase as any)
         .from('projects')
         .select('*')
         .order('updated_at', { ascending: false });
@@ -50,7 +51,7 @@ export const useProjects = () => {
         return;
       }
 
-      setProjects(data || []);
+      setProjects((data || []) as Project[]);
     } catch (error) {
       console.error('Error fetching projects:', error);
       toast.error('Failed to load projects');
@@ -64,7 +65,7 @@ export const useProjects = () => {
 
     try {
       setCreating(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('projects')
         .insert({
           ...projectData,
@@ -81,7 +82,7 @@ export const useProjects = () => {
 
       toast.success('Project created successfully');
       await fetchProjects(); // Refresh the list
-      return data;
+      return data as Project;
     } catch (error) {
       console.error('Error creating project:', error);
       toast.error('Failed to create project');
@@ -94,7 +95,7 @@ export const useProjects = () => {
   const updateProject = async (id: string, updates: Partial<CreateProjectData>): Promise<Project | null> => {
     try {
       setUpdating(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('projects')
         .update(updates)
         .eq('id', id)
@@ -109,7 +110,7 @@ export const useProjects = () => {
 
       toast.success('Project updated successfully');
       await fetchProjects(); // Refresh the list
-      return data;
+      return data as Project;
     } catch (error) {
       console.error('Error updating project:', error);
       toast.error('Failed to update project');
@@ -122,7 +123,7 @@ export const useProjects = () => {
   const deleteProject = async (id: string): Promise<boolean> => {
     try {
       setDeleting(true);
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('projects')
         .delete()
         .eq('id', id);

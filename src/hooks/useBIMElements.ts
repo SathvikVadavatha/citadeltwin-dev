@@ -3,14 +3,38 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
-import type { Database } from '@/integrations/supabase/types';
 
-type BIMElement = Database['public']['Tables']['bim_elements']['Row'];
+// Extended BIM Element type to include project_id
+export interface BIMElement {
+  id: string;
+  upload_id?: string;
+  project_id?: string;
+  element_type: 'wall' | 'beam' | 'column' | 'slab' | 'door' | 'window' | 'roof' | 'foundation' | 'stair' | 'railing' | 'mechanical' | 'electrical' | 'plumbing' | 'structural' | 'architectural';
+  name: string;
+  description?: string;
+  geometry: any;
+  parameters?: any;
+  material_id?: string;
+  parent_element_id?: string;
+  created_at: string;
+  updated_at: string;
+  materials?: {
+    id: string;
+    name: string;
+    material_type: string;
+    properties: any;
+  };
+  parent_element?: {
+    id: string;
+    name: string;
+    element_type: string;
+  };
+}
 
 export interface CreateBIMElementData {
   upload_id?: string;
   project_id?: string;
-  element_type: Database['public']['Enums']['element_type'];
+  element_type: 'wall' | 'beam' | 'column' | 'slab' | 'door' | 'window' | 'roof' | 'foundation' | 'stair' | 'railing' | 'mechanical' | 'electrical' | 'plumbing' | 'structural' | 'architectural';
   name: string;
   description?: string;
   geometry: any;
@@ -67,7 +91,7 @@ export const useBIMElements = (projectId?: string, uploadId?: string) => {
         return;
       }
 
-      setElements(data || []);
+      setElements((data || []) as BIMElement[]);
     } catch (error) {
       console.error('Error fetching BIM elements:', error);
       toast.error('Failed to load BIM elements');
@@ -107,7 +131,7 @@ export const useBIMElements = (projectId?: string, uploadId?: string) => {
 
       toast.success('BIM element created successfully');
       await fetchElements();
-      return data;
+      return data as BIMElement;
     } catch (error) {
       console.error('Error creating BIM element:', error);
       toast.error('Failed to create BIM element');
@@ -143,7 +167,7 @@ export const useBIMElements = (projectId?: string, uploadId?: string) => {
 
       toast.success('BIM element updated successfully');
       await fetchElements();
-      return data;
+      return data as BIMElement;
     } catch (error) {
       console.error('Error updating BIM element:', error);
       toast.error('Failed to update BIM element');

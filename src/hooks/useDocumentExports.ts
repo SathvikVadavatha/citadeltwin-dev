@@ -45,7 +45,7 @@ export const useDocumentExports = (projectId?: string, uploadId?: string) => {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as DocumentExport[];
+      return (data || []) as DocumentExport[];
     },
     enabled: !!user,
   });
