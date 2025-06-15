@@ -56,6 +56,14 @@ export const VersionControlPanel = ({ projectId }: VersionControlPanelProps) => 
 
   const canCompare = selectedSnapshots.length === 2;
 
+  const handleCreateSnapshot = async (data: { name: string; description?: string; projectData: any }) => {
+    await createSnapshot(data);
+  };
+
+  const handleCreateBranch = async (data: { name: string; description?: string; fromSnapshotId?: string }) => {
+    await createBranch(data);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -296,14 +304,14 @@ export const VersionControlPanel = ({ projectId }: VersionControlPanelProps) => 
       <CreateSnapshotModal
         isOpen={showCreateSnapshot}
         onClose={() => setShowCreateSnapshot(false)}
-        onSubmit={createSnapshot}
+        onSubmit={handleCreateSnapshot}
         isLoading={isCreatingSnapshot}
       />
 
       <CreateBranchModal
         isOpen={showCreateBranch}
         onClose={() => setShowCreateBranch(false)}
-        onSubmit={createBranch}
+        onSubmit={handleCreateBranch}
         isLoading={isCreatingBranch}
         snapshots={snapshots}
       />

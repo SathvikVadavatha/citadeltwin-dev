@@ -33,11 +33,13 @@ export interface VersionDiff {
 }
 
 export interface Branch {
+  id: string;
+  project_id: string;
   name: string;
-  current_snapshot_id: string;
-  created_at: string;
-  created_by: string;
   description?: string;
+  created_by: string;
+  current_snapshot_id?: string;
+  created_at: string;
 }
 
 export const useVersionControl = (projectId: string) => {

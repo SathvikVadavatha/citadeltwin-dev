@@ -1159,6 +1159,108 @@ export type Database = {
         }
         Relationships: []
       }
+      project_branches: {
+        Row: {
+          created_at: string
+          created_by: string
+          current_snapshot_id: string | null
+          description: string | null
+          id: string
+          name: string
+          project_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          current_snapshot_id?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          project_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          current_snapshot_id?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_branches_current_snapshot_id_fkey"
+            columns: ["current_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "project_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_branches_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_snapshots: {
+        Row: {
+          branch_name: string
+          created_at: string
+          description: string | null
+          id: string
+          is_current: boolean
+          metadata: Json
+          parent_snapshot_id: string | null
+          project_id: string
+          snapshot_data: Json
+          snapshot_name: string
+          user_id: string
+        }
+        Insert: {
+          branch_name?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_current?: boolean
+          metadata?: Json
+          parent_snapshot_id?: string | null
+          project_id: string
+          snapshot_data: Json
+          snapshot_name: string
+          user_id: string
+        }
+        Update: {
+          branch_name?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_current?: boolean
+          metadata?: Json
+          parent_snapshot_id?: string | null
+          project_id?: string
+          snapshot_data?: Json
+          snapshot_name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_snapshots_parent_snapshot_id_fkey"
+            columns: ["parent_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "project_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_snapshots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           created_at: string | null

@@ -328,22 +328,21 @@ export const useLoadCalculations = () => {
     };
   };
 
-  const saveCalculationMutation = useMutation({
-    mutationFn: async (result: LoadCalculationResult) => {
+  const saveCalculation = useMutation({
+    mutationFn: async (data: LoadCalculationData) => {
       if (!user?.id) throw new Error('User not authenticated');
-      
-      const { data, error } = await supabase
+
+      const { data: result, error } = await supabase
         .from('load_calculations')
-        .insert({
-          user_id: user.id,
-          parameters: result.parameters,
-          results: result
-        })
-        .select()
-        .single();
+        .insert([{
+          user_id: user.id, // This is the correct field name in the load_calculations table
+          parameters: data,
+          results: {} // Will be populated when calculation is complete
+        }])
+        .select();
 
       if (error) throw error;
-      return data;
+      return result[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['load-calculations'] });
@@ -356,8 +355,8 @@ export const useLoadCalculations = () => {
 
   return {
     calculateLoads,
-    saveCalculation: saveCalculationMutation.mutateAsync,
+    saveCalculation: saveCalculation.mutateAsync,
     calculating,
-    saving: saveCalculationMutation.isPending,
+    saving: saveCalculation.isPending,
   };
 };
