@@ -1,20 +1,26 @@
 
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
-import { SimpleSnapshot, SimpleBranch, CreateSnapshotParams, CreateBranchParams, VersionDiff } from '@/types/version-control';
+import { 
+  SimpleSnapshot, 
+  SimpleBranch, 
+  CreateSnapshotParams, 
+  CreateBranchParams, 
+  VersionDiff 
+} from '@/types/version-control';
 
 export const useVersionControl = (projectId: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [currentBranch, setCurrentBranch] = useState('main');
 
-  // Fetch snapshots with simple query
-  const { data: snapshots = [], isLoading: snapshotsLoading } = useQuery({
+  // Fetch snapshots
+  const snapshotsQuery = useQuery({
     queryKey: ['project-snapshots', projectId, currentBranch],
-    queryFn: async (): Promise<SimpleSnapshot[]> => {
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('project_snapshots')
         .select('*')
@@ -29,10 +35,10 @@ export const useVersionControl = (projectId: string) => {
     enabled: !!projectId && !!user,
   });
 
-  // Fetch branches with simple query
-  const { data: branches = [], isLoading: branchesLoading } = useQuery({
+  // Fetch branches
+  const branchesQuery = useQuery({
     queryKey: ['project-branches', projectId],
-    queryFn: async (): Promise<SimpleBranch[]> => {
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('project_branches')
         .select('*')
@@ -45,11 +51,11 @@ export const useVersionControl = (projectId: string) => {
     enabled: !!projectId && !!user,
   });
 
-  // Simple create snapshot function
-  const createSnapshot = async (params: CreateSnapshotParams): Promise<void> => {
-    if (!user?.id) throw new Error('User not authenticated');
+  // Create snapshot mutation
+  const createSnapshotMutation = useMutation({
+    mutationFn: async (params: CreateSnapshotParams) => {
+      if (!user?.id) throw new Error('User not authenticated');
 
-    try {
       // Get current elements
       const { data: elements, error: elementsError } = await supabase
         .from('bim_elements')
@@ -100,19 +106,22 @@ export const useVersionControl = (projectId: string) => {
         .eq('branch_name', currentBranch)
         .neq('id', data.id);
 
+      return data;
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-snapshots'] });
       toast.success('Snapshot created successfully');
-    } catch (error: any) {
+    },
+    onError: (error: any) => {
       toast.error(`Failed to create snapshot: ${error.message}`);
-      throw error;
-    }
-  };
+    },
+  });
 
-  // Simple restore snapshot function
-  const restoreSnapshot = async (snapshotId: string): Promise<void> => {
-    if (!user?.id) throw new Error('User not authenticated');
+  // Restore snapshot mutation
+  const restoreSnapshotMutation = useMutation({
+    mutationFn: async (snapshotId: string) => {
+      if (!user?.id) throw new Error('User not authenticated');
 
-    try {
       // Get snapshot data
       const { data: snapshot, error: snapshotError } = await supabase
         .from('project_snapshots')
@@ -157,20 +166,23 @@ export const useVersionControl = (projectId: string) => {
         .update({ is_current: true })
         .eq('id', snapshotId);
 
+      return snapshot;
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-snapshots'] });
       queryClient.invalidateQueries({ queryKey: ['bim-elements'] });
       toast.success('Snapshot restored successfully');
-    } catch (error: any) {
+    },
+    onError: (error: any) => {
       toast.error(`Failed to restore snapshot: ${error.message}`);
-      throw error;
-    }
-  };
+    },
+  });
 
-  // Simple create branch function
-  const createBranch = async (params: CreateBranchParams): Promise<void> => {
-    if (!user?.id) throw new Error('User not authenticated');
+  // Create branch mutation
+  const createBranchMutation = useMutation({
+    mutationFn: async (params: CreateBranchParams) => {
+      if (!user?.id) throw new Error('User not authenticated');
 
-    try {
       const { data, error } = await supabase
         .from('project_branches')
         .insert({
@@ -184,16 +196,18 @@ export const useVersionControl = (projectId: string) => {
         .single();
 
       if (error) throw error;
-      
+      return data;
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-branches'] });
       toast.success('Branch created successfully');
-    } catch (error: any) {
+    },
+    onError: (error: any) => {
       toast.error(`Failed to create branch: ${error.message}`);
-      throw error;
-    }
-  };
+    },
+  });
 
-  // Simple compare snapshots function
+  // Compare snapshots function
   const compareSnapshots = async (snapshot1Id: string, snapshot2Id: string): Promise<VersionDiff[]> => {
     const { data: snapshots, error } = await supabase
       .from('project_snapshots')
@@ -254,18 +268,18 @@ export const useVersionControl = (projectId: string) => {
   };
 
   return {
-    snapshots,
-    branches,
+    snapshots: snapshotsQuery.data || [],
+    branches: branchesQuery.data || [],
     currentBranch,
-    snapshotsLoading,
-    branchesLoading,
+    snapshotsLoading: snapshotsQuery.isLoading,
+    branchesLoading: branchesQuery.isLoading,
     setCurrentBranch,
-    createSnapshot,
-    restoreSnapshot,
-    createBranch,
+    createSnapshot: createSnapshotMutation.mutateAsync,
+    restoreSnapshot: restoreSnapshotMutation.mutateAsync,
+    createBranch: createBranchMutation.mutateAsync,
     compareSnapshots,
-    isCreatingSnapshot: false,
-    isRestoringSnapshot: false,
-    isCreatingBranch: false,
+    isCreatingSnapshot: createSnapshotMutation.isPending,
+    isRestoringSnapshot: restoreSnapshotMutation.isPending,
+    isCreatingBranch: createBranchMutation.isPending,
   };
 };

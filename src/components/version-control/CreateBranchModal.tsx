@@ -6,14 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ProjectSnapshot } from '@/hooks/useVersionControl';
+import { SimpleSnapshot } from '@/types/version-control';
 
 interface CreateBranchModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: { name: string; description?: string; fromSnapshotId?: string }) => Promise<void>;
   isLoading: boolean;
-  snapshots: ProjectSnapshot[];
+  snapshots: SimpleSnapshot[];
 }
 
 export const CreateBranchModal = ({ isOpen, onClose, onSubmit, isLoading, snapshots }: CreateBranchModalProps) => {

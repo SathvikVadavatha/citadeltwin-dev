@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { VersionDiff } from '@/hooks/useVersionControl';
+import { VersionDiff } from '@/types/version-control';
 import { Plus, Minus, Edit } from 'lucide-react';
 
 interface DiffViewerProps {
