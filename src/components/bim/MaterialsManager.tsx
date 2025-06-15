@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,13 +6,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Package } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Edit, Trash2, Package, Database, Library } from 'lucide-react';
 import { useMaterials, CreateMaterialData } from '@/hooks/useMaterials';
+import { StandardMaterialsLibrary } from '@/components/materials/StandardMaterialsLibrary';
 import type { Database } from '@/integrations/supabase/types';
 
 export const MaterialsManager = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('custom');
   const [formData, setFormData] = useState<CreateMaterialData>({
     name: '',
     material_type: 'concrete',
@@ -117,192 +119,214 @@ export const MaterialsManager = () => {
           <h3 className="text-xl font-semibold glow-cyan">Material Library</h3>
           <p className="text-muted-foreground">Manage building materials and their properties</p>
         </div>
-        <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-          <DialogTrigger asChild>
-            <Button className="cyber-button" onClick={() => { resetForm(); setEditingMaterial(null); }}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Material
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="gradient-border">
-            <DialogHeader>
-              <DialogTitle className="glow-cyan">
-                {editingMaterial ? 'Edit Material' : 'Create Material'}
-              </DialogTitle>
-            </DialogHeader>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Material Name</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="cyber-button"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="type">Material Type</Label>
-                  <Select
-                    value={formData.material_type}
-                    onValueChange={(value: Database['public']['Enums']['material_type']) =>
-                      setFormData(prev => ({ ...prev, material_type: value }))
-                    }
-                  >
-                    <SelectTrigger className="cyber-button">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {materialTypes.map(type => (
-                        <SelectItem key={type} value={type}>
-                          {type.charAt(0).toUpperCase() + type.slice(1)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cost">Cost per Unit</Label>
-                  <Input
-                    id="cost"
-                    type="number"
-                    step="0.01"
-                    value={formData.cost_per_unit}
-                    onChange={(e) => setFormData(prev => ({ ...prev, cost_per_unit: parseFloat(e.target.value) || 0 }))}
-                    className="cyber-button"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="unit">Unit</Label>
-                  <Input
-                    id="unit"
-                    value={formData.unit}
-                    onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
-                    className="cyber-button"
-                    placeholder="m3, m2, kg, etc."
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="supplier">Supplier</Label>
-                  <Input
-                    id="supplier"
-                    value={formData.supplier}
-                    onChange={(e) => setFormData(prev => ({ ...prev, supplier: e.target.value }))}
-                    className="cyber-button"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowCreateModal(false)}
-                  className="cyber-button"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={creating || updating}
-                  className="cyber-button bg-primary text-primary-foreground"
-                >
-                  {editingMaterial ? 'Update' : 'Create'} Material
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
 
-      {materials.length === 0 ? (
-        <Card className="gradient-border">
-          <CardContent className="p-8 text-center">
-            <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">No Materials</h3>
-            <p className="text-muted-foreground mb-4">
-              Create your first material to get started with the material library.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4">
-          {materials.map((material) => (
-            <Card key={material.id} className="gradient-border glow-cyan">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Badge className={getMaterialTypeColor(material.material_type)}>
-                      {material.material_type}
-                    </Badge>
-                    <div>
-                      <CardTitle className="text-lg">{material.name}</CardTitle>
-                      {material.supplier && (
-                        <p className="text-sm text-muted-foreground">by {material.supplier}</p>
-                      )}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 bg-card border border-border">
+          <TabsTrigger value="custom" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Package className="w-4 h-4 mr-2" />
+            Custom Materials
+          </TabsTrigger>
+          <TabsTrigger value="standards" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Library className="w-4 h-4 mr-2" />
+            Standard Library
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="custom" className="space-y-4">
+          <div className="flex justify-end">
+            <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+              <DialogTrigger asChild>
+                <Button className="cyber-button" onClick={() => { resetForm(); setEditingMaterial(null); }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Material
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="gradient-border">
+                <DialogHeader>
+                  <DialogTitle className="glow-cyan">
+                    {editingMaterial ? 'Edit Material' : 'Create Material'}
+                  </DialogTitle>
+                </DialogHeader>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Material Name</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                        className="cyber-button"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="type">Material Type</Label>
+                      <Select
+                        value={formData.material_type}
+                        onValueChange={(value: Database['public']['Enums']['material_type']) =>
+                          setFormData(prev => ({ ...prev, material_type: value }))
+                        }
+                      >
+                        <SelectTrigger className="cyber-button">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {materialTypes.map(type => (
+                            <SelectItem key={type} value={type}>
+                              {type.charAt(0).toUpperCase() + type.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="cost">Cost per Unit</Label>
+                      <Input
+                        id="cost"
+                        type="number"
+                        step="0.01"
+                        value={formData.cost_per_unit}
+                        onChange={(e) => setFormData(prev => ({ ...prev, cost_per_unit: parseFloat(e.target.value) || 0 }))}
+                        className="cyber-button"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="unit">Unit</Label>
+                      <Input
+                        id="unit"
+                        value={formData.unit}
+                        onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
+                        className="cyber-button"
+                        placeholder="m3, m2, kg, etc."
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="supplier">Supplier</Label>
+                      <Input
+                        id="supplier"
+                        value={formData.supplier}
+                        onChange={(e) => setFormData(prev => ({ ...prev, supplier: e.target.value }))}
+                        className="cyber-button"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-4">
                     <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleEdit(material)}
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowCreateModal(false)}
                       className="cyber-button"
                     >
-                      <Edit className="w-4 h-4" />
+                      Cancel
                     </Button>
                     <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDelete(material.id)}
-                      disabled={deleting}
-                      className="cyber-button hover:bg-destructive/20"
+                      type="submit"
+                      disabled={creating || updating}
+                      className="cyber-button bg-primary text-primary-foreground"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      {editingMaterial ? 'Update' : 'Create'} Material
                     </Button>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Cost:</span>
-                    <p className="font-medium">
-                      ${material.cost_per_unit?.toFixed(2) || '0.00'} / {material.unit || 'unit'}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Properties:</span>
-                    <p className="font-medium">
-                      {Object.keys(material.properties || {}).length} defined
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Created:</span>
-                    <p className="font-medium">
-                      {new Date(material.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Updated:</span>
-                    <p className="font-medium">
-                      {new Date(material.updated_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {materials.length === 0 ? (
+            <Card className="gradient-border">
+              <CardContent className="p-8 text-center">
+                <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No Custom Materials</h3>
+                <p className="text-muted-foreground mb-4">
+                  Create your first material or import from the standard library.
+                </p>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      )}
+          ) : (
+            <div className="grid gap-4">
+              {materials.map((material) => (
+                <Card key={material.id} className="gradient-border glow-cyan">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Badge className={getMaterialTypeColor(material.material_type)}>
+                          {material.material_type}
+                        </Badge>
+                        <div>
+                          <CardTitle className="text-lg">{material.name}</CardTitle>
+                          {material.supplier && (
+                            <p className="text-sm text-muted-foreground">by {material.supplier}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEdit(material)}
+                          className="cyber-button"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(material.id)}
+                          disabled={deleting}
+                          className="cyber-button hover:bg-destructive/20"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Cost:</span>
+                        <p className="font-medium">
+                          ${material.cost_per_unit?.toFixed(2) || '0.00'} / {material.unit || 'unit'}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Properties:</span>
+                        <p className="font-medium">
+                          {Object.keys(material.properties || {}).length} defined
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Created:</span>
+                        <p className="font-medium">
+                          {new Date(material.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Updated:</span>
+                        <p className="font-medium">
+                          {new Date(material.updated_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="standards">
+          <StandardMaterialsLibrary />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
