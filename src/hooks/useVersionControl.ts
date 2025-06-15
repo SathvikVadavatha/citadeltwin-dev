@@ -5,31 +5,39 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
 
-export interface ProjectSnapshot {
+// Simplified base types to avoid deep instantiation
+interface BaseSnapshot {
   id: string;
   project_id: string;
   user_id: string;
   snapshot_name: string;
   description?: string;
-  snapshot_data: {
-    elements: any[];
-    project_data: any;
-    metadata: {
-      snapshot_version: string;
-      created_by: string;
-      element_types: string[];
-    };
-  };
-  metadata: {
-    elements_count: number;
-    file_size: number;
-    timestamp: string;
-    changes_summary: string[];
-  };
   parent_snapshot_id?: string;
   branch_name: string;
   is_current: boolean;
   created_at: string;
+}
+
+interface SnapshotData {
+  elements: any[];
+  project_data: any;
+  metadata: {
+    snapshot_version: string;
+    created_by: string;
+    element_types: string[];
+  };
+}
+
+interface SnapshotMetadata {
+  elements_count: number;
+  file_size: number;
+  timestamp: string;
+  changes_summary: string[];
+}
+
+export interface ProjectSnapshot extends BaseSnapshot {
+  snapshot_data: SnapshotData;
+  metadata: SnapshotMetadata;
 }
 
 export interface VersionDiff {
@@ -50,15 +58,28 @@ export interface Branch {
   created_at: string;
 }
 
+// Simplified parameter types
+type CreateSnapshotParams = {
+  name: string;
+  description?: string;
+  projectData: any;
+};
+
+type CreateBranchParams = {
+  name: string;
+  description?: string;
+  fromSnapshotId?: string;
+};
+
 export const useVersionControl = (projectId: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [currentBranch, setCurrentBranch] = useState('main');
 
-  // Fetch project snapshots
-  const { data: snapshots = [], isLoading: snapshotsLoading } = useQuery({
+  // Fetch project snapshots with explicit typing
+  const { data: snapshots = [], isLoading: snapshotsLoading } = useQuery<ProjectSnapshot[]>({
     queryKey: ['project-snapshots', projectId, currentBranch],
-    queryFn: async () => {
+    queryFn: async (): Promise<ProjectSnapshot[]> => {
       const { data, error } = await supabase
         .from('project_snapshots')
         .select('*')
@@ -72,10 +93,10 @@ export const useVersionControl = (projectId: string) => {
     enabled: !!projectId && !!user,
   });
 
-  // Fetch branches
-  const { data: branches = [], isLoading: branchesLoading } = useQuery({
+  // Fetch branches with explicit typing
+  const { data: branches = [], isLoading: branchesLoading } = useQuery<Branch[]>({
     queryKey: ['project-branches', projectId],
-    queryFn: async () => {
+    queryFn: async (): Promise<Branch[]> => {
       const { data, error } = await supabase
         .from('project_branches')
         .select('*')
@@ -88,13 +109,9 @@ export const useVersionControl = (projectId: string) => {
     enabled: !!projectId && !!user,
   });
 
-  // Create snapshot mutation
-  const createSnapshotMutation = useMutation<any, Error, {
-    name: string;
-    description?: string;
-    projectData: any;
-  }>({
-    mutationFn: async (params) => {
+  // Create snapshot mutation with explicit types
+  const createSnapshotMutation = useMutation<any, Error, CreateSnapshotParams>({
+    mutationFn: async (params: CreateSnapshotParams) => {
       if (!user?.id) throw new Error('User not authenticated');
 
       // Get current elements and project state
@@ -105,7 +122,7 @@ export const useVersionControl = (projectId: string) => {
 
       if (elementsError) throw elementsError;
 
-      const snapshotData = {
+      const snapshotData: SnapshotData = {
         elements: elements || [],
         project_data: params.projectData,
         metadata: {
@@ -113,6 +130,13 @@ export const useVersionControl = (projectId: string) => {
           created_by: user.id,
           element_types: [...new Set(elements?.map(e => e.element_type) || [])],
         }
+      };
+
+      const snapshotMetadata: SnapshotMetadata = {
+        elements_count: elements?.length || 0,
+        file_size: JSON.stringify(snapshotData).length,
+        timestamp: new Date().toISOString(),
+        changes_summary: ['Snapshot created']
       };
 
       const { data, error } = await supabase
@@ -123,12 +147,7 @@ export const useVersionControl = (projectId: string) => {
           snapshot_name: params.name,
           description: params.description,
           snapshot_data: snapshotData as any,
-          metadata: {
-            elements_count: elements?.length || 0,
-            file_size: JSON.stringify(snapshotData).length,
-            timestamp: new Date().toISOString(),
-            changes_summary: ['Snapshot created']
-          } as any,
+          metadata: snapshotMetadata as any,
           branch_name: currentBranch,
           is_current: true
         })
@@ -151,14 +170,14 @@ export const useVersionControl = (projectId: string) => {
       queryClient.invalidateQueries({ queryKey: ['project-snapshots'] });
       toast.success('Snapshot created successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Failed to create snapshot: ${error.message}`);
     },
   });
 
-  // Restore snapshot mutation
+  // Restore snapshot mutation with explicit types
   const restoreSnapshotMutation = useMutation<any, Error, string>({
-    mutationFn: async (snapshotId) => {
+    mutationFn: async (snapshotId: string) => {
       if (!user?.id) throw new Error('User not authenticated');
 
       // Get snapshot data
@@ -212,18 +231,14 @@ export const useVersionControl = (projectId: string) => {
       queryClient.invalidateQueries({ queryKey: ['bim-elements'] });
       toast.success('Snapshot restored successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Failed to restore snapshot: ${error.message}`);
     },
   });
 
-  // Create branch mutation
-  const createBranchMutation = useMutation<any, Error, {
-    name: string;
-    description?: string;
-    fromSnapshotId?: string;
-  }>({
-    mutationFn: async (params) => {
+  // Create branch mutation with explicit types
+  const createBranchMutation = useMutation<any, Error, CreateBranchParams>({
+    mutationFn: async (params: CreateBranchParams) => {
       if (!user?.id) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
@@ -245,12 +260,12 @@ export const useVersionControl = (projectId: string) => {
       queryClient.invalidateQueries({ queryKey: ['project-branches'] });
       toast.success('Branch created successfully');
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(`Failed to create branch: ${error.message}`);
     },
   });
 
-  // Compare snapshots function
+  // Compare snapshots function with explicit typing
   const compareSnapshots = async (snapshot1Id: string, snapshot2Id: string): Promise<VersionDiff[]> => {
     const { data: snapshots, error } = await supabase
       .from('project_snapshots')
