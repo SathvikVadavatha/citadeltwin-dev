@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Edit, Trash2, Package, Database, Library } from 'lucide-react';
 import { useMaterials, CreateMaterialData } from '@/hooks/useMaterials';
 import { StandardMaterialsLibrary } from '@/components/materials/StandardMaterialsLibrary';
-import type { Database } from '@/integrations/supabase/types';
+import type { Database as DatabaseType } from '@/integrations/supabase/types';
 
 export const MaterialsManager = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -36,7 +36,7 @@ export const MaterialsManager = () => {
     deleteMaterial,
   } = useMaterials();
 
-  const materialTypes: Database['public']['Enums']['material_type'][] = [
+  const materialTypes: DatabaseType['public']['Enums']['material_type'][] = [
     'concrete', 'steel', 'wood', 'glass', 'aluminum',
     'brick', 'stone', 'composite', 'insulation', 'drywall'
   ];
@@ -166,7 +166,7 @@ export const MaterialsManager = () => {
                       <Label htmlFor="type">Material Type</Label>
                       <Select
                         value={formData.material_type}
-                        onValueChange={(value: Database['public']['Enums']['material_type']) =>
+                        onValueChange={(value: DatabaseType['public']['Enums']['material_type']) =>
                           setFormData(prev => ({ ...prev, material_type: value }))
                         }
                       >

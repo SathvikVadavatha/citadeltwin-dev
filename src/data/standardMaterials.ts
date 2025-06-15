@@ -66,6 +66,7 @@ export const STANDARD_CONCRETE_MATERIALS: Omit<ComprehensiveMaterial, 'id' | 'cr
     commonUses: ['Slabs', 'Footings', 'Walls', 'Beams'],
     structuralProperties: {
       elasticModulus: { name: 'Elastic Modulus', value: 26.7, unit: 'GPa', source: 'ACI 318' },
+      shearModulus: { name: 'Shear Modulus', value: 11.1, unit: 'GPa', source: 'ACI 318' },
       poissonRatio: { name: 'Poisson Ratio', value: 0.2, unit: '', source: 'ACI 318' },
       density: { name: 'Density', value: 2400, unit: 'kg/m³', source: 'ACI 318' },
       compressiveStrength: { name: 'Compressive Strength', value: 27.6, unit: 'MPa', source: 'ACI 318' },
@@ -95,6 +96,7 @@ export const STANDARD_CONCRETE_MATERIALS: Omit<ComprehensiveMaterial, 'id' | 'cr
     commonUses: ['High-rise columns', 'Prestressed beams', 'Special structures'],
     structuralProperties: {
       elasticModulus: { name: 'Elastic Modulus', value: 37.8, unit: 'GPa', source: 'ACI 318' },
+      shearModulus: { name: 'Shear Modulus', value: 15.8, unit: 'GPa', source: 'ACI 318' },
       poissonRatio: { name: 'Poisson Ratio', value: 0.2, unit: '', source: 'ACI 318' },
       density: { name: 'Density', value: 2400, unit: 'kg/m³', source: 'ACI 318' },
       compressiveStrength: { name: 'Compressive Strength', value: 55.2, unit: 'MPa', source: 'ACI 318' },

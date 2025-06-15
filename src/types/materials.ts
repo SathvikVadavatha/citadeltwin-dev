@@ -10,7 +10,7 @@ export interface MaterialProperty {
 export interface StructuralProperties {
   // Mechanical Properties
   elasticModulus: MaterialProperty; // E (GPa)
-  shearModulus: MaterialProperty; // G (GPa)
+  shearModulus?: MaterialProperty; // G (GPa) - optional as it can be calculated
   poissonRatio: MaterialProperty; // ν (dimensionless)
   density: MaterialProperty; // ρ (kg/m³)
   
