@@ -9,7 +9,7 @@ interface FEAResultsOverlayProps {
   results: {
     stress?: { values: number[]; max: number; min: number; unit: string };
     displacement?: { values: number[]; max: number; min: number; unit: string };
-    safety_factor?: { values: number[]; max: number; min: number };
+    safety_factor?: { values: number[]; max: number; min: number; unit?: string };
   };
   selectedElementIndex?: number;
   analysisType: string;
