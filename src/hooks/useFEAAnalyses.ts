@@ -1,235 +1,87 @@
-import { useState, useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/providers/AuthProvider';
-import { toast } from 'sonner';
+
+import { useEffect } from 'react';
 import { useFEAAnalysisCore } from './fea/useFEAAnalysisCore';
 import { useFEALoads } from './fea/useFEALoads';
 import { useFEABoundaryConditions } from './fea/useFEABoundaryConditions';
 import { useFEAResults } from './fea/useFEAResults';
 import { useFEAExecution } from './fea/useFEAExecution';
+import { useAuth } from '@/providers/AuthProvider';
 
-// Export types that are used by components
-export type CreateAnalysisData = {
+export interface CreateAnalysisData {
+  upload_id?: string;
   element_id?: string;
   name: string;
   description?: string;
-  analysis_type: 'static' | 'modal' | 'buckling' | 'dynamic' | 'thermal';
-  input_parameters: any;
-};
+  analysis_type: any;
+  input_parameters?: any;
+}
 
-export type CreateLoadData = {
+export interface CreateLoadData {
   analysis_id: string;
+  load_type: any;
   name: string;
-  load_type: 'point_load' | 'distributed_load' | 'moment' | 'pressure' | 'temperature' | 'gravity';
   magnitude: number;
   direction: { x: number; y: number; z: number };
   location: { x: number; y: number; z: number };
   properties?: any;
-};
+}
 
-export type CreateBoundaryConditionData = {
+export interface CreateBoundaryConditionData {
   analysis_id: string;
+  condition_type: any;
   name: string;
-  condition_type: 'fixed' | 'pinned' | 'roller' | 'free' | 'symmetry';
   location: any;
   constraints: { x: boolean; y: boolean; z: boolean; rx: boolean; ry: boolean; rz: boolean };
   properties?: any;
-};
+}
 
-// Unified FEA hook that combines all FEA functionality
 export const useFEAAnalyses = (elementId?: string) => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   
-  // Core analysis operations
-  const {
-    analyses,
-    loading: analysesLoading,
-    createAnalysis,
-    deleteAnalysis,
-    fetchAnalyses,
-    isCreating: isCreatingAnalysis,
-    isDeleting: isDeletingAnalysis,
-  } = useFEAAnalysisCore(elementId);
+  const analysisHooks = useFEAAnalysisCore(elementId);
+  const loadHooks = useFEALoads();
+  const bcHooks = useFEABoundaryConditions();
+  const resultHooks = useFEAResults();
+  const executionHooks = useFEAExecution();
 
-  // Load management
-  const {
-    loads,
-    fetchLoads,
-    createLoad,
-    isCreating: isCreatingLoad,
-  } = useFEALoads();
-
-  // Boundary conditions management
-  const {
-    boundaryConditions,
-    fetchBoundaryConditions,
-    createBoundaryCondition,
-    isCreating: isCreatingBoundaryCondition,
-  } = useFEABoundaryConditions();
-
-  // Results management
-  const {
-    results,
-    fetchResults,
-  } = useFEAResults();
-
-  // Execution management
-  const {
-    running,
-    runAnalysis,
-    isExecuting,
-  } = useFEAExecution();
-
-  // Workflow validation function
-  const validateAnalysisWorkflow = async (analysisId: string) => {
-    try {
-      // Fetch analysis details
-      const analysis = analyses.find(a => a.id === analysisId);
-      if (!analysis) {
-        throw new Error('Analysis not found');
-      }
-
-      // Validate loads exist
-      await fetchLoads(analysisId);
-      if (loads.length === 0) {
-        throw new Error('No loads defined for analysis');
-      }
-
-      // Validate boundary conditions exist
-      await fetchBoundaryConditions(analysisId);
-      if (boundaryConditions.length === 0) {
-        throw new Error('No boundary conditions defined for analysis');
-      }
-
-      return { valid: true, message: 'Analysis workflow validated successfully' };
-    } catch (error: any) {
-      return { valid: false, message: error.message };
-    }
+  const fetchAnalysisData = async (analysisId: string) => {
+    await Promise.all([
+      loadHooks.fetchLoads(analysisId),
+      bcHooks.fetchBoundaryConditions(analysisId),
+      resultHooks.fetchResults(analysisId),
+    ]);
   };
-
-  // Comprehensive analysis setup
-  const setupCompleteAnalysis = async (params: {
-    name: string;
-    analysisType: 'static' | 'modal' | 'buckling' | 'dynamic' | 'thermal';
-    elementId?: string;
-    loads: Array<{
-      name: string;
-      load_type: 'point_load' | 'distributed_load' | 'moment' | 'pressure' | 'temperature' | 'gravity';
-      magnitude: number;
-      direction: { x: number; y: number; z: number };
-      location: { x: number; y: number; z: number };
-      properties?: any;
-    }>;
-    boundaryConditions: Array<{
-      name: string;
-      condition_type: 'fixed' | 'pinned' | 'roller' | 'free' | 'symmetry';
-      location: any;
-      constraints: { x: boolean; y: boolean; z: boolean; rx: boolean; ry: boolean; rz: boolean };
-      properties?: any;
-    }>;
-  }) => {
-    try {
-      // Create analysis
-      const analysis = await createAnalysis({
-        name: params.name,
-        analysis_type: params.analysisType,
-        element_id: params.elementId,
-        input_parameters: {
-          setupMethod: 'complete',
-          timestamp: new Date().toISOString()
-        }
-      });
-
-      if (!analysis) {
-        throw new Error('Failed to create analysis');
-      }
-
-      // Add loads
-      for (const load of params.loads) {
-        await createLoad({
-          analysis_id: analysis.id,
-          ...load
-        });
-      }
-
-      // Add boundary conditions
-      for (const bc of params.boundaryConditions) {
-        await createBoundaryCondition({
-          analysis_id: analysis.id,
-          ...bc
-        });
-      }
-
-      // Validate workflow
-      const validation = await validateAnalysisWorkflow(analysis.id);
-      if (!validation.valid) {
-        throw new Error(`Workflow validation failed: ${validation.message}`);
-      }
-
-      toast.success('Complete FEA analysis setup successfully');
-      return analysis;
-    } catch (error: any) {
-      console.error('Error setting up complete analysis:', error);
-      toast.error(`Failed to setup analysis: ${error.message}`);
-      return null;
-    }
-  };
-
-  // Performance monitoring
-  const [performanceMetrics, setPerformanceMetrics] = useState({
-    lastFetchTime: 0,
-    analysisCount: 0,
-    averageSetupTime: 0
-  });
 
   useEffect(() => {
-    const startTime = Date.now();
-    fetchAnalyses().then(() => {
-      const fetchTime = Date.now() - startTime;
-      setPerformanceMetrics(prev => ({
-        ...prev,
-        lastFetchTime: fetchTime,
-        analysisCount: analyses.length
-      }));
-    });
-  }, []);
+    if (user) {
+      analysisHooks.fetchAnalyses();
+    }
+  }, [user, elementId]);
 
   return {
-    // Core data
-    analyses,
-    loads,
-    boundaryConditions,
-    results,
+    // Analysis core
+    analyses: analysisHooks.analyses,
+    loading: analysisHooks.loading,
+    createAnalysis: analysisHooks.createAnalysis,
+    deleteAnalysis: analysisHooks.deleteAnalysis,
+    refreshAnalyses: analysisHooks.fetchAnalyses,
     
-    // Loading states
-    analysesLoading,
-    isCreatingAnalysis,
-    isDeletingAnalysis,
-    isCreatingLoad,
-    isCreatingBoundaryCondition,
-    isExecuting,
-    running,
+    // Loads
+    loads: loadHooks.loads,
+    createLoad: loadHooks.createLoad,
     
-    // Core operations
-    createAnalysis,
-    deleteAnalysis,
-    createLoad,
-    createBoundaryCondition,
-    runAnalysis,
+    // Boundary conditions
+    boundaryConditions: bcHooks.boundaryConditions,
+    createBoundaryCondition: bcHooks.createBoundaryCondition,
     
-    // Fetch operations
-    fetchAnalyses,
-    fetchLoads,
-    fetchBoundaryConditions,
-    fetchResults,
+    // Results
+    results: resultHooks.results,
     
-    // Validation & workflow
-    validateAnalysisWorkflow,
-    setupCompleteAnalysis,
+    // Execution
+    running: executionHooks.running,
+    runAnalysis: executionHooks.runAnalysis,
     
-    // Performance metrics
-    performanceMetrics,
+    // Combined operations
+    fetchAnalysisData,
   };
 };
