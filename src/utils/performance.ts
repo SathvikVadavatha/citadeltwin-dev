@@ -1,6 +1,7 @@
 
 export class PerformanceMonitor {
   private static measurements: Map<string, number> = new Map();
+  private static memoryLogThrottle = 0;
 
   static startMeasurement(name: string): void {
     this.measurements.set(name, performance.now());
@@ -40,7 +41,14 @@ export class PerformanceMonitor {
   }
 
   static logMemoryUsage(): void {
-    if (process.env.NODE_ENV === 'development' && 'memory' in performance) {
+    // Throttle memory logging to reduce console spam
+    this.memoryLogThrottle++;
+    
+    // Only log every 10th call (reducing frequency by 90%)
+    if (process.env.NODE_ENV === 'development' && 
+        'memory' in performance && 
+        this.memoryLogThrottle % 10 === 0) {
+      
       const memory = (performance as any).memory;
       console.log('Memory Usage:', {
         used: `${(memory.usedJSHeapSize / 1024 / 1024).toFixed(2)} MB`,
@@ -48,6 +56,11 @@ export class PerformanceMonitor {
         limit: `${(memory.jsHeapSizeLimit / 1024 / 1024).toFixed(2)} MB`
       });
     }
+  }
+
+  // Reset throttle counter periodically to prevent overflow
+  static resetThrottle(): void {
+    this.memoryLogThrottle = 0;
   }
 }
 
@@ -63,3 +76,8 @@ export const usePerformanceMonitor = () => {
 
   return { measureAsync, measureSync };
 };
+
+// Reset throttle every 5 minutes to prevent counter overflow
+setInterval(() => {
+  PerformanceMonitor.resetThrottle();
+}, 300000);

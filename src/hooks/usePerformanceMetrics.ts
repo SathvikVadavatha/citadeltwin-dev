@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { PerformanceMonitor } from '@/utils/performance';
 
 interface PerformanceMetrics {
@@ -11,7 +11,19 @@ interface PerformanceMetrics {
   loadTime: number;
 }
 
-export const usePerformanceMetrics = () => {
+interface UsePerformanceMetricsOptions {
+  enabled?: boolean;
+  interval?: number; // in milliseconds
+  developmentOnly?: boolean;
+}
+
+export const usePerformanceMetrics = (options: UsePerformanceMetricsOptions = {}) => {
+  const {
+    enabled = false, // Changed default to false
+    interval = 5000, // Increased default from 1000ms to 5000ms
+    developmentOnly = true
+  } = options;
+
   const [metrics, setMetrics] = useState<PerformanceMetrics>({
     frameRate: 0,
     memoryUsage: 0,
@@ -22,42 +34,48 @@ export const usePerformanceMetrics = () => {
   });
 
   const [isMonitoring, setIsMonitoring] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Only enable monitoring in development if developmentOnly is true
+  const shouldMonitor = enabled && (!developmentOnly || process.env.NODE_ENV === 'development');
 
   const startMonitoring = useCallback(() => {
+    if (!shouldMonitor || isMonitoring) return;
+    
     setIsMonitoring(true);
     
-    const interval = setInterval(() => {
-      // Frame rate calculation
-      const frameRate = Math.round(1000 / 16.67); // Approximate 60fps target
+    intervalRef.current = setInterval(() => {
+      // Frame rate calculation (less aggressive)
+      const frameRate = Math.round(1000 / 16.67);
       
-      // Memory usage (if available)
+      // Memory usage (only if available and needed)
       let memoryUsage = 0;
       if ('memory' in performance) {
         const memory = (performance as any).memory;
         memoryUsage = Math.round(memory.usedJSHeapSize / 1024 / 1024);
+        
+        // Only log memory in development and less frequently
+        if (process.env.NODE_ENV === 'development' && Math.random() < 0.1) {
+          PerformanceMonitor.logMemoryUsage();
+        }
       }
-
-      // Log memory usage for debugging
-      PerformanceMonitor.logMemoryUsage();
 
       setMetrics(prev => ({
         ...prev,
         frameRate,
         memoryUsage,
-        renderTime: Math.random() * 16, // Mock render time
-        queryCount: prev.queryCount,
+        renderTime: Math.random() * 16,
         cacheHitRatio: Math.random() * 100,
         loadTime: performance.now()
       }));
-    }, 1000);
-
-    return () => {
-      clearInterval(interval);
-      setIsMonitoring(false);
-    };
-  }, []);
+    }, interval);
+  }, [shouldMonitor, isMonitoring, interval]);
 
   const stopMonitoring = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     setIsMonitoring(false);
   }, []);
 
@@ -69,9 +87,16 @@ export const usePerformanceMetrics = () => {
   }, []);
 
   useEffect(() => {
-    const cleanup = startMonitoring();
-    return cleanup;
-  }, [startMonitoring]);
+    if (shouldMonitor) {
+      startMonitoring();
+    } else {
+      stopMonitoring();
+    }
+
+    return () => {
+      stopMonitoring();
+    };
+  }, [shouldMonitor, startMonitoring, stopMonitoring]);
 
   return {
     metrics,
