@@ -13,6 +13,7 @@ import { Users } from './pages/Users';
 import { Compliance } from './pages/Compliance';
 import { FEAAnalysis } from './pages/FEAAnalysis';
 import { Analytics } from './pages/Analytics';
+import { ClientPortal } from './pages/ClientPortal';
 import { DocumentManagementDashboard } from '@/components/documents/DocumentManagementDashboard';
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
               <Route path="/compliance" element={<ProtectedRoute><Compliance /></ProtectedRoute>} />
               <Route path="/fea-analysis" element={<ProtectedRoute><FEAAnalysis /></ProtectedRoute>} />
               <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+              <Route path="/client-portal" element={<ProtectedRoute><ClientPortal /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
               <Route 

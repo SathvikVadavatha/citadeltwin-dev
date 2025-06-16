@@ -1,33 +1,13 @@
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Calendar, MapPin, Building, Factory, Home, Brain, Grid, List, MoreHorizontal, Clock } from 'lucide-react';
-import { format } from 'date-fns';
+import { Card, CardContent } from '@/components/ui/card';
+import { Plus, Brain } from 'lucide-react';
 import { useProjects } from '@/hooks/useProjects';
 import { CreateProjectModal } from './CreateProjectModal';
-
-const getStatusColor = (status?: string) => {
-  switch (status) {
-    case "active": return "bg-blue-500/10 text-blue-400 border-blue-500/20";
-    case "completed": return "bg-green-500/10 text-green-400 border-green-500/20";
-    case "archived": return "bg-gray-500/10 text-gray-400 border-gray-500/20";
-    default: return "bg-gray-500/10 text-gray-400 border-gray-500/20";
-  }
-};
-
-const getProjectTypeColor = (type?: string) => {
-  switch (type) {
-    case "residential": return "bg-green-500/10 text-green-400 border-green-500/20";
-    case "commercial": return "bg-blue-500/10 text-blue-400 border-blue-500/20";
-    case "industrial": return "bg-purple-500/10 text-purple-400 border-purple-500/20";
-    case "infrastructure": return "bg-orange-500/10 text-orange-400 border-orange-500/20";
-    default: return "bg-gray-500/10 text-gray-400 border-gray-500/20";
-  }
-};
+import { ProjectFilters } from './ProjectFilters';
+import { ProjectCard } from './ProjectCard';
+import { ProjectListItem } from './ProjectListItem';
 
 interface ProjectsPageProps {
   onNavigate: (view: string, projectId?: string) => void;
@@ -38,7 +18,6 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterType, setFilterType] = useState("all");
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   
   const { projects, loading } = useProjects();
@@ -53,7 +32,6 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
   });
 
   const handleProjectCreated = (project: any) => {
-    // Navigate to the new project
     onNavigate('project-details', project.id);
   };
 
@@ -92,64 +70,16 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
       </div>
 
       {/* Filters and Search */}
-      <Card className="glass-effect">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="flex flex-1 gap-4 items-center">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search projects..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 bg-background border-border"
-                />
-              </div>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-40 bg-background border-border">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border">
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="archived">Archived</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-40 bg-background border-border">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border">
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="residential">Residential</SelectItem>
-                  <SelectItem value="commercial">Commercial</SelectItem>
-                  <SelectItem value="industrial">Industrial</SelectItem>
-                  <SelectItem value="infrastructure">Infrastructure</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant={viewMode === "grid" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("grid")}
-                className={viewMode === "grid" ? "bg-primary" : "border-border hover:bg-secondary/20"}
-              >
-                <Grid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-                className={viewMode === "list" ? "bg-primary" : "border-border hover:bg-secondary/20"}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <ProjectFilters
+        searchTerm={searchTerm}
+        filterStatus={filterStatus}
+        filterType={filterType}
+        viewMode={viewMode}
+        onSearchChange={setSearchTerm}
+        onStatusChange={setFilterStatus}
+        onTypeChange={setFilterType}
+        onViewModeChange={setViewMode}
+      />
 
       {/* Projects Grid/List */}
       {filteredProjects.length === 0 ? (
@@ -160,7 +90,7 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
                 <div>
                   <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
                   <p className="mb-4">Create your first project to get started</p>
-                  <Button onClick={() => setShowCreateModal(true)}>
+                  <Button onClick={() => setIsCreateModalOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Create Project
                   </Button>
@@ -177,45 +107,11 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProjects.map((project) => (
-            <Card 
-              key={project.id} 
-              className="glass-effect hover-lift cursor-pointer"
+            <ProjectCard
+              key={project.id}
+              project={project}
               onClick={() => onNavigate('project-details', project.id)}
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-lg text-foreground">{project.name}</CardTitle>
-                    <CardDescription className="text-sm">
-                      {project.description || "No description provided"}
-                    </CardDescription>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Badge className={getStatusColor(project.status)}>
-                    {project.status || 'active'}
-                  </Badge>
-                  <Badge className={getProjectTypeColor(project.project_type)}>
-                    {project.project_type || 'general'}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <div className="flex items-center">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Created {format(new Date(project.created_at), "MMM d, yyyy")}
-                  </div>
-                  <div className="flex items-center">
-                    <Clock className="h-4 w-4 mr-2" />
-                    Updated {format(new Date(project.updated_at), "MMM d, yyyy")}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            />
           ))}
         </div>
       ) : (
@@ -223,41 +119,11 @@ export const ProjectsPage = ({ onNavigate }: ProjectsPageProps) => {
           <CardContent className="p-0">
             <div className="divide-y divide-border">
               {filteredProjects.map((project) => (
-                <div 
-                  key={project.id} 
-                  className="p-6 hover:bg-secondary/10 cursor-pointer transition-colors"
+                <ProjectListItem
+                  key={project.id}
+                  project={project}
                   onClick={() => onNavigate('project-details', project.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 space-y-3">
-                      <div className="flex items-center space-x-4">
-                        <h3 className="text-lg font-semibold text-foreground">{project.name}</h3>
-                        <Badge className={getStatusColor(project.status)}>
-                          {project.status || 'active'}
-                        </Badge>
-                        <Badge className={getProjectTypeColor(project.project_type)}>
-                          {project.project_type || 'general'}
-                        </Badge>
-                      </div>
-                      <p className="text-muted-foreground">{project.description || "No description provided"}</p>
-                      <div className="flex items-center space-x-6 text-sm text-muted-foreground">
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          Created {format(new Date(project.created_at), "MMM d, yyyy")}
-                        </div>
-                        <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-1" />
-                          Updated {format(new Date(project.updated_at), "MMM d, yyyy")}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                />
               ))}
             </div>
           </CardContent>

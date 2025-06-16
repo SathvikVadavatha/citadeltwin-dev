@@ -1,26 +1,25 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { 
-  ArrowLeft, 
-  Settings, 
-  Share, 
-  Download,
   FolderOpen,
-  History,
   GitBranch,
   Users,
   Calculator,
-  FileText
+  FileText,
+  History
 } from 'lucide-react';
-import { format } from 'date-fns';
 import { useProjects } from '@/hooks/useProjects';
 import { useBIMElements } from '@/hooks/useBIMElements';
 import { BIMElementsManager } from '@/components/bim/BIMElementsManager';
 import { VersionControlPanel } from '@/components/version-control/VersionControlPanel';
+import { ProjectHeader } from './ProjectHeader';
+import { ProjectStats } from './ProjectStats';
+import { ProjectCollaborationTab } from './ProjectCollaborationTab';
+import { ProjectAnalysisTab } from './ProjectAnalysisTab';
+import { ProjectDocumentsTab } from './ProjectDocumentsTab';
+import { ProjectHistoryTab } from './ProjectHistoryTab';
 
 interface ProjectDetailsViewProps {
   projectId: string;
@@ -46,64 +45,8 @@ export const ProjectDetailsView = ({ projectId, onNavigateBack }: ProjectDetails
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" onClick={onNavigateBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Projects
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">{project.name}</h1>
-            <p className="text-muted-foreground">
-              {project.description || 'No description provided'}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Share className="h-4 w-4 mr-2" />
-            Share
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Button variant="outline" size="sm">
-            <Settings className="h-4 w-4 mr-2" />
-            Settings
-          </Button>
-        </div>
-      </div>
-
-      {/* Project Info */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">{elements.length}</div>
-              <div className="text-sm text-muted-foreground">BIM Elements</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">
-                {format(new Date(project.created_at), 'MMM d')}
-              </div>
-              <div className="text-sm text-muted-foreground">Created</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">
-                {format(new Date(project.updated_at), 'MMM d')}
-              </div>
-              <div className="text-sm text-muted-foreground">Last Updated</div>
-            </div>
-            <div className="text-center">
-              <Badge variant="secondary" className="w-full justify-center">
-                Active
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <ProjectHeader project={project} onNavigateBack={onNavigateBack} />
+      <ProjectStats project={project} elementsCount={elements.length} />
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="elements" className="w-full">
@@ -143,59 +86,19 @@ export const ProjectDetailsView = ({ projectId, onNavigateBack }: ProjectDetails
         </TabsContent>
 
         <TabsContent value="collaboration" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Project Collaboration</CardTitle>
-              <CardDescription>
-                Manage team access and real-time collaboration
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Collaboration features coming soon...</p>
-            </CardContent>
-          </Card>
+          <ProjectCollaborationTab projectId={projectId} />
         </TabsContent>
 
         <TabsContent value="analysis" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Engineering Analysis</CardTitle>
-              <CardDescription>
-                Run structural analysis and load calculations
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Analysis tools coming soon...</p>
-            </CardContent>
-          </Card>
+          <ProjectAnalysisTab projectId={projectId} />
         </TabsContent>
 
         <TabsContent value="documents" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Project Documents</CardTitle>
-              <CardDescription>
-                Generate and manage project documentation
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Document management coming soon...</p>
-            </CardContent>
-          </Card>
+          <ProjectDocumentsTab projectId={projectId} />
         </TabsContent>
 
         <TabsContent value="history" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Project History</CardTitle>
-              <CardDescription>
-                View detailed audit trail and change history
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">History tracking coming soon...</p>
-            </CardContent>
-          </Card>
+          <ProjectHistoryTab projectId={projectId} />
         </TabsContent>
       </Tabs>
     </div>
