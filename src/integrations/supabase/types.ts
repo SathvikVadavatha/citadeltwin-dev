@@ -42,6 +42,90 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: unknown | null
+          resource_id: string | null
+          resource_type: string
+          risk_score: number | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          resource_id?: string | null
+          resource_type: string
+          risk_score?: number | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          resource_id?: string | null
+          resource_type?: string
+          risk_score?: number | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      backup_jobs: {
+        Row: {
+          backup_location: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          file_size: number | null
+          id: string
+          job_type: string
+          metadata: Json | null
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          backup_location?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          file_size?: number | null
+          id?: string
+          job_type: string
+          metadata?: Json | null
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          backup_location?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          file_size?: number | null
+          id?: string
+          job_type?: string
+          metadata?: Json | null
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       bim_elements: {
         Row: {
           created_at: string
@@ -427,6 +511,45 @@ export type Database = {
           },
         ]
       }
+      compliance_reports: {
+        Row: {
+          created_at: string
+          file_path: string | null
+          findings: Json | null
+          generated_by: string | null
+          id: string
+          period_end: string
+          period_start: string
+          recommendations: Json | null
+          report_type: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          file_path?: string | null
+          findings?: Json | null
+          generated_by?: string | null
+          id?: string
+          period_end: string
+          period_start: string
+          recommendations?: Json | null
+          report_type: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          file_path?: string | null
+          findings?: Json | null
+          generated_by?: string | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          recommendations?: Json | null
+          report_type?: string
+          status?: string
+        }
+        Relationships: []
+      }
       compliance_rules: {
         Row: {
           code_section: string
@@ -770,6 +893,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      encryption_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          key_hash: string
+          key_name: string
+          key_purpose: string
+          key_type: string
+          last_rotated: string | null
+          next_rotation: string | null
+          rotation_schedule: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash: string
+          key_name: string
+          key_purpose: string
+          key_type: string
+          last_rotated?: string | null
+          next_rotation?: string | null
+          rotation_schedule?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_hash?: string
+          key_name?: string
+          key_purpose?: string
+          key_type?: string
+          last_rotated?: string | null
+          next_rotation?: string | null
+          rotation_schedule?: string | null
+        }
+        Relationships: []
       }
       fea_analyses: {
         Row: {
@@ -1158,6 +1323,36 @@ export type Database = {
           state?: string
           status?: string
           update_frequency?: string | null
+        }
+        Relationships: []
+      }
+      ip_whitelist: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          description: string | null
+          id: string
+          ip_address: unknown
+          ip_range: unknown | null
+          is_active: boolean | null
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          ip_address: unknown
+          ip_range?: unknown | null
+          is_active?: boolean | null
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          ip_address?: unknown
+          ip_range?: unknown | null
+          is_active?: boolean | null
         }
         Relationships: []
       }
@@ -1679,6 +1874,48 @@ export type Database = {
         }
         Relationships: []
       }
+      security_events: {
+        Row: {
+          created_at: string
+          description: string
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          resolved: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       spatial_analysis_results: {
         Row: {
           analysis_type: string
@@ -1747,6 +1984,45 @@ export type Database = {
           },
         ]
       }
+      user_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          ip_address: unknown
+          is_active: boolean | null
+          last_activity: string | null
+          location: Json | null
+          session_token: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          ip_address: unknown
+          is_active?: boolean | null
+          last_activity?: string | null
+          location?: Json | null
+          session_token: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_address?: unknown
+          is_active?: boolean | null
+          last_activity?: string | null
+          location?: Json | null
+          session_token?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1759,6 +2035,28 @@ export type Database = {
       cleanup_old_presence: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      log_audit_event: {
+        Args: {
+          p_action: string
+          p_resource_type: string
+          p_resource_id?: string
+          p_details?: Json
+        }
+        Returns: string
+      }
+      log_security_event: {
+        Args: {
+          p_event_type: string
+          p_severity: string
+          p_description: string
+          p_metadata?: Json
+        }
+        Returns: string
       }
     }
     Enums: {
