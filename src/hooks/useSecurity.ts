@@ -11,12 +11,21 @@ import type {
   UserSession, 
   EncryptionKey, 
   IPWhitelist,
-  SecuritySettings
+  SecuritySettings,
+  ComplianceFinding,
+  ComplianceRecommendation
 } from '@/types/security';
 
 export const useSecurity = () => {
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
+
+  // Helper function to transform compliance report data
+  const transformComplianceReport = (data: any): ComplianceReport => ({
+    ...data,
+    findings: (data.findings as any[])?.map((finding: any) => finding as ComplianceFinding) || [],
+    recommendations: (data.recommendations as any[])?.map((rec: any) => rec as ComplianceRecommendation) || []
+  });
 
   // Audit Logs
   const { data: auditLogs, isLoading: auditLogsLoading } = useQuery({
@@ -74,7 +83,7 @@ export const useSecurity = () => {
         .limit(10);
       
       if (error) throw error;
-      return data as ComplianceReport[];
+      return data?.map(transformComplianceReport) || [];
     }
   });
 
@@ -214,7 +223,7 @@ export const useSecurity = () => {
         .single();
       
       if (error) throw error;
-      return data;
+      return transformComplianceReport(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['compliance-reports'] });
