@@ -11,6 +11,7 @@ import { Settings } from './pages/Settings';
 import { Users } from './pages/Users';
 import { Compliance } from './pages/Compliance';
 import { FEAAnalysis } from './pages/FEAAnalysis';
+import { Analytics } from './pages/Analytics';
 import { DocumentManagementDashboard } from '@/components/documents/DocumentManagementDashboard';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
               <Route path="/blueprints/view" element={<ProtectedRoute><ViewBlueprints /></ProtectedRoute>} />
               <Route path="/compliance" element={<ProtectedRoute><Compliance /></ProtectedRoute>} />
               <Route path="/fea-analysis" element={<ProtectedRoute><FEAAnalysis /></ProtectedRoute>} />
+              <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
               <Route 
