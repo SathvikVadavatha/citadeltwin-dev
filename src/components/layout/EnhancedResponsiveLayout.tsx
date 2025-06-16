@@ -49,13 +49,11 @@ export const EnhancedResponsiveLayout: React.FC<EnhancedResponsiveLayoutProps> =
           />
           
           <main className={cn(
-            "flex-1 overflow-auto",
+            "flex-1 overflow-auto p-4",
             "pb-safe-bottom pt-safe-top",
             orientation === 'landscape' ? "pb-16" : "pb-20"
           )}>
-            <div className="p-4">
-              {children}
-            </div>
+            {children}
           </main>
 
           <MobileBottomNav />
@@ -81,10 +79,12 @@ export const EnhancedResponsiveLayout: React.FC<EnhancedResponsiveLayoutProps> =
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
-        <main className="flex-1 p-6">
-          {children}
+        <main className="flex-1 overflow-auto">
+          <div className="p-6">
+            {children}
+          </div>
         </main>
       </div>
     </SidebarProvider>

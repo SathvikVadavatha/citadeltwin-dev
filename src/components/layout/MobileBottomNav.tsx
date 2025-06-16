@@ -1,21 +1,21 @@
 
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
-  Home, 
+  LayoutDashboard, 
   Upload, 
-  Eye, 
-  BarChart3, 
-  FileText 
+  FileText, 
+  Shield, 
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const navItems = [
-  { to: '/dashboard', icon: Home, label: 'Home' },
-  { to: '/blueprints/upload', icon: Upload, label: 'Upload' },
-  { to: '/blueprints/view', icon: Eye, label: 'View' },
-  { to: '/analytics', icon: BarChart3, label: 'Analytics' },
-  { to: '/documents', icon: FileText, label: 'Docs' },
+const navigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Upload', href: '/blueprints/upload', icon: Upload },
+  { name: 'Blueprints', href: '/blueprints/view', icon: FileText },
+  { name: 'Compliance', href: '/compliance', icon: Shield },
+  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
 ];
 
 export const MobileBottomNav: React.FC = () => {
@@ -23,24 +23,25 @@ export const MobileBottomNav: React.FC = () => {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-40">
-      <div className="flex">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.to;
+      <div className="flex justify-around items-center h-16 px-2">
+        {navigation.map((item) => {
+          const isActive = location.pathname === item.href;
+          const Icon = item.icon;
           
           return (
-            <NavLink
-              key={item.to}
-              to={item.to}
+            <Link
+              key={item.name}
+              to={item.href}
               className={cn(
-                "flex-1 flex flex-col items-center justify-center py-2 px-1 min-h-[60px] transition-colors",
-                isActive 
-                  ? "text-primary bg-primary/10" 
-                  : "text-muted-foreground hover:text-foreground"
+                'flex flex-col items-center justify-center min-w-0 flex-1 py-2 px-1 text-xs transition-colors',
+                isActive
+                  ? 'text-primary'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <item.icon className="h-5 w-5 mb-1" />
-              <span className="text-xs font-medium">{item.label}</span>
-            </NavLink>
+              <Icon className={cn('h-5 w-5 mb-1', isActive && 'text-primary')} />
+              <span className="truncate">{item.name}</span>
+            </Link>
           );
         })}
       </div>

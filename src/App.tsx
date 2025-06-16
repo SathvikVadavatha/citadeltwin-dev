@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './providers/AuthProvider';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -18,6 +18,7 @@ import { Testing } from './pages/Testing';
 import { DocumentManagementDashboard } from '@/components/documents/DocumentManagementDashboard';
 import Security from './pages/Security';
 import WorkflowAutomation from './pages/WorkflowAutomation';
+import { AuthPage } from './pages/AuthPage';
 
 function App() {
   const queryClient = new QueryClient();
@@ -27,13 +28,13 @@ function App() {
       <AuthProvider>
         <Router>
           <Routes>
-            <Route path="/" element={
-              <ProtectedRoute>
-                <EnhancedResponsiveLayout>
-                  <Dashboard />
-                </EnhancedResponsiveLayout>
-              </ProtectedRoute>
-            } />
+            {/* Auth routes */}
+            <Route path="/auth/login" element={<AuthPage />} />
+            
+            {/* Redirect root to dashboard */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            
+            {/* Protected routes */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <EnhancedResponsiveLayout>
@@ -41,6 +42,7 @@ function App() {
                 </EnhancedResponsiveLayout>
               </ProtectedRoute>
             } />
+            
             <Route path="/blueprints/upload" element={
               <ProtectedRoute>
                 <EnhancedResponsiveLayout>
@@ -48,6 +50,7 @@ function App() {
                 </EnhancedResponsiveLayout>
               </ProtectedRoute>
             } />
+            
             <Route path="/blueprints/view" element={
               <ProtectedRoute>
                 <EnhancedResponsiveLayout>
@@ -55,6 +58,7 @@ function App() {
                 </EnhancedResponsiveLayout>
               </ProtectedRoute>
             } />
+            
             <Route path="/compliance" element={
               <ProtectedRoute>
                 <EnhancedResponsiveLayout>
@@ -62,6 +66,7 @@ function App() {
                 </EnhancedResponsiveLayout>
               </ProtectedRoute>
             } />
+            
             <Route path="/fea-analysis" element={
               <ProtectedRoute>
                 <EnhancedResponsiveLayout>
@@ -69,6 +74,7 @@ function App() {
                 </EnhancedResponsiveLayout>
               </ProtectedRoute>
             } />
+            
             <Route path="/analytics" element={
               <ProtectedRoute>
                 <EnhancedResponsiveLayout>
@@ -76,6 +82,7 @@ function App() {
                 </EnhancedResponsiveLayout>
               </ProtectedRoute>
             } />
+            
             <Route path="/client-portal" element={
               <ProtectedRoute>
                 <EnhancedResponsiveLayout>
@@ -83,6 +90,7 @@ function App() {
                 </EnhancedResponsiveLayout>
               </ProtectedRoute>
             } />
+            
             <Route path="/testing" element={
               <ProtectedRoute>
                 <EnhancedResponsiveLayout>
@@ -90,6 +98,7 @@ function App() {
                 </EnhancedResponsiveLayout>
               </ProtectedRoute>
             } />
+            
             <Route path="/settings" element={
               <ProtectedRoute>
                 <EnhancedResponsiveLayout>
@@ -97,6 +106,7 @@ function App() {
                 </EnhancedResponsiveLayout>
               </ProtectedRoute>
             } />
+            
             <Route path="/users" element={
               <ProtectedRoute>
                 <EnhancedResponsiveLayout>
@@ -104,6 +114,7 @@ function App() {
                 </EnhancedResponsiveLayout>
               </ProtectedRoute>
             } />
+            
             <Route path="/security" element={
               <ProtectedRoute>
                 <EnhancedResponsiveLayout>
@@ -111,6 +122,7 @@ function App() {
                 </EnhancedResponsiveLayout>
               </ProtectedRoute>
             } />
+            
             <Route path="/workflow-automation" element={
               <ProtectedRoute>
                 <EnhancedResponsiveLayout>
@@ -118,6 +130,7 @@ function App() {
                 </EnhancedResponsiveLayout>
               </ProtectedRoute>
             } />
+            
             <Route path="/documents" element={
               <ProtectedRoute>
                 <EnhancedResponsiveLayout>
