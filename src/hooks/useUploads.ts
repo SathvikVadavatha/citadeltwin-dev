@@ -1,30 +1,135 @@
-
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useCallback } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
+import { supabase } from '@/integrations/supabase/client';
+import { useOptimizedQuery } from '@/hooks/useOptimizedQuery';
 
-export const useUploads = () => {
-  const { user } = useAuth();
+export const useUploads = (userId?: string) => {
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const { data: uploads, isLoading } = useQuery({
-    queryKey: ['uploads', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
+  const uploadBlueprint = useCallback(async (file: File, projectId: string) => {
+    if (!userId) {
+      setUploadError('User ID is required to upload.');
+      return false;
+    }
 
-      const { data, error } = await supabase
+    setUploading(true);
+    setUploadError(null);
+
+    const fileName = `${userId}-${Date.now()}-${file.name}`;
+    const filePath = `blueprints/${fileName}`;
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('blueprints')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('File upload error:', error);
+        setUploadError(`File upload failed: ${error.message}`);
+        return false;
+      }
+
+      const imageUrl = `https://fjybggorcizszcpedjbb.supabase.co/storage/v1/object/public/${data.path}`;
+
+      // Save upload details to the database
+      const { error: dbError } = await supabase
         .from('blueprint_uploads')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .insert({
+          user_id: userId,
+          project_id: projectId,
+          file_name: file.name,
+          file_path: filePath,
+          image_url: imageUrl,
+          upload_date: new Date(),
+        });
 
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
+      if (dbError) {
+        console.error('Database insert error:', dbError);
+        setUploadError(`Database save failed: ${dbError.message}`);
+        return false;
+      }
+
+      console.log('Blueprint uploaded successfully:', data);
+      return true;
+
+    } catch (err) {
+      console.error('Upload error:', err);
+      setUploadError(`Upload failed: ${err}`);
+      return false;
+    } finally {
+      setUploading(false);
+    }
+  }, [userId, supabase]);
+
+  const { data: uploads, isLoading, error, refetch } = useOptimizedQuery(
+    `uploads-${userId}`,
+    {
+      queryFn: async () => {
+        if (!userId) return [];
+        
+        const { data, error } = await supabase
+          .from('blueprint_uploads')
+          .select(`
+            *,
+            detection_results (
+              id,
+              detected_objects,
+              processing_time_ms,
+              model_used,
+              confidence_threshold
+            ),
+            generated_3d_models (
+              id,
+              model_name,
+              model_file_path,
+              generation_status
+            )
+          `)
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+      },
+      cacheTime: 300000, // 5 minutes cache
+      enabled: !!userId
+    }
+  );
+
+  const deleteUpload = useCallback(async (uploadId: string) => {
+    try {
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('blueprint_uploads')
+        .delete()
+        .eq('id', uploadId);
+
+      if (dbError) {
+        console.error('Database delete error:', dbError);
+        return false;
+      }
+
+      // Refresh uploads
+      refetch();
+      return true;
+    } catch (err) {
+      console.error('Delete error:', err);
+      return false;
+    }
+  }, [supabase, refetch]);
 
   return {
     uploads: uploads || [],
     isLoading,
+    error,
+    refetch,
+    uploadBlueprint,
+    uploading,
+    uploadError,
+    deleteUpload
   };
 };
