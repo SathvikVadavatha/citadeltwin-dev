@@ -1,4 +1,9 @@
 
+// Import the specialized hooks
+import { useComplianceRules } from './compliance/useComplianceRules';
+import { useComplianceViolations } from './compliance/useComplianceViolations';
+import { useComplianceChecks } from './compliance/useComplianceChecks';
+
 // Re-export specialized hooks for backward compatibility
 export { useComplianceRules } from './compliance/useComplianceRules';
 export { useComplianceViolations } from './compliance/useComplianceViolations';
