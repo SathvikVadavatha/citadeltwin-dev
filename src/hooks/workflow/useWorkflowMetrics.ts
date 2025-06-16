@@ -47,6 +47,6 @@ export const useWorkflowMetrics = () => {
   return {
     metrics: metrics.data,
     isLoading: templatesQuery.isLoading || workflowsQuery.isLoading || buildingTemplatesQuery.isLoading || metrics.isLoading,
-    error: templatesQuery.error || workflowsQuery.error || buildingTemplatesQuery.error || metrics.error,
+    error: metrics.error,
   };
 };
