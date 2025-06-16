@@ -49,6 +49,10 @@ const COLORS = {
   compliant: '#22c55e'
 };
 
+const getBarColor = (severity: 'critical' | 'major' | 'minor') => {
+  return COLORS[severity] || COLORS.minor;
+};
+
 export const ComplianceStatusChart: React.FC<ComplianceStatusChartProps> = ({ data, timeRange }) => {
   if (!data) {
     return (
@@ -150,7 +154,7 @@ export const ComplianceStatusChart: React.FC<ComplianceStatusChartProps> = ({ da
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar 
                   dataKey="count" 
-                  fill={(entry: any) => COLORS[entry.severity] || COLORS.minor}
+                  fill="#8884d8"
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>
