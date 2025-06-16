@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { MapPin, Building, Shield, Search, AlertTriangle, Snowflake, Wind, Waves } from 'lucide-react';
 import { useJurisdictions } from '@/hooks/useJurisdictions';
 
@@ -107,225 +108,241 @@ export const JurisdictionSelector: React.FC<JurisdictionSelectorProps> = ({
   };
 
   return (
-    <Card className="cyber-tool-palette">
-      <CardHeader>
-        <CardTitle className="text-cyan-400">Comprehensive Jurisdiction Selection</CardTitle>
-        <CardDescription>
-          Select jurisdiction for detailed compliance checking with state-specific requirements
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Enhanced Priority Jurisdictions with Special Requirements */}
-        <div>
-          <h4 className="font-semibold text-cyan-400 mb-3">Priority Jurisdictions - Enhanced Coverage</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {[
-              { name: 'Ohio', state: 'OH', type: 'state', specialties: ['Snow Load', 'Frost Depth', 'Energy Code'] },
-              { name: 'Florida', state: 'FL', type: 'state', specialties: ['Hurricane', 'Flood', 'Coastal'] },
-              { name: 'New York City', state: 'NY', type: 'city', specialties: ['Fire Safety', 'Egress', 'High-Rise'] },
-              { name: 'California', state: 'CA', type: 'state', specialties: ['Seismic', 'Title 24', 'Accessibility'] },
-              { name: 'Texas', state: 'TX', type: 'state', specialties: ['Wind Load', 'Flood', 'Energy'] }
-            ].map((priority) => (
-              <Card
-                key={`${priority.state}-${priority.name}`}
-                className={`cursor-pointer transition-colors border border-cyan-700 hover:bg-cyan-900/20 ${
-                  selectedJurisdiction === `${priority.state}-${priority.type}` ? 'bg-cyan-900/30' : ''
-                }`}
-                onClick={() => onJurisdictionSelect(`${priority.state}-${priority.type}`)}
-              >
-                <CardContent className="p-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-2">
-                      {getJurisdictionIcon(priority.type)}
-                      {getClimateIcon(priority.state)}
-                      <div>
-                        <p className="font-medium text-sm">{priority.name}</p>
-                        <Badge variant="outline" className={getJurisdictionColor(priority.type)}>
-                          {priority.type}
-                        </Badge>
-                      </div>
-                    </div>
-                    {(priority.state === 'OH' || priority.state === 'FL') && (
-                      <AlertTriangle className="w-4 h-4 text-green-400" title="Comprehensive Coverage" />
-                    )}
-                  </div>
-                  <div className="mt-2">
-                    <p className="text-xs text-gray-400 mb-1">Special Requirements:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {priority.specialties.map((spec, idx) => (
-                        <Badge key={idx} variant="outline" className="text-xs border-gray-600 text-gray-300">
-                          {spec}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Location Search */}
-        <div>
-          <h4 className="font-semibold text-cyan-400 mb-3">Search by Location</h4>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div>
-              <label className="text-sm text-gray-400 mb-1 block">State</label>
-              <Input
-                placeholder="e.g., OH, FL, CA"
-                value={searchState}
-                onChange={(e) => setSearchState(e.target.value)}
-                className="bg-gray-900 border-gray-700"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-gray-400 mb-1 block">County (Optional)</label>
-              <Input
-                placeholder="e.g., Cuyahoga, Miami-Dade"
-                value={searchCounty}
-                onChange={(e) => setSearchCounty(e.target.value)}
-                className="bg-gray-900 border-gray-700"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-gray-400 mb-1 block">City (Optional)</label>
-              <Input
-                placeholder="e.g., Cleveland, Miami"
-                value={searchCity}
-                onChange={(e) => setSearchCity(e.target.value)}
-                className="bg-gray-900 border-gray-700"
-              />
-            </div>
-            <div className="flex items-end">
-              <Button
-                onClick={handleLocationSearch}
-                className="cyber-button w-full"
-                disabled={!searchState}
-              >
-                <Search className="w-4 h-4 mr-2" />
-                Search
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Enhanced Search Results */}
-        {searchResults.length > 0 && (
+    <TooltipProvider>
+      <Card className="cyber-tool-palette">
+        <CardHeader>
+          <CardTitle className="text-cyan-400">Comprehensive Jurisdiction Selection</CardTitle>
+          <CardDescription>
+            Select jurisdiction for detailed compliance checking with state-specific requirements
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Enhanced Priority Jurisdictions with Special Requirements */}
           <div>
-            <h4 className="font-semibold text-cyan-400 mb-3">Search Results</h4>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {searchResults.map((jurisdiction) => {
-                const specialReqs = getJurisdictionSpecialRequirements(jurisdiction.state_code, jurisdiction.jurisdiction_type);
-                return (
-                  <Card
-                    key={jurisdiction.id}
-                    className={`cursor-pointer transition-colors border border-gray-700 hover:bg-gray-800/50 ${
-                      selectedJurisdiction === jurisdiction.id ? 'bg-cyan-900/30 border-cyan-500' : ''
-                    }`}
-                    onClick={() => onJurisdictionSelect(jurisdiction.id)}
-                  >
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          {getJurisdictionIcon(jurisdiction.jurisdiction_type)}
-                          {getClimateIcon(jurisdiction.state_code)}
-                          <div>
-                            <p className="font-medium text-sm">
-                              {formatJurisdictionName(jurisdiction)}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              Last updated: {new Date(jurisdiction.last_updated).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant="outline" className={getJurisdictionColor(jurisdiction.jurisdiction_type)}>
-                            {jurisdiction.jurisdiction_type}
+            <h4 className="font-semibold text-cyan-400 mb-3">Priority Jurisdictions - Enhanced Coverage</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[
+                { name: 'Ohio', state: 'OH', type: 'state', specialties: ['Snow Load', 'Frost Depth', 'Energy Code'] },
+                { name: 'Florida', state: 'FL', type: 'state', specialties: ['Hurricane', 'Flood', 'Coastal'] },
+                { name: 'New York City', state: 'NY', type: 'city', specialties: ['Fire Safety', 'Egress', 'High-Rise'] },
+                { name: 'California', state: 'CA', type: 'state', specialties: ['Seismic', 'Title 24', 'Accessibility'] },
+                { name: 'Texas', state: 'TX', type: 'state', specialties: ['Wind Load', 'Flood', 'Energy'] }
+              ].map((priority) => (
+                <Card
+                  key={`${priority.state}-${priority.name}`}
+                  className={`cursor-pointer transition-colors border border-cyan-700 hover:bg-cyan-900/20 ${
+                    selectedJurisdiction === `${priority.state}-${priority.type}` ? 'bg-cyan-900/30' : ''
+                  }`}
+                  onClick={() => onJurisdictionSelect(`${priority.state}-${priority.type}`)}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-2">
+                        {getJurisdictionIcon(priority.type)}
+                        {getClimateIcon(priority.state)}
+                        <div>
+                          <p className="font-medium text-sm">{priority.name}</p>
+                          <Badge variant="outline" className={getJurisdictionColor(priority.type)}>
+                            {priority.type}
                           </Badge>
-                          {(jurisdiction.state_code === 'OH' || jurisdiction.state_code === 'FL') && (
-                            <AlertTriangle className="w-4 h-4 text-green-400" title="Comprehensive Coverage" />
-                          )}
                         </div>
                       </div>
-                      {specialReqs.length > 0 && (
-                        <div className="mt-2">
-                          <p className="text-xs text-gray-400 mb-1">Special Requirements:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {specialReqs.map((req, idx) => (
-                              <Badge key={idx} variant="outline" className="text-xs border-gray-600 text-gray-300">
-                                {req}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* All Jurisdictions */}
-        <div>
-          <h4 className="font-semibold text-cyan-400 mb-3">All Available Jurisdictions</h4>
-          <Select onValueChange={onJurisdictionSelect} value={selectedJurisdiction}>
-            <SelectTrigger className="bg-gray-900 border-gray-700">
-              <SelectValue placeholder="Select a jurisdiction..." />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-900 border-gray-700">
-              {jurisdictions.map((jurisdiction) => {
-                const specialReqs = getJurisdictionSpecialRequirements(jurisdiction.state_code, jurisdiction.jurisdiction_type);
-                return (
-                  <SelectItem key={jurisdiction.id} value={jurisdiction.id}>
-                    <div className="flex items-center space-x-2">
-                      {getJurisdictionIcon(jurisdiction.jurisdiction_type)}
-                      {getClimateIcon(jurisdiction.state_code)}
-                      <span>{formatJurisdictionName(jurisdiction)}</span>
-                      <Badge variant="outline" className={getJurisdictionColor(jurisdiction.jurisdiction_type)}>
-                        {jurisdiction.jurisdiction_type}
-                      </Badge>
-                      {(jurisdiction.state_code === 'OH' || jurisdiction.state_code === 'FL') && (
-                        <AlertTriangle className="w-3 h-3 text-green-400" />
+                      {(priority.state === 'OH' || priority.state === 'FL') && (
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <AlertTriangle className="w-4 h-4 text-green-400" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Comprehensive Coverage</p>
+                          </TooltipContent>
+                        </Tooltip>
                       )}
                     </div>
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Information Panel */}
-        <div className="bg-gray-900/50 p-4 rounded border border-gray-700">
-          <h5 className="font-semibold text-cyan-400 mb-2">Enhanced Compliance Coverage</h5>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-300">
-            <div>
-              <h6 className="font-medium text-cyan-300 mb-1">Ohio (OH) Comprehensive:</h6>
-              <ul className="list-disc list-inside space-y-1 text-xs">
-                <li>Snow Load Requirements (30 psf ground)</li>
-                <li>Frost Depth (42" minimum)</li>
-                <li>Energy Code (IECC 2021, Zone 5A)</li>
-                <li>Wind Load (90 mph basic)</li>
-                <li>Fire Safety & Electrical (NEC 2020)</li>
-                <li>Accessibility & Plumbing Codes</li>
-              </ul>
-            </div>
-            <div>
-              <h6 className="font-medium text-cyan-300 mb-1">Florida (FL) Comprehensive:</h6>
-              <ul className="list-disc list-inside space-y-1 text-xs">
-                <li>Hurricane Resistance (150+ mph coastal)</li>
-                <li>Flood Requirements (BFE + freeboard)</li>
-                <li>High Velocity Hurricane Zone (HVHZ)</li>
-                <li>Coastal Construction Controls</li>
-                <li>Termite & Moisture Protection</li>
-                <li>Energy Efficiency (Hot-Humid Climate)</li>
-              </ul>
+                    <div className="mt-2">
+                      <p className="text-xs text-gray-400 mb-1">Special Requirements:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {priority.specialties.map((spec, idx) => (
+                          <Badge key={idx} variant="outline" className="text-xs border-gray-600 text-gray-300">
+                            {spec}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+
+          {/* Location Search */}
+          <div>
+            <h4 className="font-semibold text-cyan-400 mb-3">Search by Location</h4>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div>
+                <label className="text-sm text-gray-400 mb-1 block">State</label>
+                <Input
+                  placeholder="e.g., OH, FL, CA"
+                  value={searchState}
+                  onChange={(e) => setSearchState(e.target.value)}
+                  className="bg-gray-900 border-gray-700"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-400 mb-1 block">County (Optional)</label>
+                <Input
+                  placeholder="e.g., Cuyahoga, Miami-Dade"
+                  value={searchCounty}
+                  onChange={(e) => setSearchCounty(e.target.value)}
+                  className="bg-gray-900 border-gray-700"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-400 mb-1 block">City (Optional)</label>
+                <Input
+                  placeholder="e.g., Cleveland, Miami"
+                  value={searchCity}
+                  onChange={(e) => setSearchCity(e.target.value)}
+                  className="bg-gray-900 border-gray-700"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button
+                  onClick={handleLocationSearch}
+                  className="cyber-button w-full"
+                  disabled={!searchState}
+                >
+                  <Search className="w-4 h-4 mr-2" />
+                  Search
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Enhanced Search Results */}
+          {searchResults.length > 0 && (
+            <div>
+              <h4 className="font-semibold text-cyan-400 mb-3">Search Results</h4>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {searchResults.map((jurisdiction) => {
+                  const specialReqs = getJurisdictionSpecialRequirements(jurisdiction.state_code, jurisdiction.jurisdiction_type);
+                  return (
+                    <Card
+                      key={jurisdiction.id}
+                      className={`cursor-pointer transition-colors border border-gray-700 hover:bg-gray-800/50 ${
+                        selectedJurisdiction === jurisdiction.id ? 'bg-cyan-900/30 border-cyan-500' : ''
+                      }`}
+                      onClick={() => onJurisdictionSelect(jurisdiction.id)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            {getJurisdictionIcon(jurisdiction.jurisdiction_type)}
+                            {getClimateIcon(jurisdiction.state_code)}
+                            <div>
+                              <p className="font-medium text-sm">
+                                {formatJurisdictionName(jurisdiction)}
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                Last updated: {new Date(jurisdiction.last_updated).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="outline" className={getJurisdictionColor(jurisdiction.jurisdiction_type)}>
+                              {jurisdiction.jurisdiction_type}
+                            </Badge>
+                            {(jurisdiction.state_code === 'OH' || jurisdiction.state_code === 'FL') && (
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <AlertTriangle className="w-4 h-4 text-green-400" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Comprehensive Coverage</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </div>
+                        {specialReqs.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-400 mb-1">Special Requirements:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {specialReqs.map((req, idx) => (
+                                <Badge key={idx} variant="outline" className="text-xs border-gray-600 text-gray-300">
+                                  {req}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* All Jurisdictions */}
+          <div>
+            <h4 className="font-semibold text-cyan-400 mb-3">All Available Jurisdictions</h4>
+            <Select onValueChange={onJurisdictionSelect} value={selectedJurisdiction}>
+              <SelectTrigger className="bg-gray-900 border-gray-700">
+                <SelectValue placeholder="Select a jurisdiction..." />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-900 border-gray-700">
+                {jurisdictions.map((jurisdiction) => {
+                  const specialReqs = getJurisdictionSpecialRequirements(jurisdiction.state_code, jurisdiction.jurisdiction_type);
+                  return (
+                    <SelectItem key={jurisdiction.id} value={jurisdiction.id}>
+                      <div className="flex items-center space-x-2">
+                        {getJurisdictionIcon(jurisdiction.jurisdiction_type)}
+                        {getClimateIcon(jurisdiction.state_code)}
+                        <span>{formatJurisdictionName(jurisdiction)}</span>
+                        <Badge variant="outline" className={getJurisdictionColor(jurisdiction.jurisdiction_type)}>
+                          {jurisdiction.jurisdiction_type}
+                        </Badge>
+                        {(jurisdiction.state_code === 'OH' || jurisdiction.state_code === 'FL') && (
+                          <AlertTriangle className="w-3 h-3 text-green-400" />
+                        )}
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Information Panel */}
+          <div className="bg-gray-900/50 p-4 rounded border border-gray-700">
+            <h5 className="font-semibold text-cyan-400 mb-2">Enhanced Compliance Coverage</h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-300">
+              <div>
+                <h6 className="font-medium text-cyan-300 mb-1">Ohio (OH) Comprehensive:</h6>
+                <ul className="list-disc list-inside space-y-1 text-xs">
+                  <li>Snow Load Requirements (30 psf ground)</li>
+                  <li>Frost Depth (42" minimum)</li>
+                  <li>Energy Code (IECC 2021, Zone 5A)</li>
+                  <li>Wind Load (90 mph basic)</li>
+                  <li>Fire Safety & Electrical (NEC 2020)</li>
+                  <li>Accessibility & Plumbing Codes</li>
+                </ul>
+              </div>
+              <div>
+                <h6 className="font-medium text-cyan-300 mb-1">Florida (FL) Comprehensive:</h6>
+                <ul className="list-disc list-inside space-y-1 text-xs">
+                  <li>Hurricane Resistance (150+ mph coastal)</li>
+                  <li>Flood Requirements (BFE + freeboard)</li>
+                  <li>High Velocity Hurricane Zone (HVHZ)</li>
+                  <li>Coastal Construction Controls</li>
+                  <li>Termite & Moisture Protection</li>
+                  <li>Energy Efficiency (Hot-Humid Climate)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   );
 };

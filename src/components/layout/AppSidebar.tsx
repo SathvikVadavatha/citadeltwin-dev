@@ -1,4 +1,3 @@
-
 import { 
   Sidebar,
   SidebarContent,
@@ -20,7 +19,11 @@ import {
   HelpCircle,
   Building2,
   User,
-  LogOut
+  LogOut,
+  FileText,
+  Home,
+  Calculator,
+  Sparkles
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -34,6 +37,12 @@ const menuItems = [
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Settings", url: "/settings", icon: Settings },
   { title: "Help", url: "/help", icon: HelpCircle },
+];
+
+const sidebarItems = [
+  { title: "Document Automation", url: "/documents", icon: Sparkles, badge: "AI" },
+  { title: "Home", url: "/", icon: Home },
+  { title: "Calculator", url: "/calculator", icon: Calculator },
 ];
 
 interface AppSidebarProps {

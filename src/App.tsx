@@ -1,35 +1,50 @@
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from './providers/AuthProvider';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { Dashboard } from './pages/Dashboard';
+import { UploadBlueprint } from './pages/UploadBlueprint';
+import { ViewBlueprints } from './pages/ViewBlueprints';
+import { Settings } from './pages/Settings';
+import { Users } from './pages/Users';
+import { Compliance } from './pages/Compliance';
+import { FEAAnalysis } from './pages/FEAAnalysis';
+import { DocumentManagementDashboard } from '@/components/documents/DocumentManagementDashboard';
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/providers/AuthProvider";
-import Index from "./pages/Index";
-import Collaboration from "./pages/Collaboration";
-import AIAssistant from "./pages/AIAssistant";
-import NotFound from "./pages/NotFound";
+function App() {
+  const queryClient = new QueryClient();
 
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+  return (
+    <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/collaboration" element={<Collaboration />} />
-            <Route path="/ai-assistant" element={<AIAssistant />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <Router>
+          <div className="min-h-screen bg-background">
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/blueprints/upload" element={<ProtectedRoute><UploadBlueprint /></ProtectedRoute>} />
+              <Route path="/blueprints/view" element={<ProtectedRoute><ViewBlueprints /></ProtectedRoute>} />
+              <Route path="/compliance" element={<ProtectedRoute><Compliance /></ProtectedRoute>} />
+              <Route path="/fea-analysis" element={<ProtectedRoute><FEAAnalysis /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
+              <Route 
+                path="/documents" 
+                element={
+                  <ProtectedRoute>
+                    <div className="container mx-auto p-6">
+                      <DocumentManagementDashboard />
+                    </div>
+                  </ProtectedRoute>
+                } 
+              />
+            </Routes>
+          </div>
+        </Router>
       </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+    </QueryClientProvider>
+  );
+}
 
 export default App;
