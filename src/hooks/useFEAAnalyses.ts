@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +8,34 @@ import { useFEALoads } from './fea/useFEALoads';
 import { useFEABoundaryConditions } from './fea/useFEABoundaryConditions';
 import { useFEAResults } from './fea/useFEAResults';
 import { useFEAExecution } from './fea/useFEAExecution';
+
+// Export types that are used by components
+export type CreateAnalysisData = {
+  element_id?: string;
+  name: string;
+  description?: string;
+  analysis_type: 'static' | 'modal' | 'buckling' | 'dynamic' | 'thermal';
+  input_parameters: any;
+};
+
+export type CreateLoadData = {
+  analysis_id: string;
+  name: string;
+  load_type: 'point_load' | 'distributed_load' | 'moment' | 'pressure' | 'temperature' | 'gravity';
+  magnitude: number;
+  direction: { x: number; y: number; z: number };
+  location: { x: number; y: number; z: number };
+  properties?: any;
+};
+
+export type CreateBoundaryConditionData = {
+  analysis_id: string;
+  name: string;
+  condition_type: 'fixed' | 'pinned' | 'roller' | 'free' | 'symmetry';
+  location: any;
+  constraints: { x: boolean; y: boolean; z: boolean; rx: boolean; ry: boolean; rz: boolean };
+  properties?: any;
+};
 
 // Unified FEA hook that combines all FEA functionality
 export const useFEAAnalyses = (elementId?: string) => {

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -6,19 +7,19 @@ import { AuthProvider } from './providers/AuthProvider';
 import { AuthLayout } from './layouts/AuthLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import Index from './pages/Index';
-import Dashboard from './pages/Dashboard';
-import ProjectsPage from './components/projects/ProjectsPage';
-import UploadBlueprint from './pages/UploadBlueprint';
-import ViewBlueprints from './pages/ViewBlueprints';
+import { Dashboard } from './pages/Dashboard';
+import { ProjectsPage } from './components/projects/ProjectsPage';
+import { UploadBlueprint } from './pages/UploadBlueprint';
+import { ViewBlueprints } from './pages/ViewBlueprints';
 import Collaboration from './pages/Collaboration';
-import Compliance from './pages/Compliance';
-import FEAAnalysis from './pages/FEAAnalysis';
-import Analytics from './pages/Analytics';
+import { Compliance } from './pages/Compliance';
+import { FEAAnalysis } from './pages/FEAAnalysis';
+import { Analytics } from './pages/Analytics';
 import AIAssistant from './pages/AIAssistant';
-import ValidationDashboard from './pages/ValidationDashboard';
-import ClientPortal from './pages/ClientPortal';
-import Settings from './pages/Settings';
-import Users from './pages/Users';
+import { ValidationDashboard } from './pages/ValidationDashboard';
+import { ClientPortal } from './pages/ClientPortal';
+import { Settings } from './pages/Settings';
+import { Users } from './pages/Users';
 import NotFound from './pages/NotFound';
 
 const queryClient = new QueryClient();

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import { UploadPage } from "@/components/upload/UploadPage";
 import { CollaborationPanel } from "@/components/collaboration/CollaborationPanel";
 import { EnhancedAIAssistant } from "@/components/ai/EnhancedAIAssistant";
 import { AIServicePanel } from "@/components/ai/AIServicePanel";
+import { ValidationDashboard } from "@/pages/ValidationDashboard";
 import { 
   LayoutDashboard, 
   FolderOpen, 

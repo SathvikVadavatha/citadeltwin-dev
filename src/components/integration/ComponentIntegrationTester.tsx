@@ -45,7 +45,7 @@ export const ComponentIntegrationTester: React.FC = () => {
     setupCompleteAnalysis,
     validateAnalysisWorkflow 
   } = useFEAAnalyses();
-  const { documentExports, generateDocument } = useDocumentExports();
+  const { exports, generateDocument } = useDocumentExports();
   const { projects, createProject } = useProjects();
 
   const integrationTests: Omit<IntegrationTest, 'status' | 'error' | 'testResult'>[] = [
@@ -173,17 +173,18 @@ export const ComponentIntegrationTester: React.FC = () => {
       updateTestStatus('document-frontend-backend', 'testing');
       
       // Test document generation
-      const result = await generateDocument({
+      const result = await generateDocument.mutateAsync({
         documentType: 'structural_report',
         title: 'Integration Test Report',
         formatType: 'pdf',
-        templateId: 'default-structural'
+        templateId: 'default-structural',
+        generationData: {}
       });
       
       if (result) {
         updateTestStatus('document-frontend-backend', 'passed', undefined, {
           documentGenerated: true,
-          exportId: result.id
+          exportId: result.exportRecord?.id
         });
         return true;
       } else {
