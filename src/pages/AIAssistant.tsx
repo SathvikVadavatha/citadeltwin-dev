@@ -7,10 +7,12 @@ import { DesignOptimizationPanel } from '@/components/ai/DesignOptimizationPanel
 import { EngineeringCalculatorPanel } from '@/components/ai/EngineeringCalculatorPanel';
 import { AIComplianceAnalyzer } from '@/components/ai/AIComplianceAnalyzer';
 import { AIServicePanel } from '@/components/ai/AIServicePanel';
-import { Brain, Calculator, Zap, Shield, MessageSquare } from 'lucide-react';
+import { AdvancedDesignAssistant } from '@/components/ai/AdvancedDesignAssistant';
+import { SmartComplianceAdvisor } from '@/components/ai/SmartComplianceAdvisor';
+import { Brain, Calculator, Zap, Shield, MessageSquare, Lightbulb, BookOpen } from 'lucide-react';
 
 export default function AIAssistant() {
-  const [activeTab, setActiveTab] = useState('chat');
+  const [activeTab, setActiveTab] = useState('design-assistant');
 
   return (
     <div className="min-h-screen bg-background">
@@ -25,7 +27,11 @@ export default function AIAssistant() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
+          <TabsList className="grid w-full grid-cols-7 mb-6">
+            <TabsTrigger value="design-assistant" className="flex items-center gap-2">
+              <Lightbulb className="h-4 w-4" />
+              Design Assistant
+            </TabsTrigger>
             <TabsTrigger value="chat" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
               AI Chat
@@ -42,11 +48,19 @@ export default function AIAssistant() {
               <Shield className="h-4 w-4" />
               Compliance
             </TabsTrigger>
+            <TabsTrigger value="smart-compliance" className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4" />
+              Smart Compliance
+            </TabsTrigger>
             <TabsTrigger value="service" className="flex items-center gap-2">
               <Brain className="h-4 w-4" />
               Service Panel
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="design-assistant">
+            <AdvancedDesignAssistant />
+          </TabsContent>
 
           <TabsContent value="chat">
             <EnhancedAIAssistant />
@@ -62,6 +76,10 @@ export default function AIAssistant() {
 
           <TabsContent value="compliance">
             <AIComplianceAnalyzer />
+          </TabsContent>
+
+          <TabsContent value="smart-compliance">
+            <SmartComplianceAdvisor />
           </TabsContent>
 
           <TabsContent value="service">
