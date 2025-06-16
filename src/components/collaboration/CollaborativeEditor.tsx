@@ -1,10 +1,10 @@
 
 import { useEffect, useState, useCallback } from 'react';
-import { useCollaboration } from '@/hooks/useCollaboration';
+import { useSimplifiedCollaboration } from '@/hooks/collaboration/useSimplifiedCollaboration';
 import { operationalTransform, Operation } from './OperationalTransform';
 import { LiveCursors } from './LiveCursors';
 import { BIMElementsManager } from '@/components/bim/BIMElementsManager';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Users, Wifi, WifiOff } from 'lucide-react';
 
@@ -21,7 +21,9 @@ export const CollaborativeEditor = ({ projectId }: CollaborativeEditorProps) => 
     activeSession,
     userPresence,
     applyOperation,
-  } = useCollaboration(projectId);
+    updateCursorPosition,
+    applyBatchOperations,
+  } = useSimplifiedCollaboration(projectId);
 
   // Handle incoming operations from collaboration
   const handleIncomingOperation = useCallback((operation: Operation) => {
@@ -39,7 +41,7 @@ export const CollaborativeEditor = ({ projectId }: CollaborativeEditorProps) => 
     }
   }, []);
 
-  // Handle local operations
+  // Handle local operations with simplified approach
   const handleLocalOperation = useCallback(async (operation: Omit<Operation, 'timestamp' | 'operationIndex'>) => {
     const fullOperation: Operation = {
       ...operation,

@@ -1,25 +1,38 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useWorkflowTemplates } from '@/hooks/useWorkflowTemplates';
-import { useProjectWorkflows } from '@/hooks/useProjectWorkflows';
-import { useBuildingTemplates } from '@/hooks/useBuildingTemplates';
+import { useWorkflowMetrics } from '@/hooks/workflow/useWorkflowMetrics';
 import { Workflow, FileText, Building, Settings, Clock, CheckCircle } from 'lucide-react';
 
 export const WorkflowMetricsCards: React.FC = () => {
-  const { templates, systemTemplates } = useWorkflowTemplates();
-  const { workflows } = useProjectWorkflows();
-  const { templates: buildingTemplates, projectSetups } = useBuildingTemplates();
+  const { metrics, isLoading } = useWorkflowMetrics();
 
-  const activeWorkflows = workflows.filter(w => w.status === 'active').length;
-  const completedWorkflows = workflows.filter(w => w.status === 'completed').length;
-  const runningSetups = projectSetups.filter(s => s.status === 'running').length;
-  const totalTemplates = templates.length + systemTemplates.length;
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <Card key={index} className="animate-pulse">
+            <CardHeader className="pb-2">
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-full"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
-  const metrics = [
+  if (!metrics) {
+    return <div>No metrics available</div>;
+  }
+
+  const metricsConfig = [
     {
       title: 'Active Workflows',
-      value: activeWorkflows.toString(),
+      value: metrics.activeWorkflows.toString(),
       description: 'Currently running workflows',
       icon: Workflow,
       color: 'text-blue-600',
@@ -27,7 +40,7 @@ export const WorkflowMetricsCards: React.FC = () => {
     },
     {
       title: 'Completed Workflows',
-      value: completedWorkflows.toString(),
+      value: metrics.completedWorkflows.toString(),
       description: 'Successfully completed',
       icon: CheckCircle,
       color: 'text-green-600',
@@ -35,15 +48,15 @@ export const WorkflowMetricsCards: React.FC = () => {
     },
     {
       title: 'Workflow Templates',
-      value: totalTemplates.toString(),
-      description: `${systemTemplates.length} system, ${templates.length} custom`,
+      value: metrics.totalTemplates.toString(),
+      description: `${metrics.systemTemplates} system, ${metrics.customTemplates} custom`,
       icon: FileText,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50'
     },
     {
       title: 'Building Templates',
-      value: buildingTemplates.length.toString(),
+      value: metrics.buildingTemplates.toString(),
       description: 'Available building types',
       icon: Building,
       color: 'text-orange-600',
@@ -51,7 +64,7 @@ export const WorkflowMetricsCards: React.FC = () => {
     },
     {
       title: 'Running Setups',
-      value: runningSetups.toString(),
+      value: metrics.runningSetups.toString(),
       description: 'Automated project setups',
       icon: Settings,
       color: 'text-indigo-600',
@@ -59,7 +72,7 @@ export const WorkflowMetricsCards: React.FC = () => {
     },
     {
       title: 'Avg. Completion Time',
-      value: '8.5d',
+      value: metrics.avgCompletionTime,
       description: 'Average workflow duration',
       icon: Clock,
       color: 'text-gray-600',
@@ -69,7 +82,7 @@ export const WorkflowMetricsCards: React.FC = () => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-      {metrics.map((metric, index) => (
+      {metricsConfig.map((metric, index) => (
         <Card key={index}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">

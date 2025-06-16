@@ -1,14 +1,16 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { useProjectWorkflows } from '@/hooks/useProjectWorkflows';
-import { Play, Pause, Square, MoreHorizontal } from 'lucide-react';
+import { useWorkflowData } from '@/hooks/workflow/useWorkflowData';
+import { useWorkflowExecution } from '@/hooks/workflow/useWorkflowExecution';
+import { Play, Pause, MoreHorizontal } from 'lucide-react';
 
 export const ProjectWorkflowsPanel: React.FC = () => {
-  const { workflows, isLoading, pauseWorkflow, resumeWorkflow, executeStep } = useProjectWorkflows();
+  const { workflows, isLoading } = useWorkflowData();
+  const { pauseWorkflow, resumeWorkflow, executeStep } = useWorkflowExecution();
 
   const getStatusColor = (status: string) => {
     const colors = {
