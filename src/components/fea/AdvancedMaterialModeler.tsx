@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { MaterialLibrary, ThermalCoupling, Package, Layers } from 'lucide-react';
+import { Database, Thermometer, Package, Layers } from 'lucide-react';
 
 interface AdvancedMaterialModelerProps {
   analysisId: string;
@@ -25,7 +25,7 @@ export const AdvancedMaterialModeler: React.FC<AdvancedMaterialModelerProps> = (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MaterialLibrary className="h-5 w-5 text-orange-500" />
+            <Database className="h-5 w-5 text-orange-500" />
             Advanced Material Properties
           </CardTitle>
         </CardHeader>
@@ -200,7 +200,7 @@ export const AdvancedMaterialModeler: React.FC<AdvancedMaterialModelerProps> = (
                   <h4 className="font-medium mb-2">Temperature-Dependent Data</h4>
                   <div className="space-y-2">
                     <Button variant="outline" size="sm" className="cyber-button">
-                      <ThermalCoupling className="h-4 w-4 mr-2" />
+                      <Thermometer className="h-4 w-4 mr-2" />
                       Import Temperature Curves
                     </Button>
                     <div className="text-xs text-muted-foreground">

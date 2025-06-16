@@ -17,7 +17,11 @@ import { AdvancedFEAManager } from './AdvancedFEAManager';
 import { LoadFEAIntegration } from '@/components/loads/LoadFEAIntegration';
 import { useFEAAnalyses } from '@/hooks/useFEAAnalyses';
 
-export const FEAAnalysisManager: React.FC = () => {
+interface FEAAnalysisManagerProps {
+  elementId?: string;
+}
+
+export const FEAAnalysisManager: React.FC<FEAAnalysisManagerProps> = ({ elementId }) => {
   const [activeTab, setActiveTab] = useState('basic');
   const { analyses, runAnalysis } = useFEAAnalyses();
 
