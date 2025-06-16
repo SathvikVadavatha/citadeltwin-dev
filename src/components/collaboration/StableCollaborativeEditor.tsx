@@ -142,11 +142,10 @@ export const StableCollaborativeEditor = React.memo<StableCollaborativeEditorPro
       {/* Live Cursors */}
       <LiveCursors projectId={projectId} />
 
-      {/* Collaborative BIM Editor */}
+      {/* Collaborative BIM Editor - removed unsupported onLocalOperation prop */}
       <div className="h-full overflow-auto">
         <BIMElementsManager 
           projectId={projectId}
-          onLocalOperation={handleLocalOperation}
         />
       </div>
 
