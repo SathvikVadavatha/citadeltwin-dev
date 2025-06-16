@@ -9,23 +9,23 @@ export const useSimplifiedCollaboration = (projectId?: string) => {
   const cursorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const operationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Stable debounced cursor update
-  const debouncedCursorUpdate = useCallback((...args: any[]) => {
+  // Stable debounced cursor update with proper typing
+  const debouncedCursorUpdate = useCallback((x: number, y: number, userId: string) => {
     if (cursorTimeoutRef.current) {
       clearTimeout(cursorTimeoutRef.current);
     }
     cursorTimeoutRef.current = setTimeout(() => {
-      collaboration.updateCursorPosition(...args);
+      collaboration.updateCursorPosition(x, y, userId);
     }, 100);
   }, [collaboration.updateCursorPosition]);
 
-  // Stable debounced operation
-  const debouncedOperation = useCallback((...args: any[]) => {
+  // Stable debounced operation with proper typing
+  const debouncedOperation = useCallback((operation: any) => {
     if (operationTimeoutRef.current) {
       clearTimeout(operationTimeoutRef.current);
     }
     operationTimeoutRef.current = setTimeout(() => {
-      collaboration.applyOperation(...args);
+      collaboration.applyOperation(operation);
     }, 200);
   }, [collaboration.applyOperation]);
 
