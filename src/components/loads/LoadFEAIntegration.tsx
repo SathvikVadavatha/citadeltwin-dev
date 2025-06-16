@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -97,10 +96,11 @@ export const LoadFEAIntegration = ({ loadResults, onAnalysisComplete }: LoadFEAI
         }
       });
 
-      // Run the analysis
-      const success = await runAnalysis(analysis.id);
+      // Run the analysis - runAnalysis returns void, so we just call it
+      await runAnalysis(analysis.id);
       
-      if (success && onAnalysisComplete) {
+      // Since runAnalysis doesn't return success/failure, we assume success if no error was thrown
+      if (onAnalysisComplete) {
         onAnalysisComplete(analysis);
       }
 
