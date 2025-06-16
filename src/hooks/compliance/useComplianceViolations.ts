@@ -1,81 +1,70 @@
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useErrorHandler } from '@/utils/errorHandling';
-import { toast } from 'sonner';
+import { useAuth } from '@/providers/AuthProvider';
 
 export interface ComplianceViolation {
   id: string;
   upload_id?: string;
   rule_id: string;
-  element_id?: string;
   violation_type: string;
-  severity: 'critical' | 'major' | 'minor' | 'warning';
+  severity: string;
   description: string;
   current_value?: any;
   required_value?: any;
   location?: any;
   remediation_suggestions?: string[];
-  status: 'open' | 'in_progress' | 'resolved' | 'ignored';
+  status: string;
   detected_at: string;
   resolved_at?: string;
+  element_id?: string;
 }
 
 export const useComplianceViolations = (uploadId?: string) => {
-  const queryClient = useQueryClient();
-  const { withErrorHandling } = useErrorHandler();
+  const { user } = useAuth();
 
   const { 
     data: violations = [], 
     isLoading: violationsLoading,
-    error: violationsError
+    error: violationsError,
+    refetch: refetchViolations
   } = useQuery({
     queryKey: ['compliance-violations', uploadId],
     queryFn: async () => {
-      return withErrorHandling(async () => {
-        let query = supabase
-          .from('compliance_violations')
-          .select('*')
-          .order('severity', { ascending: false })
-          .order('detected_at', { ascending: false });
+      let query = supabase
+        .from('compliance_violations')
+        .select(`
+          *,
+          compliance_rules (
+            title,
+            jurisdiction,
+            code_section,
+            description
+          )
+        `)
+        .order('detected_at', { ascending: false });
 
-        if (uploadId) {
-          query = query.eq('upload_id', uploadId);
-        }
+      if (uploadId) {
+        query = query.eq('upload_id', uploadId);
+      }
 
-        const { data, error } = await query;
-        if (error) throw error;
-        return data as ComplianceViolation[];
-      }, 'Fetching compliance violations') ?? [];
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching compliance violations:', error);
+        throw error;
+      }
+
+      return (data || []) as ComplianceViolation[];
     },
-    enabled: !!uploadId,
-  });
-
-  const updateViolationStatusMutation = useMutation({
-    mutationFn: async ({ violationId, status }: { violationId: string; status: string }) => {
-      return withErrorHandling(async () => {
-        const { data, error } = await supabase
-          .from('compliance_violations')
-          .update({ status })
-          .eq('id', violationId)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      }, 'Updating violation status');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['compliance-violations'] });
-      toast.success('Violation status updated');
-    },
+    enabled: !!user,
   });
 
   return {
     violations,
     violationsLoading,
     violationsError,
-    updateViolationStatus: updateViolationStatusMutation.mutate,
-    isUpdatingViolation: updateViolationStatusMutation.isPending,
+    refreshViolations: refetchViolations,
   };
 };

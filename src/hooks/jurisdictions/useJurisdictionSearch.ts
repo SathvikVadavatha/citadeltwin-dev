@@ -1,53 +1,64 @@
 
-import { useErrorHandler } from '@/utils/errorHandling';
+import { useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Jurisdiction } from './useJurisdictionsCore';
+import { useAuth } from '@/providers/AuthProvider';
+import { toast } from 'sonner';
 
 export const useJurisdictionSearch = () => {
-  const { withErrorHandling } = useErrorHandler();
+  const { user } = useAuth();
 
-  const searchJurisdictionsByLocation = async (
-    state: string, 
-    county?: string, 
-    city?: string
-  ): Promise<(Jurisdiction & { comprehensive_coverage: boolean })[]> => {
-    return withErrorHandling(async () => {
-      let sql = `
-        SELECT j.*, 
-               CASE 
-                 WHEN j.state_code IN ('OH', 'FL') THEN true 
-                 ELSE false 
-               END as comprehensive_coverage
-        FROM public.jurisdictions j
-        WHERE j.state_code = '${state.toUpperCase()}' 
-        AND j.is_active = true
-      `;
+  const searchJurisdictionsByLocationMutation = useMutation({
+    mutationFn: async ({ city, state, county }: { city?: string; state?: string; county?: string }) => {
+      console.log('Searching jurisdictions by location:', { city, state, county });
+
+      let query = supabase
+        .from('jurisdictions')
+        .select('*')
+        .eq('is_active', true);
+
+      if (state) {
+        query = query.eq('state_code', state.toUpperCase());
+      }
+
+      if (city) {
+        query = query.ilike('city_name', `%${city}%`);
+      }
 
       if (county) {
-        sql += ` AND (j.county_name ILIKE '%${county}%' OR j.name ILIKE '%${county}%')`;
-      }
-      if (city) {
-        sql += ` AND (j.city_name ILIKE '%${city}%' OR j.name ILIKE '%${city}%')`;
+        query = query.ilike('county_name', `%${county}%`);
       }
 
-      sql += ` ORDER BY 
-        CASE 
-          WHEN j.state_code IN ('OH', 'FL') THEN 1 
-          ELSE 2 
-        END,
-        j.jurisdiction_type,
-        j.name`;
+      const { data, error } = await query.order('name', { ascending: true });
 
-      const { data, error } = await supabase.functions.invoke('exec-sql', {
-        body: { sql: sql }
-      });
+      if (error) {
+        console.error('Error searching jurisdictions:', error);
+        throw error;
+      }
 
-      if (error) throw error;
-      return (data?.data || []) as (Jurisdiction & { comprehensive_coverage: boolean })[];
-    }, 'Searching jurisdictions by location') ?? [];
+      return data || [];
+    },
+    onError: (error: any) => {
+      console.error('Jurisdiction search error:', error);
+      toast.error(`Failed to search jurisdictions: ${error.message}`);
+    },
+  });
+
+  const searchJurisdictionsByLocation = async (params: { city?: string; state?: string; county?: string }) => {
+    if (!user) {
+      toast.error('Please sign in to search jurisdictions');
+      return [];
+    }
+
+    try {
+      return await searchJurisdictionsByLocationMutation.mutateAsync(params);
+    } catch (error) {
+      console.error('Error searching jurisdictions:', error);
+      return [];
+    }
   };
 
   return {
     searchJurisdictionsByLocation,
+    isSearching: searchJurisdictionsByLocationMutation.isPending,
   };
 };

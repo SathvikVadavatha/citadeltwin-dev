@@ -1,66 +1,101 @@
 
 import { useState, useCallback } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
-import type { Database } from '@/integrations/supabase/types';
 
-type FEALoad = Database['public']['Tables']['fea_loads']['Row'];
-
-export interface CreateLoadData {
+export interface FEALoad {
+  id: string;
   analysis_id: string;
-  load_type: Database['public']['Enums']['load_type'];
   name: string;
+  load_type: 'point' | 'distributed' | 'pressure' | 'thermal' | 'body';
   magnitude: number;
   direction: { x: number; y: number; z: number };
   location: { x: number; y: number; z: number };
   properties?: any;
+  created_at: string;
 }
 
 export const useFEALoads = () => {
   const [loads, setLoads] = useState<FEALoad[]>([]);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  const fetchLoads = useCallback(async (analysisId: string) => {
+  const fetchLoads = async (analysisId: string) => {
+    if (!user) return;
+    
     try {
       const { data, error } = await supabase
         .from('fea_loads')
         .select('*')
-        .eq('analysis_id', analysisId);
+        .eq('analysis_id', analysisId)
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setLoads(data || []);
+      if (error) {
+        console.error('Error fetching FEA loads:', error);
+        toast.error('Failed to load FEA loads');
+        return;
+      }
+
+      setLoads((data || []) as FEALoad[]);
     } catch (error) {
-      console.error('Error fetching loads:', error);
-      toast.error('Failed to load analysis data');
+      console.error('Error fetching FEA loads:', error);
+      toast.error('Failed to load FEA loads');
     }
-  }, []);
+  };
 
-  const createLoad = useCallback(async (loadData: CreateLoadData): Promise<FEALoad | null> => {
-    try {
+  const createLoadMutation = useMutation({
+    mutationFn: async (loadData: {
+      analysis_id: string;
+      load_type: 'point' | 'distributed' | 'pressure' | 'thermal' | 'body';
+      name: string;
+      magnitude: number;
+      direction: { x: number; y: number; z: number };
+      location: { x: number; y: number; z: number };
+      properties?: any;
+    }) => {
       const { data, error } = await supabase
         .from('fea_loads')
-        .insert(loadData)
+        .insert({
+          ...loadData,
+          properties: loadData.properties || {}
+        })
         .select()
         .single();
 
-      if (error) {
-        console.error('Error creating load:', error);
-        toast.error('Failed to create load');
-        return null;
-      }
+      if (error) throw error;
+      return data as FEALoad;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['fea-loads'] });
+      toast.success('FEA load created successfully');
+      fetchLoads(data.analysis_id);
+    },
+    onError: (error: any) => {
+      console.error('Error creating FEA load:', error);
+      toast.error('Failed to create FEA load');
+    },
+  });
 
-      toast.success('Load created successfully');
-      await fetchLoads(loadData.analysis_id);
-      return data;
-    } catch (error) {
-      console.error('Error creating load:', error);
-      toast.error('Failed to create load');
+  const createLoad = useCallback(async (loadData: Parameters<typeof createLoadMutation.mutateAsync>[0]) => {
+    if (!user) {
+      toast.error('Please sign in to create FEA load');
       return null;
     }
-  }, [fetchLoads]);
+
+    try {
+      return await createLoadMutation.mutateAsync(loadData);
+    } catch (error) {
+      console.error('Error creating FEA load:', error);
+      return null;
+    }
+  }, [user, createLoadMutation]);
 
   return {
     loads,
     fetchLoads,
     createLoad,
+    isCreating: createLoadMutation.isPending,
   };
 };

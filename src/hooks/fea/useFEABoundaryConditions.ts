@@ -1,65 +1,99 @@
 
 import { useState, useCallback } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
-import type { Database } from '@/integrations/supabase/types';
 
-type FEABoundaryCondition = Database['public']['Tables']['fea_boundary_conditions']['Row'];
-
-export interface CreateBoundaryConditionData {
+export interface FEABoundaryCondition {
+  id: string;
   analysis_id: string;
-  condition_type: Database['public']['Enums']['boundary_condition_type'];
   name: string;
+  condition_type: 'fixed' | 'pinned' | 'roller' | 'spring' | 'contact';
   location: any;
   constraints: { x: boolean; y: boolean; z: boolean; rx: boolean; ry: boolean; rz: boolean };
   properties?: any;
+  created_at: string;
 }
 
 export const useFEABoundaryConditions = () => {
   const [boundaryConditions, setBoundaryConditions] = useState<FEABoundaryCondition[]>([]);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  const fetchBoundaryConditions = useCallback(async (analysisId: string) => {
+  const fetchBoundaryConditions = async (analysisId: string) => {
+    if (!user) return;
+    
     try {
       const { data, error } = await supabase
         .from('fea_boundary_conditions')
         .select('*')
-        .eq('analysis_id', analysisId);
+        .eq('analysis_id', analysisId)
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setBoundaryConditions(data || []);
+      if (error) {
+        console.error('Error fetching FEA boundary conditions:', error);
+        toast.error('Failed to load FEA boundary conditions');
+        return;
+      }
+
+      setBoundaryConditions((data || []) as FEABoundaryCondition[]);
     } catch (error) {
-      console.error('Error fetching boundary conditions:', error);
-      toast.error('Failed to load analysis data');
+      console.error('Error fetching FEA boundary conditions:', error);
+      toast.error('Failed to load FEA boundary conditions');
     }
-  }, []);
+  };
 
-  const createBoundaryCondition = useCallback(async (bcData: CreateBoundaryConditionData): Promise<FEABoundaryCondition | null> => {
-    try {
+  const createBoundaryConditionMutation = useMutation({
+    mutationFn: async (bcData: {
+      analysis_id: string;
+      condition_type: 'fixed' | 'pinned' | 'roller' | 'spring' | 'contact';
+      name: string;
+      location: any;
+      constraints: { x: boolean; y: boolean; z: boolean; rx: boolean; ry: boolean; rz: boolean };
+      properties?: any;
+    }) => {
       const { data, error } = await supabase
         .from('fea_boundary_conditions')
-        .insert(bcData)
+        .insert({
+          ...bcData,
+          properties: bcData.properties || {}
+        })
         .select()
         .single();
 
-      if (error) {
-        console.error('Error creating boundary condition:', error);
-        toast.error('Failed to create boundary condition');
-        return null;
-      }
+      if (error) throw error;
+      return data as FEABoundaryCondition;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['fea-boundary-conditions'] });
+      toast.success('FEA boundary condition created successfully');
+      fetchBoundaryConditions(data.analysis_id);
+    },
+    onError: (error: any) => {
+      console.error('Error creating FEA boundary condition:', error);
+      toast.error('Failed to create FEA boundary condition');
+    },
+  });
 
-      toast.success('Boundary condition created successfully');
-      await fetchBoundaryConditions(bcData.analysis_id);
-      return data;
-    } catch (error) {
-      console.error('Error creating boundary condition:', error);
-      toast.error('Failed to create boundary condition');
+  const createBoundaryCondition = useCallback(async (bcData: Parameters<typeof createBoundaryConditionMutation.mutateAsync>[0]) => {
+    if (!user) {
+      toast.error('Please sign in to create FEA boundary condition');
       return null;
     }
-  }, [fetchBoundaryConditions]);
+
+    try {
+      return await createBoundaryConditionMutation.mutateAsync(bcData);
+    } catch (error) {
+      console.error('Error creating FEA boundary condition:', error);
+      return null;
+    }
+  }, [user, createBoundaryConditionMutation]);
 
   return {
     boundaryConditions,
     fetchBoundaryConditions,
     createBoundaryCondition,
+    isCreating: createBoundaryConditionMutation.isPending,
   };
 };
