@@ -1,4 +1,3 @@
-
 import { ComprehensiveMaterial } from '@/types/materials';
 
 // Enhanced steel materials with comprehensive standards
@@ -159,6 +158,10 @@ const ENHANCED_WOOD_MATERIALS: Omit<ComprehensiveMaterial, 'id' | 'createdAt' | 
       density: { name: 'Density', value: 550, unit: 'kg/m³', source: 'ANSI 117' },
       yieldStrength: { name: 'Bending Strength', value: 16.6, unit: 'MPa', source: 'ANSI 117' },
       compressiveStrength: { name: 'Compression Parallel', value: 9.7, unit: 'MPa', source: 'ANSI 117' }
+    },
+    designValues: {
+      modificationFactors: { 'C_L': 1.0, 'C_V': 1.0, 'C_fu': 1.0 },
+      safetyFactors: { 'K_F': 2.1, 'φ': 0.85 }
     },
     standards: [
       { id: 'ansi-117', name: 'ANSI 117', organization: 'APA', specification: 'ANSI A190.1-2017', year: 2017 }
