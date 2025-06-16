@@ -1,8 +1,9 @@
 
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/providers/AuthProvider';
+import { toast } from 'sonner';
 
 export interface ComplianceViolation {
   id: string;
@@ -19,10 +20,18 @@ export interface ComplianceViolation {
   detected_at: string;
   resolved_at?: string;
   element_id?: string;
+  jurisdiction_specific?: boolean;
+  compliance_rules?: {
+    title: string;
+    jurisdiction: string;
+    code_section: string;
+    description: string;
+  };
 }
 
 export const useComplianceViolations = (uploadId?: string) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const { 
     data: violations = [], 
@@ -61,10 +70,55 @@ export const useComplianceViolations = (uploadId?: string) => {
     enabled: !!user,
   });
 
+  const updateViolationStatusMutation = useMutation({
+    mutationFn: async ({ violationId, status }: { violationId: string; status: string }) => {
+      const updateData: any = { status };
+      if (status === 'resolved') {
+        updateData.resolved_at = new Date().toISOString();
+      }
+
+      const { data, error } = await supabase
+        .from('compliance_violations')
+        .update(updateData)
+        .eq('id', violationId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['compliance-violations'] });
+      toast.success('Violation status updated successfully');
+      refetchViolations();
+    },
+    onError: (error: any) => {
+      console.error('Error updating violation status:', error);
+      toast.error('Failed to update violation status');
+    },
+  });
+
+  const updateViolationStatus = async (params: { violationId: string; status: string }) => {
+    if (!user) {
+      toast.error('Please sign in to update violation status');
+      return false;
+    }
+
+    try {
+      await updateViolationStatusMutation.mutateAsync(params);
+      return true;
+    } catch (error) {
+      console.error('Error updating violation status:', error);
+      return false;
+    }
+  };
+
   return {
     violations,
     violationsLoading,
     violationsError,
     refreshViolations: refetchViolations,
+    updateViolationStatus,
+    isUpdatingStatus: updateViolationStatusMutation.isPending,
   };
 };

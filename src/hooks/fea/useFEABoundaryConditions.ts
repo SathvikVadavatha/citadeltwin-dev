@@ -9,7 +9,7 @@ export interface FEABoundaryCondition {
   id: string;
   analysis_id: string;
   name: string;
-  condition_type: 'fixed' | 'pinned' | 'roller' | 'spring' | 'contact';
+  condition_type: 'fixed' | 'pinned' | 'roller' | 'free' | 'symmetry';
   location: any;
   constraints: { x: boolean; y: boolean; z: boolean; rx: boolean; ry: boolean; rz: boolean };
   properties?: any;
@@ -47,7 +47,7 @@ export const useFEABoundaryConditions = () => {
   const createBoundaryConditionMutation = useMutation({
     mutationFn: async (bcData: {
       analysis_id: string;
-      condition_type: 'fixed' | 'pinned' | 'roller' | 'spring' | 'contact';
+      condition_type: 'fixed' | 'pinned' | 'roller' | 'free' | 'symmetry';
       name: string;
       location: any;
       constraints: { x: boolean; y: boolean; z: boolean; rx: boolean; ry: boolean; rz: boolean };

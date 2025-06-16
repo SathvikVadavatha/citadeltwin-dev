@@ -1,8 +1,9 @@
 
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/providers/AuthProvider';
+import { toast } from 'sonner';
 
 export interface ComplianceCheck {
   id: string;
@@ -19,6 +20,7 @@ export interface ComplianceCheck {
 
 export const useComplianceChecks = (uploadId?: string) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const { 
     data: complianceChecks = [], 
@@ -49,10 +51,63 @@ export const useComplianceChecks = (uploadId?: string) => {
     enabled: !!user,
   });
 
+  const runComplianceCheckMutation = useMutation({
+    mutationFn: async (params: { 
+      uploadId?: string; 
+      checkType?: string; 
+      jurisdictionId?: string;
+    }) => {
+      console.log('Running compliance check:', params);
+      
+      const { data, error } = await supabase.functions.invoke('multi-jurisdiction-compliance', {
+        body: {
+          action: 'run_compliance_check',
+          uploadId: params.uploadId,
+          checkType: params.checkType || 'comprehensive',
+          jurisdictionId: params.jurisdictionId
+        }
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      console.log('Compliance check completed successfully:', data);
+      queryClient.invalidateQueries({ queryKey: ['compliance-checks'] });
+      queryClient.invalidateQueries({ queryKey: ['compliance-violations'] });
+      toast.success('Compliance check completed successfully');
+    },
+    onError: (error: any) => {
+      console.error('Compliance check error:', error);
+      toast.error(`Compliance check failed: ${error.message}`);
+    },
+  });
+
+  const runComplianceCheck = async (params: { 
+    uploadId?: string; 
+    checkType?: string; 
+    jurisdictionId?: string;
+  }) => {
+    if (!user) {
+      toast.error('Please sign in to run compliance check');
+      return false;
+    }
+
+    try {
+      await runComplianceCheckMutation.mutateAsync(params);
+      return true;
+    } catch (error) {
+      console.error('Error running compliance check:', error);
+      return false;
+    }
+  };
+
   return {
     complianceChecks,
     checksLoading,
     checksError,
     refreshChecks: refetchChecks,
+    runComplianceCheck,
+    isRunningCheck: runComplianceCheckMutation.isPending,
   };
 };

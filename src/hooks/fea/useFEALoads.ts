@@ -9,7 +9,7 @@ export interface FEALoad {
   id: string;
   analysis_id: string;
   name: string;
-  load_type: 'point' | 'distributed' | 'pressure' | 'thermal' | 'body';
+  load_type: 'point_load' | 'distributed_load' | 'moment' | 'pressure' | 'temperature' | 'gravity';
   magnitude: number;
   direction: { x: number; y: number; z: number };
   location: { x: number; y: number; z: number };
@@ -48,7 +48,7 @@ export const useFEALoads = () => {
   const createLoadMutation = useMutation({
     mutationFn: async (loadData: {
       analysis_id: string;
-      load_type: 'point' | 'distributed' | 'pressure' | 'thermal' | 'body';
+      load_type: 'point_load' | 'distributed_load' | 'moment' | 'pressure' | 'temperature' | 'gravity';
       name: string;
       magnitude: number;
       direction: { x: number; y: number; z: number };

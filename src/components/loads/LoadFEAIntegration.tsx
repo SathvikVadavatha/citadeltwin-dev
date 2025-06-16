@@ -67,19 +67,22 @@ export const LoadFEAIntegration = ({ loadResults, onAnalysisComplete }: LoadFEAI
 
       // Transfer individual loads
       for (const load of loadResults.individualLoads) {
-        await createLoad({
-          analysis_id: analysis.id,
-          load_type: mapLoadTypeToFEA(load.loadType),
-          name: load.description,
-          magnitude: load.magnitude,
-          direction: load.direction,
-          location: load.location,
-          properties: {
-            codeReference: load.codeReference,
-            safetyFactor: load.safetyFactor,
-            distribution: load.distribution
-          }
-        });
+        const feaLoadType = mapLoadTypeToFEA(load.loadType);
+        if (feaLoadType) {
+          await createLoad({
+            analysis_id: analysis.id,
+            load_type: feaLoadType,
+            name: load.description,
+            magnitude: load.magnitude,
+            direction: load.direction,
+            location: load.location,
+            properties: {
+              codeReference: load.codeReference,
+              safetyFactor: load.safetyFactor,
+              distribution: load.distribution
+            }
+          });
+        }
       }
 
       // Create boundary conditions (simplified - fixed at base)
@@ -110,14 +113,14 @@ export const LoadFEAIntegration = ({ loadResults, onAnalysisComplete }: LoadFEAI
     }
   };
 
-  const mapLoadTypeToFEA = (loadType: string) => {
-    const mapping: Record<string, any> = {
+  const mapLoadTypeToFEA = (loadType: string): 'point_load' | 'distributed_load' | 'pressure' | 'gravity' | null => {
+    const mapping: Record<string, 'point_load' | 'distributed_load' | 'pressure' | 'gravity'> = {
       'dead': 'gravity',
       'live': 'gravity', 
-      'wind': 'wind_load',
-      'seismic': 'seismic_load'
+      'wind': 'pressure',
+      'seismic': 'distributed_load'
     };
-    return mapping[loadType] || 'point_load';
+    return mapping[loadType] || null;
   };
 
   const getLoadSummaryCards = () => {
@@ -258,8 +261,8 @@ export const LoadFEAIntegration = ({ loadResults, onAnalysisComplete }: LoadFEAI
                     {Object.entries({
                       'Dead Loads': 'gravity',
                       'Live Loads': 'gravity',
-                      'Wind Loads': 'wind_load',
-                      'Seismic Loads': 'seismic_load'
+                      'Wind Loads': 'pressure',
+                      'Seismic Loads': 'distributed_load'
                     }).map(([loadCalcType, feaType]) => (
                       <div key={loadCalcType} className="flex items-center justify-between p-3 border rounded">
                         <div className="flex items-center gap-2">

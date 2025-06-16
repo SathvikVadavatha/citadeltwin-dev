@@ -10,7 +10,7 @@ export interface FEAAnalysis {
   user_id: string;
   name: string;
   description?: string;
-  analysis_type: 'static' | 'modal' | 'buckling' | 'dynamic' | 'thermal' | 'nonlinear';
+  analysis_type: 'static' | 'modal' | 'buckling' | 'dynamic' | 'thermal';
   status: 'pending' | 'running' | 'completed' | 'failed';
   element_id?: string;
   upload_id?: string;
@@ -68,7 +68,7 @@ export const useFEAAnalysisCore = (elementId?: string) => {
       element_id?: string;
       name: string;
       description?: string;
-      analysis_type: 'static' | 'modal' | 'buckling' | 'dynamic' | 'thermal' | 'nonlinear';
+      analysis_type: 'static' | 'modal' | 'buckling' | 'dynamic' | 'thermal';
       input_parameters?: any;
     }) => {
       const { data, error } = await supabase

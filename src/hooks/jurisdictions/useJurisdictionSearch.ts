@@ -43,14 +43,14 @@ export const useJurisdictionSearch = () => {
     },
   });
 
-  const searchJurisdictionsByLocation = async (params: { city?: string; state?: string; county?: string }) => {
+  const searchJurisdictionsByLocation = async (city?: string, state?: string, county?: string) => {
     if (!user) {
       toast.error('Please sign in to search jurisdictions');
       return [];
     }
 
     try {
-      return await searchJurisdictionsByLocationMutation.mutateAsync(params);
+      return await searchJurisdictionsByLocationMutation.mutateAsync({ city, state, county });
     } catch (error) {
       console.error('Error searching jurisdictions:', error);
       return [];
