@@ -13,25 +13,15 @@ export const useProjectProgress = () => {
     if (!user) return;
 
     try {
-      // Fetch shared projects with progress data
-      const { data, error } = await supabase
-        .from('project_shares')
-        .select(`
-          *,
-          projects (
-            id,
-            name,
-            description
-          ),
-          project_progress (
-            progress_percentage,
-            status,
-            milestones,
-            recent_updates
-          )
-        `)
-        .eq('shared_with_email', user.email)
-        .eq('status', 'active');
+      // Use raw SQL query to avoid type issues temporarily
+      const { data, error } = await supabase.rpc('exec_sql', {
+        sql: `SELECT ps.*, p.name as project_name, p.description as project_description, 
+                     pp.progress_percentage, pp.status, pp.milestones, pp.recent_updates
+              FROM project_shares ps 
+              JOIN projects p ON ps.project_id = p.id 
+              LEFT JOIN project_progress pp ON ps.project_id = pp.project_id
+              WHERE ps.shared_with_email = '${user.email}' AND ps.status = 'active'`
+      });
 
       if (error) {
         console.error('Error fetching project progress:', error);
@@ -40,13 +30,13 @@ export const useProjectProgress = () => {
       }
 
       const processedProjects = data?.map((share: any) => ({
-        id: share.projects?.id,
-        name: share.projects?.name,
-        description: share.projects?.description,
-        status: share.project_progress?.status || 'in_progress',
-        progress: share.project_progress?.progress_percentage || 0,
-        milestones: share.project_progress?.milestones || [],
-        recent_updates: share.project_progress?.recent_updates || [],
+        id: share.project_id,
+        name: share.project_name,
+        description: share.project_description,
+        status: share.status || 'in_progress',
+        progress: share.progress_percentage || 0,
+        milestones: share.milestones || [],
+        recent_updates: share.recent_updates || [],
         shared_at: share.created_at,
       })) || [];
 

@@ -177,6 +177,83 @@ export type Database = {
           },
         ]
       }
+      client_feedback: {
+        Row: {
+          client_email: string
+          client_name: string
+          content: string
+          created_at: string
+          id: string
+          project_id: string | null
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          client_email: string
+          client_name: string
+          content: string
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          client_email?: string
+          client_name?: string
+          content?: string
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_feedback_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_notifications: {
+        Row: {
+          action_url: string | null
+          client_email: string
+          content: string
+          created_at: string
+          id: string
+          read: boolean
+          title: string
+          type: string
+        }
+        Insert: {
+          action_url?: string | null
+          client_email: string
+          content: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          title: string
+          type?: string
+        }
+        Update: {
+          action_url?: string | null
+          client_email?: string
+          content?: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
       collaboration_changes: {
         Row: {
           applied_at: string | null
@@ -1366,6 +1443,94 @@ export type Database = {
           },
           {
             foreignKeyName: "project_branches_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_progress: {
+        Row: {
+          created_at: string
+          id: string
+          milestones: Json | null
+          progress_percentage: number
+          project_id: string
+          recent_updates: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          milestones?: Json | null
+          progress_percentage?: number
+          project_id: string
+          recent_updates?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          milestones?: Json | null
+          progress_percentage?: number
+          project_id?: string
+          recent_updates?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_progress_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_shares: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          message: string | null
+          permissions: Json
+          project_id: string
+          shared_by: string
+          shared_with_email: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          message?: string | null
+          permissions?: Json
+          project_id: string
+          shared_by: string
+          shared_with_email: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          message?: string | null
+          permissions?: Json
+          project_id?: string
+          shared_by?: string
+          shared_with_email?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_shares_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"

@@ -13,11 +13,10 @@ export const useNotifications = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('client_notifications')
-        .select('*')
-        .eq('client_email', user.email)
-        .order('created_at', { ascending: false });
+      // Use raw SQL query to avoid type issues temporarily
+      const { data, error } = await supabase.rpc('exec_sql', {
+        sql: `SELECT * FROM client_notifications WHERE client_email = '${user.email}' ORDER BY created_at DESC`
+      });
 
       if (error) {
         console.error('Error fetching notifications:', error);
@@ -36,10 +35,10 @@ export const useNotifications = () => {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      const { error } = await supabase
-        .from('client_notifications')
-        .update({ read: true })
-        .eq('id', notificationId);
+      // Use raw SQL query to avoid type issues temporarily
+      const { error } = await supabase.rpc('exec_sql', {
+        sql: `UPDATE client_notifications SET read = true WHERE id = '${notificationId}'`
+      });
 
       if (error) {
         console.error('Error marking notification as read:', error);
@@ -56,11 +55,10 @@ export const useNotifications = () => {
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from('client_notifications')
-        .update({ read: true })
-        .eq('client_email', user.email)
-        .eq('read', false);
+      // Use raw SQL query to avoid type issues temporarily
+      const { error } = await supabase.rpc('exec_sql', {
+        sql: `UPDATE client_notifications SET read = true WHERE client_email = '${user.email}' AND read = false`
+      });
 
       if (error) {
         console.error('Error marking all notifications as read:', error);

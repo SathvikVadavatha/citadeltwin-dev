@@ -9,7 +9,7 @@ import {
   CheckCircle, 
   Clock, 
   Eye,
-  MarkAsRead
+  Check
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -43,7 +43,7 @@ export const NotificationCenter: React.FC = () => {
             <CardTitle>Notifications</CardTitle>
             {notifications.some((n: any) => !n.read) && (
               <Button variant="outline" size="sm" onClick={markAllAsRead}>
-                <MarkAsRead className="h-4 w-4 mr-2" />
+                <Check className="h-4 w-4 mr-2" />
                 Mark All as Read
               </Button>
             )}
