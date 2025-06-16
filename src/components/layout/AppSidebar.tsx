@@ -1,153 +1,71 @@
 
 import React from 'react';
-import { NavLink } from 'react-router-dom';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-} from '@/components/ui/sidebar';
+import { Link, useLocation } from 'react-router-dom';
 import { 
-  Home,
-  Upload,
-  FileText,
-  Shield,
-  Calculator,
-  BarChart3,
+  Building2, 
+  LayoutDashboard, 
+  Upload, 
+  FileText, 
+  Shield, 
+  BarChart3, 
+  Users, 
   Settings,
-  Users,
-  Building2,
-  Eye
+  TestTube,
+  Zap,
+  Share2
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-const menuItems = [
-  {
-    title: 'Dashboard',
-    url: '/dashboard',
-    icon: Home,
-  },
-  {
-    title: 'Upload Blueprint',
-    url: '/blueprints/upload',
-    icon: Upload,
-  },
-  {
-    title: 'View Blueprints',
-    url: '/blueprints/view',
-    icon: Eye,
-  },
-  {
-    title: 'Compliance',
-    url: '/compliance',
-    icon: Shield,
-  },
-  {
-    title: 'FEA Analysis',
-    url: '/fea-analysis',
-    icon: Calculator,
-  },
-  {
-    title: 'Analytics',
-    url: '/analytics',
-    icon: BarChart3,
-  },
-  {
-    title: 'Documents',
-    url: '/documents',
-    icon: FileText,
-  },
+const navigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Upload Blueprints', href: '/blueprints/upload', icon: Upload },
+  { name: 'View Blueprints', href: '/blueprints/view', icon: FileText },
+  { name: 'Compliance', href: '/compliance', icon: Shield },
+  { name: 'FEA Analysis', href: '/fea-analysis', icon: Zap },
+  { name: 'Testing & QA', href: '/testing', icon: TestTube },
+  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { name: 'Documents', href: '/documents', icon: FileText },
+  { name: 'Client Portal', href: '/client-portal', icon: Share2 },
+  { name: 'Users', href: '/users', icon: Users },
+  { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
-const adminItems = [
-  {
-    title: 'Settings',
-    url: '/settings',
-    icon: Settings,
-  },
-  {
-    title: 'Users',
-    url: '/users',
-    icon: Users,
-  },
-];
+export const AppSidebar: React.FC = () => {
+  const location = useLocation();
 
-export function AppSidebar() {
   return (
-    <Sidebar>
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <Building2 className="h-6 w-6 text-primary" />
-          <span className="font-bold text-lg">CitadelTwin</span>
-        </div>
-      </SidebarHeader>
-      
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Main Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url}
-                      className={({ isActive }) => 
-                        `flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
-                          isActive 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'hover:bg-muted'
-                        }`
-                      }
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Administration</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {adminItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink 
-                      to={item.url}
-                      className={({ isActive }) => 
-                        `flex items-center gap-2 px-3 py-2 rounded-md transition-colors ${
-                          isActive 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'hover:bg-muted'
-                        }`
-                      }
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-
-      <SidebarFooter className="p-4">
-        <div className="text-xs text-muted-foreground">
-          CitadelTwin v1.0 - Civil Engineering Platform
-        </div>
-      </SidebarFooter>
-    </Sidebar>
+    <div className="flex h-full w-64 flex-col bg-background border-r">
+      <div className="flex h-16 items-center px-6 border-b">
+        <Link to="/dashboard" className="flex items-center space-x-2">
+          <Building2 className="h-8 w-8 text-primary" />
+          <span className="text-xl font-bold">CitadelTwin</span>
+        </Link>
+      </div>
+      <nav className="flex-1 space-y-1 px-2 py-4">
+        {navigation.map((item) => {
+          const isActive = location.pathname === item.href;
+          return (
+            <Link
+              key={item.name}
+              to={item.href}
+              className={cn(
+                'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
+                isActive
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              )}
+            >
+              <item.icon
+                className={cn(
+                  'mr-3 h-5 w-5 flex-shrink-0',
+                  isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-accent-foreground'
+                )}
+              />
+              {item.name}
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
   );
-}
+};
