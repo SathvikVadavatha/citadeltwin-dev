@@ -1,3 +1,4 @@
+
 import { 
   Sidebar,
   SidebarContent,
@@ -27,22 +28,31 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/providers/AuthProvider";
 import { useProfile } from "@/hooks/useProfile";
+import { useNavigate } from "react-router-dom";
 
 const menuItems = [
-  { title: "Projects", url: "/projects", icon: FolderOpen },
-  { title: "Team", url: "/team", icon: Users },
-  { title: "Upload", url: "/upload", icon: Upload },
+  { title: "Dashboard", url: "/dashboard", icon: Home },
+  { title: "Upload Blueprints", url: "/blueprints/upload", icon: Upload },
+  { title: "View Blueprints", url: "/blueprints/view", icon: FolderOpen },
+  { title: "Compliance", url: "/compliance", icon: FileText },
+  { title: "FEA Analysis", url: "/fea-analysis", icon: Calculator },
+  { title: "Users", url: "/users", icon: Users },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Settings", url: "/settings", icon: Settings },
   { title: "Help", url: "/help", icon: HelpCircle },
 ];
 
-const sidebarItems = [
-  { title: "Document Automation", url: "/documents", icon: Sparkles, badge: "AI" },
-  { title: "Home", url: "/", icon: Home },
-  { title: "Calculator", url: "/calculator", icon: Calculator },
+const aiFeatures = [
+  { 
+    title: "Document Automation", 
+    url: "/documents", 
+    icon: Sparkles, 
+    badge: "AI",
+    description: "AI-powered document generation and templates"
+  },
 ];
 
 interface AppSidebarProps {
@@ -53,9 +63,14 @@ interface AppSidebarProps {
 export function AppSidebar({ currentView, onNavigate }: AppSidebarProps) {
   const { signOut } = useAuth();
   const { profile } = useProfile();
+  const navigate = useNavigate();
 
   const handleSignOut = () => {
     signOut();
+  };
+
+  const handleNavigation = (url: string) => {
+    navigate(url);
   };
 
   const getUserInitials = () => {
@@ -82,6 +97,31 @@ export function AppSidebar({ currentView, onNavigate }: AppSidebarProps) {
 
       <SidebarContent>
         <SidebarGroup>
+          <SidebarGroupLabel className="text-muted-foreground">AI Features</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {aiFeatures.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton 
+                    asChild
+                    isActive={currentView === item.url.slice(1)}
+                    className="text-foreground hover:bg-secondary/20"
+                  >
+                    <button onClick={() => handleNavigation(item.url)}>
+                      <item.icon className="w-4 h-4 text-cyan-400" />
+                      <span>{item.title}</span>
+                      <Badge variant="secondary" className="ml-auto bg-cyan-600 text-white">
+                        {item.badge}
+                      </Badge>
+                    </button>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
           <SidebarGroupLabel className="text-muted-foreground">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -92,7 +132,7 @@ export function AppSidebar({ currentView, onNavigate }: AppSidebarProps) {
                     isActive={currentView === item.url.slice(1)}
                     className="text-foreground hover:bg-secondary/20"
                   >
-                    <button onClick={() => onNavigate(item.url.slice(1))}>
+                    <button onClick={() => handleNavigation(item.url)}>
                       <item.icon className="w-4 h-4" />
                       <span>{item.title}</span>
                     </button>
@@ -126,7 +166,7 @@ export function AppSidebar({ currentView, onNavigate }: AppSidebarProps) {
             variant="ghost" 
             size="sm" 
             className="w-full justify-start text-foreground hover:bg-secondary/20"
-            onClick={() => onNavigate('profile')}
+            onClick={() => handleNavigation('/profile')}
           >
             <User className="w-4 h-4 mr-2" />
             Profile

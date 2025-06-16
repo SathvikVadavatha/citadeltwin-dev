@@ -1,4 +1,6 @@
+
 import { useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/providers/AuthProvider'
 import { toast } from 'sonner'
@@ -122,6 +124,21 @@ export const useGeminiAI = () => {
     })
   }
 
+  // Add the generateContent mutation that's being used in the components
+  const generateContent = useMutation({
+    mutationFn: async (request: AIRequest): Promise<AIResponse> => {
+      const response = await generateResponse(request)
+      if (!response) {
+        throw new Error('Failed to generate content')
+      }
+      return response
+    },
+    onError: (error) => {
+      console.error('Content generation error:', error)
+      toast.error(`Content generation failed: ${error.message}`)
+    }
+  })
+
   const clearError = () => setError(null)
   const clearLastResponse = () => setLastResponse(null)
 
@@ -130,6 +147,7 @@ export const useGeminiAI = () => {
     lastResponse,
     error,
     generateResponse,
+    generateContent, // Add this to the return object
     analyzeText,
     generateCode,
     getTechnicalConsulting,
