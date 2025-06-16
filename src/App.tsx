@@ -1,57 +1,143 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from './providers/AuthProvider';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { EnhancedResponsiveLayout } from './components/layout/EnhancedResponsiveLayout';
-import { Dashboard } from './pages/Dashboard';
-import { UploadBlueprint } from './pages/UploadBlueprint';
-import { ViewBlueprints } from './pages/ViewBlueprints';
-import { Settings } from './pages/Settings';
-import { Users } from './pages/Users';
-import { Compliance } from './pages/Compliance';
-import { FEAAnalysis } from './pages/FEAAnalysis';
-import { Analytics } from './pages/Analytics';
-import { ClientPortal } from './pages/ClientPortal';
-import { Testing } from './pages/Testing';
-import { DocumentManagementDashboard } from '@/components/documents/DocumentManagementDashboard';
+import { AuthProvider } from '@/providers/AuthProvider';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import ResponsiveLayout from '@/layouts/ResponsiveLayout';
+import Dashboard from '@/pages/Dashboard';
+import Projects from '@/pages/Projects';
+import ProjectDetails from '@/pages/ProjectDetails';
+import AIAssistant from '@/pages/AIAssistant';
+import CADInterface from '@/pages/CADInterface';
+import BIMViewer from '@/pages/BIMViewer';
+import FEAAnalysis from '@/pages/FEAAnalysis';
+import CostEstimator from '@/pages/CostEstimator';
+import AccountSettings from '@/pages/AccountSettings';
+import Pricing from '@/pages/Pricing';
+import Support from '@/pages/Support';
+import SignIn from '@/pages/SignIn';
+import SignUp from '@/pages/SignUp';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
+import NotFound from '@/pages/NotFound';
+import Integrations from '@/pages/Integrations';
 
 function App() {
-  const queryClient = new QueryClient();
-
   return (
-    <QueryClientProvider client={queryClient}>
+    <Router>
       <AuthProvider>
-        <Router>
-          <EnhancedResponsiveLayout>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/blueprints/upload" element={<ProtectedRoute><UploadBlueprint /></ProtectedRoute>} />
-              <Route path="/blueprints/view" element={<ProtectedRoute><ViewBlueprints /></ProtectedRoute>} />
-              <Route path="/compliance" element={<ProtectedRoute><Compliance /></ProtectedRoute>} />
-              <Route path="/fea-analysis" element={<ProtectedRoute><FEAAnalysis /></ProtectedRoute>} />
-              <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-              <Route path="/client-portal" element={<ProtectedRoute><ClientPortal /></ProtectedRoute>} />
-              <Route path="/testing" element={<ProtectedRoute><Testing /></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-              <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
-              <Route 
-                path="/documents" 
-                element={
-                  <ProtectedRoute>
-                    <div className="container mx-auto p-6">
-                      <DocumentManagementDashboard />
-                    </div>
-                  </ProtectedRoute>
-                } 
-              />
-            </Routes>
-          </EnhancedResponsiveLayout>
-        </Router>
+        <div className="min-h-screen bg-background">
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                <ProtectedRoute>
+                  <ResponsiveLayout>
+                    <Dashboard />
+                  </ResponsiveLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/projects" 
+              element={
+                <ProtectedRoute>
+                  <ResponsiveLayout>
+                    <Projects />
+                  </ResponsiveLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/projects/:projectId" 
+              element={
+                <ProtectedRoute>
+                  <ResponsiveLayout>
+                    <ProjectDetails />
+                  </ResponsiveLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/ai-assistant" 
+              element={
+                <ProtectedRoute>
+                  <ResponsiveLayout>
+                    <AIAssistant />
+                  </ResponsiveLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/cad" 
+              element={
+                <ProtectedRoute>
+                  <ResponsiveLayout>
+                    <CADInterface />
+                  </ResponsiveLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/bim-viewer" 
+              element={
+                <ProtectedRoute>
+                  <ResponsiveLayout>
+                    <BIMViewer />
+                  </ResponsiveLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/fea-analysis" 
+              element={
+                <ProtectedRoute>
+                  <ResponsiveLayout>
+                    <FEAAnalysis />
+                  </ResponsiveLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/cost-estimator" 
+              element={
+                <ProtectedRoute>
+                  <ResponsiveLayout>
+                    <CostEstimator />
+                  </ResponsiveLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/account-settings" 
+              element={
+                <ProtectedRoute>
+                  <ResponsiveLayout>
+                    <AccountSettings />
+                  </ResponsiveLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/support" element={<Support />} />
+            <Route path="/signin" element={<SignIn />} />
+            <Route path="/signup" element={<SignUp />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="*" element={<NotFound />} />
+            <Route 
+              path="/integrations" 
+              element={
+                <ProtectedRoute>
+                  <ResponsiveLayout>
+                    <Integrations />
+                  </ResponsiveLayout>
+                </ProtectedRoute>
+              } 
+            />
+          </Routes>
+        </div>
       </AuthProvider>
-    </QueryClientProvider>
+    </Router>
   );
 }
 
