@@ -10,12 +10,12 @@ export const useSimplifiedCollaboration = (projectId?: string) => {
   const operationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Stable debounced cursor update with proper typing
-  const debouncedCursorUpdate = useCallback((x: number, y: number, userId: string) => {
+  const debouncedCursorUpdate = useCallback((position: { x: number; y: number }) => {
     if (cursorTimeoutRef.current) {
       clearTimeout(cursorTimeoutRef.current);
     }
     cursorTimeoutRef.current = setTimeout(() => {
-      collaboration.updateCursorPosition(x, y, userId);
+      collaboration.updateCursorPosition(position);
     }, 100);
   }, [collaboration.updateCursorPosition]);
 
