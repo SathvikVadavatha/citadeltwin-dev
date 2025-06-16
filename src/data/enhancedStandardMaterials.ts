@@ -155,6 +155,7 @@ const ENHANCED_WOOD_MATERIALS: Omit<ComprehensiveMaterial, 'id' | 'createdAt' | 
     subCategory: 'glulam',
     structuralProperties: {
       elasticModulus: { name: 'Elastic Modulus', value: 13800, unit: 'MPa', source: 'ANSI 117' },
+      poissonRatio: { name: 'Poisson Ratio', value: 0.30, unit: 'dimensionless', source: 'ANSI 117' },
       density: { name: 'Density', value: 550, unit: 'kg/m³', source: 'ANSI 117' },
       yieldStrength: { name: 'Bending Strength', value: 16.6, unit: 'MPa', source: 'ANSI 117' },
       compressiveStrength: { name: 'Compression Parallel', value: 9.7, unit: 'MPa', source: 'ANSI 117' }
