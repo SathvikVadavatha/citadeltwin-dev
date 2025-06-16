@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -16,6 +17,7 @@ import { ClientPortal } from './pages/ClientPortal';
 import { Testing } from './pages/Testing';
 import { DocumentManagementDashboard } from '@/components/documents/DocumentManagementDashboard';
 import Security from './pages/Security';
+import WorkflowAutomation from './pages/WorkflowAutomation';
 
 function App() {
   const queryClient = new QueryClient();
@@ -38,6 +40,7 @@ function App() {
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
               <Route path="/security" element={<ProtectedRoute><Security /></ProtectedRoute>} />
+              <Route path="/workflow-automation" element={<ProtectedRoute><WorkflowAutomation /></ProtectedRoute>} />
               <Route 
                 path="/documents" 
                 element={

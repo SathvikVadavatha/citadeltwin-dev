@@ -84,6 +84,66 @@ export type Database = {
         }
         Relationships: []
       }
+      automated_project_setups: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          error_logs: Json | null
+          id: string
+          progress_percentage: number | null
+          project_id: string | null
+          setup_parameters: Json
+          started_at: string | null
+          status: string
+          steps_completed: Json | null
+          template_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_logs?: Json | null
+          id?: string
+          progress_percentage?: number | null
+          project_id?: string | null
+          setup_parameters?: Json
+          started_at?: string | null
+          status?: string
+          steps_completed?: Json | null
+          template_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_logs?: Json | null
+          id?: string
+          progress_percentage?: number | null
+          project_id?: string | null
+          setup_parameters?: Json
+          started_at?: string | null
+          status?: string
+          steps_completed?: Json | null
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automated_project_setups_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automated_project_setups_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "building_type_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       backup_jobs: {
         Row: {
           backup_location: string | null
@@ -260,6 +320,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      building_type_templates: {
+        Row: {
+          building_type: string
+          category: string
+          code_requirements: Json | null
+          created_at: string
+          created_by: string | null
+          default_parameters: Json
+          description: string | null
+          design_requirements: Json | null
+          id: string
+          is_active: boolean | null
+          name: string
+          required_compliance_checks: Json | null
+          standard_elements: Json | null
+          typical_materials: Json | null
+          updated_at: string
+        }
+        Insert: {
+          building_type: string
+          category: string
+          code_requirements?: Json | null
+          created_at?: string
+          created_by?: string | null
+          default_parameters?: Json
+          description?: string | null
+          design_requirements?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          required_compliance_checks?: Json | null
+          standard_elements?: Json | null
+          typical_materials?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          building_type?: string
+          category?: string
+          code_requirements?: Json | null
+          created_at?: string
+          created_by?: string | null
+          default_parameters?: Json
+          description?: string | null
+          design_requirements?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          required_compliance_checks?: Json | null
+          standard_elements?: Json | null
+          typical_materials?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       client_feedback: {
         Row: {
@@ -1790,6 +1904,66 @@ export type Database = {
           },
         ]
       }
+      project_workflows: {
+        Row: {
+          automation_config: Json | null
+          created_at: string
+          created_by: string | null
+          current_step: number | null
+          id: string
+          name: string
+          progress_data: Json | null
+          project_id: string | null
+          status: string
+          steps: Json
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          automation_config?: Json | null
+          created_at?: string
+          created_by?: string | null
+          current_step?: number | null
+          id?: string
+          name: string
+          progress_data?: Json | null
+          project_id?: string | null
+          status?: string
+          steps?: Json
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          automation_config?: Json | null
+          created_at?: string
+          created_by?: string | null
+          current_step?: number | null
+          id?: string
+          name?: string
+          progress_data?: Json | null
+          project_id?: string | null
+          status?: string
+          steps?: Json
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_workflows_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_workflows_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           created_at: string | null
@@ -2023,6 +2197,145 @@ export type Database = {
         }
         Relationships: []
       }
+      workflow_executions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          input_data: Json | null
+          output_data: Json | null
+          started_at: string | null
+          status: string
+          step_index: number
+          step_name: string
+          workflow_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_data?: Json | null
+          output_data?: Json | null
+          started_at?: string | null
+          status?: string
+          step_index: number
+          step_name: string
+          workflow_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_data?: Json | null
+          output_data?: Json | null
+          started_at?: string | null
+          status?: string
+          step_index?: number
+          step_name?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_executions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "project_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_templates: {
+        Row: {
+          automation_rules: Json | null
+          building_type: string | null
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_system_template: boolean | null
+          name: string
+          parameters: Json
+          steps: Json
+          template_data: Json
+          updated_at: string
+        }
+        Insert: {
+          automation_rules?: Json | null
+          building_type?: string | null
+          category: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system_template?: boolean | null
+          name: string
+          parameters?: Json
+          steps?: Json
+          template_data?: Json
+          updated_at?: string
+        }
+        Update: {
+          automation_rules?: Json | null
+          building_type?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system_template?: boolean | null
+          name?: string
+          parameters?: Json
+          steps?: Json
+          template_data?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      workflow_triggers: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          last_triggered: string | null
+          trigger_config: Json
+          trigger_type: string
+          workflow_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_triggered?: string | null
+          trigger_config?: Json
+          trigger_type: string
+          workflow_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_triggered?: string | null
+          trigger_config?: Json
+          trigger_type?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_triggers_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "project_workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -2035,6 +2348,23 @@ export type Database = {
       cleanup_old_presence: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      complete_workflow_step: {
+        Args: {
+          p_execution_id: string
+          p_output_data?: Json
+          p_success?: boolean
+          p_error_message?: string
+        }
+        Returns: boolean
+      }
+      execute_workflow_step: {
+        Args: {
+          p_workflow_id: string
+          p_step_index: number
+          p_input_data?: Json
+        }
+        Returns: string
       }
       is_admin: {
         Args: Record<PropertyKey, never>
