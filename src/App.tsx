@@ -28,7 +28,7 @@ function App() {
         <Router>
           <EnhancedResponsiveLayout>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/blueprints/upload" element={<ProtectedRoute><UploadBlueprint /></ProtectedRoute>} />
               <Route path="/blueprints/view" element={<ProtectedRoute><ViewBlueprints /></ProtectedRoute>} />
