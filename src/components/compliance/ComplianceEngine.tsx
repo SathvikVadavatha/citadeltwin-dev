@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,8 +14,10 @@ interface ComplianceEngineProps {
   uploadId?: string;
 }
 
+type EngineType = 'standard' | 'multi_jurisdiction';
+
 export const ComplianceEngine: React.FC<ComplianceEngineProps> = ({ uploadId }) => {
-  const [activeEngine, setActiveEngine] = useState<'standard' | 'multi_jurisdiction'>('multi_jurisdiction');
+  const [activeEngine, setActiveEngine] = useState<EngineType>('multi_jurisdiction');
   
   const { 
     complianceRules, 

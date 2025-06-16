@@ -1084,6 +1084,119 @@ export type Database = {
         }
         Relationships: []
       }
+      jurisdiction_codes: {
+        Row: {
+          adoption_date: string
+          amendments: Json | null
+          code_name: string
+          code_type: string
+          code_version: string
+          created_at: string
+          effective_date: string
+          id: string
+          is_current: boolean
+          jurisdiction_id: string
+          superseded_by: string | null
+        }
+        Insert: {
+          adoption_date: string
+          amendments?: Json | null
+          code_name: string
+          code_type: string
+          code_version: string
+          created_at?: string
+          effective_date: string
+          id?: string
+          is_current?: boolean
+          jurisdiction_id: string
+          superseded_by?: string | null
+        }
+        Update: {
+          adoption_date?: string
+          amendments?: Json | null
+          code_name?: string
+          code_type?: string
+          code_version?: string
+          created_at?: string
+          effective_date?: string
+          id?: string
+          is_current?: boolean
+          jurisdiction_id?: string
+          superseded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jurisdiction_codes_jurisdiction_id_fkey"
+            columns: ["jurisdiction_id"]
+            isOneToOne: false
+            referencedRelation: "jurisdictions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jurisdiction_codes_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "jurisdiction_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jurisdictions: {
+        Row: {
+          city_name: string | null
+          code_adoption_date: string | null
+          contact_info: Json | null
+          county_name: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          jurisdiction_type: string
+          last_updated: string
+          name: string
+          parent_jurisdiction_id: string | null
+          state_code: string
+          website_url: string | null
+        }
+        Insert: {
+          city_name?: string | null
+          code_adoption_date?: string | null
+          contact_info?: Json | null
+          county_name?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          jurisdiction_type: string
+          last_updated?: string
+          name: string
+          parent_jurisdiction_id?: string | null
+          state_code: string
+          website_url?: string | null
+        }
+        Update: {
+          city_name?: string | null
+          code_adoption_date?: string | null
+          contact_info?: Json | null
+          county_name?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          jurisdiction_type?: string
+          last_updated?: string
+          name?: string
+          parent_jurisdiction_id?: string | null
+          state_code?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jurisdictions_parent_jurisdiction_id_fkey"
+            columns: ["parent_jurisdiction_id"]
+            isOneToOne: false
+            referencedRelation: "jurisdictions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       load_calculations: {
         Row: {
           created_at: string

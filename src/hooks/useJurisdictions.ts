@@ -39,7 +39,7 @@ export const useJurisdictions = () => {
   const { withErrorHandling } = useErrorHandler();
   const [selectedJurisdiction, setSelectedJurisdiction] = useState<string | null>(null);
 
-  // Fetch all jurisdictions
+  // Fetch all jurisdictions using raw SQL
   const { 
     data: jurisdictions = [], 
     isLoading: jurisdictionsLoading 
@@ -47,39 +47,43 @@ export const useJurisdictions = () => {
     queryKey: ['jurisdictions'],
     queryFn: async () => {
       return withErrorHandling(async () => {
-        const { data, error } = await supabase
-          .from('jurisdictions')
-          .select('*')
-          .eq('is_active', true)
-          .order('jurisdiction_type', { ascending: true })
-          .order('name', { ascending: true });
+        const { data, error } = await supabase.rpc('exec_sql', {
+          sql: `
+            SELECT * FROM public.jurisdictions 
+            WHERE is_active = true 
+            ORDER BY jurisdiction_type ASC, name ASC
+          `
+        });
 
         if (error) throw error;
-        return data as Jurisdiction[];
+        return (data || []) as Jurisdiction[];
       }, 'Fetching jurisdictions') ?? [];
     },
   });
 
-  // Fetch jurisdiction codes
+  // Fetch jurisdiction codes using raw SQL
   const fetchJurisdictionCodes = (jurisdictionId?: string) => {
     return useQuery({
       queryKey: ['jurisdiction-codes', jurisdictionId],
       queryFn: async () => {
         return withErrorHandling(async () => {
-          let query = supabase
-            .from('jurisdiction_codes')
-            .select('*');
-
+          let sql = `
+            SELECT * FROM public.jurisdiction_codes 
+            WHERE is_current = true
+          `;
+          
           if (jurisdictionId) {
-            query = query.eq('jurisdiction_id', jurisdictionId);
+            sql += ` AND jurisdiction_id = '${jurisdictionId}'`;
           }
+          
+          sql += ' ORDER BY code_type ASC';
 
-          const { data, error } = await query
-            .eq('is_current', true)
-            .order('code_type', { ascending: true });
+          const { data, error } = await supabase.rpc('exec_sql', {
+            sql: sql
+          });
 
           if (error) throw error;
-          return data as JurisdictionCode[];
+          return (data || []) as JurisdictionCode[];
         }, 'Fetching jurisdiction codes') ?? [];
       },
       enabled: !!jurisdictionId,
@@ -98,25 +102,30 @@ export const useJurisdictions = () => {
     }, 'Fetching jurisdiction hierarchy');
   };
 
-  // Search jurisdictions by location
+  // Search jurisdictions by location using raw SQL
   const searchJurisdictionsByLocation = async (state: string, county?: string, city?: string) => {
     return withErrorHandling(async () => {
-      let query = supabase
-        .from('jurisdictions')
-        .select('*')
-        .eq('state_code', state)
-        .eq('is_active', true);
+      let sql = `
+        SELECT * FROM public.jurisdictions 
+        WHERE state_code = '${state.toUpperCase()}' 
+        AND is_active = true
+      `;
 
       if (county) {
-        query = query.eq('county_name', county);
+        sql += ` AND county_name ILIKE '%${county}%'`;
       }
       if (city) {
-        query = query.eq('city_name', city);
+        sql += ` AND city_name ILIKE '%${city}%'`;
       }
 
-      const { data, error } = await query.order('jurisdiction_type');
+      sql += ' ORDER BY jurisdiction_type';
+
+      const { data, error } = await supabase.rpc('exec_sql', {
+        sql: sql
+      });
+
       if (error) throw error;
-      return data as Jurisdiction[];
+      return (data || []) as Jurisdiction[];
     }, 'Searching jurisdictions by location');
   };
 

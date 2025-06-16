@@ -2,55 +2,55 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/providers/AuthProvider';
+import { useErrorHandler } from '@/utils/errorHandling';
 import { toast } from 'sonner';
 
-export type ComplianceRule = {
+export interface ComplianceRule {
   id: string;
-  jurisdiction: string;
-  code_section: string;
-  rule_type: 'height_limit' | 'area_limit' | 'occupancy' | 'egress' | 'fire_rating' | 'structural';
   title: string;
   description: string;
+  code_section: string;
+  jurisdiction: string;
+  rule_type: string;
   rule_logic: any;
   is_active: boolean;
   created_at: string;
   updated_at: string;
-};
+}
 
-export type ComplianceViolation = {
+export interface ComplianceViolation {
   id: string;
-  upload_id: string | null;
-  element_id: string | null;
+  upload_id?: string;
   rule_id: string;
+  element_id?: string;
   violation_type: string;
   severity: 'critical' | 'major' | 'minor' | 'warning';
   description: string;
-  location: any;
-  current_value: any;
-  required_value: any;
-  remediation_suggestions: string[];
-  status: 'open' | 'acknowledged' | 'resolved' | 'dismissed';
+  current_value?: any;
+  required_value?: any;
+  location?: any;
+  remediation_suggestions?: string[];
+  status: 'open' | 'in_progress' | 'resolved' | 'ignored';
   detected_at: string;
-  resolved_at: string | null;
-};
+  resolved_at?: string;
+}
 
-export type ComplianceCheck = {
+export interface ComplianceCheck {
   id: string;
-  upload_id: string | null;
-  check_type: string;
-  status: 'running' | 'completed' | 'failed' | 'cancelled';
-  rules_checked: number;
-  violations_found: number;
-  started_at: string;
-  completed_at: string | null;
+  upload_id?: string;
   user_id: string;
-  metadata: any;
-};
+  check_type: string;
+  status: 'running' | 'completed' | 'failed';
+  started_at: string;
+  completed_at?: string;
+  rules_checked?: number;
+  violations_found?: number;
+  metadata?: any;
+}
 
 export const useCompliance = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { withErrorHandling } = useErrorHandler();
 
   // Fetch compliance rules
   const { 
@@ -59,70 +59,64 @@ export const useCompliance = () => {
   } = useQuery({
     queryKey: ['compliance-rules'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('compliance_rules')
-        .select('*')
-        .eq('is_active', true)
-        .order('jurisdiction', { ascending: true });
+      return withErrorHandling(async () => {
+        const { data, error } = await supabase
+          .from('compliance_rules')
+          .select('*')
+          .eq('is_active', true)
+          .order('jurisdiction', { ascending: true })
+          .order('rule_type', { ascending: true });
 
-      if (error) throw error;
-      return data as ComplianceRule[];
+        if (error) throw error;
+        return data as ComplianceRule[];
+      }, 'Fetching compliance rules') ?? [];
     },
   });
 
-  // Fetch compliance violations
+  // Fetch violations for a specific upload
   const fetchViolations = (uploadId?: string) => {
     return useQuery({
       queryKey: ['compliance-violations', uploadId],
       queryFn: async () => {
-        let query = supabase
-          .from('compliance_violations')
-          .select(`
-            *,
-            compliance_rules (
-              jurisdiction,
-              code_section,
-              title
-            ),
-            bim_elements (
-              name,
-              element_type
-            )
-          `);
+        return withErrorHandling(async () => {
+          let query = supabase
+            .from('compliance_violations')
+            .select('*')
+            .order('severity', { ascending: false })
+            .order('detected_at', { ascending: false });
 
-        if (uploadId) {
-          query = query.eq('upload_id', uploadId);
-        }
+          if (uploadId) {
+            query = query.eq('upload_id', uploadId);
+          }
 
-        const { data, error } = await query
-          .order('severity', { ascending: false })
-          .order('detected_at', { ascending: false });
-
-        if (error) throw error;
-        return data as ComplianceViolation[];
+          const { data, error } = await query;
+          if (error) throw error;
+          return data as ComplianceViolation[];
+        }, 'Fetching compliance violations') ?? [];
       },
       enabled: !!uploadId,
     });
   };
 
-  // Fetch compliance checks
+  // Fetch compliance checks for a specific upload
   const fetchComplianceChecks = (uploadId?: string) => {
     return useQuery({
       queryKey: ['compliance-checks', uploadId],
       queryFn: async () => {
-        let query = supabase
-          .from('compliance_checks')
-          .select('*');
+        return withErrorHandling(async () => {
+          let query = supabase
+            .from('compliance_checks')
+            .select('*')
+            .order('started_at', { ascending: false });
 
-        if (uploadId) {
-          query = query.eq('upload_id', uploadId);
-        }
+          if (uploadId) {
+            query = query.eq('upload_id', uploadId);
+          }
 
-        const { data, error } = await query
-          .order('started_at', { ascending: false });
-
-        if (error) throw error;
-        return data as ComplianceCheck[];
+          const { data, error } = await query;
+          if (error) throw error;
+          return data as ComplianceCheck[];
+        }, 'Fetching compliance checks') ?? [];
       },
       enabled: !!uploadId,
     });
@@ -130,19 +124,36 @@ export const useCompliance = () => {
 
   // Run compliance check mutation
   const runComplianceCheckMutation = useMutation({
-    mutationFn: async ({ uploadId, checkType = 'manual' }: { uploadId: string; checkType?: string }) => {
-      if (!user) throw new Error('User not authenticated');
+    mutationFn: async ({ uploadId, checkType = 'standard', jurisdictionId }: { 
+      uploadId: string; 
+      checkType?: string;
+      jurisdictionId?: string;
+    }) => {
+      return withErrorHandling(async () => {
+        const { data: user } = await supabase.auth.getUser();
+        if (!user.user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('compliance-check', {
-        body: { 
+        const functionName = checkType === 'multi_jurisdiction' 
+          ? 'multi-jurisdiction-compliance' 
+          : 'compliance-check';
+
+        const payload: any = { 
           upload_id: uploadId,
           check_type: checkType,
-          user_id: user.id
-        }
-      });
+          user_id: user.user.id
+        };
 
-      if (error) throw error;
-      return data;
+        if (jurisdictionId) {
+          payload.jurisdiction_id = jurisdictionId;
+        }
+
+        const { data, error } = await supabase.functions.invoke(functionName, {
+          body: payload
+        });
+
+        if (error) throw error;
+        return data;
+      }, 'Running compliance check');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['compliance-violations'] });
@@ -155,37 +166,15 @@ export const useCompliance = () => {
     },
   });
 
-  // Update violation status mutation
-  const updateViolationStatusMutation = useMutation({
-    mutationFn: async ({ violationId, status }: { violationId: string; status: string }) => {
-      const updates: any = { status };
-      if (status === 'resolved') {
-        updates.resolved_at = new Date().toISOString();
-      }
-
-      const { data, error } = await supabase
-        .from('compliance_violations')
-        .update(updates)
-        .eq('id', violationId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['compliance-violations'] });
-      toast.success('Violation status updated');
-    },
-  });
+  const runComplianceCheck = runComplianceCheckMutation.mutate;
+  const isRunningCheck = runComplianceCheckMutation.isPending;
 
   return {
     complianceRules,
     rulesLoading,
     fetchViolations,
     fetchComplianceChecks,
-    runComplianceCheck: runComplianceCheckMutation.mutate,
-    isRunningCheck: runComplianceCheckMutation.isPending,
-    updateViolationStatus: updateViolationStatusMutation.mutate,
+    runComplianceCheck,
+    isRunningCheck,
   };
 };
