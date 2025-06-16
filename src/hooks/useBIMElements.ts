@@ -1,21 +1,40 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
-import type { Database } from '@/integrations/supabase/types';
 
-type BIMElement = Database['public']['Tables']['bim_elements']['Row'] & {
-  materials?: Database['public']['Tables']['materials']['Row'];
-  parent_element?: Database['public']['Tables']['bim_elements']['Row'];
-};
-
-export type { BIMElement };
+// Extended BIM Element type to include project_id
+export interface BIMElement {
+  id: string;
+  upload_id?: string;
+  project_id?: string;
+  element_type: 'wall' | 'beam' | 'column' | 'slab' | 'door' | 'window' | 'roof' | 'foundation' | 'stair' | 'railing' | 'mechanical' | 'electrical' | 'plumbing' | 'structural' | 'architectural';
+  name: string;
+  description?: string;
+  geometry: any;
+  parameters?: any;
+  material_id?: string;
+  parent_element_id?: string;
+  created_at: string;
+  updated_at: string;
+  materials?: {
+    id: string;
+    name: string;
+    material_type: string;
+    properties: any;
+  };
+  parent_element?: {
+    id: string;
+    name: string;
+    element_type: string;
+  };
+}
 
 export interface CreateBIMElementData {
   upload_id?: string;
   project_id?: string;
-  element_type: Database['public']['Enums']['element_type'];
+  element_type: 'wall' | 'beam' | 'column' | 'slab' | 'door' | 'window' | 'roof' | 'foundation' | 'stair' | 'railing' | 'mechanical' | 'electrical' | 'plumbing' | 'structural' | 'architectural';
   name: string;
   description?: string;
   geometry: any;
@@ -24,7 +43,7 @@ export interface CreateBIMElementData {
   parent_element_id?: string;
 }
 
-export const useBIMElements = (filterId?: string, filterType: 'upload' | 'project' = 'upload') => {
+export const useBIMElements = (projectIdOrUploadId?: string, filterType: 'project' | 'upload' = 'upload') => {
   const [elements, setElements] = useState<BIMElement[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -32,18 +51,22 @@ export const useBIMElements = (filterId?: string, filterType: 'upload' | 'projec
   const [deleting, setDeleting] = useState(false);
   const { user } = useAuth();
 
-  const fetchElements = useCallback(async () => {
-    if (!user) return;
-
+  const fetchElements = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    
     try {
       setLoading(true);
-      let query = supabase
+      let query = (supabase as any)
         .from('bim_elements')
         .select(`
           *,
           materials (
             id,
             name,
+            material_type,
             properties
           ),
           parent_element:bim_elements!parent_element_id (
@@ -54,11 +77,11 @@ export const useBIMElements = (filterId?: string, filterType: 'upload' | 'projec
         `)
         .order('created_at', { ascending: false });
 
-      if (filterId) {
-        if (filterType === 'upload') {
-          query = query.eq('upload_id', filterId);
+      if (projectIdOrUploadId) {
+        if (filterType === 'project') {
+          query = query.eq('project_id', projectIdOrUploadId);
         } else {
-          query = query.eq('project_id', filterId);
+          query = query.eq('upload_id', projectIdOrUploadId);
         }
       }
 
@@ -70,32 +93,36 @@ export const useBIMElements = (filterId?: string, filterType: 'upload' | 'projec
         return;
       }
 
-      setElements(data || []);
+      setElements((data || []) as BIMElement[]);
     } catch (error) {
       console.error('Error fetching BIM elements:', error);
       toast.error('Failed to load BIM elements');
     } finally {
       setLoading(false);
     }
-  }, [user, filterId, filterType]);
+  };
 
-  useEffect(() => {
-    fetchElements();
-  }, [fetchElements]);
+  const createElement = async (elementData: CreateBIMElementData): Promise<BIMElement | null> => {
+    if (!user) return null;
 
-  const createElement = useCallback(async (elementData: CreateBIMElementData): Promise<BIMElement | null> => {
     try {
       setCreating(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('bim_elements')
         .insert({
           ...elementData,
-          element_type: elementData.element_type,
-          name: elementData.name,
-          geometry: elementData.geometry,
+          geometry: elementData.geometry || {},
           parameters: elementData.parameters || {},
         })
-        .select()
+        .select(`
+          *,
+          materials (
+            id,
+            name,
+            material_type,
+            properties
+          )
+        `)
         .single();
 
       if (error) {
@@ -106,7 +133,7 @@ export const useBIMElements = (filterId?: string, filterType: 'upload' | 'projec
 
       toast.success('BIM element created successfully');
       await fetchElements();
-      return data;
+      return data as BIMElement;
     } catch (error) {
       console.error('Error creating BIM element:', error);
       toast.error('Failed to create BIM element');
@@ -114,38 +141,48 @@ export const useBIMElements = (filterId?: string, filterType: 'upload' | 'projec
     } finally {
       setCreating(false);
     }
-  }, [fetchElements]);
+  };
 
-  const updateElement = useCallback(async (id: string, updates: Partial<BIMElement>): Promise<boolean> => {
+  const updateElement = async (id: string, updates: Partial<CreateBIMElementData>): Promise<BIMElement | null> => {
     try {
       setUpdating(true);
-      const { error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('bim_elements')
         .update(updates)
-        .eq('id', id);
+        .eq('id', id)
+        .select(`
+          *,
+          materials (
+            id,
+            name,
+            material_type,
+            properties
+          )
+        `)
+        .single();
 
       if (error) {
         console.error('Error updating BIM element:', error);
         toast.error('Failed to update BIM element');
-        return false;
+        return null;
       }
 
       toast.success('BIM element updated successfully');
       await fetchElements();
-      return true;
+      return data as BIMElement;
     } catch (error) {
       console.error('Error updating BIM element:', error);
       toast.error('Failed to update BIM element');
-      return false;
+      return null;
     } finally {
       setUpdating(false);
     }
-  }, [fetchElements]);
+  };
 
-  const deleteElement = useCallback(async (id: string): Promise<boolean> => {
+  const deleteElement = async (id: string): Promise<boolean> => {
     try {
       setDeleting(true);
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('bim_elements')
         .delete()
         .eq('id', id);
@@ -166,37 +203,35 @@ export const useBIMElements = (filterId?: string, filterType: 'upload' | 'projec
     } finally {
       setDeleting(false);
     }
-  }, [fetchElements]);
+  };
 
-  const duplicateElement = useCallback(async (id: string): Promise<boolean> => {
-    try {
-      const elementToDuplicate = elements.find(el => el.id === id);
-      if (!elementToDuplicate) return false;
+  const duplicateElement = async (id: string): Promise<BIMElement | null> => {
+    const element = elements.find(el => el.id === id);
+    if (!element) return null;
 
-      const duplicateData: CreateBIMElementData = {
-        upload_id: elementToDuplicate.upload_id || undefined,
-        project_id: elementToDuplicate.project_id || undefined,
-        element_type: elementToDuplicate.element_type,
-        name: `${elementToDuplicate.name} (Copy)`,
-        description: elementToDuplicate.description || undefined,
-        geometry: elementToDuplicate.geometry,
-        parameters: elementToDuplicate.parameters,
-        material_id: elementToDuplicate.material_id || undefined,
-        parent_element_id: elementToDuplicate.parent_element_id || undefined,
-      };
+    const duplicateData: CreateBIMElementData = {
+      upload_id: element.upload_id || undefined,
+      project_id: element.project_id || undefined,
+      element_type: element.element_type,
+      name: `${element.name} (Copy)`,
+      description: element.description || undefined,
+      geometry: element.geometry,
+      parameters: element.parameters,
+      material_id: element.material_id || undefined,
+      parent_element_id: element.parent_element_id || undefined,
+    };
 
-      await createElement(duplicateData);
-      return true;
-    } catch (error) {
-      console.error('Error duplicating BIM element:', error);
-      toast.error('Failed to duplicate BIM element');
-      return false;
+    return await createElement(duplicateData);
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchElements();
+    } else {
+      setElements([]);
+      setLoading(false);
     }
-  }, [elements, createElement]);
-
-  const refreshElements = useCallback(() => {
-    fetchElements();
-  }, [fetchElements]);
+  }, [user, projectIdOrUploadId, filterType]);
 
   return {
     elements,
@@ -204,11 +239,10 @@ export const useBIMElements = (filterId?: string, filterType: 'upload' | 'projec
     creating,
     updating,
     deleting,
-    fetchElements,
-    refreshElements,
     createElement,
     updateElement,
     deleteElement,
     duplicateElement,
+    refreshElements: fetchElements,
   };
 };
