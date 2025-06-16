@@ -14,8 +14,10 @@ interface ComplianceEngineProps {
   uploadId?: string;
 }
 
+type EngineType = 'standard' | 'multi_jurisdiction';
+
 export const ComplianceEngine: React.FC<ComplianceEngineProps> = ({ uploadId }) => {
-  const [activeEngine, setActiveEngine] = useState<'standard' | 'multi_jurisdiction'>('multi_jurisdiction');
+  const [activeEngine, setActiveEngine] = useState<EngineType>('multi_jurisdiction');
   
   const { 
     complianceRules, 
