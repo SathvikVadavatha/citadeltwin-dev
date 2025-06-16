@@ -13,26 +13,33 @@ export const useCostDatabase = () => {
 
   const fetchCostItems = async () => {
     try {
-      let query = supabase.from('cost_databases').select('*');
-
+      let whereClause = '1=1';
+      
       if (searchQuery) {
-        query = query.or(`item_description.ilike.%${searchQuery}%,item_code.ilike.%${searchQuery}%`);
+        whereClause += ` AND (item_description ILIKE '%${searchQuery}%' OR item_code ILIKE '%${searchQuery}%')`;
       }
 
       if (categoryFilter !== 'all') {
-        query = query.eq('category', categoryFilter);
+        whereClause += ` AND category = '${categoryFilter}'`;
       }
 
       if (providerFilter !== 'all') {
-        query = query.eq('provider', providerFilter);
+        whereClause += ` AND provider = '${providerFilter}'`;
       }
 
-      const { data, error } = await query
-        .order('item_description', { ascending: true })
-        .limit(100);
+      const { data, error } = await supabase.functions.invoke('exec-sql', {
+        body: {
+          sql: `
+            SELECT * FROM cost_databases 
+            WHERE ${whereClause}
+            ORDER BY item_description ASC 
+            LIMIT 100
+          `
+        }
+      });
 
       if (error) throw error;
-      setCostItems(data || []);
+      setCostItems(data.data || []);
     } catch (error) {
       console.error('Error fetching cost database:', error);
       toast.error('Failed to load cost database');
@@ -50,17 +57,19 @@ export const useCostDatabase = () => {
 
   const getCostItemById = async (itemCode: string, provider: string): Promise<CostDatabase | null> => {
     try {
-      const { data, error } = await supabase
-        .from('cost_databases')
-        .select('*')
-        .eq('item_code', itemCode)
-        .eq('provider', provider)
-        .order('effective_date', { ascending: false })
-        .limit(1)
-        .single();
+      const { data, error } = await supabase.functions.invoke('exec-sql', {
+        body: {
+          sql: `
+            SELECT * FROM cost_databases 
+            WHERE item_code = '${itemCode}' AND provider = '${provider}'
+            ORDER BY effective_date DESC 
+            LIMIT 1
+          `
+        }
+      });
 
       if (error) throw error;
-      return data;
+      return data.data?.[0] || null;
     } catch (error) {
       console.error('Error fetching cost item:', error);
       return null;

@@ -18,14 +18,18 @@ export const useCostEstimation = (projectId?: string) => {
     if (!user || !projectId) return;
 
     try {
-      const { data, error } = await supabase
-        .from('cost_estimations')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.functions.invoke('exec-sql', {
+        body: {
+          sql: `
+            SELECT * FROM cost_estimations 
+            WHERE project_id = '${projectId}' 
+            ORDER BY created_at DESC
+          `
+        }
+      });
 
       if (error) throw error;
-      setEstimations(data || []);
+      setEstimations(data.data || []);
     } catch (error) {
       console.error('Error fetching cost estimations:', error);
       toast.error('Failed to load cost estimations');
@@ -36,40 +40,58 @@ export const useCostEstimation = (projectId?: string) => {
 
   const fetchLineItems = async (estimationId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('cost_line_items')
-        .select('*')
-        .eq('estimation_id', estimationId)
-        .order('created_at', { ascending: true });
+      const { data, error } = await supabase.functions.invoke('exec-sql', {
+        body: {
+          sql: `
+            SELECT * FROM cost_line_items 
+            WHERE estimation_id = '${estimationId}' 
+            ORDER BY created_at ASC
+          `
+        }
+      });
 
       if (error) throw error;
-      setLineItems(data || []);
+      setLineItems(data.data || []);
     } catch (error) {
       console.error('Error fetching line items:', error);
       toast.error('Failed to load line items');
     }
   };
 
-  const createEstimation = async (estimationData: Partial<CostEstimation>) => {
+  const createEstimation = async (estimationData: Partial<CostEstimation>): Promise<CostEstimation | null> => {
     if (!user || !projectId) return null;
 
     try {
       setCreating(true);
-      const { data, error } = await supabase
-        .from('cost_estimations')
-        .insert({
-          ...estimationData,
-          project_id: projectId,
-          created_by: user.id,
-        })
-        .select()
-        .single();
+      const { data, error } = await supabase.functions.invoke('exec-sql', {
+        body: {
+          sql: `
+            INSERT INTO cost_estimations (
+              project_id, name, description, status, markup_percentage, 
+              contingency_percentage, labor_rate_per_hour, created_by
+            ) VALUES (
+              '${projectId}', 
+              '${estimationData.name}', 
+              '${estimationData.description || ''}', 
+              'draft', 
+              ${estimationData.markup_percentage || 15}, 
+              ${estimationData.contingency_percentage || 10}, 
+              ${estimationData.labor_rate_per_hour || 45}, 
+              '${user.id}'
+            ) RETURNING *
+          `
+        }
+      });
 
       if (error) throw error;
 
-      toast.success('Cost estimation created successfully');
-      await fetchEstimations();
-      return data;
+      const newEstimation = data.data?.[0];
+      if (newEstimation) {
+        toast.success('Cost estimation created successfully');
+        await fetchEstimations();
+        return newEstimation;
+      }
+      return null;
     } catch (error) {
       console.error('Error creating cost estimation:', error);
       toast.error('Failed to create cost estimation');
@@ -79,21 +101,29 @@ export const useCostEstimation = (projectId?: string) => {
     }
   };
 
-  const updateEstimation = async (id: string, updates: Partial<CostEstimation>) => {
+  const updateEstimation = async (id: string, updates: Partial<CostEstimation>): Promise<CostEstimation | null> => {
     try {
       setUpdating(true);
-      const { data, error } = await supabase
-        .from('cost_estimations')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const updateFields = Object.entries(updates)
+        .map(([key, value]) => `${key} = '${value}'`)
+        .join(', ');
+
+      const { data, error } = await supabase.functions.invoke('exec-sql', {
+        body: {
+          sql: `
+            UPDATE cost_estimations 
+            SET ${updateFields}, updated_at = NOW()
+            WHERE id = '${id}' 
+            RETURNING *
+          `
+        }
+      });
 
       if (error) throw error;
 
       toast.success('Cost estimation updated successfully');
       await fetchEstimations();
-      return data;
+      return data.data?.[0] || null;
     } catch (error) {
       console.error('Error updating cost estimation:', error);
       toast.error('Failed to update cost estimation');
@@ -103,25 +133,41 @@ export const useCostEstimation = (projectId?: string) => {
     }
   };
 
-  const addLineItem = async (lineItemData: Partial<CostLineItem>) => {
+  const addLineItem = async (lineItemData: Partial<CostLineItem>): Promise<CostLineItem | null> => {
     if (!currentEstimation) return null;
 
     try {
-      const { data, error } = await supabase
-        .from('cost_line_items')
-        .insert({
-          ...lineItemData,
-          estimation_id: currentEstimation.id,
-        })
-        .select()
-        .single();
+      const { data, error } = await supabase.functions.invoke('exec-sql', {
+        body: {
+          sql: `
+            INSERT INTO cost_line_items (
+              estimation_id, item_description, category, quantity, unit_of_measure,
+              unit_cost, total_cost, labor_hours_per_unit, total_labor_hours, 
+              waste_factor, notes, cost_database_source
+            ) VALUES (
+              '${currentEstimation.id}',
+              '${lineItemData.item_description}',
+              '${lineItemData.category}',
+              ${lineItemData.quantity},
+              '${lineItemData.unit_of_measure}',
+              ${lineItemData.unit_cost},
+              ${lineItemData.total_cost},
+              ${lineItemData.labor_hours_per_unit || 0},
+              ${lineItemData.total_labor_hours || 0},
+              ${lineItemData.waste_factor || 0},
+              '${lineItemData.notes || ''}',
+              '${lineItemData.cost_database_source || 'custom'}'
+            ) RETURNING *
+          `
+        }
+      });
 
       if (error) throw error;
 
       toast.success('Line item added successfully');
       await fetchLineItems(currentEstimation.id);
       await updateEstimationTotals(currentEstimation.id);
-      return data;
+      return data.data?.[0] || null;
     } catch (error) {
       console.error('Error adding line item:', error);
       toast.error('Failed to add line item');
@@ -129,23 +175,32 @@ export const useCostEstimation = (projectId?: string) => {
     }
   };
 
-  const updateLineItem = async (id: string, updates: Partial<CostLineItem>) => {
+  const updateLineItem = async (id: string, updates: Partial<CostLineItem>): Promise<CostLineItem | null> => {
     if (!currentEstimation) return null;
 
     try {
-      const { data, error } = await supabase
-        .from('cost_line_items')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const updateFields = Object.entries(updates)
+        .filter(([key, value]) => value !== undefined)
+        .map(([key, value]) => `${key} = ${typeof value === 'string' ? `'${value}'` : value}`)
+        .join(', ');
+
+      const { data, error } = await supabase.functions.invoke('exec-sql', {
+        body: {
+          sql: `
+            UPDATE cost_line_items 
+            SET ${updateFields}, updated_at = NOW()
+            WHERE id = '${id}' 
+            RETURNING *
+          `
+        }
+      });
 
       if (error) throw error;
 
       toast.success('Line item updated successfully');
       await fetchLineItems(currentEstimation.id);
       await updateEstimationTotals(currentEstimation.id);
-      return data;
+      return data.data?.[0] || null;
     } catch (error) {
       console.error('Error updating line item:', error);
       toast.error('Failed to update line item');
@@ -153,14 +208,15 @@ export const useCostEstimation = (projectId?: string) => {
     }
   };
 
-  const deleteLineItem = async (id: string) => {
+  const deleteLineItem = async (id: string): Promise<boolean> => {
     if (!currentEstimation) return false;
 
     try {
-      const { error } = await supabase
-        .from('cost_line_items')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.functions.invoke('exec-sql', {
+        body: {
+          sql: `DELETE FROM cost_line_items WHERE id = '${id}'`
+        }
+      });
 
       if (error) throw error;
 
@@ -177,24 +233,39 @@ export const useCostEstimation = (projectId?: string) => {
 
   const updateEstimationTotals = async (estimationId: string) => {
     try {
-      const { data: items, error } = await supabase
-        .from('cost_line_items')
-        .select('total_cost, total_labor_hours')
-        .eq('estimation_id', estimationId);
+      const { data, error } = await supabase.functions.invoke('exec-sql', {
+        body: {
+          sql: `
+            SELECT 
+              SUM(total_cost) as total_cost,
+              SUM(total_labor_hours) as total_labor_hours
+            FROM cost_line_items 
+            WHERE estimation_id = '${estimationId}'
+          `
+        }
+      });
 
       if (error) throw error;
 
-      const totalCost = items?.reduce((sum, item) => sum + (item.total_cost || 0), 0) || 0;
-      const totalLaborHours = items?.reduce((sum, item) => sum + (item.total_labor_hours || 0), 0) || 0;
+      const totals = data.data?.[0];
+      if (totals) {
+        const totalCost = totals.total_cost || 0;
+        const totalLaborHours = totals.total_labor_hours || 0;
+        const estimatedDuration = Math.ceil(totalLaborHours / 8);
 
-      await supabase
-        .from('cost_estimations')
-        .update({ 
-          total_estimated_cost: totalCost,
-          estimated_duration_days: Math.ceil(totalLaborHours / 8) // Assuming 8-hour workdays
-        })
-        .eq('id', estimationId);
-
+        await supabase.functions.invoke('exec-sql', {
+          body: {
+            sql: `
+              UPDATE cost_estimations 
+              SET 
+                total_estimated_cost = ${totalCost},
+                estimated_duration_days = ${estimatedDuration},
+                updated_at = NOW()
+              WHERE id = '${estimationId}'
+            `
+          }
+        });
+      }
     } catch (error) {
       console.error('Error updating estimation totals:', error);
     }

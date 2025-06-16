@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,6 +45,15 @@ export const CostEstimationDashboard = ({ projectId }: CostEstimationDashboardPr
       rejected: 'bg-red-500/20 text-red-400 border-red-400/50',
     };
     return colors[status as keyof typeof colors] || colors.draft;
+  };
+
+  // Type-safe creation handler
+  const handleCreateEstimation = async (data: Partial<CostEstimation>): Promise<CostEstimation> => {
+    const result = await createEstimation(data);
+    if (!result) {
+      throw new Error('Failed to create estimation');
+    }
+    return result;
   };
 
   if (loading) {
@@ -243,7 +251,7 @@ export const CostEstimationDashboard = ({ projectId }: CostEstimationDashboardPr
       <CreateEstimationModal
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onSubmit={createEstimation}
+        onSubmit={handleCreateEstimation}
         projectId={projectId}
       />
     </div>

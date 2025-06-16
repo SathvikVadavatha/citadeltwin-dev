@@ -12,17 +12,46 @@ export const useQuantityTakeoff = (estimationId?: string) => {
     if (!estimationId) return;
 
     try {
-      const { data, error } = await supabase
-        .from('quantity_takeoffs')
-        .select(`
-          *,
-          bim_elements(name, element_type, geometry, parameters),
-          materials(name, material_type, properties)
-        `)
-        .eq('estimation_id', estimationId);
+      const { data, error } = await supabase.functions.invoke('exec-sql', {
+        body: {
+          sql: `
+            SELECT 
+              qt.*,
+              be.name as element_name,
+              be.element_type,
+              be.geometry,
+              be.parameters,
+              m.name as material_name,
+              m.material_type,
+              m.properties as material_properties
+            FROM quantity_takeoffs qt
+            LEFT JOIN bim_elements be ON qt.element_id = be.id
+            LEFT JOIN materials m ON qt.material_id = m.id
+            WHERE qt.estimation_id = '${estimationId}'
+            ORDER BY qt.created_at ASC
+          `
+        }
+      });
 
       if (error) throw error;
-      setTakeoffs(data || []);
+
+      // Transform the data to match our expected structure
+      const transformedData = (data.data || []).map((item: any) => ({
+        ...item,
+        bim_elements: item.element_name ? {
+          name: item.element_name,
+          element_type: item.element_type,
+          geometry: item.geometry,
+          parameters: item.parameters
+        } : null,
+        materials: item.material_name ? {
+          name: item.material_name,
+          material_type: item.material_type,
+          properties: item.material_properties
+        } : null
+      }));
+
+      setTakeoffs(transformedData);
     } catch (error) {
       console.error('Error fetching quantity takeoffs:', error);
       toast.error('Failed to load quantity takeoffs');
@@ -32,7 +61,6 @@ export const useQuantityTakeoff = (estimationId?: string) => {
   };
 
   const calculateQuantityFromElement = (element: any, material?: any): number => {
-    // Basic quantity calculation based on element geometry
     const geometry = element.geometry || {};
     const elementType = element.element_type;
 
@@ -68,24 +96,31 @@ export const useQuantityTakeoff = (estimationId?: string) => {
     if (!estimationId) return;
 
     try {
-      const takeoffData = elements.map(element => {
+      const takeoffInserts = elements.map(element => {
         const quantity = calculateQuantityFromElement(element);
         const unitOfMeasure = getUnitOfMeasureForElement(element.element_type);
 
-        return {
-          estimation_id: estimationId,
-          element_id: element.id,
-          material_id: element.material_id,
-          calculated_quantity: quantity,
-          unit_of_measure: unitOfMeasure,
-          calculation_method: 'automated_geometry',
-          geometry_data: element.geometry,
-        };
-      });
+        return `(
+          '${estimationId}',
+          '${element.id}',
+          ${element.material_id ? `'${element.material_id}'` : 'NULL'},
+          ${quantity},
+          '${unitOfMeasure}',
+          'automated_geometry',
+          '${JSON.stringify(element.geometry || {}).replace(/'/g, "''")}'
+        )`;
+      }).join(',');
 
-      const { error } = await supabase
-        .from('quantity_takeoffs')
-        .insert(takeoffData);
+      const { error } = await supabase.functions.invoke('exec-sql', {
+        body: {
+          sql: `
+            INSERT INTO quantity_takeoffs (
+              estimation_id, element_id, material_id, calculated_quantity, 
+              unit_of_measure, calculation_method, geometry_data
+            ) VALUES ${takeoffInserts}
+          `
+        }
+      });
 
       if (error) throw error;
 
@@ -116,10 +151,20 @@ export const useQuantityTakeoff = (estimationId?: string) => {
 
   const updateTakeoff = async (id: string, updates: Partial<QuantityTakeoff>) => {
     try {
-      const { error } = await supabase
-        .from('quantity_takeoffs')
-        .update(updates)
-        .eq('id', id);
+      const updateFields = Object.entries(updates)
+        .filter(([key, value]) => value !== undefined)
+        .map(([key, value]) => `${key} = ${typeof value === 'string' ? `'${value}'` : value}`)
+        .join(', ');
+
+      const { error } = await supabase.functions.invoke('exec-sql', {
+        body: {
+          sql: `
+            UPDATE quantity_takeoffs 
+            SET ${updateFields}, updated_at = NOW()
+            WHERE id = '${id}'
+          `
+        }
+      });
 
       if (error) throw error;
 
@@ -133,10 +178,11 @@ export const useQuantityTakeoff = (estimationId?: string) => {
 
   const deleteTakeoff = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('quantity_takeoffs')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.functions.invoke('exec-sql', {
+        body: {
+          sql: `DELETE FROM quantity_takeoffs WHERE id = '${id}'`
+        }
+      });
 
       if (error) throw error;
 
