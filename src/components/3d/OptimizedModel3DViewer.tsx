@@ -1,8 +1,8 @@
 
-import React, { Suspense, useMemo } from 'react';
+import React, { Suspense, useMemo, useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Preload } from '@react-three/drei';
-import { PerformanceOptimizer } from '@/utils/performance/performanceOptimizer';
+import { ViewerPerformanceManager } from '@/utils/3d/ViewerPerformanceManager';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Eye } from "lucide-react";
@@ -12,8 +12,7 @@ interface OptimizedModel3DViewerProps {
   modelName?: string;
   uploadId?: string;
   projectId?: string;
-  enableLOD?: boolean;
-  performanceMode?: 'high' | 'medium' | 'low';
+  viewerId?: string;
 }
 
 const Performance3DControls = React.memo(() => (
@@ -31,26 +30,11 @@ const Performance3DControls = React.memo(() => (
 
 const OptimizedCanvas = React.memo<{ 
   children: React.ReactNode;
-  performanceMode: 'high' | 'medium' | 'low';
-}>(({ children, performanceMode }) => {
-  const canvasSettings = useMemo(() => {
-    const base = PerformanceOptimizer.optimize3DRendering();
-    
-    switch (performanceMode) {
-      case 'high':
-        return { ...base.webglSettings, antialias: true, precision: 'highp' };
-      case 'medium':
-        return { ...base.webglSettings, precision: 'mediump' };
-      case 'low':
-        return { ...base.webglSettings, precision: 'lowp', alpha: false };
-      default:
-        return base.webglSettings;
-    }
-  }, [performanceMode]);
-
+  settings: any;
+}>(({ children, settings }) => {
   return (
     <Canvas
-      gl={canvasSettings}
+      gl={settings}
       camera={{ 
         position: [5, 5, 5], 
         fov: 50,
@@ -65,9 +49,9 @@ const OptimizedCanvas = React.memo<{
       <directionalLight 
         position={[10, 10, 5]} 
         intensity={1}
-        castShadow
-        shadow-mapSize-width={performanceMode === 'high' ? 2048 : 1024}
-        shadow-mapSize-height={performanceMode === 'high' ? 2048 : 1024}
+        castShadow={settings.shadows}
+        shadow-mapSize-width={settings.shadowMapSize}
+        shadow-mapSize-height={settings.shadowMapSize}
       />
       
       <Suspense fallback={null}>
@@ -94,20 +78,43 @@ export const OptimizedModel3DViewer: React.FC<OptimizedModel3DViewerProps> = Rea
   modelName = "3D Model",
   uploadId,
   projectId,
-  enableLOD = true,
-  performanceMode = 'medium'
+  viewerId = `viewer-${Math.random().toString(36).substr(2, 9)}`
 }) => {
-  const optimizedModelLoader = useMemo(() => {
-    if (!modelUrl) return null;
+  const performanceManager = ViewerPerformanceManager.getInstance();
+  const metricsRef = useRef({ fps: 0, triangles: 0 });
+
+  // Register/unregister viewer with performance manager
+  useEffect(() => {
+    performanceManager.registerViewer(viewerId);
     
-    return PerformanceOptimizer.createLazyLoader(
-      async () => {
-        // Simulate optimized model loading
-        const response = await fetch(modelUrl);
-        return response.blob();
-      }
-    );
-  }, [modelUrl]);
+    return () => {
+      performanceManager.unregisterViewer(viewerId);
+    };
+  }, [viewerId, performanceManager]);
+
+  // Get optimized settings from performance manager
+  const optimizedSettings = useMemo(() => {
+    const settings = performanceManager.getOptimizedSettings(viewerId);
+    const canvasSettings = performanceManager.getCanvasSettings();
+    
+    return {
+      ...canvasSettings,
+      shadows: settings.enableShadows,
+      shadowMapSize: settings.mode === 'high' ? 2048 : 1024,
+      mode: settings.mode,
+      enableLOD: settings.enableLOD,
+    };
+  }, [viewerId, performanceManager]);
+
+  // Performance monitoring
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Update performance metrics
+      performanceManager.updatePerformanceMetrics(viewerId, metricsRef.current);
+    }, 2000); // Update every 2 seconds
+
+    return () => clearInterval(interval);
+  }, [viewerId, performanceManager]);
 
   return (
     <Card>
@@ -120,9 +127,13 @@ export const OptimizedModel3DViewer: React.FC<OptimizedModel3DViewerProps> = Rea
           <div className="flex gap-2">
             <Badge variant="secondary">{modelName}</Badge>
             <Badge 
-              variant={performanceMode === 'high' ? 'default' : performanceMode === 'medium' ? 'secondary' : 'outline'}
+              variant={optimizedSettings.mode === 'high' ? 'default' : 
+                     optimizedSettings.mode === 'medium' ? 'secondary' : 'outline'}
             >
-              {performanceMode.toUpperCase()}
+              {optimizedSettings.mode.toUpperCase()}
+            </Badge>
+            <Badge variant="outline">
+              Viewers: {performanceManager.getActiveViewersCount()}
             </Badge>
           </div>
         </CardTitle>
@@ -130,7 +141,7 @@ export const OptimizedModel3DViewer: React.FC<OptimizedModel3DViewerProps> = Rea
       <CardContent>
         <Suspense fallback={<LoadingFallback />}>
           <div className="h-96 relative">
-            <OptimizedCanvas performanceMode={performanceMode}>
+            <OptimizedCanvas settings={optimizedSettings}>
               {/* 3D content would be rendered here */}
               <mesh>
                 <boxGeometry args={[1, 1, 1]} />
@@ -141,8 +152,12 @@ export const OptimizedModel3DViewer: React.FC<OptimizedModel3DViewerProps> = Rea
         </Suspense>
         
         <div className="mt-4 text-sm text-muted-foreground text-center">
-          <p>Performance Mode: {performanceMode} | LOD: {enableLOD ? 'Enabled' : 'Disabled'}</p>
-          <p>Use mouse to rotate, zoom, and pan • Optimized for {performanceMode} performance</p>
+          <p>
+            Performance: {optimizedSettings.mode} | 
+            LOD: {optimizedSettings.enableLOD ? 'Enabled' : 'Disabled'} | 
+            Shadows: {optimizedSettings.shadows ? 'On' : 'Off'}
+          </p>
+          <p>Use mouse to rotate, zoom, and pan • Auto-optimized for best performance</p>
         </div>
       </CardContent>
     </Card>
