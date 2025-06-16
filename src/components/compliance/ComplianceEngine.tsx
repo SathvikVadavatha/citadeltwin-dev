@@ -1,19 +1,21 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, CheckCircle, Clock, XCircle, Play, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, XCircle, Play, RefreshCw, Globe } from 'lucide-react';
 import { useCompliance } from '@/hooks/useCompliance';
 import { ComplianceViolationsList } from './ComplianceViolationsList';
 import { ComplianceRulesList } from './ComplianceRulesList';
+import { MultiJurisdictionComplianceEngine } from './MultiJurisdictionComplianceEngine';
 
 interface ComplianceEngineProps {
   uploadId?: string;
 }
 
 export const ComplianceEngine: React.FC<ComplianceEngineProps> = ({ uploadId }) => {
+  const [activeEngine, setActiveEngine] = useState<'standard' | 'multi_jurisdiction'>('multi_jurisdiction');
+  
   const { 
     complianceRules, 
     rulesLoading, 
@@ -26,7 +28,7 @@ export const ComplianceEngine: React.FC<ComplianceEngineProps> = ({ uploadId }) 
   const { data: violations = [], isLoading: violationsLoading } = fetchViolations(uploadId);
   const { data: complianceChecks = [], isLoading: checksLoading } = fetchComplianceChecks(uploadId);
 
-  const handleRunComplianceCheck = () => {
+  const handleRunStandardComplianceCheck = () => {
     if (uploadId) {
       runComplianceCheck({ uploadId });
     }
@@ -45,20 +47,52 @@ export const ComplianceEngine: React.FC<ComplianceEngineProps> = ({ uploadId }) 
   const stats = getViolationStats();
   const latestCheck = complianceChecks[0];
 
+  if (activeEngine === 'multi_jurisdiction') {
+    return <MultiJurisdictionComplianceEngine uploadId={uploadId} />;
+  }
+
   return (
     <div className="space-y-6">
+      {/* Engine Selection */}
+      <Card className="cyber-tool-palette">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex space-x-2">
+              <Button
+                variant={activeEngine === 'standard' ? 'default' : 'outline'}
+                onClick={() => setActiveEngine('standard')}
+                className={activeEngine === 'standard' ? 'cyber-button' : 'border-gray-600'}
+              >
+                Standard IBC
+              </Button>
+              <Button
+                variant={activeEngine === 'multi_jurisdiction' ? 'default' : 'outline'}
+                onClick={() => setActiveEngine('multi_jurisdiction')}
+                className={activeEngine === 'multi_jurisdiction' ? 'cyber-button' : 'border-gray-600'}
+              >
+                <Globe className="w-4 h-4 mr-2" />
+                Multi-Jurisdiction
+              </Button>
+            </div>
+            <Badge className="bg-cyan-900 text-cyan-300">
+              {activeEngine === 'standard' ? 'IBC 2021' : 'Multi-Code Analysis'}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Header */}
       <Card className="cyber-tool-palette">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-cyan-400">Building Code Compliance Engine</CardTitle>
+              <CardTitle className="text-cyan-400">Standard Building Code Compliance Engine</CardTitle>
               <CardDescription className="text-gray-300">
-                IBC 2021 compliance checking with AI-powered remediation suggestions
+                IBC 2021 compliance checking with basic remediation suggestions
               </CardDescription>
             </div>
             <Button
-              onClick={handleRunComplianceCheck}
+              onClick={handleRunStandardComplianceCheck}
               disabled={!uploadId || isRunningCheck}
               className="cyber-button"
             >
@@ -70,7 +104,7 @@ export const ComplianceEngine: React.FC<ComplianceEngineProps> = ({ uploadId }) 
               ) : (
                 <>
                   <Play className="w-4 h-4 mr-2" />
-                  Run Compliance Check
+                  Run Standard Check
                 </>
               )}
             </Button>
