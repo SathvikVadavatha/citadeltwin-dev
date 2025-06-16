@@ -39,19 +39,27 @@ export const createLazyComponent = <T extends React.ComponentType<any>>(
   return lazy(importFn);
 };
 
-// Pre-defined lazy components for heavy modules
-export const LazyBIMElementsManager = createLazyComponent(
-  () => import('@/components/bim/BIMElementsManager')
+// Pre-defined lazy components for heavy modules - using named exports properly
+export const LazyBIMElementsManager = lazy(() => 
+  import('@/components/bim/BIMElementsManager').then(module => ({
+    default: module.BIMElementsManager
+  }))
 );
 
-export const LazyFEAAnalysisManager = createLazyComponent(
-  () => import('@/components/fea/FEAAnalysisManager')
+export const LazyFEAAnalysisManager = lazy(() => 
+  import('@/components/fea/FEAAnalysisManager').then(module => ({
+    default: module.FEAAnalysisManager
+  }))
 );
 
-export const LazyCollaborativeEditor = createLazyComponent(
-  () => import('@/components/collaboration/CollaborativeEditor')
+export const LazyCollaborativeEditor = lazy(() => 
+  import('@/components/collaboration/CollaborativeEditor').then(module => ({
+    default: module.CollaborativeEditor
+  }))
 );
 
-export const LazyModel3DViewer = createLazyComponent(
-  () => import('@/components/3d/Model3DViewer')
+export const LazyModel3DViewer = lazy(() => 
+  import('@/components/3d/Model3DViewer').then(module => ({
+    default: module.Model3DViewer
+  }))
 );

@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,16 +36,18 @@ export const useUploads = (userId?: string) => {
 
       const imageUrl = `https://fjybggorcizszcpedjbb.supabase.co/storage/v1/object/public/${data.path}`;
 
-      // Save upload details to the database
+      // Save upload details to the database - using correct field names
       const { error: dbError } = await supabase
         .from('blueprint_uploads')
         .insert({
           user_id: userId,
           project_id: projectId,
-          file_name: file.name,
-          file_path: filePath,
-          image_url: imageUrl,
-          upload_date: new Date(),
+          filename: file.name, // Updated from file_name to filename
+          original_filename: file.name,
+          storage_path: filePath, // Updated from file_path to storage_path
+          file_type: file.type,
+          file_size: file.size,
+          upload_status: 'uploaded',
         });
 
       if (dbError) {
@@ -65,40 +68,38 @@ export const useUploads = (userId?: string) => {
     }
   }, [userId, supabase]);
 
-  const { data: uploads, isLoading, error, refetch } = useOptimizedQuery(
-    `uploads-${userId}`,
-    {
-      queryFn: async () => {
-        if (!userId) return [];
-        
-        const { data, error } = await supabase
-          .from('blueprint_uploads')
-          .select(`
-            *,
-            detection_results (
-              id,
-              detected_objects,
-              processing_time_ms,
-              model_used,
-              confidence_threshold
-            ),
-            generated_3d_models (
-              id,
-              model_name,
-              model_file_path,
-              generation_status
-            )
-          `)
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
+  const { data: uploads, isLoading, error, refetch } = useOptimizedQuery({
+    queryKey: `uploads-${userId}`,
+    queryFn: async () => {
+      if (!userId) return [];
+      
+      const { data, error } = await supabase
+        .from('blueprint_uploads')
+        .select(`
+          *,
+          detection_results (
+            id,
+            detected_objects,
+            processing_time_ms,
+            model_used,
+            confidence_threshold
+          ),
+          generated_3d_models (
+            id,
+            model_name,
+            model_file_path,
+            generation_status
+          )
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        return data || [];
-      },
-      cacheTime: 300000, // 5 minutes cache
-      enabled: !!userId
-    }
-  );
+      if (error) throw error;
+      return data || [];
+    },
+    cacheTime: 300000, // 5 minutes cache
+    enabled: !!userId
+  });
 
   const deleteUpload = useCallback(async (uploadId: string) => {
     try {
