@@ -35,7 +35,7 @@ export const useOptimizedAI = () => {
 
   return {
     ...geminiAI,
-    generateResponse: optimizedGenerateResponse,
+    optimizedGenerateResponse,
     analyzeText: optimizedAnalyzeText,
     generateCode: optimizedGenerateCode,
   };
