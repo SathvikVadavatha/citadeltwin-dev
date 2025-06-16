@@ -5,7 +5,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
 
 export const useClientPortal = () => {
-  const [sharedProjects, setSharedProjects] = useState([]);
+  const [sharedProjects, setSharedProjects] = useState<any[]>([]);
   const [feedback, setFeedback] = useState({
     pending: 0,
     approved: 0,
@@ -19,51 +19,63 @@ export const useClientPortal = () => {
   const { user } = useAuth();
 
   const fetchSharedProjects = async () => {
-    if (!user) return;
+    if (!user?.email) return;
 
     try {
-      // Use raw SQL query to avoid type issues temporarily
-      const { data, error } = await supabase.rpc('exec_sql', {
-        sql: `SELECT ps.*, p.name as project_name, p.description as project_description 
-              FROM project_shares ps 
-              JOIN projects p ON ps.project_id = p.id 
-              WHERE ps.shared_with_email = '${user.email}' AND ps.status = 'active'`
-      });
+      const { data, error } = await supabase
+        .from('project_shares')
+        .select(`
+          *,
+          projects!inner(name, description)
+        `)
+        .eq('shared_with_email', user.email)
+        .eq('status', 'active');
 
       if (error) {
         console.error('Error fetching shared projects:', error);
         return;
       }
 
-      setSharedProjects(data || []);
+      const processedProjects = data?.map((share: any) => ({
+        id: share.project_id,
+        name: share.projects?.name || 'Unknown Project',
+        description: share.projects?.description || '',
+        status: share.status,
+        shared_at: share.created_at,
+        permissions: share.permissions,
+        project_data: share.projects
+      })) || [];
+
+      setSharedProjects(processedProjects);
     } catch (error) {
       console.error('Error fetching shared projects:', error);
     }
   };
 
   const fetchFeedbackStats = async () => {
-    if (!user) return;
+    if (!user?.email) return;
 
     try {
-      // Use raw SQL query to avoid type issues temporarily
-      const { data, error } = await supabase.rpc('exec_sql', {
-        sql: `SELECT status, COUNT(*) as count FROM client_feedback WHERE client_email = '${user.email}' GROUP BY status`
-      });
+      const { data, error } = await supabase
+        .from('client_feedback')
+        .select('status')
+        .eq('client_email', user.email);
 
       if (error) {
         console.error('Error fetching feedback stats:', error);
         return;
       }
 
-      const stats = data?.reduce((acc: any, item: any) => {
-        acc[item.status] = item.count;
+      const stats = (data || []).reduce((acc: any, item: any) => {
+        const status = item.status || 'pending';
+        acc[status] = (acc[status] || 0) + 1;
         return acc;
       }, {});
 
       setFeedback({
-        pending: stats?.pending || 0,
-        approved: stats?.approved || 0,
-        inProgress: stats?.in_progress || 0,
+        pending: stats.pending || 0,
+        approved: stats.approved || 0,
+        inProgress: stats.in_progress || 0,
       });
     } catch (error) {
       console.error('Error fetching feedback stats:', error);
@@ -71,21 +83,21 @@ export const useClientPortal = () => {
   };
 
   const fetchNotificationStats = async () => {
-    if (!user) return;
+    if (!user?.email) return;
 
     try {
-      // Use raw SQL query to avoid type issues temporarily
-      const { data, error } = await supabase.rpc('exec_sql', {
-        sql: `SELECT read, COUNT(*) as count FROM client_notifications WHERE client_email = '${user.email}' GROUP BY read`
-      });
+      const { data, error } = await supabase
+        .from('client_notifications')
+        .select('read')
+        .eq('client_email', user.email);
 
       if (error) {
         console.error('Error fetching notification stats:', error);
         return;
       }
 
-      const totalCount = data?.reduce((sum: number, item: any) => sum + item.count, 0) || 0;
-      const unreadCount = data?.find((item: any) => !item.read)?.count || 0;
+      const totalCount = data?.length || 0;
+      const unreadCount = data?.filter(item => !item.read).length || 0;
       
       setNotifications({
         unread: unreadCount,
@@ -97,7 +109,7 @@ export const useClientPortal = () => {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user?.email) {
       Promise.all([
         fetchSharedProjects(),
         fetchFeedbackStats(),

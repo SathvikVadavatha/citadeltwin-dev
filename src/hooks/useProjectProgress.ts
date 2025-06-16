@@ -5,23 +5,23 @@ import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
 
 export const useProjectProgress = () => {
-  const [projects, setProjects] = useState([]);
+  const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
   const fetchProjectProgress = async () => {
-    if (!user) return;
+    if (!user?.email) return;
 
     try {
-      // Use raw SQL query to avoid type issues temporarily
-      const { data, error } = await supabase.rpc('exec_sql', {
-        sql: `SELECT ps.*, p.name as project_name, p.description as project_description, 
-                     pp.progress_percentage, pp.status, pp.milestones, pp.recent_updates
-              FROM project_shares ps 
-              JOIN projects p ON ps.project_id = p.id 
-              LEFT JOIN project_progress pp ON ps.project_id = pp.project_id
-              WHERE ps.shared_with_email = '${user.email}' AND ps.status = 'active'`
-      });
+      const { data, error } = await supabase
+        .from('project_shares')
+        .select(`
+          *,
+          projects!inner(name, description),
+          project_progress(progress_percentage, status, milestones, recent_updates)
+        `)
+        .eq('shared_with_email', user.email)
+        .eq('status', 'active');
 
       if (error) {
         console.error('Error fetching project progress:', error);
@@ -31,12 +31,12 @@ export const useProjectProgress = () => {
 
       const processedProjects = data?.map((share: any) => ({
         id: share.project_id,
-        name: share.project_name,
-        description: share.project_description,
-        status: share.status || 'in_progress',
-        progress: share.progress_percentage || 0,
-        milestones: share.milestones || [],
-        recent_updates: share.recent_updates || [],
+        name: share.projects?.name || 'Unknown Project',
+        description: share.projects?.description || '',
+        status: share.project_progress?.status || 'in_progress',
+        progress: share.project_progress?.progress_percentage || 0,
+        milestones: share.project_progress?.milestones || [],
+        recent_updates: share.project_progress?.recent_updates || [],
         shared_at: share.created_at,
       })) || [];
 
@@ -50,7 +50,7 @@ export const useProjectProgress = () => {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user?.email) {
       fetchProjectProgress();
     }
   }, [user]);

@@ -5,7 +5,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
 
 export const useProjectSharing = (projectId: string) => {
-  const [shares, setShares] = useState([]);
+  const [shares, setShares] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
 
@@ -13,10 +13,11 @@ export const useProjectSharing = (projectId: string) => {
     if (!projectId) return;
 
     try {
-      // Use raw SQL query to avoid type issues temporarily
-      const { data, error } = await supabase.rpc('exec_sql', {
-        sql: `SELECT * FROM project_shares WHERE project_id = '${projectId}' ORDER BY created_at DESC`
-      });
+      const { data, error } = await supabase
+        .from('project_shares')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching project shares:', error);
@@ -39,7 +40,7 @@ export const useProjectSharing = (projectId: string) => {
     };
     expirationDays: number;
   }) => {
-    if (!user || !projectId) return;
+    if (!user?.id || !projectId) return;
 
     try {
       setLoading(true);
@@ -47,11 +48,16 @@ export const useProjectSharing = (projectId: string) => {
       const expirationDate = new Date();
       expirationDate.setDate(expirationDate.getDate() + shareData.expirationDays);
 
-      // Use raw SQL query to avoid type issues temporarily
-      const { error } = await supabase.rpc('exec_sql', {
-        sql: `INSERT INTO project_shares (project_id, shared_by, shared_with_email, permissions, message, expires_at) 
-              VALUES ('${projectId}', '${user.id}', '${shareData.email}', '${JSON.stringify(shareData.permissions)}', '${shareData.message}', '${expirationDate.toISOString()}')`
-      });
+      const { error } = await supabase
+        .from('project_shares')
+        .insert({
+          project_id: projectId,
+          shared_by: user.id,
+          shared_with_email: shareData.email,
+          permissions: shareData.permissions,
+          message: shareData.message,
+          expires_at: expirationDate.toISOString()
+        });
 
       if (error) {
         console.error('Error sharing project:', error);
@@ -71,10 +77,10 @@ export const useProjectSharing = (projectId: string) => {
 
   const revokeShare = async (shareId: string) => {
     try {
-      // Use raw SQL query to avoid type issues temporarily
-      const { error } = await supabase.rpc('exec_sql', {
-        sql: `UPDATE project_shares SET status = 'revoked' WHERE id = '${shareId}'`
-      });
+      const { error } = await supabase
+        .from('project_shares')
+        .update({ status: 'revoked' })
+        .eq('id', shareId);
 
       if (error) {
         console.error('Error revoking share:', error);
