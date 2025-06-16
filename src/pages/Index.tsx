@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +18,8 @@ import {
   Brain,
   Calculator,
   Zap,
-  MessageSquare
+  MessageSquare,
+  CheckCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -51,6 +51,12 @@ const Index = () => {
                   Collaboration
                 </Link>
               </Button>
+              <Button asChild variant="outline">
+                <Link to="/validation">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Validation
+                </Link>
+              </Button>
               <Button asChild>
                 <Link to="/ai-assistant">
                   <Brain className="h-4 w-4 mr-2" />
@@ -62,7 +68,7 @@ const Index = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
+          <TabsList className="grid w-full grid-cols-6 mb-6">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <LayoutDashboard className="h-4 w-4" />
               Dashboard
@@ -78,6 +84,10 @@ const Index = () => {
             <TabsTrigger value="collaboration" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Collaboration
+            </TabsTrigger>
+            <TabsTrigger value="validation" className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4" />
+              Validation
             </TabsTrigger>
             <TabsTrigger value="ai" className="flex items-center gap-2">
               <Brain className="h-4 w-4" />
@@ -99,6 +109,10 @@ const Index = () => {
 
           <TabsContent value="collaboration">
             <CollaborationPanel projectId="default-project" />
+          </TabsContent>
+
+          <TabsContent value="validation">
+            <ValidationDashboard />
           </TabsContent>
 
           <TabsContent value="ai" className="space-y-6">
