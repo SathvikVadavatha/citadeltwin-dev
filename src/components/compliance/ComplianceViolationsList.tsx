@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, CheckCircle, Clock, XCircle, Eye, Zap } from 'lucide-react';
-import { useCompliance, type ComplianceViolation } from '@/hooks/useCompliance';
+import { useComplianceViolations, type ComplianceViolation } from '@/hooks/compliance/useComplianceViolations';
 import { useGeminiAI } from '@/hooks/useGeminiAI';
 import { toast } from 'sonner';
 
@@ -17,8 +16,9 @@ interface ComplianceViolationsListProps {
 export const ComplianceViolationsList: React.FC<ComplianceViolationsListProps> = ({
   violations,
   isLoading,
+  uploadId,
 }) => {
-  const { updateViolationStatus } = useCompliance();
+  const { updateViolationStatus } = useComplianceViolations(uploadId);
   const { generateResponse, loading: aiLoading } = useGeminiAI();
 
   const getSeverityIcon = (severity: string) => {
