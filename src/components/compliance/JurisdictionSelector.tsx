@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -24,7 +23,7 @@ export const JurisdictionSelector: React.FC<JurisdictionSelectorProps> = ({
   const [searchResults, setSearchResults] = useState<any[]>([]);
   
   const { 
-    jurisdictions, 
+    jurisdictions = [], // Add default empty array
     jurisdictionsLoading,
     searchJurisdictionsByLocation,
     getApplicableCodes
@@ -39,8 +38,11 @@ export const JurisdictionSelector: React.FC<JurisdictionSelectorProps> = ({
       searchCity || undefined
     );
     
+    // Add null check and default to empty array
     if (results) {
       setSearchResults(results);
+    } else {
+      setSearchResults([]);
     }
   };
 
@@ -106,6 +108,22 @@ export const JurisdictionSelector: React.FC<JurisdictionSelectorProps> = ({
       return jurisdiction.name;
     }
   };
+
+  // Show loading state if jurisdictions are being fetched
+  if (jurisdictionsLoading) {
+    return (
+      <Card className="cyber-tool-palette">
+        <CardHeader>
+          <CardTitle className="text-cyan-400">Loading Jurisdictions...</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center p-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <TooltipProvider>
@@ -218,8 +236,8 @@ export const JurisdictionSelector: React.FC<JurisdictionSelectorProps> = ({
             </div>
           </div>
 
-          {/* Enhanced Search Results */}
-          {searchResults.length > 0 && (
+          {/* Enhanced Search Results - Add null check */}
+          {searchResults && searchResults.length > 0 && (
             <div>
               <h4 className="font-semibold text-cyan-400 mb-3">Search Results</h4>
               <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -283,34 +301,40 @@ export const JurisdictionSelector: React.FC<JurisdictionSelectorProps> = ({
             </div>
           )}
 
-          {/* All Jurisdictions */}
+          {/* All Jurisdictions - Add null check */}
           <div>
             <h4 className="font-semibold text-cyan-400 mb-3">All Available Jurisdictions</h4>
-            <Select onValueChange={onJurisdictionSelect} value={selectedJurisdiction}>
-              <SelectTrigger className="bg-gray-900 border-gray-700">
-                <SelectValue placeholder="Select a jurisdiction..." />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-900 border-gray-700">
-                {jurisdictions.map((jurisdiction) => {
-                  const specialReqs = getJurisdictionSpecialRequirements(jurisdiction.state_code, jurisdiction.jurisdiction_type);
-                  return (
-                    <SelectItem key={jurisdiction.id} value={jurisdiction.id}>
-                      <div className="flex items-center space-x-2">
-                        {getJurisdictionIcon(jurisdiction.jurisdiction_type)}
-                        {getClimateIcon(jurisdiction.state_code)}
-                        <span>{formatJurisdictionName(jurisdiction)}</span>
-                        <Badge variant="outline" className={getJurisdictionColor(jurisdiction.jurisdiction_type)}>
-                          {jurisdiction.jurisdiction_type}
-                        </Badge>
-                        {(jurisdiction.state_code === 'OH' || jurisdiction.state_code === 'FL') && (
-                          <AlertTriangle className="w-3 h-3 text-green-400" />
-                        )}
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+            {jurisdictions && jurisdictions.length > 0 ? (
+              <Select onValueChange={onJurisdictionSelect} value={selectedJurisdiction}>
+                <SelectTrigger className="bg-gray-900 border-gray-700">
+                  <SelectValue placeholder="Select a jurisdiction..." />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-900 border-gray-700">
+                  {jurisdictions.map((jurisdiction) => {
+                    const specialReqs = getJurisdictionSpecialRequirements(jurisdiction.state_code, jurisdiction.jurisdiction_type);
+                    return (
+                      <SelectItem key={jurisdiction.id} value={jurisdiction.id}>
+                        <div className="flex items-center space-x-2">
+                          {getJurisdictionIcon(jurisdiction.jurisdiction_type)}
+                          {getClimateIcon(jurisdiction.state_code)}
+                          <span>{formatJurisdictionName(jurisdiction)}</span>
+                          <Badge variant="outline" className={getJurisdictionColor(jurisdiction.jurisdiction_type)}>
+                            {jurisdiction.jurisdiction_type}
+                          </Badge>
+                          {(jurisdiction.state_code === 'OH' || jurisdiction.state_code === 'FL') && (
+                            <AlertTriangle className="w-3 h-3 text-green-400" />
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="text-center text-gray-400 p-4">
+                No jurisdictions available. There may be an issue with the data service.
+              </div>
+            )}
           </div>
 
           {/* Information Panel */}
