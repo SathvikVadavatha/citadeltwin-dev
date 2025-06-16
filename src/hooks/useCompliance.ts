@@ -166,8 +166,34 @@ export const useCompliance = () => {
     },
   });
 
+  // Update violation status mutation
+  const updateViolationStatusMutation = useMutation({
+    mutationFn: async ({ violationId, status }: { violationId: string; status: string }) => {
+      return withErrorHandling(async () => {
+        const { data, error } = await supabase
+          .from('compliance_violations')
+          .update({ status })
+          .eq('id', violationId)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      }, 'Updating violation status');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['compliance-violations'] });
+      toast.success('Violation status updated');
+    },
+    onError: (error) => {
+      console.error('Failed to update violation status:', error);
+      toast.error('Failed to update violation status');
+    },
+  });
+
   const runComplianceCheck = runComplianceCheckMutation.mutate;
   const isRunningCheck = runComplianceCheckMutation.isPending;
+  const updateViolationStatus = updateViolationStatusMutation.mutate;
 
   return {
     complianceRules,
@@ -176,5 +202,6 @@ export const useCompliance = () => {
     fetchComplianceChecks,
     runComplianceCheck,
     isRunningCheck,
+    updateViolationStatus,
   };
 };

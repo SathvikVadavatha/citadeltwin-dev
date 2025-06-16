@@ -39,7 +39,7 @@ export const useJurisdictions = () => {
   const { withErrorHandling } = useErrorHandler();
   const [selectedJurisdiction, setSelectedJurisdiction] = useState<string | null>(null);
 
-  // Fetch all jurisdictions using raw SQL
+  // Fetch all jurisdictions using the edge function
   const { 
     data: jurisdictions = [], 
     isLoading: jurisdictionsLoading 
@@ -47,21 +47,23 @@ export const useJurisdictions = () => {
     queryKey: ['jurisdictions'],
     queryFn: async () => {
       return withErrorHandling(async () => {
-        const { data, error } = await supabase.rpc('exec_sql', {
-          sql: `
-            SELECT * FROM public.jurisdictions 
-            WHERE is_active = true 
-            ORDER BY jurisdiction_type ASC, name ASC
-          `
+        const { data, error } = await supabase.functions.invoke('exec-sql', {
+          body: {
+            sql: `
+              SELECT * FROM public.jurisdictions 
+              WHERE is_active = true 
+              ORDER BY jurisdiction_type ASC, name ASC
+            `
+          }
         });
 
         if (error) throw error;
-        return (data || []) as Jurisdiction[];
+        return (data?.data || []) as Jurisdiction[];
       }, 'Fetching jurisdictions') ?? [];
     },
   });
 
-  // Fetch jurisdiction codes using raw SQL
+  // Fetch jurisdiction codes using the edge function
   const fetchJurisdictionCodes = (jurisdictionId?: string) => {
     return useQuery({
       queryKey: ['jurisdiction-codes', jurisdictionId],
@@ -78,12 +80,12 @@ export const useJurisdictions = () => {
           
           sql += ' ORDER BY code_type ASC';
 
-          const { data, error } = await supabase.rpc('exec_sql', {
-            sql: sql
+          const { data, error } = await supabase.functions.invoke('exec-sql', {
+            body: { sql: sql }
           });
 
           if (error) throw error;
-          return (data || []) as JurisdictionCode[];
+          return (data?.data || []) as JurisdictionCode[];
         }, 'Fetching jurisdiction codes') ?? [];
       },
       enabled: !!jurisdictionId,
@@ -102,7 +104,7 @@ export const useJurisdictions = () => {
     }, 'Fetching jurisdiction hierarchy');
   };
 
-  // Search jurisdictions by location using raw SQL
+  // Search jurisdictions by location using the edge function
   const searchJurisdictionsByLocation = async (state: string, county?: string, city?: string) => {
     return withErrorHandling(async () => {
       let sql = `
@@ -120,12 +122,12 @@ export const useJurisdictions = () => {
 
       sql += ' ORDER BY jurisdiction_type';
 
-      const { data, error } = await supabase.rpc('exec_sql', {
-        sql: sql
+      const { data, error } = await supabase.functions.invoke('exec-sql', {
+        body: { sql: sql }
       });
 
       if (error) throw error;
-      return (data || []) as Jurisdiction[];
+      return (data?.data || []) as Jurisdiction[];
     }, 'Searching jurisdictions by location');
   };
 
