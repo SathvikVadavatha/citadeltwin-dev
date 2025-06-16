@@ -1,7 +1,23 @@
 
-import type { BIMElement, Material } from '@/types/materials';
 import type { CostEstimation, CostLineItem, QuantityTakeoff } from '@/types/cost-estimation';
 import type { LoadCalculationParameters, LoadCalculationResult } from '@/types/loads';
+
+// Local type definitions for validation
+interface BIMElement {
+  id?: string;
+  name: string;
+  element_type: string;
+  geometry?: any;
+  material_id?: string;
+  materials?: any;
+}
+
+interface Material {
+  id?: string;
+  name: string;
+  material_type: string;
+  properties?: any;
+}
 
 export interface ValidationResult {
   isValid: boolean;

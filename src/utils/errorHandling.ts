@@ -79,8 +79,7 @@ export class ErrorHandler {
       message = error.message;
       details = {
         name: error.name,
-        stack: error.stack,
-        cause: error.cause
+        stack: error.stack
       };
       
       // Check if it's a specific error type

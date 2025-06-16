@@ -249,7 +249,7 @@ export class CalculationTester {
         labor_hours_per_unit: 0,
         waste_factor: 0,
         notes: '',
-        cost_database_source: 'custom',
+        cost_database_source: 'custom' as const,
         estimation_id: 'test',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -266,7 +266,7 @@ export class CalculationTester {
         labor_hours_per_unit: 20,
         waste_factor: 0,
         notes: '',
-        cost_database_source: 'custom',
+        cost_database_source: 'custom' as const,
         estimation_id: 'test',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -359,7 +359,7 @@ export class CalculationTester {
       labor_hours_per_unit: 0,
       waste_factor: 0,
       notes: '',
-      cost_database_source: 'custom',
+      cost_database_source: 'custom' as const,
       estimation_id: 'test',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -409,7 +409,7 @@ export class CalculationTester {
       labor_hours_per_unit: 0,
       waste_factor: 0,
       notes: '',
-      cost_database_source: 'custom',
+      cost_database_source: 'custom' as const,
       estimation_id: 'test',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -460,7 +460,7 @@ export class CalculationTester {
         labor_hours_per_unit: 20,
         waste_factor: 0,
         notes: '',
-        cost_database_source: 'custom',
+        cost_database_source: 'custom' as const,
         estimation_id: 'test',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -477,7 +477,7 @@ export class CalculationTester {
         labor_hours_per_unit: 30,
         waste_factor: 0,
         notes: '',
-        cost_database_source: 'custom',
+        cost_database_source: 'custom' as const,
         estimation_id: 'test',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
