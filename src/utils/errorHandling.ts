@@ -257,14 +257,12 @@ export class ErrorHandler {
           severity: retryAttempts > 0 ? 'high' : 'medium'
         });
         
-        if (fallback !== undefined) {
-          return fallback;
-        }
-        
-        return null;
+        // Return fallback if provided, otherwise null
+        return fallback !== undefined ? fallback : null;
       }
     }
     
+    // This should never be reached, but TypeScript needs it
     return null;
   }
 
