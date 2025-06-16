@@ -1,6 +1,7 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AutomatedDesignOptimizer } from './AutomatedDesignOptimizer';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -53,6 +54,7 @@ interface OptimizationResult {
 }
 
 export const DesignOptimizationPanel = () => {
+  const [activeTab, setActiveTab] = useState('automated');
   const [designDescription, setDesignDescription] = useState('');
   const [selectedCriteria, setSelectedCriteria] = useState<string[]>([]);
   const [optimizationResults, setOptimizationResults] = useState<OptimizationResult[]>([]);
@@ -136,138 +138,99 @@ Format your response as a structured analysis with clear sections for each optim
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5" />
-            Design Optimization
-          </CardTitle>
-          <CardDescription>
-            AI-powered analysis to optimize your design for cost, sustainability, and performance
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="automated">Automated Optimization</TabsTrigger>
+        <TabsTrigger value="manual">Manual Analysis</TabsTrigger>
+      </TabsList>
 
-          <div>
-            <label className="text-sm font-medium mb-2 block">Design Description</label>
-            <Textarea
-              value={designDescription}
-              onChange={(e) => setDesignDescription(e.target.value)}
-              placeholder="Describe your current design, including materials, dimensions, structural elements, and any specific requirements..."
-              rows={6}
-            />
-          </div>
+      <TabsContent value="automated">
+        <AutomatedDesignOptimizer />
+      </TabsContent>
 
-          <div>
-            <label className="text-sm font-medium mb-3 block">Optimization Criteria</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {OPTIMIZATION_CRITERIA.map((criteria) => (
-                <Card
-                  key={criteria.id}
-                  className={`cursor-pointer transition-colors ${
-                    selectedCriteria.includes(criteria.id)
-                      ? 'border-primary bg-primary/5'
-                      : 'hover:bg-muted/50'
-                  }`}
-                  onClick={() => handleCriteriaToggle(criteria.id)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="mt-1">{criteria.icon}</div>
-                      <div className="flex-1">
-                        <h4 className="font-medium">{criteria.name}</h4>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {criteria.description}
-                        </p>
-                      </div>
-                      {selectedCriteria.includes(criteria.id) && (
-                        <CheckCircle className="h-5 w-5 text-primary" />
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+      <TabsContent value="manual">
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5" />
+                Manual Design Optimization
+              </CardTitle>
+              <CardDescription>
+                AI-powered analysis to optimize your design for cost, sustainability, and performance
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
 
-          <Button
-            onClick={runOptimization}
-            disabled={loading || !designDescription.trim() || selectedCriteria.length === 0}
-            className="w-full"
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                Analyzing Design...
-              </>
-            ) : (
-              <>
-                <Zap className="h-4 w-4 mr-2" />
-                Run Optimization Analysis
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Design Description</label>
+                <Textarea
+                  value={designDescription}
+                  onChange={(e) => setDesignDescription(e.target.value)}
+                  placeholder="Describe your current design, including materials, dimensions, structural elements, and any specific requirements..."
+                  rows={6}
+                />
+              </div>
 
-      {optimizationResults.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
-              Optimization Results
-            </CardTitle>
-            <CardDescription>
-              AI-generated suggestions for improving your design
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {optimizationResults.map((result, index) => (
-                <div key={index}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold">{result.criteria}</h4>
-                    <div className="flex gap-2">
-                      <Badge variant="outline" className={getImpactColor(result.impactLevel)}>
-                        {result.impactLevel} impact
-                      </Badge>
-                      <Badge variant="outline" className={getComplexityColor(result.implementationComplexity)}>
-                        {result.implementationComplexity}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {result.suggestions.map((suggestion, suggestionIndex) => (
-                      <div key={suggestionIndex} className="flex items-start gap-2">
-                        <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                        <p className="text-sm">{suggestion}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {result.estimatedSavings && (
-                    <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                      <p className="text-sm text-green-700 dark:text-green-300">
-                        <strong>Estimated Savings:</strong> {result.estimatedSavings}
-                      </p>
-                    </div>
-                  )}
-                  
-                  {index < optimizationResults.length - 1 && <Separator className="mt-6" />}
+              <div>
+                <label className="text-sm font-medium mb-3 block">Optimization Criteria</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {OPTIMIZATION_CRITERIA.map((criteria) => (
+                    <Card
+                      key={criteria.id}
+                      className={`cursor-pointer transition-colors ${
+                        selectedCriteria.includes(criteria.id)
+                          ? 'border-primary bg-primary/5'
+                          : 'hover:bg-muted/50'
+                      }`}
+                      onClick={() => handleCriteriaToggle(criteria.id)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="mt-1">{criteria.icon}</div>
+                          <div className="flex-1">
+                            <h4 className="font-medium">{criteria.name}</h4>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {criteria.description}
+                            </p>
+                          </div>
+                          {selectedCriteria.includes(criteria.id) && (
+                            <CheckCircle className="h-5 w-5 text-primary" />
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+              </div>
+
+              <Button
+                onClick={runOptimization}
+                disabled={loading || !designDescription.trim() || selectedCriteria.length === 0}
+                className="w-full"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    Analyzing Design...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-4 w-4 mr-2" />
+                    Run Optimization Analysis
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </TabsContent>
+    </Tabs>
   );
 };

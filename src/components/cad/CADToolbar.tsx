@@ -10,7 +10,8 @@ import {
   ZoomIn,
   ZoomOut,
   Save,
-  Ruler
+  Ruler,
+  RotateCcw
 } from "lucide-react";
 import type { DrawingTool } from "./CADDrawingCanvas";
 
@@ -42,6 +43,7 @@ export const CADToolbar = ({
     { name: "Line", tool: "line" as DrawingTool, icon: Minus },
     { name: "Rectangle", tool: "rectangle" as DrawingTool, icon: Square },
     { name: "Circle", tool: "circle" as DrawingTool, icon: CircleIcon },
+    { name: "Arc", tool: "arc" as DrawingTool, icon: RotateCcw },
     { name: "Polygon", tool: "polygon" as DrawingTool, icon: Triangle },
   ];
 

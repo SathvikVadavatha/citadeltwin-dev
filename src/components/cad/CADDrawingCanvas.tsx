@@ -32,7 +32,7 @@ export const CADDrawingCanvas = ({
 
   const { createGrid, snapPoint, calculateDistance } = useCADCanvas(gridSize, showGrid);
   
-  const { handleMouseDown, handleMouseMove, handleMouseUp } = useCADTools(
+  const { handleMouseDown, handleMouseMove, handleMouseUp, arcPoints } = useCADTools(
     fabricCanvas,
     activeTool,
     (point) => snapPoint(point, snapToGrid),
@@ -143,6 +143,14 @@ export const CADDrawingCanvas = ({
           <div className="border border-border rounded-lg overflow-hidden shadow-lg">
             <canvas ref={canvasRef} className="max-w-full" />
           </div>
+          
+          {activeTool === "arc" && arcPoints.length > 0 && (
+            <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
+              <p className="text-sm text-blue-700">
+                Arc tool: {arcPoints.length === 1 ? "Click second point (control)" : "Click third point (end)"}
+              </p>
+            </div>
+          )}
         </div>
 
         <CADPropertiesPanel
