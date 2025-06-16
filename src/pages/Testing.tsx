@@ -3,7 +3,8 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TestingFramework } from '@/components/testing/TestingFramework';
 import { PerformanceDashboard } from '@/components/performance/PerformanceDashboard';
-import { Activity, TestTube } from 'lucide-react';
+import { RenderingAnalysisDashboard } from '@/components/performance/RenderingAnalysisDashboard';
+import { Activity, TestTube, Zap } from 'lucide-react';
 
 export const Testing: React.FC = () => {
   return (
@@ -14,12 +15,12 @@ export const Testing: React.FC = () => {
             Testing & Performance
           </h1>
           <p className="text-muted-foreground mt-2">
-            Comprehensive testing framework and performance optimization tools
+            Comprehensive testing framework, performance optimization, and rendering analysis tools
           </p>
         </div>
 
         <Tabs defaultValue="testing" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="testing" className="flex items-center gap-2">
               <TestTube className="w-4 h-4" />
               Testing Framework
@@ -27,6 +28,10 @@ export const Testing: React.FC = () => {
             <TabsTrigger value="performance" className="flex items-center gap-2">
               <Activity className="w-4 h-4" />
               Performance Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="rendering" className="flex items-center gap-2">
+              <Zap className="w-4 h-4" />
+              Rendering Analysis
             </TabsTrigger>
           </TabsList>
 
@@ -36,6 +41,10 @@ export const Testing: React.FC = () => {
 
           <TabsContent value="performance" className="space-y-4">
             <PerformanceDashboard />
+          </TabsContent>
+
+          <TabsContent value="rendering" className="space-y-4">
+            <RenderingAnalysisDashboard />
           </TabsContent>
         </Tabs>
       </div>
