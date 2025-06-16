@@ -258,7 +258,11 @@ export class ErrorHandler {
         });
         
         // Return fallback if provided, otherwise null
-        return fallback !== undefined ? fallback : null;
+        if (fallback !== undefined) {
+          return fallback;
+        }
+        
+        return null;
       }
     }
     
