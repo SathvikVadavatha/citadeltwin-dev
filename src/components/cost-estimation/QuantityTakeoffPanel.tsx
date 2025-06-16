@@ -3,10 +3,11 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Calculator, RefreshCw, FileText, Plus } from 'lucide-react';
+import { Calculator, RefreshCw, Plus } from 'lucide-react';
 import { useQuantityTakeoff } from '@/hooks/useQuantityTakeoff';
 import { useBIMElements } from '@/hooks/useBIMElements';
+import { ElementsSummary } from './quantity-takeoff/ElementsSummary';
+import { TakeoffSummary } from './quantity-takeoff/TakeoffSummary';
 
 interface QuantityTakeoffPanelProps {
   estimationId: string;
@@ -17,15 +18,6 @@ export const QuantityTakeoffPanel = ({ estimationId }: QuantityTakeoffPanelProps
   const { elements, loading: elementsLoading } = useBIMElements();
   const [generating, setGenerating] = useState(false);
 
-  const handleGenerateFromElements = async () => {
-    setGenerating(true);
-    try {
-      await generateTakeoffsFromElements(elements);
-    } finally {
-      setGenerating(false);
-    }
-  };
-
   const getElementTypeColor = (elementType: string) => {
     const colors = {
       wall: 'bg-blue-500/20 text-blue-400 border-blue-400/50',
@@ -35,6 +27,15 @@ export const QuantityTakeoffPanel = ({ estimationId }: QuantityTakeoffPanelProps
       foundation: 'bg-orange-500/20 text-orange-400 border-orange-400/50',
     };
     return colors[elementType as keyof typeof colors] || 'bg-gray-500/20 text-gray-400 border-gray-400/50';
+  };
+
+  const handleGenerateFromElements = async () => {
+    setGenerating(true);
+    try {
+      await generateTakeoffsFromElements(elements);
+    } finally {
+      setGenerating(false);
+    }
   };
 
   if (loading || elementsLoading) {
@@ -59,11 +60,7 @@ export const QuantityTakeoffPanel = ({ estimationId }: QuantityTakeoffPanelProps
           </p>
         </div>
         <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            onClick={refreshTakeoffs}
-            className="cyber-button"
-          >
+          <Button variant="outline" onClick={refreshTakeoffs} className="cyber-button">
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>
@@ -82,38 +79,7 @@ export const QuantityTakeoffPanel = ({ estimationId }: QuantityTakeoffPanelProps
         </div>
       </div>
 
-      {/* Available Elements Summary */}
-      <Card className="gradient-border">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center">
-            <FileText className="w-4 h-4 mr-2" />
-            Available BIM Elements
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {elements.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">
-              No BIM elements found. Upload and parse a blueprint first.
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {Object.entries(
-                elements.reduce((acc, element) => {
-                  acc[element.element_type] = (acc[element.element_type] || 0) + 1;
-                  return acc;
-                }, {} as Record<string, number>)
-              ).map(([type, count]) => (
-                <div key={type} className="text-center">
-                  <Badge className={getElementTypeColor(type)}>
-                    {type}
-                  </Badge>
-                  <p className="text-sm mt-1">{count} elements</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <ElementsSummary elements={elements} />
 
       {/* Generated Takeoffs */}
       <Card className="gradient-border">
@@ -175,42 +141,7 @@ export const QuantityTakeoffPanel = ({ estimationId }: QuantityTakeoffPanelProps
                 </div>
               ))}
 
-              <Separator />
-              
-              {/* Summary */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
-                <div>
-                  <span className="text-sm text-muted-foreground">Total Items:</span>
-                  <p className="font-medium">{takeoffs.length}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-muted-foreground">Concrete (cy):</span>
-                  <p className="font-medium">
-                    {takeoffs
-                      .filter(t => t.unit_of_measure === 'cy')
-                      .reduce((sum, t) => sum + t.calculated_quantity, 0)
-                      .toFixed(2)}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm text-muted-foreground">Area (sf):</span>
-                  <p className="font-medium">
-                    {takeoffs
-                      .filter(t => t.unit_of_measure === 'sf')
-                      .reduce((sum, t) => sum + t.calculated_quantity, 0)
-                      .toFixed(2)}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm text-muted-foreground">Count (ea):</span>
-                  <p className="font-medium">
-                    {takeoffs
-                      .filter(t => t.unit_of_measure === 'ea')
-                      .reduce((sum, t) => sum + t.calculated_quantity, 0)
-                      .toFixed(0)}
-                  </p>
-                </div>
-              </div>
+              <TakeoffSummary takeoffs={takeoffs} />
             </div>
           )}
         </CardContent>

@@ -2,11 +2,18 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useTakeoffOperations } from './quantity-takeoff/useTakeoffOperations';
 import type { QuantityTakeoff } from '@/types/cost-estimation';
 
 export const useQuantityTakeoff = (estimationId?: string) => {
   const [takeoffs, setTakeoffs] = useState<QuantityTakeoff[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const {
+    generateTakeoffsFromElements,
+    updateTakeoff,
+    deleteTakeoff,
+  } = useTakeoffOperations(estimationId);
 
   const fetchTakeoffs = async () => {
     if (!estimationId) return;
@@ -60,138 +67,19 @@ export const useQuantityTakeoff = (estimationId?: string) => {
     }
   };
 
-  const calculateQuantityFromElement = (element: any, material?: any): number => {
-    const geometry = element.geometry || {};
-    const elementType = element.element_type;
-
-    switch (elementType) {
-      case 'wall':
-        const length = geometry.length || 0;
-        const height = geometry.height || 0;
-        const thickness = geometry.thickness || 0;
-        return length * height * thickness; // Volume for concrete walls
-
-      case 'slab':
-        const width = geometry.width || 0;
-        const slabLength = geometry.length || 0;
-        const slabThickness = geometry.thickness || 0;
-        return width * slabLength * slabThickness; // Volume
-
-      case 'beam':
-        const beamLength = geometry.length || 0;
-        const crossSectionArea = geometry.cross_section_area || 0;
-        return beamLength * crossSectionArea; // Volume
-
-      case 'column':
-        const columnHeight = geometry.height || 0;
-        const columnArea = geometry.cross_section_area || 0;
-        return columnHeight * columnArea; // Volume
-
-      default:
-        return 1; // Default quantity
-    }
+  const handleGenerateTakeoffs = async (elements: any[]) => {
+    await generateTakeoffsFromElements(elements);
+    await fetchTakeoffs();
   };
 
-  const generateTakeoffsFromElements = async (elements: any[]) => {
-    if (!estimationId) return;
-
-    try {
-      const takeoffInserts = elements.map(element => {
-        const quantity = calculateQuantityFromElement(element);
-        const unitOfMeasure = getUnitOfMeasureForElement(element.element_type);
-
-        return `(
-          '${estimationId}',
-          '${element.id}',
-          ${element.material_id ? `'${element.material_id}'` : 'NULL'},
-          ${quantity},
-          '${unitOfMeasure}',
-          'automated_geometry',
-          '${JSON.stringify(element.geometry || {}).replace(/'/g, "''")}'
-        )`;
-      }).join(',');
-
-      const { error } = await supabase.functions.invoke('exec-sql', {
-        body: {
-          sql: `
-            INSERT INTO quantity_takeoffs (
-              estimation_id, element_id, material_id, calculated_quantity, 
-              unit_of_measure, calculation_method, geometry_data
-            ) VALUES ${takeoffInserts}
-          `
-        }
-      });
-
-      if (error) throw error;
-
-      toast.success('Quantity takeoffs generated successfully');
-      await fetchTakeoffs();
-    } catch (error) {
-      console.error('Error generating takeoffs:', error);
-      toast.error('Failed to generate quantity takeoffs');
-    }
+  const handleUpdateTakeoff = async (id: string, updates: Partial<QuantityTakeoff>) => {
+    await updateTakeoff(id, updates);
+    await fetchTakeoffs();
   };
 
-  const getUnitOfMeasureForElement = (elementType: string): string => {
-    switch (elementType) {
-      case 'wall':
-      case 'slab':
-      case 'beam':
-      case 'column':
-        return 'cy'; // Cubic yards for concrete elements
-      case 'door':
-      case 'window':
-        return 'ea'; // Each for individual items
-      case 'roof':
-        return 'sf'; // Square feet for area
-      default:
-        return 'ea';
-    }
-  };
-
-  const updateTakeoff = async (id: string, updates: Partial<QuantityTakeoff>) => {
-    try {
-      const updateFields = Object.entries(updates)
-        .filter(([key, value]) => value !== undefined)
-        .map(([key, value]) => `${key} = ${typeof value === 'string' ? `'${value}'` : value}`)
-        .join(', ');
-
-      const { error } = await supabase.functions.invoke('exec-sql', {
-        body: {
-          sql: `
-            UPDATE quantity_takeoffs 
-            SET ${updateFields}, updated_at = NOW()
-            WHERE id = '${id}'
-          `
-        }
-      });
-
-      if (error) throw error;
-
-      toast.success('Takeoff updated successfully');
-      await fetchTakeoffs();
-    } catch (error) {
-      console.error('Error updating takeoff:', error);
-      toast.error('Failed to update takeoff');
-    }
-  };
-
-  const deleteTakeoff = async (id: string) => {
-    try {
-      const { error } = await supabase.functions.invoke('exec-sql', {
-        body: {
-          sql: `DELETE FROM quantity_takeoffs WHERE id = '${id}'`
-        }
-      });
-
-      if (error) throw error;
-
-      toast.success('Takeoff deleted successfully');
-      await fetchTakeoffs();
-    } catch (error) {
-      console.error('Error deleting takeoff:', error);
-      toast.error('Failed to delete takeoff');
-    }
+  const handleDeleteTakeoff = async (id: string) => {
+    await deleteTakeoff(id);
+    await fetchTakeoffs();
   };
 
   useEffect(() => {
@@ -203,9 +91,9 @@ export const useQuantityTakeoff = (estimationId?: string) => {
   return {
     takeoffs,
     loading,
-    generateTakeoffsFromElements,
-    updateTakeoff,
-    deleteTakeoff,
+    generateTakeoffsFromElements: handleGenerateTakeoffs,
+    updateTakeoff: handleUpdateTakeoff,
+    deleteTakeoff: handleDeleteTakeoff,
     refreshTakeoffs: fetchTakeoffs,
   };
 };
