@@ -76,6 +76,18 @@ export interface QuantityTakeoff {
   geometry_data?: any;
   created_at: string;
   updated_at: string;
+  // Related data from joins
+  bim_elements?: {
+    name: string;
+    element_type: string;
+    geometry: any;
+    parameters: any;
+  };
+  materials?: {
+    name: string;
+    material_type: string;
+    properties: any;
+  };
 }
 
 export interface CostCalculationParams {

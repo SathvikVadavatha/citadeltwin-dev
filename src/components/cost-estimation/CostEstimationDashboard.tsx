@@ -17,6 +17,7 @@ import { CreateEstimationModal } from './CreateEstimationModal';
 import { EstimationDetailsView } from './EstimationDetailsView';
 import { CostSummaryCard } from './CostSummaryCard';
 import { BudgetTrackingPanel } from './BudgetTrackingPanel';
+import type { CostEstimation } from '@/types/cost-estimation';
 
 interface CostEstimationDashboardProps {
   projectId: string;
