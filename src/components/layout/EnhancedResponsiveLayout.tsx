@@ -53,7 +53,7 @@ export const EnhancedResponsiveLayout: React.FC<EnhancedResponsiveLayoutProps> =
             "pb-safe-bottom pt-safe-top",
             orientation === 'landscape' ? "pb-16" : "pb-20"
           )}>
-            <div className="pb-4">
+            <div className="p-4">
               {children}
             </div>
           </main>
@@ -83,7 +83,7 @@ export const EnhancedResponsiveLayout: React.FC<EnhancedResponsiveLayoutProps> =
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
-        <main className="flex-1">
+        <main className="flex-1 p-6">
           {children}
         </main>
       </div>

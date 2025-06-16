@@ -26,33 +26,108 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router>
-          <EnhancedResponsiveLayout>
-            <Routes>
-              <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/blueprints/upload" element={<ProtectedRoute><UploadBlueprint /></ProtectedRoute>} />
-              <Route path="/blueprints/view" element={<ProtectedRoute><ViewBlueprints /></ProtectedRoute>} />
-              <Route path="/compliance" element={<ProtectedRoute><Compliance /></ProtectedRoute>} />
-              <Route path="/fea-analysis" element={<ProtectedRoute><FEAAnalysis /></ProtectedRoute>} />
-              <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-              <Route path="/client-portal" element={<ProtectedRoute><ClientPortal /></ProtectedRoute>} />
-              <Route path="/testing" element={<ProtectedRoute><Testing /></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-              <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
-              <Route path="/security" element={<ProtectedRoute><Security /></ProtectedRoute>} />
-              <Route path="/workflow-automation" element={<ProtectedRoute><WorkflowAutomation /></ProtectedRoute>} />
-              <Route 
-                path="/documents" 
-                element={
-                  <ProtectedRoute>
-                    <div className="container mx-auto p-6">
-                      <DocumentManagementDashboard />
-                    </div>
-                  </ProtectedRoute>
-                } 
-              />
-            </Routes>
-          </EnhancedResponsiveLayout>
+          <Routes>
+            <Route path="/" element={
+              <ProtectedRoute>
+                <EnhancedResponsiveLayout>
+                  <Dashboard />
+                </EnhancedResponsiveLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <EnhancedResponsiveLayout>
+                  <Dashboard />
+                </EnhancedResponsiveLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/blueprints/upload" element={
+              <ProtectedRoute>
+                <EnhancedResponsiveLayout>
+                  <UploadBlueprint />
+                </EnhancedResponsiveLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/blueprints/view" element={
+              <ProtectedRoute>
+                <EnhancedResponsiveLayout>
+                  <ViewBlueprints />
+                </EnhancedResponsiveLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/compliance" element={
+              <ProtectedRoute>
+                <EnhancedResponsiveLayout>
+                  <Compliance />
+                </EnhancedResponsiveLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/fea-analysis" element={
+              <ProtectedRoute>
+                <EnhancedResponsiveLayout>
+                  <FEAAnalysis />
+                </EnhancedResponsiveLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/analytics" element={
+              <ProtectedRoute>
+                <EnhancedResponsiveLayout>
+                  <Analytics />
+                </EnhancedResponsiveLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/client-portal" element={
+              <ProtectedRoute>
+                <EnhancedResponsiveLayout>
+                  <ClientPortal />
+                </EnhancedResponsiveLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/testing" element={
+              <ProtectedRoute>
+                <EnhancedResponsiveLayout>
+                  <Testing />
+                </EnhancedResponsiveLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <EnhancedResponsiveLayout>
+                  <Settings />
+                </EnhancedResponsiveLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/users" element={
+              <ProtectedRoute>
+                <EnhancedResponsiveLayout>
+                  <Users />
+                </EnhancedResponsiveLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/security" element={
+              <ProtectedRoute>
+                <EnhancedResponsiveLayout>
+                  <Security />
+                </EnhancedResponsiveLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/workflow-automation" element={
+              <ProtectedRoute>
+                <EnhancedResponsiveLayout>
+                  <WorkflowAutomation />
+                </EnhancedResponsiveLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/documents" element={
+              <ProtectedRoute>
+                <EnhancedResponsiveLayout>
+                  <div className="container mx-auto p-6">
+                    <DocumentManagementDashboard />
+                  </div>
+                </EnhancedResponsiveLayout>
+              </ProtectedRoute>
+            } />
+          </Routes>
         </Router>
       </AuthProvider>
     </QueryClientProvider>
