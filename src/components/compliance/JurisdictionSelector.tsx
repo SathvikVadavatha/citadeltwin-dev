@@ -21,15 +21,19 @@ export const JurisdictionSelector: React.FC<JurisdictionSelectorProps> = ({
   const [searchResults, setSearchResults] = useState<any[]>([]);
   
   const { 
-    jurisdictions = [],
+    jurisdictions,
     jurisdictionsLoading,
     searchJurisdictionsByLocation,
   } = useJurisdictions();
 
+  // Ensure jurisdictions is always an array, even if API fails
+  const safeJurisdictions = Array.isArray(jurisdictions) ? jurisdictions : [];
+  const safeSearchResults = Array.isArray(searchResults) ? searchResults : [];
+
   const handleLocationSearch = async (state: string, county?: string, city?: string) => {
     try {
       const results = await searchJurisdictionsByLocation(state, county, city);
-      setSearchResults(results || []);
+      setSearchResults(Array.isArray(results) ? results : []);
     } catch (error) {
       console.error('Search failed:', error);
       setSearchResults([]);
@@ -72,11 +76,11 @@ export const JurisdictionSelector: React.FC<JurisdictionSelectorProps> = ({
             <JurisdictionSearchForm onSearch={handleLocationSearch} />
 
             {/* Search Results */}
-            {searchResults.length > 0 && (
+            {safeSearchResults.length > 0 && (
               <div>
                 <h4 className="font-semibold text-cyan-400 mb-3">Search Results</h4>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {searchResults.map((jurisdiction) => (
+                  {safeSearchResults.map((jurisdiction) => (
                     <Card
                       key={jurisdiction.id}
                       className={`cursor-pointer transition-colors border border-gray-700 hover:bg-gray-800/50 ${
@@ -98,13 +102,13 @@ export const JurisdictionSelector: React.FC<JurisdictionSelectorProps> = ({
             {/* All Jurisdictions Dropdown */}
             <div>
               <h4 className="font-semibold text-cyan-400 mb-3">All Available Jurisdictions</h4>
-              {jurisdictions.length > 0 ? (
+              {safeJurisdictions.length > 0 ? (
                 <Select onValueChange={onJurisdictionSelect} value={selectedJurisdiction}>
                   <SelectTrigger className="bg-gray-900 border-gray-700">
                     <SelectValue placeholder="Select a jurisdiction..." />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-900 border-gray-700 max-h-60">
-                    {jurisdictions.map((jurisdiction) => (
+                    {safeJurisdictions.map((jurisdiction) => (
                       <SelectItem key={jurisdiction.id} value={jurisdiction.id}>
                         {formatJurisdictionName(jurisdiction)}
                       </SelectItem>
@@ -113,7 +117,7 @@ export const JurisdictionSelector: React.FC<JurisdictionSelectorProps> = ({
                 </Select>
               ) : (
                 <div className="text-center text-gray-400 p-4">
-                  No jurisdictions available.
+                  {jurisdictionsLoading ? 'Loading jurisdictions...' : 'No jurisdictions available. Please check your connection.'}
                 </div>
               )}
             </div>
