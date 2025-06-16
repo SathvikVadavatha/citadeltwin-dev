@@ -1752,7 +1752,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      archive_old_compliance_checks: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_old_presence: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       analysis_status:

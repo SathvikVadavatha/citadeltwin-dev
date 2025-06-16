@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
 
-// Extended BIM Element type to include project_id
+// Enhanced BIM Element type to include project_id properly
 export interface BIMElement {
   id: string;
   upload_id?: string;
