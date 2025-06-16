@@ -22,8 +22,8 @@ export class ErrorHandler {
       errorInfo.stack = error.stack;
     }
 
-    // Log the error
-    logger.error(`Error in ${context}:`, errorInfo);
+    // Log the error with proper string serialization
+    logger.error(`Error in ${context}:`, JSON.stringify(errorInfo));
 
     return errorInfo;
   }
