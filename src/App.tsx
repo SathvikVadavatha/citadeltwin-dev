@@ -1,15 +1,16 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import ResponsiveLayout from '@/layouts/ResponsiveLayout';
-import Dashboard from '@/pages/Dashboard';
+import { Dashboard } from '@/pages/Dashboard';
 import Projects from '@/pages/Projects';
 import ProjectDetails from '@/pages/ProjectDetails';
 import AIAssistant from '@/pages/AIAssistant';
 import CADInterface from '@/pages/CADInterface';
 import BIMViewer from '@/pages/BIMViewer';
-import FEAAnalysis from '@/pages/FEAAnalysis';
+import { FEAAnalysis } from '@/pages/FEAAnalysis';
 import CostEstimator from '@/pages/CostEstimator';
 import AccountSettings from '@/pages/AccountSettings';
 import Pricing from '@/pages/Pricing';
