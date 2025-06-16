@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { useGeminiAI } from '@/hooks/useGeminiAI';
 import { PerformanceOptimizer } from '@/utils/performance/performanceOptimizer';
@@ -35,11 +36,7 @@ export const useOptimizedAI = () => {
   return {
     ...geminiAI,
     optimizedGenerateResponse,
-    optimizedAnalyzeText,
-    optimizedGenerateCode,
-    // Keep the original methods available as well
-    generateResponse: geminiAI.generateResponse,
-    analyzeText: geminiAI.analyzeText,
-    generateCode: geminiAI.generateCode,
+    analyzeText: optimizedAnalyzeText,
+    generateCode: optimizedGenerateCode,
   };
 };
