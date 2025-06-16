@@ -233,14 +233,10 @@ export class ErrorHandler {
   ): Promise<T | null> {
     const { showToast = true, fallback, retryAttempts = 0, retryDelay = 1000 } = options;
     
-    let lastError: unknown;
-    
     for (let attempt = 0; attempt <= retryAttempts; attempt++) {
       try {
         return await operation();
       } catch (error) {
-        lastError = error;
-        
         if (attempt < retryAttempts) {
           // Log retry attempt
           logger.warn(`Retry attempt ${attempt + 1}/${retryAttempts} for ${context}`, context, { error });
@@ -257,16 +253,17 @@ export class ErrorHandler {
           severity: retryAttempts > 0 ? 'high' : 'medium'
         });
         
-        // Return fallback if provided, otherwise null
+        // Return fallback if provided
         if (fallback !== undefined) {
           return fallback;
         }
         
+        // Return null for final failure
         return null;
       }
     }
     
-    // This should never be reached, but TypeScript needs it
+    // This should never be reached
     return null;
   }
 
