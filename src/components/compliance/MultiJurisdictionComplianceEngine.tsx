@@ -6,7 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertTriangle, CheckCircle, FileText, Settings, Play, Download, Snowflake, Waves, Wind, Shield } from 'lucide-react';
-import { useCompliance } from '@/hooks/useCompliance';
+import { useComplianceRules } from '@/hooks/compliance/useComplianceRules';
+import { useComplianceViolations } from '@/hooks/compliance/useComplianceViolations';
+import { useComplianceChecks } from '@/hooks/compliance/useComplianceChecks';
 import { useGeminiAI } from '@/hooks/useGeminiAI';
 import { JurisdictionSelector } from './JurisdictionSelector';
 import { ComplianceViolationsList } from './ComplianceViolationsList';
@@ -22,19 +24,11 @@ export const MultiJurisdictionComplianceEngine: React.FC<MultiJurisdictionCompli
   const [reportFormat, setReportFormat] = useState<'pdf' | 'docx'>('pdf');
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   
-  const { 
-    complianceRules, 
-    rulesLoading, 
-    fetchViolations,
-    fetchComplianceChecks,
-    runComplianceCheck, 
-    isRunningCheck 
-  } = useCompliance();
+  const { complianceRules, rulesLoading } = useComplianceRules();
+  const { violations, violationsLoading, updateViolationStatus } = useComplianceViolations(uploadId);
+  const { complianceChecks, checksLoading, runComplianceCheck, isRunningCheck } = useComplianceChecks(uploadId);
 
   const { generateResponse, loading: aiLoading } = useGeminiAI();
-
-  const { data: violations = [], isLoading: violationsLoading } = fetchViolations(uploadId);
-  const { data: complianceChecks = [], isLoading: checksLoading } = fetchComplianceChecks(uploadId);
 
   const handleRunMultiJurisdictionCheck = async () => {
     if (!uploadId || !selectedJurisdiction) {

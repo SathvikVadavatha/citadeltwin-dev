@@ -1,4 +1,5 @@
 
+
 // Import the specialized hooks
 import { useComplianceRules } from './compliance/useComplianceRules';
 import { useComplianceViolations } from './compliance/useComplianceViolations';
@@ -17,8 +18,6 @@ export type { ComplianceCheck } from './compliance/useComplianceChecks';
 // Main composite hook that combines all compliance functionality
 export const useCompliance = () => {
   const rulesHook = useComplianceRules();
-  const violationsHook = useComplianceViolations();
-  const checksHook = useComplianceChecks();
 
   return {
     // Rules
@@ -26,15 +25,12 @@ export const useCompliance = () => {
     rulesLoading: rulesHook.rulesLoading,
     rulesError: rulesHook.rulesError,
     
-    // Violations  
+    // Return hook functions that can be called with uploadId
     fetchViolations: (uploadId?: string) => useComplianceViolations(uploadId),
-    
-    // Checks
     fetchComplianceChecks: (uploadId?: string) => useComplianceChecks(uploadId),
-    runComplianceCheck: checksHook.runComplianceCheck,
-    isRunningCheck: checksHook.isRunningCheck,
     
-    // Violation management
-    updateViolationStatus: violationsHook.updateViolationStatus,
+    // For cases where uploadId is not needed upfront
+    useComplianceViolations,
+    useComplianceChecks,
   };
 };

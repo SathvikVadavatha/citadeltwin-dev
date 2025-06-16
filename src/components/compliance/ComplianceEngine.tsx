@@ -1,7 +1,9 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCompliance } from '@/hooks/useCompliance';
+import { useComplianceRules } from '@/hooks/compliance/useComplianceRules';
+import { useComplianceViolations } from '@/hooks/compliance/useComplianceViolations';
+import { useComplianceChecks } from '@/hooks/compliance/useComplianceChecks';
 import { ComplianceViolationsList } from './ComplianceViolationsList';
 import { ComplianceRulesList } from './ComplianceRulesList';
 import { MultiJurisdictionComplianceEngine } from './MultiJurisdictionComplianceEngine';
@@ -17,17 +19,9 @@ interface ComplianceEngineProps {
 export const ComplianceEngine: React.FC<ComplianceEngineProps> = ({ uploadId }) => {
   const [activeEngine, setActiveEngine] = useState<EngineType>('multi_jurisdiction');
   
-  const { 
-    complianceRules, 
-    rulesLoading, 
-    fetchViolations,
-    fetchComplianceChecks,
-    runComplianceCheck, 
-    isRunningCheck 
-  } = useCompliance();
-
-  const { data: violations = [], isLoading: violationsLoading } = fetchViolations(uploadId);
-  const { data: complianceChecks = [], isLoading: checksLoading } = fetchComplianceChecks(uploadId);
+  const { complianceRules, rulesLoading } = useComplianceRules();
+  const { violations, violationsLoading, updateViolationStatus } = useComplianceViolations(uploadId);
+  const { complianceChecks, checksLoading, runComplianceCheck, isRunningCheck } = useComplianceChecks(uploadId);
 
   const handleRunStandardComplianceCheck = () => {
     if (uploadId) {
