@@ -35,16 +35,16 @@ export const ElementsSummary = ({ elements }: ElementsSummaryProps) => {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {Object.entries(
-              elements.reduce((acc, element) => {
+              elements.reduce((acc: Record<string, number>, element) => {
                 acc[element.element_type] = (acc[element.element_type] || 0) + 1;
                 return acc;
-              }, {} as Record<string, number>)
+              }, {})
             ).map(([type, count]) => (
               <div key={type} className="text-center">
                 <Badge className={getElementTypeColor(type)}>
                   {type}
                 </Badge>
-                <p className="text-sm mt-1">{count} elements</p>
+                <p className="text-sm mt-1">{count as number} elements</p>
               </div>
             ))}
           </div>
