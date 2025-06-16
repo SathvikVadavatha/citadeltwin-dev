@@ -52,8 +52,8 @@ export const useEdgeFunctions = () => {
           upload_id: uploadId,
           template_id: templateId,
           document_type: documentType,
-          user_id: user.id,
-          variables
+          variables: variables || {},
+          user_id: user.id
         }
       });
 
@@ -63,42 +63,7 @@ export const useEdgeFunctions = () => {
       return data;
     } catch (error) {
       console.error('Error generating document:', error);
-      toast.error('Failed to start document generation');
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateGISData = async (
-    layerType: string,
-    city: string,
-    state: string,
-    refreshData = false
-  ) => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('realtime-gis-integration', {
-        body: {
-          layer_type: layerType,
-          city,
-          state,
-          refresh_data: refreshData
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.source === 'cached') {
-        toast.info('Returned cached GIS data');
-      } else {
-        toast.success('GIS data update initiated');
-      }
-      
-      return data;
-    } catch (error) {
-      console.error('Error updating GIS data:', error);
-      toast.error('Failed to update GIS data');
+      toast.error('Failed to generate document');
       throw error;
     } finally {
       setLoading(false);
@@ -119,7 +84,7 @@ export const useEdgeFunctions = () => {
 
       if (error) throw error;
 
-      toast.success('FEA analysis execution started');
+      toast.success('FEA analysis started');
       return data;
     } catch (error) {
       console.error('Error executing FEA analysis:', error);
@@ -130,11 +95,37 @@ export const useEdgeFunctions = () => {
     }
   };
 
+  const updateGISData = async (layerId: string, updateType: string) => {
+    if (!user) throw new Error('User not authenticated');
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('realtime-gis-integration', {
+        body: {
+          layer_id: layerId,
+          update_type: updateType,
+          user_id: user.id
+        }
+      });
+
+      if (error) throw error;
+
+      toast.success('GIS data update started');
+      return data;
+    } catch (error) {
+      console.error('Error updating GIS data:', error);
+      toast.error('Failed to update GIS data');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loading,
     executeMultiJurisdictionCompliance,
     generateDocument,
+    executeFEAAnalysis,
     updateGISData,
-    executeFEAAnalysis
   };
 };

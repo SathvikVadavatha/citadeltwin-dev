@@ -1,14 +1,17 @@
 
+export interface LoadCalculationParameters {
+  city: string;
+  state: string;
+  buildingType: string;
+  occupancy: string;
+  height: number;
+  area: number;
+  buildingCode?: string;
+}
+
 export interface LoadCalculationResult {
   calculationTimestamp: string;
-  parameters: {
-    city: string;
-    state: string;
-    buildingType: string;
-    occupancy: string;
-    height: number;
-    area: number;
-  };
+  parameters: LoadCalculationParameters;
   individualLoads: Array<{
     loadType: string;
     description: string;
@@ -24,11 +27,27 @@ export interface LoadCalculationResult {
     totalMagnitude: number;
     criticalLocation: { x: number; y: number; z: number };
   }>;
+  loadCombinations?: Array<{
+    name: string;
+    equation: string;
+    result: number;
+  }>;
   summary: {
     totalDeadLoad: number;
     totalLiveLoad: number;
     totalWindLoad: number;
     totalSeismicLoad: number;
+    maxWindLoad?: number;
+    maxSeismicLoad?: number;
     governingCombination: string;
+  };
+  codeCompliance?: {
+    compliant: boolean;
+    violations: Array<{
+      code: string;
+      description: string;
+      severity: 'warning' | 'error';
+    }>;
+    recommendations: string[];
   };
 }
