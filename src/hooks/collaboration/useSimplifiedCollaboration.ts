@@ -1,45 +1,58 @@
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useCollaboration } from '@/hooks/useCollaboration';
-
-// Simple debounce without multiple layers
-const createSimpleDebounce = <T extends (...args: any[]) => void>(
-  fn: T,
-  delay: number
-): T => {
-  let timeoutId: NodeJS.Timeout | null = null;
-  
-  return ((...args: any[]) => {
-    if (timeoutId) clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn(...args), delay);
-  }) as T;
-};
 
 export const useSimplifiedCollaboration = (projectId?: string) => {
   const collaboration = useCollaboration(projectId);
+  
+  // Use refs to store timeout IDs and prevent recreation
+  const cursorTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const operationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Single debounce layer - simplified approach
-  const debouncedCursorUpdate = useMemo(() => 
-    createSimpleDebounce(collaboration.updateCursorPosition, 100), 
-    [collaboration.updateCursorPosition]
-  );
+  // Stable debounced cursor update
+  const debouncedCursorUpdate = useCallback((...args: any[]) => {
+    if (cursorTimeoutRef.current) {
+      clearTimeout(cursorTimeoutRef.current);
+    }
+    cursorTimeoutRef.current = setTimeout(() => {
+      collaboration.updateCursorPosition(...args);
+    }, 100);
+  }, [collaboration.updateCursorPosition]);
 
-  const debouncedOperation = useMemo(() =>
-    createSimpleDebounce(collaboration.applyOperation, 200),
-    [collaboration.applyOperation]
-  );
+  // Stable debounced operation
+  const debouncedOperation = useCallback((...args: any[]) => {
+    if (operationTimeoutRef.current) {
+      clearTimeout(operationTimeoutRef.current);
+    }
+    operationTimeoutRef.current = setTimeout(() => {
+      collaboration.applyOperation(...args);
+    }, 200);
+  }, [collaboration.applyOperation]);
 
-  // Batch operations without complex optimization
+  // Simple batch operations
   const applyBatchOperations = useCallback(async (operations: any[]) => {
     for (const operation of operations) {
       await collaboration.applyOperation(operation);
     }
   }, [collaboration.applyOperation]);
 
+  // Cleanup timeouts
+  const cleanup = useCallback(() => {
+    if (cursorTimeoutRef.current) {
+      clearTimeout(cursorTimeoutRef.current);
+      cursorTimeoutRef.current = null;
+    }
+    if (operationTimeoutRef.current) {
+      clearTimeout(operationTimeoutRef.current);
+      operationTimeoutRef.current = null;
+    }
+  }, []);
+
   return {
     ...collaboration,
     updateCursorPosition: debouncedCursorUpdate,
     applyOperation: debouncedOperation,
     applyBatchOperations,
+    cleanup,
   };
 };

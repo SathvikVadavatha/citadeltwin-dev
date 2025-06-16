@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { PerformanceMonitor } from '@/utils/performance';
 
 interface PerformanceMetrics {
@@ -13,14 +13,14 @@ interface PerformanceMetrics {
 
 interface UsePerformanceMetricsOptions {
   enabled?: boolean;
-  interval?: number; // in milliseconds
+  interval?: number;
   developmentOnly?: boolean;
 }
 
 export const usePerformanceMetrics = (options: UsePerformanceMetricsOptions = {}) => {
   const {
-    enabled = false, // Changed default to false
-    interval = 5000, // Increased default from 1000ms to 5000ms
+    enabled = false,
+    interval = 5000,
     developmentOnly = true
   } = options;
 
@@ -35,41 +35,47 @@ export const usePerformanceMetrics = (options: UsePerformanceMetricsOptions = {}
 
   const [isMonitoring, setIsMonitoring] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const mountedRef = useRef(true);
 
-  // Only enable monitoring in development if developmentOnly is true
-  const shouldMonitor = enabled && (!developmentOnly || process.env.NODE_ENV === 'development');
+  // Stable monitoring flag
+  const shouldMonitor = useMemo(() => 
+    enabled && (!developmentOnly || process.env.NODE_ENV === 'development'),
+    [enabled, developmentOnly]
+  );
+
+  // Stable metrics update function
+  const updateMetrics = useCallback(() => {
+    if (!mountedRef.current) return;
+
+    const frameRate = Math.round(1000 / 16.67);
+    let memoryUsage = 0;
+    
+    if ('memory' in performance) {
+      const memory = (performance as any).memory;
+      memoryUsage = Math.round(memory.usedJSHeapSize / 1024 / 1024);
+      
+      // Throttled memory logging
+      if (process.env.NODE_ENV === 'development' && Math.random() < 0.05) {
+        PerformanceMonitor.logMemoryUsage();
+      }
+    }
+
+    setMetrics(prev => ({
+      ...prev,
+      frameRate,
+      memoryUsage,
+      renderTime: Math.random() * 16,
+      cacheHitRatio: Math.random() * 100,
+      loadTime: performance.now()
+    }));
+  }, []);
 
   const startMonitoring = useCallback(() => {
-    if (!shouldMonitor || isMonitoring) return;
+    if (!shouldMonitor || isMonitoring || intervalRef.current) return;
     
     setIsMonitoring(true);
-    
-    intervalRef.current = setInterval(() => {
-      // Frame rate calculation (less aggressive)
-      const frameRate = Math.round(1000 / 16.67);
-      
-      // Memory usage (only if available and needed)
-      let memoryUsage = 0;
-      if ('memory' in performance) {
-        const memory = (performance as any).memory;
-        memoryUsage = Math.round(memory.usedJSHeapSize / 1024 / 1024);
-        
-        // Only log memory in development and less frequently
-        if (process.env.NODE_ENV === 'development' && Math.random() < 0.1) {
-          PerformanceMonitor.logMemoryUsage();
-        }
-      }
-
-      setMetrics(prev => ({
-        ...prev,
-        frameRate,
-        memoryUsage,
-        renderTime: Math.random() * 16,
-        cacheHitRatio: Math.random() * 100,
-        loadTime: performance.now()
-      }));
-    }, interval);
-  }, [shouldMonitor, isMonitoring, interval]);
+    intervalRef.current = setInterval(updateMetrics, interval);
+  }, [shouldMonitor, isMonitoring, updateMetrics, interval]);
 
   const stopMonitoring = useCallback(() => {
     if (intervalRef.current) {
@@ -86,6 +92,7 @@ export const usePerformanceMetrics = (options: UsePerformanceMetricsOptions = {}
     return PerformanceMonitor.measureAsync(name, operation);
   }, []);
 
+  // Effect for managing monitoring lifecycle
   useEffect(() => {
     if (shouldMonitor) {
       startMonitoring();
@@ -97,6 +104,14 @@ export const usePerformanceMetrics = (options: UsePerformanceMetricsOptions = {}
       stopMonitoring();
     };
   }, [shouldMonitor, startMonitoring, stopMonitoring]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      stopMonitoring();
+    };
+  }, [stopMonitoring]);
 
   return {
     metrics,

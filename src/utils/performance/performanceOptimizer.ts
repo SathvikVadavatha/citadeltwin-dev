@@ -13,11 +13,12 @@ export class PerformanceOptimizer {
   private static cache = new Map<string, CacheEntry<any>>();
   private static queryCache = new Map<string, any>();
   private static debounceTimers = new Map<string, NodeJS.Timeout>();
-  private static maxCacheSize = 100; // Maximum cache entries
+  private static maxCacheSize = 100;
   private static cleanupInterval = 300000; // 5 minutes
+  private static cleanupTimer: NodeJS.Timeout | null = null;
+  private static memoryCheckTimer: NodeJS.Timeout | null = null;
 
   static {
-    // Initialize cleanup interval
     this.initializeCleanup();
   }
 
@@ -25,7 +26,7 @@ export class PerformanceOptimizer {
   static optimizeQuery<T>(
     queryKey: string, 
     queryFn: () => Promise<T>,
-    ttl: number = 300000 // 5 minutes default
+    ttl: number = 300000
   ): Promise<T> {
     return PerformanceMonitor.measureAsync(`query-${queryKey}`, async () => {
       const cached = this.getFromCache<T>(queryKey);
@@ -60,7 +61,7 @@ export class PerformanceOptimizer {
     };
   }
 
-  // Real-time Collaboration Optimization
+  // Real-time Collaboration Optimization with stable debouncing
   static debounceCollaboration(
     key: string, 
     fn: Function, 
@@ -83,7 +84,7 @@ export class PerformanceOptimizer {
   static optimizeAIRequests<T>(
     requestId: string,
     requestFn: () => Promise<T>,
-    ttl: number = 600000 // 10 minutes for AI responses
+    ttl: number = 600000
   ): Promise<T> {
     return this.optimizeQuery(`ai-${requestId}`, requestFn, ttl);
   }
@@ -99,7 +100,6 @@ export class PerformanceOptimizer {
       return null;
     }
     
-    // Update access statistics
     entry.accessCount++;
     entry.lastAccessed = now;
     
@@ -107,7 +107,6 @@ export class PerformanceOptimizer {
   }
 
   private static setCache<T>(key: string, data: T, ttl: number): void {
-    // Implement LRU eviction if cache is full
     if (this.cache.size >= this.maxCacheSize) {
       this.evictLeastRecentlyUsed();
     }
@@ -189,12 +188,11 @@ export class PerformanceOptimizer {
     return stats;
   }
 
-  // Force Cache Cleanup
+  // Force Cache Cleanup with better memory management
   static forceCacheCleanup(): void {
     this.clearExpiredCache();
     this.clearDebounceTimers();
     
-    // If still too large, aggressively clean
     if (this.cache.size > this.maxCacheSize * 0.8) {
       const entriesToRemove = Math.floor(this.cache.size * 0.3);
       const sortedEntries = Array.from(this.cache.entries())
@@ -208,28 +206,50 @@ export class PerformanceOptimizer {
     }
   }
 
-  // Initialize cleanup processes
+  // Initialize cleanup processes with proper cleanup
   private static initializeCleanup(): void {
+    // Clear any existing timers first
+    if (this.cleanupTimer) clearInterval(this.cleanupTimer);
+    if (this.memoryCheckTimer) clearInterval(this.memoryCheckTimer);
+
     // Auto-cleanup expired cache every 5 minutes
-    setInterval(() => {
+    this.cleanupTimer = setInterval(() => {
       this.clearExpiredCache();
     }, this.cleanupInterval);
 
-    // Listen for memory pressure (if available)
+    // Check memory pressure if available
     if ('memory' in performance) {
       const checkMemoryPressure = () => {
-        const memory = (performance as any).memory;
-        const usageRatio = memory.usedJSHeapSize / memory.jsHeapSizeLimit;
-        
-        if (usageRatio > 0.8) {
-          console.warn('High memory usage detected, forcing cache cleanup');
-          this.forceCacheCleanup();
+        try {
+          const memory = (performance as any).memory;
+          const usageRatio = memory.usedJSHeapSize / memory.jsHeapSizeLimit;
+          
+          if (usageRatio > 0.8) {
+            console.warn('High memory usage detected, forcing cache cleanup');
+            this.forceCacheCleanup();
+          }
+        } catch (error) {
+          console.warn('Memory monitoring failed:', error);
         }
       };
 
-      // Check every minute for memory pressure
-      setInterval(checkMemoryPressure, 60000);
+      this.memoryCheckTimer = setInterval(checkMemoryPressure, 60000);
     }
+  }
+
+  // Destroy method for proper cleanup
+  static destroy(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+    if (this.memoryCheckTimer) {
+      clearInterval(this.memoryCheckTimer);
+      this.memoryCheckTimer = null;
+    }
+    this.clearDebounceTimers();
+    this.cache.clear();
+    this.queryCache.clear();
   }
 
   // Lazy Loading Utilities
@@ -277,4 +297,11 @@ export class PerformanceOptimizer {
       return results;
     });
   }
+}
+
+// Cleanup on page unload
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    PerformanceOptimizer.destroy();
+  });
 }

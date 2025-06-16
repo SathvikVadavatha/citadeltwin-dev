@@ -3,20 +3,34 @@ import { useQuery } from '@tanstack/react-query';
 import { useWorkflowTemplates } from '@/hooks/useWorkflowTemplates';
 import { useProjectWorkflows } from '@/hooks/useProjectWorkflows';
 import { useBuildingTemplates } from '@/hooks/useBuildingTemplates';
+import { useMemo } from 'react';
 
 export const useWorkflowMetrics = () => {
-  // Coordinate queries with proper dependencies
+  // Get data from underlying hooks
   const templatesQuery = useWorkflowTemplates();
   const workflowsQuery = useProjectWorkflows();
   const buildingTemplatesQuery = useBuildingTemplates();
 
-  // Derived metrics with proper memoization
+  // Create stable dependency key to prevent infinite re-renders
+  const stableDependencyKey = useMemo(() => {
+    return [
+      templatesQuery.templates?.length || 0,
+      templatesQuery.systemTemplates?.length || 0,
+      workflowsQuery.workflows?.length || 0,
+      buildingTemplatesQuery.templates?.length || 0,
+      buildingTemplatesQuery.projectSetups?.length || 0
+    ].join('-');
+  }, [
+    templatesQuery.templates?.length,
+    templatesQuery.systemTemplates?.length,
+    workflowsQuery.workflows?.length,
+    buildingTemplatesQuery.templates?.length,
+    buildingTemplatesQuery.projectSetups?.length
+  ]);
+
+  // Derived metrics with stable query key
   const metrics = useQuery({
-    queryKey: ['workflow-metrics', 
-      templatesQuery.templates?.length,
-      workflowsQuery.workflows?.length,
-      buildingTemplatesQuery.templates?.length
-    ],
+    queryKey: ['workflow-metrics-stable', stableDependencyKey],
     queryFn: () => {
       const { templates = [], systemTemplates = [] } = templatesQuery;
       const { workflows = [] } = workflowsQuery;
@@ -36,12 +50,12 @@ export const useWorkflowMetrics = () => {
         buildingTemplates: buildingTemplates.length,
         systemTemplates: systemTemplates.length,
         customTemplates: templates.length,
-        avgCompletionTime: '8.5d' // Could be calculated from actual data
+        avgCompletionTime: '8.5d'
       };
     },
     enabled: !templatesQuery.isLoading && !workflowsQuery.isLoading && !buildingTemplatesQuery.isLoading,
-    staleTime: 30000, // 30 seconds
-    gcTime: 300000, // 5 minutes
+    staleTime: 30000,
+    gcTime: 300000,
   });
 
   return {

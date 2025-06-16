@@ -1,5 +1,5 @@
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -16,10 +16,19 @@ interface SubscriptionConfig {
 export const useRealtimeManager = (subscriptions: SubscriptionConfig[]) => {
   const channelsRef = useRef<Map<string, RealtimeChannel>>(new Map());
   const activeSubscriptionsRef = useRef<Set<string>>(new Set());
+  const mountedRef = useRef(true);
+
+  // Create stable subscription configs hash to prevent unnecessary recreations
+  const subscriptionsHash = useMemo(() => {
+    return subscriptions
+      .map(sub => `${sub.id}-${sub.table}-${sub.filter || ''}`)
+      .sort()
+      .join('|');
+  }, [subscriptions.map(s => `${s.id}-${s.table}-${s.filter || ''}`).join('|')]);
 
   const createSubscription = useCallback((config: SubscriptionConfig) => {
-    if (channelsRef.current.has(config.id)) {
-      return; // Already subscribed
+    if (!mountedRef.current || channelsRef.current.has(config.id)) {
+      return;
     }
 
     const channel = supabase
@@ -33,8 +42,10 @@ export const useRealtimeManager = (subscriptions: SubscriptionConfig[]) => {
           filter: config.filter,
         },
         (payload) => {
-          console.log(`${config.table} INSERT:`, payload);
-          config.onInsert?.(payload);
+          if (mountedRef.current) {
+            console.log(`${config.table} INSERT:`, payload);
+            config.onInsert?.(payload);
+          }
         }
       )
       .on(
@@ -46,8 +57,10 @@ export const useRealtimeManager = (subscriptions: SubscriptionConfig[]) => {
           filter: config.filter,
         },
         (payload) => {
-          console.log(`${config.table} UPDATE:`, payload);
-          config.onUpdate?.(payload);
+          if (mountedRef.current) {
+            console.log(`${config.table} UPDATE:`, payload);
+            config.onUpdate?.(payload);
+          }
         }
       )
       .on(
@@ -59,11 +72,15 @@ export const useRealtimeManager = (subscriptions: SubscriptionConfig[]) => {
           filter: config.filter,
         },
         (payload) => {
-          console.log(`${config.table} DELETE:`, payload);
-          config.onDelete?.(payload);
+          if (mountedRef.current) {
+            console.log(`${config.table} DELETE:`, payload);
+            config.onDelete?.(payload);
+          }
         }
       )
       .subscribe((status) => {
+        if (!mountedRef.current) return;
+        
         if (status === 'SUBSCRIBED') {
           console.log(`Connected to ${config.table} realtime updates`);
           activeSubscriptionsRef.current.add(config.id);
@@ -86,22 +103,31 @@ export const useRealtimeManager = (subscriptions: SubscriptionConfig[]) => {
   }, []);
 
   const cleanup = useCallback(() => {
-    channelsRef.current.forEach((channel, id) => {
+    channelsRef.current.forEach((channel) => {
       supabase.removeChannel(channel);
     });
     channelsRef.current.clear();
     activeSubscriptionsRef.current.clear();
   }, []);
 
+  // Stable effect that only runs when subscriptions actually change
   useEffect(() => {
-    // Create subscriptions for all configs
+    // Clean up existing subscriptions
+    cleanup();
+    
+    // Create new subscriptions
     subscriptions.forEach(createSubscription);
 
-    // Cleanup on unmount or when subscriptions change
+    return cleanup;
+  }, [subscriptionsHash, createSubscription, cleanup]);
+
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
+      mountedRef.current = false;
       cleanup();
     };
-  }, [subscriptions, createSubscription, cleanup]);
+  }, [cleanup]);
 
   return {
     addSubscription: createSubscription,
