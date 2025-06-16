@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { FEAAnalysisManager } from '@/components/fea/FEAAnalysisManager';
+import { ProcessingStatusWidget } from '@/components/processing/ProcessingStatusWidget';
 import { useViewport } from '@/hooks/useViewport';
 
 export const FEAAnalysis: React.FC = () => {
@@ -20,6 +21,9 @@ export const FEAAnalysis: React.FC = () => {
         
         <FEAAnalysisManager />
       </div>
+      
+      {/* Real-time processing status widget */}
+      <ProcessingStatusWidget />
     </div>
   );
 };
