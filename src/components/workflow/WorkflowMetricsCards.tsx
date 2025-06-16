@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useWorkflowTemplates } from '@/hooks/useWorkflowTemplates';
 import { useProjectWorkflows } from '@/hooks/useProjectWorkflows';
 import { useBuildingTemplates } from '@/hooks/useBuildingTemplates';
-import { Workflow, Template, Building, Settings, Clock, CheckCircle } from 'lucide-react';
+import { Workflow, FileText, Building, Settings, Clock, CheckCircle } from 'lucide-react';
 
 export const WorkflowMetricsCards: React.FC = () => {
   const { templates, systemTemplates } = useWorkflowTemplates();
@@ -37,7 +37,7 @@ export const WorkflowMetricsCards: React.FC = () => {
       title: 'Workflow Templates',
       value: totalTemplates.toString(),
       description: `${systemTemplates.length} system, ${templates.length} custom`,
-      icon: Template,
+      icon: FileText,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50'
     },

@@ -5,6 +5,15 @@ import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
 import type { WorkflowTemplate, WorkflowParameter, WorkflowStep } from '@/types/workflow';
 
+// Helper function to transform database data to TypeScript interfaces
+const transformWorkflowTemplate = (data: any): WorkflowTemplate => ({
+  ...data,
+  steps: data.steps as WorkflowStep[],
+  parameters: data.parameters as WorkflowParameter[],
+  automation_rules: data.automation_rules as Record<string, any>,
+  template_data: data.template_data as Record<string, any>,
+});
+
 export const useWorkflowTemplates = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -19,7 +28,7 @@ export const useWorkflowTemplates = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as WorkflowTemplate[];
+      return data.map(transformWorkflowTemplate);
     },
     enabled: !!user,
   });
@@ -35,7 +44,7 @@ export const useWorkflowTemplates = () => {
         .order('category', { ascending: true });
 
       if (error) throw error;
-      return data as WorkflowTemplate[];
+      return data.map(transformWorkflowTemplate);
     },
     enabled: !!user,
   });
@@ -49,10 +58,10 @@ export const useWorkflowTemplates = () => {
         description: templateData.description,
         category: templateData.category,
         building_type: templateData.building_type,
-        template_data: templateData.template_data,
-        steps: templateData.steps,
-        automation_rules: templateData.automation_rules,
-        parameters: templateData.parameters,
+        template_data: templateData.template_data as any,
+        steps: templateData.steps as any,
+        automation_rules: templateData.automation_rules as any,
+        parameters: templateData.parameters as any,
         is_active: templateData.is_active ?? true,
         is_system_template: false,
         created_by: user.id,
@@ -65,7 +74,7 @@ export const useWorkflowTemplates = () => {
         .single();
 
       if (error) throw error;
-      return data;
+      return transformWorkflowTemplate(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workflow-templates'] });
@@ -78,15 +87,23 @@ export const useWorkflowTemplates = () => {
 
   const updateTemplate = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<WorkflowTemplate> & { id: string }) => {
+      const updateData = {
+        ...updates,
+        steps: updates.steps as any,
+        parameters: updates.parameters as any,
+        automation_rules: updates.automation_rules as any,
+        template_data: updates.template_data as any,
+      };
+
       const { data, error } = await supabase
         .from('workflow_templates')
-        .update(updates)
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      return transformWorkflowTemplate(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workflow-templates'] });

@@ -7,7 +7,7 @@ import { ProjectWorkflowsPanel } from './ProjectWorkflowsPanel';
 import { BuildingTemplatesPanel } from './BuildingTemplatesPanel';
 import { AutomatedSetupPanel } from './AutomatedSetupPanel';
 import { WorkflowMetricsCards } from './WorkflowMetricsCards';
-import { Settings, Template, Workflow, Building } from 'lucide-react';
+import { Settings, FileText, Workflow, Building } from 'lucide-react';
 
 export const WorkflowAutomationDashboard: React.FC = () => {
   return (
@@ -28,7 +28,7 @@ export const WorkflowAutomationDashboard: React.FC = () => {
             Project Workflows
           </TabsTrigger>
           <TabsTrigger value="templates" className="flex items-center gap-2">
-            <Template className="h-4 w-4" />
+            <FileText className="h-4 w-4" />
             Workflow Templates
           </TabsTrigger>
           <TabsTrigger value="building-templates" className="flex items-center gap-2">

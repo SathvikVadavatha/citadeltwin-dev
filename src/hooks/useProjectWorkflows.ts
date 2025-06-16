@@ -3,7 +3,21 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
-import type { ProjectWorkflow, WorkflowExecution } from '@/types/workflow';
+import type { ProjectWorkflow, WorkflowExecution, WorkflowStep } from '@/types/workflow';
+
+// Helper function to transform database data to TypeScript interfaces
+const transformProjectWorkflow = (data: any): ProjectWorkflow => ({
+  ...data,
+  steps: data.steps as WorkflowStep[],
+  automation_config: data.automation_config as Record<string, any>,
+  progress_data: data.progress_data as Record<string, any>,
+});
+
+const transformWorkflowExecution = (data: any): WorkflowExecution => ({
+  ...data,
+  input_data: data.input_data as Record<string, any>,
+  output_data: data.output_data as Record<string, any>,
+});
 
 export const useProjectWorkflows = (projectId?: string) => {
   const { user } = useAuth();
@@ -23,7 +37,7 @@ export const useProjectWorkflows = (projectId?: string) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as ProjectWorkflow[];
+      return data.map(transformProjectWorkflow);
     },
     enabled: !!user,
   });
@@ -41,7 +55,7 @@ export const useProjectWorkflows = (projectId?: string) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as WorkflowExecution[];
+      return data.map(transformWorkflowExecution);
     },
     enabled: !!user && !!projectId,
   });
@@ -51,7 +65,14 @@ export const useProjectWorkflows = (projectId?: string) => {
       if (!user) throw new Error('User not authenticated');
 
       const insertData = {
-        ...workflowData,
+        project_id: workflowData.project_id,
+        template_id: workflowData.template_id,
+        name: workflowData.name,
+        status: workflowData.status,
+        current_step: workflowData.current_step,
+        steps: workflowData.steps as any,
+        automation_config: workflowData.automation_config as any,
+        progress_data: workflowData.progress_data as any,
         created_by: user.id,
       };
 
@@ -62,7 +83,7 @@ export const useProjectWorkflows = (projectId?: string) => {
         .single();
 
       if (error) throw error;
-      return data;
+      return transformProjectWorkflow(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-workflows'] });
@@ -75,15 +96,22 @@ export const useProjectWorkflows = (projectId?: string) => {
 
   const updateWorkflow = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<ProjectWorkflow> & { id: string }) => {
+      const updateData = {
+        ...updates,
+        steps: updates.steps as any,
+        automation_config: updates.automation_config as any,
+        progress_data: updates.progress_data as any,
+      };
+
       const { data, error } = await supabase
         .from('project_workflows')
-        .update(updates)
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      return transformProjectWorkflow(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-workflows'] });
@@ -156,7 +184,7 @@ export const useProjectWorkflows = (projectId?: string) => {
         .single();
 
       if (error) throw error;
-      return data;
+      return transformProjectWorkflow(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-workflows'] });
@@ -174,7 +202,7 @@ export const useProjectWorkflows = (projectId?: string) => {
         .single();
 
       if (error) throw error;
-      return data;
+      return transformProjectWorkflow(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-workflows'] });
