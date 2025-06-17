@@ -34,22 +34,44 @@ export const useProfile = () => {
     const fetchProfile = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase
+        
+        // Get profile with role information
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select(`
-            *,
-            roles!inner(role_name)
-          `)
+          .select('*')
           .eq('id', user.id)
           .single();
 
-        if (error) throw error;
+        if (profileError) throw profileError;
 
-        if (data) {
+        if (profileData) {
+          // Get role name from roles table
+          let roleName = null;
+          if (profileData.role_id) {
+            const { data: roleData, error: roleError } = await supabase
+              .from('roles')
+              .select('role_name')
+              .eq('id', profileData.role_id)
+              .single();
+            
+            if (!roleError && roleData) {
+              roleName = roleData.role_name;
+            }
+          }
+
           setProfile({
-            ...data,
-            role: data.roles?.role_name || null,
-            email: user.email || null
+            id: profileData.id,
+            full_name: profileData.full_name,
+            email: user.email || null,
+            role: roleName as 'admin' | 'engineer' | 'planner' | 'viewer' | 'inactive' | null,
+            department: profileData.department,
+            phone: profileData.phone,
+            organization: profileData.organization,
+            avatar_url: profileData.avatar_url,
+            is_active: profileData.is_active ?? true,
+            last_login: profileData.last_login,
+            created_at: profileData.created_at,
+            updated_at: profileData.updated_at
           });
         }
       } catch (err) {

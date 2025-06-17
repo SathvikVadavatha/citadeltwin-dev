@@ -38,21 +38,39 @@ export const useUsers = () => {
   const { data: users, isLoading: usersLoading, error: usersError } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get all profiles
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          roles!inner(role_name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
-      return data.map(profile => ({
-        ...profile,
-        role: profile.roles?.role_name || null,
-        email: profile.email || ''
-      })) as User[];
+      if (profilesError) throw profilesError;
+
+      // Then get all roles to map role_id to role_name
+      const { data: roles, error: rolesError } = await supabase
+        .from('roles')
+        .select('id, role_name');
+
+      if (rolesError) throw rolesError;
+
+      // Create a map for quick role lookup
+      const roleMap = new Map(roles?.map(role => [role.id, role.role_name]) || []);
+
+      // Map profiles to users with role names
+      return profiles?.map(profile => ({
+        id: profile.id,
+        full_name: profile.full_name,
+        email: profile.email || '',
+        role: profile.role_id ? roleMap.get(profile.role_id) : null,
+        department: profile.department,
+        phone: profile.phone,
+        organization: profile.organization,
+        avatar_url: profile.avatar_url,
+        is_active: profile.is_active ?? true,
+        last_login: profile.last_login,
+        created_at: profile.created_at,
+        updated_at: profile.updated_at
+      })) as User[] || [];
     },
     enabled: !!user,
   });
@@ -69,6 +87,7 @@ export const useUsers = () => {
 
       if (roleError) throw roleError;
 
+      // Update the profile with the new role_id
       const { data, error } = await supabase
         .from('profiles')
         .update({ 
@@ -76,16 +95,14 @@ export const useUsers = () => {
           updated_at: new Date().toISOString() 
         })
         .eq('id', userId)
-        .select(`
-          *,
-          roles!inner(role_name)
-        `)
+        .select('*')
         .single();
 
       if (error) throw error;
+      
       return {
         ...data,
-        role: data.roles?.role_name || null
+        role: role
       };
     },
     onSuccess: (data) => {
@@ -118,20 +135,21 @@ export const useUsers = () => {
         delete updateData.role; // Remove role from update data as it's not a column
       }
 
+      // Remove email from updates as it's not stored in profiles
+      delete updateData.email;
+
       const { data, error } = await supabase
         .from('profiles')
         .update(updateData)
         .eq('id', userId)
-        .select(`
-          *,
-          roles!inner(role_name)
-        `)
+        .select('*')
         .single();
 
       if (error) throw error;
+      
       return {
         ...data,
-        role: data.roles?.role_name || null
+        role: updates.role || null
       };
     },
     onSuccess: () => {
@@ -153,17 +171,11 @@ export const useUsers = () => {
           updated_at: new Date().toISOString() 
         })
         .eq('id', userId)
-        .select(`
-          *,
-          roles!inner(role_name)
-        `)
+        .select('*')
         .single();
 
       if (error) throw error;
-      return {
-        ...data,
-        role: data.roles?.role_name || null
-      };
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -190,29 +202,36 @@ export const useUserStats = () => {
   return useQuery({
     queryKey: ['user-stats'],
     queryFn: async () => {
-      const { data: users, error } = await supabase
+      // Get all profiles
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          created_at,
-          is_active,
-          roles!inner(role_name)
-        `);
+        .select('created_at, is_active, role_id');
 
-      if (error) throw error;
+      if (profilesError) throw profilesError;
+
+      // Get all roles
+      const { data: roles, error: rolesError } = await supabase
+        .from('roles')
+        .select('id, role_name');
+
+      if (rolesError) throw rolesError;
+
+      // Create role map
+      const roleMap = new Map(roles?.map(role => [role.id, role.role_name]) || []);
 
       const stats = {
-        total: users.length,
-        admins: users.filter(u => u.roles?.role_name === 'admin').length,
-        engineers: users.filter(u => u.roles?.role_name === 'engineer').length,
-        planners: users.filter(u => u.roles?.role_name === 'planner').length,
-        viewers: users.filter(u => u.roles?.role_name === 'viewer').length,
-        inactive: users.filter(u => !u.is_active).length,
-        thisMonth: users.filter(u => {
-          const created = new Date(u.created_at);
+        total: profiles?.length || 0,
+        admins: profiles?.filter(p => p.role_id && roleMap.get(p.role_id) === 'admin').length || 0,
+        engineers: profiles?.filter(p => p.role_id && roleMap.get(p.role_id) === 'engineer').length || 0,
+        planners: profiles?.filter(p => p.role_id && roleMap.get(p.role_id) === 'planner').length || 0,
+        viewers: profiles?.filter(p => p.role_id && roleMap.get(p.role_id) === 'viewer').length || 0,
+        inactive: profiles?.filter(p => !p.is_active).length || 0,
+        thisMonth: profiles?.filter(p => {
+          const created = new Date(p.created_at);
           const monthAgo = new Date();
           monthAgo.setMonth(monthAgo.getMonth() - 1);
           return created > monthAgo;
-        }).length,
+        }).length || 0,
       };
 
       return stats;

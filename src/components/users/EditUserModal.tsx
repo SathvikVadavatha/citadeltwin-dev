@@ -24,18 +24,20 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     full_name: '',
-    email: '',
     role: '',
-    company: '',
+    organization: '',
+    department: '',
+    phone: '',
   });
 
   useEffect(() => {
     if (user) {
       setFormData({
         full_name: user.full_name || '',
-        email: user.email || '',
         role: user.role || '',
-        company: user.company || '',
+        organization: user.organization || '',
+        department: user.department || '',
+        phone: user.phone || '',
       });
     }
   }, [user]);
@@ -46,9 +48,10 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
 
     const updates = {
       full_name: formData.full_name || null,
-      email: formData.email,
       role: formData.role || null,
-      company: formData.company || null,
+      organization: formData.organization || null,
+      department: formData.department || null,
+      phone: formData.phone || null,
     };
 
     onSave(user.id, updates);
@@ -74,18 +77,6 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
               placeholder="Enter full name"
             />
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleChange('email', e.target.value)}
-              placeholder="Enter email address"
-              required
-            />
-          </div>
 
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
@@ -103,12 +94,32 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="company">Company/Organization</Label>
+            <Label htmlFor="organization">Organization</Label>
             <Input
-              id="company"
-              value={formData.company}
-              onChange={(e) => handleChange('company', e.target.value)}
-              placeholder="Enter company or organization"
+              id="organization"
+              value={formData.organization}
+              onChange={(e) => handleChange('organization', e.target.value)}
+              placeholder="Enter organization"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="department">Department</Label>
+            <Input
+              id="department"
+              value={formData.department}
+              onChange={(e) => handleChange('department', e.target.value)}
+              placeholder="Enter department"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone</Label>
+            <Input
+              id="phone"
+              value={formData.phone}
+              onChange={(e) => handleChange('phone', e.target.value)}
+              placeholder="Enter phone number"
             />
           </div>
 

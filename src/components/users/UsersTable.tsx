@@ -63,7 +63,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
             <TableHead>User</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Role</TableHead>
-            <TableHead>Company</TableHead>
+            <TableHead>Organization</TableHead>
             <TableHead>Joined</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -105,7 +105,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                   )}
                 </div>
               </TableCell>
-              <TableCell className="text-muted-foreground">{user.company || 'N/A'}</TableCell>
+              <TableCell className="text-muted-foreground">{user.organization || 'N/A'}</TableCell>
               <TableCell className="text-muted-foreground">
                 {new Date(user.created_at).toLocaleDateString()}
               </TableCell>
