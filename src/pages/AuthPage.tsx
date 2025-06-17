@@ -1,31 +1,36 @@
 
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Building2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { LoginPage } from '@/components/auth/LoginPage';
+import { SignupPage } from '@/components/auth/SignupPage';
 
 export const AuthPage: React.FC = () => {
+  const [currentView, setCurrentView] = useState<'login' | 'signup'>('login');
+
+  const handleNavigateToSignup = () => {
+    setCurrentView('signup');
+  };
+
+  const handleNavigateToLogin = () => {
+    setCurrentView('login');
+  };
+
+  const handleNavigateToForgotPassword = () => {
+    // TODO: Implement forgot password flow when needed
+    console.log('Forgot password clicked');
+  };
+
+  if (currentView === 'signup') {
+    return (
+      <SignupPage 
+        onNavigateToLogin={handleNavigateToLogin}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <Building2 className="h-12 w-12 text-primary" />
-          </div>
-          <CardTitle className="text-2xl">CitadelTwin</CardTitle>
-          <CardDescription>
-            Civil Engineering Digital Twin Platform
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Button className="w-full" size="lg">
-            Sign In
-          </Button>
-          <Button variant="outline" className="w-full" size="lg">
-            Create Account
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
+    <LoginPage 
+      onNavigateToSignup={handleNavigateToSignup}
+      onNavigateToForgotPassword={handleNavigateToForgotPassword}
+    />
   );
 };
