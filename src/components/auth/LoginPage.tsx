@@ -1,5 +1,6 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +23,24 @@ export const LoginPage = ({ onNavigateToSignup, onNavigateToForgotPassword }: Lo
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, user, error, clearError } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Clear any auth errors when component mounts
+  useEffect(() => {
+    if (error) {
+      clearError();
+    }
+  }, []);
+
+  // Redirect authenticated users
+  useEffect(() => {
+    if (user) {
+      const returnTo = searchParams.get('returnTo') || '/dashboard';
+      navigate(returnTo, { replace: true });
+    }
+  }, [user, navigate, searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,9 +49,10 @@ export const LoginPage = ({ onNavigateToSignup, onNavigateToForgotPassword }: Lo
     try {
       const { error } = await signIn(email, password);
       
-      if (error) {
-        // Error handling is now done in the AuthProvider
-        console.error("Login error:", error);
+      if (!error) {
+        // Navigation will be handled by useEffect above
+        const returnTo = searchParams.get('returnTo') || '/dashboard';
+        navigate(returnTo, { replace: true });
       }
     } catch (error) {
       console.error("Login error:", error);
