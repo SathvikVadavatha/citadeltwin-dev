@@ -9,8 +9,12 @@ export interface User {
   full_name: string | null;
   email: string;
   role: string | null;
-  company: string | null;
+  department: string | null;
+  phone: string | null;
+  organization: string | null;
   avatar_url: string | null;
+  is_active: boolean;
+  last_login: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -30,17 +34,25 @@ export const useUsers = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch all users
+  // Fetch all users with their roles
   const { data: users, isLoading: usersLoading, error: usersError } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          roles!inner(role_name)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as User[];
+      
+      return data.map(profile => ({
+        ...profile,
+        role: profile.roles?.role_name || null,
+        email: profile.email || ''
+      })) as User[];
     },
     enabled: !!user,
   });
@@ -48,15 +60,33 @@ export const useUsers = () => {
   // Update user role
   const updateUserRole = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      // First get the role_id for the role name
+      const { data: roleData, error: roleError } = await supabase
+        .from('roles')
+        .select('id')
+        .eq('role_name', role)
+        .single();
+
+      if (roleError) throw roleError;
+
       const { data, error } = await supabase
         .from('profiles')
-        .update({ role, updated_at: new Date().toISOString() })
+        .update({ 
+          role_id: roleData.id,
+          updated_at: new Date().toISOString() 
+        })
         .eq('id', userId)
-        .select()
+        .select(`
+          *,
+          roles!inner(role_name)
+        `)
         .single();
 
       if (error) throw error;
-      return data;
+      return {
+        ...data,
+        role: data.roles?.role_name || null
+      };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -70,15 +100,39 @@ export const useUsers = () => {
   // Update user profile
   const updateUserProfile = useMutation({
     mutationFn: async ({ userId, updates }: { userId: string; updates: Partial<User> }) => {
+      const updateData: any = { 
+        ...updates, 
+        updated_at: new Date().toISOString() 
+      };
+
+      // If role is being updated, get the role_id
+      if (updates.role) {
+        const { data: roleData, error: roleError } = await supabase
+          .from('roles')
+          .select('id')
+          .eq('role_name', updates.role)
+          .single();
+
+        if (roleError) throw roleError;
+        updateData.role_id = roleData.id;
+        delete updateData.role; // Remove role from update data as it's not a column
+      }
+
       const { data, error } = await supabase
         .from('profiles')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(updateData)
         .eq('id', userId)
-        .select()
+        .select(`
+          *,
+          roles!inner(role_name)
+        `)
         .single();
 
       if (error) throw error;
-      return data;
+      return {
+        ...data,
+        role: data.roles?.role_name || null
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -94,13 +148,22 @@ export const useUsers = () => {
     mutationFn: async (userId: string) => {
       const { data, error } = await supabase
         .from('profiles')
-        .update({ role: 'inactive', updated_at: new Date().toISOString() })
+        .update({ 
+          is_active: false, 
+          updated_at: new Date().toISOString() 
+        })
         .eq('id', userId)
-        .select()
+        .select(`
+          *,
+          roles!inner(role_name)
+        `)
         .single();
 
       if (error) throw error;
-      return data;
+      return {
+        ...data,
+        role: data.roles?.role_name || null
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -129,17 +192,21 @@ export const useUserStats = () => {
     queryFn: async () => {
       const { data: users, error } = await supabase
         .from('profiles')
-        .select('role, created_at');
+        .select(`
+          created_at,
+          is_active,
+          roles!inner(role_name)
+        `);
 
       if (error) throw error;
 
       const stats = {
         total: users.length,
-        admins: users.filter(u => u.role === 'admin').length,
-        engineers: users.filter(u => u.role === 'engineer').length,
-        planners: users.filter(u => u.role === 'planner').length,
-        viewers: users.filter(u => u.role === 'viewer').length,
-        inactive: users.filter(u => u.role === 'inactive').length,
+        admins: users.filter(u => u.roles?.role_name === 'admin').length,
+        engineers: users.filter(u => u.roles?.role_name === 'engineer').length,
+        planners: users.filter(u => u.roles?.role_name === 'planner').length,
+        viewers: users.filter(u => u.roles?.role_name === 'viewer').length,
+        inactive: users.filter(u => !u.is_active).length,
         thisMonth: users.filter(u => {
           const created = new Date(u.created_at);
           const monthAgo = new Date();

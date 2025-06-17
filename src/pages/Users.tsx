@@ -30,7 +30,7 @@ export const Users: React.FC = () => {
       const matchesSearch = 
         user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.company?.toLowerCase().includes(searchTerm.toLowerCase());
+        user.organization?.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesRole = roleFilter === 'all' || user.role === roleFilter;
       
