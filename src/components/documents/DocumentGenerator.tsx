@@ -6,10 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { FileText, Download, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { FileText, Download, Clock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { useDocumentTemplates } from '@/hooks/useDocumentTemplates';
 import { useDocumentExports } from '@/hooks/useDocumentExports';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useErrorHandler } from '@/utils/errorHandling';
+import { toast } from 'sonner';
 
 interface DocumentGeneratorProps {
   uploadId?: string;
@@ -20,27 +23,82 @@ export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }
   const [documentTitle, setDocumentTitle] = useState<string>('');
   const [formatType, setFormatType] = useState<'pdf' | 'docx'>('pdf');
   const [generationData, setGenerationData] = useState<any>({});
+  const [validationError, setValidationError] = useState<string>('');
 
-  const { templates } = useDocumentTemplates();
-  const { exports, generateDocument, downloadDocument } = useDocumentExports(uploadId);
+  const { withErrorHandling } = useErrorHandler();
+  const { templates, isLoading: templatesLoading } = useDocumentTemplates();
+  const { exports, generateDocument, downloadDocument, isLoading: exportsLoading } = useDocumentExports(uploadId);
 
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
 
-  const handleGenerate = () => {
-    if (!selectedTemplateId || !documentTitle) return;
+  const validateForm = (): boolean => {
+    setValidationError('');
+    
+    if (!selectedTemplateId) {
+      setValidationError('Please select a document template');
+      return false;
+    }
+    
+    if (!documentTitle.trim()) {
+      setValidationError('Please enter a document title');
+      return false;
+    }
+    
+    if (documentTitle.trim().length < 3) {
+      setValidationError('Document title must be at least 3 characters long');
+      return false;
+    }
+    
+    // Check required template variables
+    if (selectedTemplate?.variables) {
+      const missingFields = selectedTemplate.variables
+        .filter((variable: any) => variable.required && variable.type === 'string')
+        .filter((variable: any) => !generationData[variable.name]?.trim())
+        .map((variable: any) => variable.name.replace(/_/g, ' '));
+      
+      if (missingFields.length > 0) {
+        setValidationError(`Please fill in the following required fields: ${missingFields.join(', ')}`);
+        return false;
+      }
+    }
+    
+    return true;
+  };
 
-    generateDocument.mutate({
-      templateId: selectedTemplateId,
-      uploadId,
-      documentType: selectedTemplate?.template_type || 'custom',
-      title: documentTitle,
-      formatType,
-      generationData: {
-        ...generationData,
-        project_name: documentTitle,
-        generation_timestamp: new Date().toISOString(),
-      },
-    });
+  const handleGenerate = async () => {
+    if (!validateForm()) {
+      toast.error(validationError);
+      return;
+    }
+
+    await withErrorHandling(async () => {
+      await generateDocument.mutateAsync({
+        templateId: selectedTemplateId,
+        uploadId,
+        documentType: selectedTemplate?.template_type || 'custom',
+        title: documentTitle.trim(),
+        formatType,
+        generationData: {
+          ...generationData,
+          project_name: documentTitle.trim(),
+          generation_timestamp: new Date().toISOString(),
+        },
+      });
+      
+      toast.success('Document generation started successfully');
+      
+      // Clear form after successful generation
+      setDocumentTitle('');
+      setGenerationData({});
+      setSelectedTemplateId('');
+    }, 'Document generation');
+  };
+
+  const handleDownload = async (exportId: string) => {
+    await withErrorHandling(async () => {
+      await downloadDocument(exportId);
+      toast.success('Download started');
+    }, 'Document download');
   };
 
   const getStatusIcon = (status: string) => {
@@ -50,7 +108,7 @@ export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }
       case 'failed':
         return <XCircle className="h-4 w-4 text-red-500" />;
       case 'generating':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
+        return <Clock className="h-4 w-4 text-yellow-500 animate-pulse" />;
       default:
         return <Clock className="h-4 w-4 text-gray-500" />;
     }
@@ -59,15 +117,43 @@ export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 border-green-200';
       case 'failed':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-800 border-red-200';
       case 'generating':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
+
+  if (templatesLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center p-8">
+          <div className="flex items-center gap-2">
+            <Clock className="h-5 w-5 animate-spin" />
+            <span>Loading document templates...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!templates.length) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center p-8">
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              No document templates are available. Please contact your administrator to set up templates.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -82,6 +168,13 @@ export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {validationError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{validationError}</AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="template-select">Document Template</Label>
@@ -114,12 +207,13 @@ export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }
           </div>
 
           <div>
-            <Label htmlFor="document-title">Document Title</Label>
+            <Label htmlFor="document-title">Document Title *</Label>
             <Input
               id="document-title"
               value={documentTitle}
               onChange={(e) => setDocumentTitle(e.target.value)}
-              placeholder="Enter document title"
+              placeholder="Enter document title (minimum 3 characters)"
+              className={validationError && !documentTitle.trim() ? 'border-red-500' : ''}
             />
           </div>
 
@@ -131,7 +225,9 @@ export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }
                   .filter((variable: any) => variable.type === 'string' && variable.required)
                   .map((variable: any) => (
                     <div key={variable.name}>
-                      <Label htmlFor={variable.name}>{variable.name.replace(/_/g, ' ')}</Label>
+                      <Label htmlFor={variable.name}>
+                        {variable.name.replace(/_/g, ' ')} *
+                      </Label>
                       <Input
                         id={variable.name}
                         value={generationData[variable.name] || ''}
@@ -142,6 +238,7 @@ export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }
                           }))
                         }
                         placeholder={`Enter ${variable.name.replace(/_/g, ' ')}`}
+                        className={validationError && !generationData[variable.name]?.trim() ? 'border-red-500' : ''}
                       />
                     </div>
                   ))}
@@ -154,7 +251,14 @@ export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }
             disabled={!selectedTemplateId || !documentTitle || generateDocument.isPending}
             className="w-full"
           >
-            {generateDocument.isPending ? 'Generating...' : 'Generate Document'}
+            {generateDocument.isPending ? (
+              <>
+                <Clock className="h-4 w-4 mr-2 animate-spin" />
+                Generating Document...
+              </>
+            ) : (
+              'Generate Document'
+            )}
           </Button>
         </CardContent>
       </Card>
@@ -168,16 +272,25 @@ export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {exports.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              No documents generated yet
-            </p>
+          {exportsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Clock className="h-5 w-5 animate-spin mr-2" />
+              <span>Loading document history...</span>
+            </div>
+          ) : exports.length === 0 ? (
+            <div className="text-center py-8">
+              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+              <p className="text-muted-foreground">No documents generated yet</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Generate your first document using the form above
+              </p>
+            </div>
           ) : (
             <div className="space-y-3">
               {exports.map((exportItem) => (
                 <div
                   key={exportItem.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     {getStatusIcon(exportItem.status)}
@@ -185,6 +298,11 @@ export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }
                       <h4 className="font-medium">{exportItem.title}</h4>
                       <p className="text-sm text-muted-foreground">
                         {exportItem.document_type} • {exportItem.format_type.toUpperCase()}
+                        {exportItem.status === 'failed' && exportItem.error_message && (
+                          <span className="text-red-600 ml-2">
+                            • {exportItem.error_message}
+                          </span>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -196,10 +314,24 @@ export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => downloadDocument(exportItem.id)}
+                        onClick={() => handleDownload(exportItem.id)}
                       >
                         <Download className="h-4 w-4 mr-1" />
                         Download
+                      </Button>
+                    )}
+                    {exportItem.status === 'failed' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          // Reset form with previous data for retry
+                          setSelectedTemplateId(exportItem.template_id || '');
+                          setDocumentTitle(exportItem.title);
+                          setFormatType(exportItem.format_type);
+                        }}
+                      >
+                        Retry
                       </Button>
                     )}
                   </div>
