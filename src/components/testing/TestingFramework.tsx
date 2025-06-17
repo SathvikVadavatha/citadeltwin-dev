@@ -7,6 +7,7 @@ import {
   Activity,
   FileText
 } from 'lucide-react';
+import { FeatureErrorBoundary } from '@/components/error/FeatureErrorBoundary';
 import { AutomatedTestRunner } from './AutomatedTestRunner';
 import { ModelValidationPanel } from './ModelValidationPanel';
 import { DiagnosticHealthCheck } from './DiagnosticHealthCheck';
@@ -81,21 +82,25 @@ export const TestingFramework: React.FC<TestingFrameworkProps> = ({ uploadId, pr
   return (
     <div className="space-y-6">
       {/* Testing Framework Header & Controls */}
-      <TestingControls
-        isRunningFullSuite={isRunningFullSuite}
-        overallProgress={overallProgress}
-        currentSuite={currentSuite}
-        testSuites={[
-          { id: 'automated', name: 'Automated Tests' },
-          { id: 'validation', name: 'Model Validation' },
-          { id: 'diagnostics', name: 'Health Diagnostics' }
-        ]}
-        onRunFullSuite={runFullTestSuite}
-        onResetTests={resetTests}
-      />
+      <FeatureErrorBoundary featureName="Testing Controls">
+        <TestingControls
+          isRunningFullSuite={isRunningFullSuite}
+          overallProgress={overallProgress}
+          currentSuite={currentSuite}
+          testSuites={[
+            { id: 'automated', name: 'Automated Tests' },
+            { id: 'validation', name: 'Model Validation' },
+            { id: 'diagnostics', name: 'Health Diagnostics' }
+          ]}
+          onRunFullSuite={runFullTestSuite}
+          onResetTests={resetTests}
+        />
+      </FeatureErrorBoundary>
 
       {/* Testing Summary */}
-      <TestingSummaryCards testingSummary={testingSummary} />
+      <FeatureErrorBoundary featureName="Testing Summary">
+        <TestingSummaryCards testingSummary={testingSummary} />
+      </FeatureErrorBoundary>
 
       {/* Testing Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -119,33 +124,41 @@ export const TestingFramework: React.FC<TestingFrameworkProps> = ({ uploadId, pr
         </TabsList>
 
         <TabsContent value="automated" className="space-y-4">
-          <AutomatedTestRunner 
-            uploadId={uploadId}
-            projectId={projectId}
-            onTestComplete={(results) => {
-              setTestingSummary(prev => ({
-                ...prev,
-                ...results,
-                lastRunAt: new Date()
-              }));
-            }}
-          />
+          <FeatureErrorBoundary featureName="Automated Test Runner">
+            <AutomatedTestRunner 
+              uploadId={uploadId}
+              projectId={projectId}
+              onTestComplete={(results) => {
+                setTestingSummary(prev => ({
+                  ...prev,
+                  ...results,
+                  lastRunAt: new Date()
+                }));
+              }}
+            />
+          </FeatureErrorBoundary>
         </TabsContent>
 
         <TabsContent value="validation" className="space-y-4">
-          <ModelValidationPanel uploadId={uploadId} />
+          <FeatureErrorBoundary featureName="Model Validation">
+            <ModelValidationPanel uploadId={uploadId} />
+          </FeatureErrorBoundary>
         </TabsContent>
 
         <TabsContent value="diagnostics" className="space-y-4">
-          <DiagnosticHealthCheck />
+          <FeatureErrorBoundary featureName="Health Diagnostics">
+            <DiagnosticHealthCheck />
+          </FeatureErrorBoundary>
         </TabsContent>
 
         <TabsContent value="reports" className="space-y-4">
-          <TestReportGenerator 
-            testingSummary={testingSummary}
-            uploadId={uploadId}
-            projectId={projectId}
-          />
+          <FeatureErrorBoundary featureName="Test Reports">
+            <TestReportGenerator 
+              testingSummary={testingSummary}
+              uploadId={uploadId}
+              projectId={projectId}
+            />
+          </FeatureErrorBoundary>
         </TabsContent>
       </Tabs>
     </div>

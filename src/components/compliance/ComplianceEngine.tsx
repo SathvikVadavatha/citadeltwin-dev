@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FeatureErrorBoundary } from '@/components/error/FeatureErrorBoundary';
+import { AsyncErrorBoundary } from '@/components/error/AsyncErrorBoundary';
 import { useComplianceRules } from '@/hooks/compliance/useComplianceRules';
 import { useComplianceViolations } from '@/hooks/compliance/useComplianceViolations';
 import { useComplianceChecks } from '@/hooks/compliance/useComplianceChecks';
@@ -32,29 +34,43 @@ export const ComplianceEngine: React.FC<ComplianceEngineProps> = ({ uploadId }) 
   const latestCheck = complianceChecks[0];
 
   if (activeEngine === 'multi_jurisdiction') {
-    return <MultiJurisdictionComplianceEngine uploadId={uploadId} />;
+    return (
+      <FeatureErrorBoundary featureName="Multi-Jurisdiction Compliance Engine">
+        <MultiJurisdictionComplianceEngine uploadId={uploadId} />
+      </FeatureErrorBoundary>
+    );
   }
 
   return (
     <div className="space-y-6">
       {/* Engine Selection */}
-      <ComplianceEngineSelector 
-        activeEngine={activeEngine}
-        onEngineChange={setActiveEngine}
-      />
+      <FeatureErrorBoundary featureName="Compliance Engine Selector">
+        <ComplianceEngineSelector 
+          activeEngine={activeEngine}
+          onEngineChange={setActiveEngine}
+        />
+      </FeatureErrorBoundary>
 
       {/* Header */}
-      <StandardComplianceHeader
-        uploadId={uploadId}
-        isRunningCheck={isRunningCheck}
-        onRunComplianceCheck={handleRunStandardComplianceCheck}
-      />
+      <FeatureErrorBoundary featureName="Compliance Header">
+        <StandardComplianceHeader
+          uploadId={uploadId}
+          isRunningCheck={isRunningCheck}
+          onRunComplianceCheck={handleRunStandardComplianceCheck}
+        />
+      </FeatureErrorBoundary>
 
       {/* Compliance Summary */}
-      {uploadId && <ComplianceStats violations={violations} />}
+      {uploadId && (
+        <AsyncErrorBoundary errorMessage="Failed to load compliance statistics">
+          <ComplianceStats violations={violations} />
+        </AsyncErrorBoundary>
+      )}
 
       {/* Last Check Status */}
-      <ComplianceCheckStatus latestCheck={latestCheck} />
+      <FeatureErrorBoundary featureName="Check Status">
+        <ComplianceCheckStatus latestCheck={latestCheck} />
+      </FeatureErrorBoundary>
 
       {/* Tabs for different views */}
       <Tabs defaultValue="violations" className="w-full">
@@ -68,18 +84,28 @@ export const ComplianceEngine: React.FC<ComplianceEngineProps> = ({ uploadId }) 
         </TabsList>
 
         <TabsContent value="violations" className="space-y-4">
-          <ComplianceViolationsList 
-            violations={violations} 
-            isLoading={violationsLoading}
-            uploadId={uploadId}
-          />
+          <AsyncErrorBoundary 
+            errorMessage="Failed to load compliance violations"
+            onRetry={() => window.location.reload()}
+          >
+            <ComplianceViolationsList 
+              violations={violations} 
+              isLoading={violationsLoading}
+              uploadId={uploadId}
+            />
+          </AsyncErrorBoundary>
         </TabsContent>
 
         <TabsContent value="rules" className="space-y-4">
-          <ComplianceRulesList 
-            rules={complianceRules} 
-            isLoading={rulesLoading}
-          />
+          <AsyncErrorBoundary 
+            errorMessage="Failed to load compliance rules"
+            onRetry={() => window.location.reload()}
+          >
+            <ComplianceRulesList 
+              rules={complianceRules} 
+              isLoading={rulesLoading}
+            />
+          </AsyncErrorBoundary>
         </TabsContent>
       </Tabs>
     </div>
