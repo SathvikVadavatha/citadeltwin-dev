@@ -36,6 +36,7 @@ export const useDocumentTemplates = () => {
       return data as DocumentTemplate[];
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // Add stale time to reduce refetches
   });
 
   const createTemplate = useMutation({

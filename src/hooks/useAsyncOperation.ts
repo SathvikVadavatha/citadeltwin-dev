@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { ErrorHandler } from '@/utils/errorHandling';
 import { toast } from 'sonner';
 
@@ -30,6 +30,10 @@ export const useAsyncOperation = <T = any>(options: UseAsyncOperationOptions = {
     data: null
   });
 
+  // Use ref to store options to prevent dependencies from changing
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+
   const execute = useCallback(async (operation: () => Promise<T>): Promise<T | null> => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
@@ -37,8 +41,8 @@ export const useAsyncOperation = <T = any>(options: UseAsyncOperationOptions = {
       const result = await operation();
       setState(prev => ({ ...prev, isLoading: false, data: result, error: null }));
       
-      if (showSuccessToast) {
-        toast.success(successMessage);
+      if (optionsRef.current.showSuccessToast) {
+        toast.success(optionsRef.current.successMessage || 'Operation completed successfully');
       }
       
       return result;
@@ -46,13 +50,13 @@ export const useAsyncOperation = <T = any>(options: UseAsyncOperationOptions = {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       setState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
       
-      if (showErrorToast) {
-        ErrorHandler.handle(error, errorContext);
+      if (optionsRef.current.showErrorToast) {
+        ErrorHandler.handle(error, optionsRef.current.errorContext || 'Operation');
       }
       
       return null;
     }
-  }, [showSuccessToast, successMessage, showErrorToast, errorContext]);
+  }, []); // Empty dependency array since we use ref for options
 
   const reset = useCallback(() => {
     setState({ isLoading: false, error: null, data: null });
