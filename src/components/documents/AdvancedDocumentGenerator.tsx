@@ -18,6 +18,18 @@ interface AdvancedDocumentGeneratorProps {
   selectedJurisdiction?: string;
 }
 
+interface ExtendedDocumentExport {
+  id: string;
+  title: string;
+  document_type: string;
+  format_type: string;
+  status: string;
+  error_message?: string;
+  template_id?: string;
+  generated_at: string;
+  ai_generated_content?: any;
+}
+
 export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps> = ({
   uploadId,
   selectedJurisdiction
@@ -35,7 +47,7 @@ export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps>
     createVisualElements: true
   });
 
-  const { generateDocument, exports } = useDocumentExports(undefined, uploadId);
+  const { generateDocument, exports } = useDocumentExports(uploadId);
   const { generateContent } = useGeminiAI();
 
   const documentTypes = [
@@ -332,7 +344,7 @@ export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps>
                         {exportItem.document_type} • {exportItem.format_type.toUpperCase()} •{' '}
                         {new Date(exportItem.generated_at).toLocaleDateString()}
                       </p>
-                      {exportItem.ai_generated_content && (
+                      {(exportItem as ExtendedDocumentExport).ai_generated_content && (
                         <Badge className="mt-1">AI Enhanced</Badge>
                       )}
                     </div>

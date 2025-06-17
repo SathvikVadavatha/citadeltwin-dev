@@ -1,5 +1,7 @@
+
 import { useCallback } from 'react';
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { useBlueprintFileUpload } from './blueprint/useBlueprintFileUpload';
 import { useBlueprintProcessing } from './blueprint/useBlueprintProcessing';
 import { useBlueprintAnalysis } from './blueprint/useBlueprintAnalysis';
