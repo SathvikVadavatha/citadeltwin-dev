@@ -15,6 +15,7 @@ import { useErrorHandler } from '@/utils/errorHandling';
 import { toast } from 'sonner';
 import { useViewport } from '@/hooks/useViewport';
 import { cn } from '@/lib/utils';
+import { LoadingSpinner, LoadingCard, ErrorState, EmptyState } from '@/components/common/LoadingStates';
 
 interface MobileDocumentGeneratorProps {
   uploadId?: string;
@@ -29,8 +30,8 @@ export const MobileDocumentGenerator: React.FC<MobileDocumentGeneratorProps> = (
 
   const { isMobile, isTouch } = useViewport();
   const { withErrorHandling } = useErrorHandler();
-  const { templates, isLoading: templatesLoading } = useDocumentTemplates();
-  const { exports, generateDocument, downloadDocument, isLoading: exportsLoading } = useDocumentExports(uploadId);
+  const { templates, isLoading: templatesLoading, error: templatesError } = useDocumentTemplates();
+  const { exports, generateDocument, downloadDocument, isLoading: exportsLoading, error: exportsError } = useDocumentExports(uploadId);
 
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
 
@@ -128,27 +129,33 @@ export const MobileDocumentGenerator: React.FC<MobileDocumentGeneratorProps> = (
     }
   };
 
+  // Enhanced loading states
   if (templatesLoading) {
     return (
-      <MobileResponsiveCard className="flex items-center justify-center p-8">
-        <div className="flex items-center gap-2">
-          <Clock className="h-5 w-5 animate-spin" />
-          <span>Loading templates...</span>
-        </div>
-      </MobileResponsiveCard>
+      <LoadingCard 
+        title="Loading Templates" 
+        description="Fetching available document templates..."
+      />
+    );
+  }
+
+  if (templatesError) {
+    return (
+      <ErrorState
+        title="Failed to Load Templates"
+        message="Unable to fetch document templates. Please check your connection and try again."
+        onRetry={() => window.location.reload()}
+      />
     );
   }
 
   if (!templates.length) {
     return (
-      <MobileResponsiveCard className="flex items-center justify-center p-8">
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            No document templates available. Contact your administrator.
-          </AlertDescription>
-        </Alert>
-      </MobileResponsiveCard>
+      <EmptyState
+        title="No Templates Available"
+        description="No document templates are available. Contact your administrator to set up templates."
+        icon={<AlertTriangle className="h-12 w-12 text-muted-foreground" />}
+      />
     );
   }
 
@@ -249,10 +256,7 @@ export const MobileDocumentGenerator: React.FC<MobileDocumentGeneratorProps> = (
             className={cn('w-full', isTouch && 'min-h-touch')}
           >
             {generateDocument.isPending ? (
-              <>
-                <Clock className="h-4 w-4 mr-2 animate-spin" />
-                Generating...
-              </>
+              <LoadingSpinner variant="inline" size="sm" text="Generating..." />
             ) : (
               'Generate Document'
             )}
@@ -265,15 +269,19 @@ export const MobileDocumentGenerator: React.FC<MobileDocumentGeneratorProps> = (
         description="View and download your documents"
       >
         {exportsLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Clock className="h-5 w-5 animate-spin mr-2" />
-            <span>Loading...</span>
-          </div>
+          <LoadingSpinner text="Loading documents..." />
+        ) : exportsError ? (
+          <ErrorState
+            title="Failed to Load Documents"
+            message="Unable to fetch your generated documents. Please try refreshing the page."
+            onRetry={() => window.location.reload()}
+          />
         ) : exports.length === 0 ? (
-          <div className="text-center py-8">
-            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-            <p className="text-muted-foreground">No documents generated yet</p>
-          </div>
+          <EmptyState
+            title="No documents generated yet"
+            description="Your generated documents will appear here"
+            icon={<FileText className="h-12 w-12 text-muted-foreground" />}
+          />
         ) : (
           <div className="space-y-3">
             {exports.map((exportItem) => (

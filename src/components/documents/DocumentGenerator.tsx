@@ -1,18 +1,17 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { FileText, Download, Clock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { FileText, Download, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { useDocumentTemplates } from '@/hooks/useDocumentTemplates';
 import { useDocumentExports } from '@/hooks/useDocumentExports';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useErrorHandler } from '@/utils/errorHandling';
 import { toast } from 'sonner';
+import { LoadingSpinner, LoadingCard, ErrorState, EmptyState } from '@/components/common/LoadingStates';
 
 interface DocumentGeneratorProps {
   uploadId?: string;
@@ -26,8 +25,8 @@ export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }
   const [validationError, setValidationError] = useState<string>('');
 
   const { withErrorHandling } = useErrorHandler();
-  const { templates, isLoading: templatesLoading } = useDocumentTemplates();
-  const { exports, generateDocument, downloadDocument, isLoading: exportsLoading } = useDocumentExports(uploadId);
+  const { templates, isLoading: templatesLoading, error: templatesError } = useDocumentTemplates();
+  const { exports, generateDocument, downloadDocument, isLoading: exportsLoading, error: exportsError } = useDocumentExports(uploadId);
 
   const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
 
@@ -129,29 +128,30 @@ export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }
 
   if (templatesLoading) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center p-8">
-          <div className="flex items-center gap-2">
-            <Clock className="h-5 w-5 animate-spin" />
-            <span>Loading document templates...</span>
-          </div>
-        </CardContent>
-      </Card>
+      <LoadingCard 
+        title="Loading Document Templates" 
+        description="Fetching available templates and preparing the document generator..."
+      />
+    );
+  }
+
+  if (templatesError) {
+    return (
+      <ErrorState
+        title="Failed to Load Templates"
+        message="Unable to fetch document templates. Please check your connection and try again."
+        onRetry={() => window.location.reload()}
+      />
     );
   }
 
   if (!templates.length) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center p-8">
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              No document templates are available. Please contact your administrator to set up templates.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
+      <EmptyState
+        title="No Templates Available"
+        description="No document templates are available. Please contact your administrator to set up templates."
+        icon={<AlertTriangle className="h-12 w-12 text-muted-foreground" />}
+      />
     );
   }
 
@@ -252,10 +252,7 @@ export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }
             className="w-full"
           >
             {generateDocument.isPending ? (
-              <>
-                <Clock className="h-4 w-4 mr-2 animate-spin" />
-                Generating Document...
-              </>
+              <LoadingSpinner variant="inline" size="sm" text="Generating Document..." />
             ) : (
               'Generate Document'
             )}
@@ -273,18 +270,19 @@ export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }
         </CardHeader>
         <CardContent>
           {exportsLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Clock className="h-5 w-5 animate-spin mr-2" />
-              <span>Loading document history...</span>
-            </div>
+            <LoadingSpinner text="Loading document history..." />
+          ) : exportsError ? (
+            <ErrorState
+              title="Failed to Load Documents"
+              message="Unable to fetch your document history. Please try refreshing the page."
+              onRetry={() => window.location.reload()}
+            />
           ) : exports.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-              <p className="text-muted-foreground">No documents generated yet</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Generate your first document using the form above
-              </p>
-            </div>
+            <EmptyState
+              title="No documents generated yet"
+              description="Generate your first document using the form above"
+              icon={<FileText className="h-12 w-12 text-muted-foreground" />}
+            />
           ) : (
             <div className="space-y-3">
               {exports.map((exportItem) => (
