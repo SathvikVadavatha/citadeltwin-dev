@@ -13,7 +13,7 @@ interface DocumentExport {
   status: 'generating' | 'completed' | 'failed';
   error_message?: string;
   template_id?: string;
-  created_at: string;
+  generated_at: string;
 }
 
 export const useOptimizedDocumentExports = (uploadId?: string) => {
@@ -39,7 +39,18 @@ export const useOptimizedDocumentExports = (uploadId?: string) => {
 
     const { data, error } = await query;
     if (error) throw error;
-    return data as DocumentExport[];
+    
+    // Map the data to match our interface
+    return (data || []).map(item => ({
+      id: item.id,
+      title: item.title,
+      document_type: item.document_type,
+      format_type: item.format_type,
+      status: item.status,
+      error_message: item.error_message,
+      template_id: item.template_id,
+      generated_at: item.generated_at
+    })) as DocumentExport[];
   }, [user, uploadId]);
 
   const { data: exports, isLoading, error } = useQuery({
@@ -47,7 +58,7 @@ export const useOptimizedDocumentExports = (uploadId?: string) => {
     queryFn,
     enabled: !!user,
     staleTime: 30 * 1000, // 30 seconds
-    cacheTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes (replaces cacheTime)
   });
 
   // Memoize mutation success handler

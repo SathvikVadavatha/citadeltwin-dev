@@ -3,192 +3,95 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
-import { ErrorHandler } from '@/utils/errorHandling';
 
-export interface DocumentExport {
+interface DocumentExport {
   id: string;
-  upload_id?: string;
-  project_id?: string;
-  template_id?: string;
-  document_type: string;
   title: string;
-  status: 'generating' | 'completed' | 'failed' | 'cancelled';
+  document_type: string;
   format_type: 'pdf' | 'docx';
-  file_path?: string;
-  file_size?: number;
-  generation_data: any;
-  ai_generated_content?: any;
+  status: 'generating' | 'completed' | 'failed';
   error_message?: string;
-  generated_by: string;
+  template_id?: string;
   generated_at: string;
-  completed_at?: string;
 }
 
-export const useDocumentExports = (projectId?: string, uploadId?: string) => {
+export const useDocumentExports = (uploadId?: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: exports, isLoading, error } = useQuery({
-    queryKey: ['document-exports', projectId, uploadId, user?.id],
+    queryKey: ['document-exports', uploadId],
     queryFn: async () => {
-      if (!user) {
-        throw new Error('User not authenticated');
+      if (!user) return [];
+      
+      let query = supabase
+        .from('document_exports')
+        .select('*')
+        .eq('generated_by', user.id)
+        .order('generated_at', { ascending: false });
+
+      if (uploadId) {
+        query = query.eq('upload_id', uploadId);
       }
 
-      try {
-        let query = (supabase as any)
-          .from('document_exports')
-          .select('*')
-          .eq('generated_by', user.id)
-          .order('generated_at', { ascending: false });
-
-        if (projectId) {
-          query = query.eq('project_id', projectId);
-        } else if (uploadId) {
-          query = query.eq('upload_id', uploadId);
-        }
-
-        const { data, error } = await query;
-
-        if (error) {
-          throw new Error(`Failed to fetch documents: ${error.message}`);
-        }
-        
-        return (data || []) as DocumentExport[];
-      } catch (err) {
-        throw new Error('Unable to load document history. Please try refreshing the page.');
-      }
+      const { data, error } = await query;
+      if (error) throw error;
+      
+      return (data || []).map(item => ({
+        id: item.id,
+        title: item.title,
+        document_type: item.document_type,
+        format_type: item.format_type,
+        status: item.status,
+        error_message: item.error_message,
+        template_id: item.template_id,
+        generated_at: item.generated_at
+      })) as DocumentExport[];
     },
     enabled: !!user,
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 30 * 1000,
   });
 
   const generateDocument = useMutation({
-    mutationFn: async ({
-      templateId,
-      projectId,
-      uploadId,
-      documentType,
-      title,
-      formatType,
-      generationData
-    }: {
+    mutationFn: async (params: {
       templateId: string;
-      projectId?: string;
       uploadId?: string;
       documentType: string;
       title: string;
       formatType: 'pdf' | 'docx';
       generationData: any;
     }) => {
-      if (!user) {
-        throw new Error('You must be logged in to generate documents');
-      }
-
-      if (!title.trim()) {
-        throw new Error('Document title is required');
-      }
-
-      if (!templateId) {
-        throw new Error('Please select a document template');
-      }
-
-      try {
-        // Create export record
-        const { data: exportRecord, error: exportError } = await (supabase as any)
-          .from('document_exports')
-          .insert({
-            project_id: projectId,
-            upload_id: uploadId,
-            template_id: templateId,
-            document_type: documentType,
-            title: title.trim(),
-            format_type: formatType,
-            generation_data: generationData,
-            generated_by: user.id,
-          })
-          .select()
-          .single();
-
-        if (exportError) {
-          throw new Error(`Failed to create document record: ${exportError.message}`);
-        }
-
-        // Call generation function
-        const { data, error } = await supabase.functions.invoke('generate-document', {
-          body: {
-            exportId: exportRecord.id,
-            templateId,
-            projectId,
-            uploadId,
-            formatType,
-            generationData,
-          },
-        });
-
-        if (error) {
-          throw new Error(`Document generation failed: ${error.message}`);
-        }
-        
-        return { exportRecord, generationResult: data };
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Document generation failed';
-        throw new Error(errorMessage);
-      }
+      const { data, error } = await supabase.functions.invoke('generate-document', {
+        body: params
+      });
+      
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['document-exports'] });
+      toast.success('Document generation started');
     },
-    onError: (error: any) => {
-      ErrorHandler.handle(error, 'Document generation');
+    onError: (error) => {
+      toast.error(`Failed to generate document: ${error.message}`);
     },
   });
 
   const downloadDocument = async (exportId: string) => {
-    try {
-      if (!exportId) {
-        throw new Error('Export ID is required for download');
-      }
-
-      const { data: exportRecord, error } = await (supabase as any)
-        .from('document_exports')
-        .select('file_path, title, format_type, status')
-        .eq('id', exportId)
-        .single();
-
-      if (error) {
-        throw new Error(`Failed to fetch document details: ${error.message}`);
-      }
-
-      if (exportRecord.status !== 'completed') {
-        throw new Error('Document is not ready for download yet');
-      }
-
-      if (!exportRecord?.file_path) {
-        throw new Error('Document file not found');
-      }
-
-      const { data: fileData } = supabase.storage
-        .from('documents')
-        .getPublicUrl(exportRecord.file_path);
-
-      if (!fileData.publicUrl) {
-        throw new Error('Unable to generate download link');
-      }
-
-      // Create download link
-      const link = document.createElement('a');
-      link.href = fileData.publicUrl;
-      link.download = `${exportRecord.title}.${exportRecord.format_type}`;
-      link.target = '_blank';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-    } catch (error) {
-      ErrorHandler.handle(error, 'Document download');
-    }
+    const { data, error } = await supabase.storage
+      .from('documents')
+      .download(`exports/${exportId}`);
+    
+    if (error) throw error;
+    
+    const url = URL.createObjectURL(data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `document-${exportId}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return {
