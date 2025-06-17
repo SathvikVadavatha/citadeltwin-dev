@@ -1,5 +1,5 @@
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -13,11 +13,14 @@ interface RealtimeUpdateConfig {
 }
 
 export const useRealtimeUpdates = (configs: RealtimeUpdateConfig[]) => {
-  const channels: RealtimeChannel[] = [];
+  const channelsRef = useRef<RealtimeChannel[]>([]);
+  const mountedRef = useRef(true);
 
-  const setupRealtimeSubscription = useCallback((config: RealtimeUpdateConfig) => {
+  const setupRealtimeSubscription = useCallback((config: RealtimeUpdateConfig, index: number) => {
+    const channelName = `${config.table}_changes_${index}`;
+    
     const channel = supabase
-      .channel(`${config.table}_changes`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -27,8 +30,10 @@ export const useRealtimeUpdates = (configs: RealtimeUpdateConfig[]) => {
           filter: config.filter,
         },
         (payload) => {
-          console.log(`${config.table} INSERT:`, payload);
-          config.onInsert?.(payload);
+          if (mountedRef.current) {
+            console.log(`${config.table} INSERT:`, payload);
+            config.onInsert?.(payload);
+          }
         }
       )
       .on(
@@ -40,8 +45,10 @@ export const useRealtimeUpdates = (configs: RealtimeUpdateConfig[]) => {
           filter: config.filter,
         },
         (payload) => {
-          console.log(`${config.table} UPDATE:`, payload);
-          config.onUpdate?.(payload);
+          if (mountedRef.current) {
+            console.log(`${config.table} UPDATE:`, payload);
+            config.onUpdate?.(payload);
+          }
         }
       )
       .on(
@@ -53,11 +60,15 @@ export const useRealtimeUpdates = (configs: RealtimeUpdateConfig[]) => {
           filter: config.filter,
         },
         (payload) => {
-          console.log(`${config.table} DELETE:`, payload);
-          config.onDelete?.(payload);
+          if (mountedRef.current) {
+            console.log(`${config.table} DELETE:`, payload);
+            config.onDelete?.(payload);
+          }
         }
       )
       .subscribe((status) => {
+        if (!mountedRef.current) return;
+        
         if (status === 'SUBSCRIBED') {
           console.log(`Connected to ${config.table} realtime updates`);
         } else if (status === 'CHANNEL_ERROR') {
@@ -69,26 +80,43 @@ export const useRealtimeUpdates = (configs: RealtimeUpdateConfig[]) => {
     return channel;
   }, []);
 
-  useEffect(() => {
-    // Set up subscriptions for all configs
-    configs.forEach(config => {
-      const channel = setupRealtimeSubscription(config);
-      channels.push(channel);
+  const cleanup = useCallback(() => {
+    console.log(`Cleaning up ${channelsRef.current.length} realtime channels`);
+    channelsRef.current.forEach((channel, index) => {
+      try {
+        supabase.removeChannel(channel);
+        console.log(`Removed channel ${index}`);
+      } catch (error) {
+        console.error(`Error removing channel ${index}:`, error);
+      }
     });
+    channelsRef.current = [];
+  }, []);
+
+  useEffect(() => {
+    // Clean up any existing channels first
+    cleanup();
+    
+    // Set up new subscriptions
+    const newChannels = configs.map((config, index) => 
+      setupRealtimeSubscription(config, index)
+    );
+    
+    channelsRef.current = newChannels;
 
     // Cleanup function
     return () => {
-      channels.forEach(channel => {
-        supabase.removeChannel(channel);
-      });
+      cleanup();
     };
-  }, [configs, setupRealtimeSubscription]);
+  }, [configs.map(c => `${c.table}-${c.filter}`).join('|'), setupRealtimeSubscription, cleanup]);
 
-  const cleanup = useCallback(() => {
-    channels.forEach(channel => {
-      supabase.removeChannel(channel);
-    });
-  }, []);
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      cleanup();
+    };
+  }, [cleanup]);
 
   return { cleanup };
 };

@@ -1,4 +1,3 @@
-
 import { PerformanceMonitor } from '@/utils/performance';
 
 export interface CacheEntry<T> {
@@ -13,6 +12,7 @@ export class PerformanceOptimizer {
   private static cache = new Map<string, CacheEntry<any>>();
   private static queryCache = new Map<string, any>();
   private static debounceTimers = new Map<string, NodeJS.Timeout>();
+  private static realtimeCleanupFunctions = new Set<() => void>();
   private static maxCacheSize = 100;
   private static cleanupInterval = 300000; // 5 minutes
   private static cleanupTimer: NodeJS.Timeout | null = null;
@@ -78,6 +78,30 @@ export class PerformanceOptimizer {
       
       this.debounceTimers.set(key, newTimer);
     };
+  }
+
+  // Realtime Subscription Management
+  static registerRealtimeCleanup(cleanupFn: () => void): () => void {
+    console.log('Registering realtime cleanup function');
+    this.realtimeCleanupFunctions.add(cleanupFn);
+    
+    // Return unregister function
+    return () => {
+      console.log('Unregistering realtime cleanup function');
+      this.realtimeCleanupFunctions.delete(cleanupFn);
+    };
+  }
+
+  static cleanupAllRealtimeSubscriptions(): void {
+    console.log(`Cleaning up ${this.realtimeCleanupFunctions.size} realtime subscriptions`);
+    this.realtimeCleanupFunctions.forEach(cleanupFn => {
+      try {
+        cleanupFn();
+      } catch (error) {
+        console.error('Error during realtime cleanup:', error);
+      }
+    });
+    this.realtimeCleanupFunctions.clear();
   }
 
   // AI Response Optimization
@@ -170,7 +194,8 @@ export class PerformanceOptimizer {
       memoryUsage: 0,
       hitRates: new Map<string, number>(),
       oldestEntry: Date.now(),
-      newestEntry: 0
+      newestEntry: 0,
+      realtimeSubscriptions: this.realtimeCleanupFunctions.size
     };
 
     for (const [key, entry] of this.cache.entries()) {
@@ -192,6 +217,7 @@ export class PerformanceOptimizer {
   static forceCacheCleanup(): void {
     this.clearExpiredCache();
     this.clearDebounceTimers();
+    this.cleanupAllRealtimeSubscriptions();
     
     if (this.cache.size > this.maxCacheSize * 0.8) {
       const entriesToRemove = Math.floor(this.cache.size * 0.3);
@@ -239,6 +265,8 @@ export class PerformanceOptimizer {
 
   // Destroy method for proper cleanup
   static destroy(): void {
+    console.log('Destroying PerformanceOptimizer and cleaning up all resources');
+    
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
@@ -247,9 +275,13 @@ export class PerformanceOptimizer {
       clearInterval(this.memoryCheckTimer);
       this.memoryCheckTimer = null;
     }
+    
     this.clearDebounceTimers();
+    this.cleanupAllRealtimeSubscriptions();
     this.cache.clear();
     this.queryCache.clear();
+    
+    console.log('PerformanceOptimizer cleanup complete');
   }
 
   // Lazy Loading Utilities
@@ -299,9 +331,21 @@ export class PerformanceOptimizer {
   }
 }
 
-// Cleanup on page unload
+// Enhanced cleanup on page unload
 if (typeof window !== 'undefined') {
-  window.addEventListener('beforeunload', () => {
+  const handleUnload = () => {
+    console.log('Page unload detected, cleaning up PerformanceOptimizer');
     PerformanceOptimizer.destroy();
+  };
+
+  window.addEventListener('beforeunload', handleUnload);
+  window.addEventListener('unload', handleUnload);
+  
+  // Also handle visibility changes for mobile
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      console.log('Page hidden, cleaning up realtime subscriptions');
+      PerformanceOptimizer.cleanupAllRealtimeSubscriptions();
+    }
   });
 }

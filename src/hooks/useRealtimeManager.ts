@@ -18,21 +18,27 @@ export const useRealtimeManager = (subscriptions: SubscriptionConfig[]) => {
   const activeSubscriptionsRef = useRef<Set<string>>(new Set());
   const mountedRef = useRef(true);
 
-  // Create stable subscription configs hash to prevent unnecessary recreations
-  const subscriptionsHash = useMemo(() => {
+  // Create stable subscription identifier to prevent unnecessary recreations
+  const subscriptionsKey = useMemo(() => {
     return subscriptions
-      .map(sub => `${sub.id}-${sub.table}-${sub.filter || ''}`)
+      .map(sub => `${sub.id}:${sub.table}:${sub.filter || 'no-filter'}`)
       .sort()
       .join('|');
-  }, [subscriptions.map(s => `${s.id}-${s.table}-${s.filter || ''}`).join('|')]);
+  }, [subscriptions]);
 
   const createSubscription = useCallback((config: SubscriptionConfig) => {
-    if (!mountedRef.current || channelsRef.current.has(config.id)) {
+    if (!mountedRef.current) return;
+    
+    // Don't recreate if already exists
+    if (channelsRef.current.has(config.id)) {
+      console.log(`Channel ${config.id} already exists, skipping creation`);
       return;
     }
 
+    console.log(`Creating subscription for ${config.id}`);
+    
     const channel = supabase
-      .channel(`${config.id}_changes`)
+      .channel(`${config.id}_realtime`)
       .on(
         'postgres_changes',
         {
@@ -87,6 +93,7 @@ export const useRealtimeManager = (subscriptions: SubscriptionConfig[]) => {
         } else if (status === 'CHANNEL_ERROR') {
           console.error(`Error connecting to ${config.table} realtime updates`);
           toast.error(`Realtime connection error for ${config.table}`);
+          activeSubscriptionsRef.current.delete(config.id);
         }
       });
 
@@ -96,34 +103,49 @@ export const useRealtimeManager = (subscriptions: SubscriptionConfig[]) => {
   const removeSubscription = useCallback((id: string) => {
     const channel = channelsRef.current.get(id);
     if (channel) {
-      supabase.removeChannel(channel);
-      channelsRef.current.delete(id);
-      activeSubscriptionsRef.current.delete(id);
+      console.log(`Removing subscription ${id}`);
+      try {
+        supabase.removeChannel(channel);
+        channelsRef.current.delete(id);
+        activeSubscriptionsRef.current.delete(id);
+        console.log(`Successfully removed subscription ${id}`);
+      } catch (error) {
+        console.error(`Error removing subscription ${id}:`, error);
+      }
     }
   }, []);
 
   const cleanup = useCallback(() => {
-    channelsRef.current.forEach((channel) => {
-      supabase.removeChannel(channel);
+    console.log(`Cleaning up ${channelsRef.current.size} subscriptions`);
+    const channelIds = Array.from(channelsRef.current.keys());
+    
+    channelIds.forEach(id => {
+      removeSubscription(id);
     });
+    
     channelsRef.current.clear();
     activeSubscriptionsRef.current.clear();
-  }, []);
+    console.log('All subscriptions cleaned up');
+  }, [removeSubscription]);
 
-  // Stable effect that only runs when subscriptions actually change
+  // Main effect for managing subscriptions
   useEffect(() => {
-    // Clean up existing subscriptions
+    console.log('Setting up realtime subscriptions:', subscriptionsKey);
+    
+    // Clean up all existing subscriptions
     cleanup();
     
     // Create new subscriptions
     subscriptions.forEach(createSubscription);
 
+    // Cleanup function
     return cleanup;
-  }, [subscriptionsHash, createSubscription, cleanup]);
+  }, [subscriptionsKey, createSubscription, cleanup]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      console.log('Component unmounting, cleaning up subscriptions');
       mountedRef.current = false;
       cleanup();
     };

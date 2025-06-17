@@ -1,5 +1,5 @@
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef, useEffect } from 'react';
 import { useRealtimeManager } from './useRealtimeManager';
 import { toast } from 'sonner';
 
@@ -20,7 +20,11 @@ export const useOptimizedRealtime = (projectId?: string, hooks: OptimizedRealtim
     refreshChecks,
   } = hooks;
 
-  // Document export handlers
+  // Use refs to maintain stable references for callbacks
+  const hooksRef = useRef(hooks);
+  hooksRef.current = hooks;
+
+  // Stable event handlers
   const handleExportUpdate = useCallback((payload: any) => {
     const exportDoc = payload.new;
     switch (exportDoc.status) {
@@ -34,10 +38,9 @@ export const useOptimizedRealtime = (projectId?: string, hooks: OptimizedRealtim
         toast.error('Document generation failed');
         break;
     }
-    refreshExports?.();
-  }, [refreshExports]);
+    hooksRef.current.refreshExports?.();
+  }, []);
 
-  // FEA analysis handlers
   const handleAnalysisUpdate = useCallback((payload: any) => {
     const analysis = payload.new;
     switch (analysis.status) {
@@ -46,52 +49,51 @@ export const useOptimizedRealtime = (projectId?: string, hooks: OptimizedRealtim
         break;
       case 'completed':
         toast.success('FEA analysis completed');
-        refreshResults?.();
+        hooksRef.current.refreshResults?.();
         break;
       case 'failed':
         toast.error('FEA analysis failed');
         break;
     }
-    refreshAnalyses?.();
-  }, [refreshAnalyses, refreshResults]);
+    hooksRef.current.refreshAnalyses?.();
+  }, []);
 
   const handleResultInsert = useCallback((payload: any) => {
     toast.success('New FEA results available');
-    refreshResults?.();
-  }, [refreshResults]);
+    hooksRef.current.refreshResults?.();
+  }, []);
 
-  // Compliance handlers
   const handleViolationInsert = useCallback((payload: any) => {
     toast.info('New compliance violation detected');
-    refreshViolations?.();
-  }, [refreshViolations]);
+    hooksRef.current.refreshViolations?.();
+  }, []);
 
   const handleViolationUpdate = useCallback((payload: any) => {
     const violation = payload.new;
     if (violation.status === 'resolved') {
       toast.success('Compliance violation resolved');
     }
-    refreshViolations?.();
-  }, [refreshViolations]);
+    hooksRef.current.refreshViolations?.();
+  }, []);
 
   const handleCheckUpdate = useCallback((payload: any) => {
     const check = payload.new;
     if (check.status === 'completed') {
       toast.success('Compliance check completed');
-      refreshChecks?.();
+      hooksRef.current.refreshChecks?.();
     } else if (check.status === 'failed') {
       toast.error('Compliance check failed');
-      refreshChecks?.();
+      hooksRef.current.refreshChecks?.();
     }
-  }, [refreshChecks]);
+  }, []);
 
-  // Consolidated subscriptions configuration
+  // Memoize subscriptions configuration
   const subscriptions = useMemo(() => {
     const configs = [];
 
     if (refreshExports) {
       configs.push({
-        id: 'document_exports',
+        id: `document_exports_${projectId || 'global'}`,
         table: 'document_exports',
         filter: projectId ? `project_id=eq.${projectId}` : undefined,
         onUpdate: handleExportUpdate,
@@ -100,7 +102,7 @@ export const useOptimizedRealtime = (projectId?: string, hooks: OptimizedRealtim
 
     if (refreshAnalyses || refreshResults) {
       configs.push({
-        id: 'fea_analyses',
+        id: `fea_analyses_${projectId || 'global'}`,
         table: 'fea_analyses',
         filter: projectId ? `project_id=eq.${projectId}` : undefined,
         onUpdate: handleAnalysisUpdate,
@@ -109,27 +111,25 @@ export const useOptimizedRealtime = (projectId?: string, hooks: OptimizedRealtim
 
     if (refreshResults) {
       configs.push({
-        id: 'fea_results',
+        id: `fea_results_${projectId || 'global'}`,
         table: 'fea_results',
         onInsert: handleResultInsert,
       });
     }
 
     if (refreshViolations) {
-      configs.push(
-        {
-          id: 'compliance_violations',
-          table: 'compliance_violations',
-          filter: projectId ? `project_id=eq.${projectId}` : undefined,
-          onInsert: handleViolationInsert,
-          onUpdate: handleViolationUpdate,
-        }
-      );
+      configs.push({
+        id: `compliance_violations_${projectId || 'global'}`,
+        table: 'compliance_violations',
+        filter: projectId ? `project_id=eq.${projectId}` : undefined,
+        onInsert: handleViolationInsert,
+        onUpdate: handleViolationUpdate,
+      });
     }
 
     if (refreshChecks) {
       configs.push({
-        id: 'compliance_checks',
+        id: `compliance_checks_${projectId || 'global'}`,
         table: 'compliance_checks',
         filter: projectId ? `project_id=eq.${projectId}` : undefined,
         onUpdate: handleCheckUpdate,
@@ -139,11 +139,11 @@ export const useOptimizedRealtime = (projectId?: string, hooks: OptimizedRealtim
     return configs;
   }, [
     projectId,
-    refreshExports,
-    refreshAnalyses,
-    refreshResults,
-    refreshViolations,
-    refreshChecks,
+    !!refreshExports,
+    !!refreshAnalyses,
+    !!refreshResults,
+    !!refreshViolations,
+    !!refreshChecks,
     handleExportUpdate,
     handleAnalysisUpdate,
     handleResultInsert,
@@ -153,6 +153,11 @@ export const useOptimizedRealtime = (projectId?: string, hooks: OptimizedRealtim
   ]);
 
   const { activeSubscriptions, cleanup } = useRealtimeManager(subscriptions);
+
+  // Provide cleanup function to consumers
+  useEffect(() => {
+    return cleanup;
+  }, [cleanup]);
 
   return {
     activeSubscriptions,

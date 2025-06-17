@@ -1,5 +1,5 @@
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useRealtimeUpdates } from './useRealtimeUpdates';
 import { toast } from 'sonner';
 
@@ -24,10 +24,17 @@ export const useDocumentRealtime = ({ refreshExports }: DocumentRealtimeHooks) =
     refreshExports();
   }, [refreshExports]);
 
-  useRealtimeUpdates([
+  const { cleanup } = useRealtimeUpdates([
     {
       table: 'document_exports',
       onUpdate: handleExportUpdate,
     }
   ]);
+
+  // Provide cleanup function for external use
+  useEffect(() => {
+    return cleanup;
+  }, [cleanup]);
+
+  return { cleanup };
 };
