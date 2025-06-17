@@ -23,7 +23,7 @@ export const useDocumentTemplates = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: templates, isLoading } = useQuery({
+  const { data: templates, isLoading, error } = useQuery({
     queryKey: ['document-templates'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -96,6 +96,7 @@ export const useDocumentTemplates = () => {
   return {
     templates: templates || [],
     isLoading,
+    error,
     createTemplate,
     updateTemplate,
   };

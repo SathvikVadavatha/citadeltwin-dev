@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { MobileResponsiveCard } from '@/components/mobile/MobileResponsiveCard';
 import { MobileResponsiveGrid } from '@/components/mobile/MobileResponsiveGrid';
