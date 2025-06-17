@@ -38,30 +38,23 @@ export const useUsers = () => {
   const { data: users, isLoading: usersLoading, error: usersError } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
-      // First get all profiles
+      // Get all profiles with their role information using a join
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          roles!profiles_role_id_fkey(role_name)
+        `)
         .order('created_at', { ascending: false });
 
       if (profilesError) throw profilesError;
-
-      // Then get all roles to map role_id to role_name
-      const { data: roles, error: rolesError } = await supabase
-        .from('roles')
-        .select('id, role_name');
-
-      if (rolesError) throw rolesError;
-
-      // Create a map for quick role lookup
-      const roleMap = new Map(roles?.map(role => [role.id, role.role_name]) || []);
 
       // Map profiles to users with role names
       return profiles?.map(profile => ({
         id: profile.id,
         full_name: profile.full_name,
         email: profile.email || '',
-        role: profile.role_id ? roleMap.get(profile.role_id) : null,
+        role: profile.roles?.role_name || null,
         department: profile.department,
         phone: profile.phone,
         organization: profile.organization,
@@ -202,29 +195,23 @@ export const useUserStats = () => {
   return useQuery({
     queryKey: ['user-stats'],
     queryFn: async () => {
-      // Get all profiles
+      // Get all profiles with role information
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('created_at, is_active, role_id');
+        .select(`
+          created_at, 
+          is_active, 
+          roles!profiles_role_id_fkey(role_name)
+        `);
 
       if (profilesError) throw profilesError;
 
-      // Get all roles
-      const { data: roles, error: rolesError } = await supabase
-        .from('roles')
-        .select('id, role_name');
-
-      if (rolesError) throw rolesError;
-
-      // Create role map
-      const roleMap = new Map(roles?.map(role => [role.id, role.role_name]) || []);
-
       const stats = {
         total: profiles?.length || 0,
-        admins: profiles?.filter(p => p.role_id && roleMap.get(p.role_id) === 'admin').length || 0,
-        engineers: profiles?.filter(p => p.role_id && roleMap.get(p.role_id) === 'engineer').length || 0,
-        planners: profiles?.filter(p => p.role_id && roleMap.get(p.role_id) === 'planner').length || 0,
-        viewers: profiles?.filter(p => p.role_id && roleMap.get(p.role_id) === 'viewer').length || 0,
+        admins: profiles?.filter(p => p.roles?.role_name === 'admin').length || 0,
+        engineers: profiles?.filter(p => p.roles?.role_name === 'engineer').length || 0,
+        planners: profiles?.filter(p => p.roles?.role_name === 'planner').length || 0,
+        viewers: profiles?.filter(p => p.roles?.role_name === 'viewer').length || 0,
         inactive: profiles?.filter(p => !p.is_active).length || 0,
         thisMonth: profiles?.filter(p => {
           const created = new Date(p.created_at);

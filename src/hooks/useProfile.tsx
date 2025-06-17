@@ -35,35 +35,24 @@ export const useProfile = () => {
       try {
         setLoading(true);
         
-        // Get profile with role information
+        // Get profile with role information using a join
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('*')
+          .select(`
+            *,
+            roles!profiles_role_id_fkey(role_name)
+          `)
           .eq('id', user.id)
           .single();
 
         if (profileError) throw profileError;
 
         if (profileData) {
-          // Get role name from roles table
-          let roleName = null;
-          if (profileData.role_id) {
-            const { data: roleData, error: roleError } = await supabase
-              .from('roles')
-              .select('role_name')
-              .eq('id', profileData.role_id)
-              .single();
-            
-            if (!roleError && roleData) {
-              roleName = roleData.role_name;
-            }
-          }
-
           setProfile({
             id: profileData.id,
             full_name: profileData.full_name,
-            email: user.email || null,
-            role: roleName as 'admin' | 'engineer' | 'planner' | 'viewer' | 'inactive' | null,
+            email: user.email || profileData.email || null,
+            role: profileData.roles?.role_name as 'admin' | 'engineer' | 'planner' | 'viewer' | 'inactive' | null,
             department: profileData.department,
             phone: profileData.phone,
             organization: profileData.organization,

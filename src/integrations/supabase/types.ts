@@ -1687,32 +1687,55 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          company: string | null
           created_at: string
+          department: string | null
+          email: string | null
           full_name: string | null
           id: string
-          role: string | null
+          is_active: boolean | null
+          last_login: string | null
+          organization: string | null
+          phone: string | null
+          role_id: number | null
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
-          company?: string | null
           created_at?: string
+          department?: string | null
+          email?: string | null
           full_name?: string | null
           id: string
-          role?: string | null
+          is_active?: boolean | null
+          last_login?: string | null
+          organization?: string | null
+          phone?: string | null
+          role_id?: number | null
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
-          company?: string | null
           created_at?: string
+          department?: string | null
+          email?: string | null
           full_name?: string | null
           id?: string
-          role?: string | null
+          is_active?: boolean | null
+          last_login?: string | null
+          organization?: string | null
+          phone?: string | null
+          role_id?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_branches: {
         Row: {
@@ -2045,6 +2068,21 @@ export type Database = {
           state?: string
           updated_at?: string
           zoning_designation?: string | null
+        }
+        Relationships: []
+      }
+      roles: {
+        Row: {
+          id: number
+          role_name: string
+        }
+        Insert: {
+          id?: number
+          role_name: string
+        }
+        Update: {
+          id?: number
+          role_name?: string
         }
         Relationships: []
       }
