@@ -3,7 +3,7 @@ import React from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Upload, Loader2, Zap, Brain, Box, CheckCircle } from "lucide-react";
+import { Upload, Loader2, Zap, Brain, Box, CheckCircle, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 interface UploadFormProps {
@@ -68,17 +68,17 @@ export const UploadForm: React.FC<UploadFormProps> = ({
 
   // Calculate overall progress based on current step
   const getOverallProgress = () => {
-    if (uploading) return uploadProgress * 0.25; // 25% for upload
-    if (processing) return 25 + 25; // 25-50% for processing
-    if (enhancedAnalyzing) return 50 + 25; // 50-75% for analysis
-    if (generating3D) return 75 + 20; // 75-95% for 3D generation
+    if (uploading) return uploadProgress * 0.2; // 0-20% for upload
+    if (processing) return 20 + 40; // 20-60% for processing
+    if (enhancedAnalyzing) return 60 + 20; // 60-80% for analysis
+    if (generating3D) return 80 + 15; // 80-95% for 3D generation
     return 0;
   };
 
   const getCurrentStep = () => {
     if (uploading) return "Uploading file to secure storage...";
-    if (processing) return "Processing blueprint with AI vision...";
-    if (enhancedAnalyzing) return "Enhanced Gemini AI analysis in progress...";
+    if (processing) return "Processing blueprint with Gemini AI vision...";
+    if (enhancedAnalyzing) return "Performing enhanced structural analysis...";
     if (generating3D) return "Generating 3D model from analysis...";
     return "";
   };
@@ -89,6 +89,34 @@ export const UploadForm: React.FC<UploadFormProps> = ({
     if (enhancedAnalyzing) return <Zap className="h-8 w-8 mx-auto animate-pulse text-yellow-500" />;
     if (generating3D) return <Box className="h-8 w-8 mx-auto animate-pulse text-green-500" />;
     return <Loader2 className="h-8 w-8 mx-auto animate-spin text-primary" />;
+  };
+
+  const getStepStatus = (step: string) => {
+    switch (step) {
+      case 'upload':
+        if (uploading) return { icon: <Loader2 className="h-4 w-4 animate-spin" />, color: 'text-blue-600' };
+        if (processing || enhancedAnalyzing || generating3D) return { icon: <CheckCircle className="h-4 w-4" />, color: 'text-green-600' };
+        return { icon: <div className="h-4 w-4 rounded-full border-2 border-current" />, color: 'text-gray-400' };
+      
+      case 'process':
+        if (processing) return { icon: <Loader2 className="h-4 w-4 animate-spin" />, color: 'text-purple-600' };
+        if (enhancedAnalyzing || generating3D) return { icon: <CheckCircle className="h-4 w-4" />, color: 'text-green-600' };
+        if (uploading) return { icon: <div className="h-4 w-4 rounded-full border-2 border-current" />, color: 'text-gray-400' };
+        return { icon: <div className="h-4 w-4 rounded-full border-2 border-current" />, color: 'text-gray-400' };
+      
+      case 'analyze':
+        if (enhancedAnalyzing) return { icon: <Loader2 className="h-4 w-4 animate-spin" />, color: 'text-yellow-600' };
+        if (generating3D) return { icon: <CheckCircle className="h-4 w-4" />, color: 'text-green-600' };
+        if (uploading || processing) return { icon: <div className="h-4 w-4 rounded-full border-2 border-current" />, color: 'text-gray-400' };
+        return { icon: <div className="h-4 w-4 rounded-full border-2 border-current" />, color: 'text-gray-400' };
+      
+      case 'generate':
+        if (generating3D) return { icon: <Loader2 className="h-4 w-4 animate-spin" />, color: 'text-green-600' };
+        return { icon: <div className="h-4 w-4 rounded-full border-2 border-current" />, color: 'text-gray-400' };
+      
+      default:
+        return { icon: <div className="h-4 w-4 rounded-full border-2 border-current" />, color: 'text-gray-400' };
+    }
   };
 
   return (
@@ -112,21 +140,21 @@ export const UploadForm: React.FC<UploadFormProps> = ({
               <div className="space-y-3">
                 <p className="text-lg font-medium">{getCurrentStep()}</p>
                 <Progress value={getOverallProgress()} className="mt-2" />
-                <div className="flex justify-center space-x-4 text-sm">
-                  <div className={`flex items-center space-x-2 ${uploading || uploadProgress === 100 ? 'text-green-600' : 'text-gray-400'}`}>
-                    {uploadProgress === 100 ? <CheckCircle className="h-4 w-4" /> : <div className="h-4 w-4 rounded-full border-2 border-current" />}
+                <div className="flex justify-center space-x-6 text-sm">
+                  <div className={`flex items-center space-x-2 ${getStepStatus('upload').color}`}>
+                    {getStepStatus('upload').icon}
                     <span>Upload</span>
                   </div>
-                  <div className={`flex items-center space-x-2 ${processing ? 'text-purple-600' : processing === false && enhancedAnalyzing ? 'text-green-600' : 'text-gray-400'}`}>
-                    {processing === false && (enhancedAnalyzing || generating3D) ? <CheckCircle className="h-4 w-4" /> : <div className="h-4 w-4 rounded-full border-2 border-current" />}
-                    <span>Process</span>
+                  <div className={`flex items-center space-x-2 ${getStepStatus('process').color}`}>
+                    {getStepStatus('process').icon}
+                    <span>AI Process</span>
                   </div>
-                  <div className={`flex items-center space-x-2 ${enhancedAnalyzing ? 'text-yellow-600' : enhancedAnalyzing === false && generating3D ? 'text-green-600' : 'text-gray-400'}`}>
-                    {enhancedAnalyzing === false && generating3D ? <CheckCircle className="h-4 w-4" /> : <div className="h-4 w-4 rounded-full border-2 border-current" />}
+                  <div className={`flex items-center space-x-2 ${getStepStatus('analyze').color}`}>
+                    {getStepStatus('analyze').icon}
                     <span>Analyze</span>
                   </div>
-                  <div className={`flex items-center space-x-2 ${generating3D ? 'text-green-600' : 'text-gray-400'}`}>
-                    <div className="h-4 w-4 rounded-full border-2 border-current" />
+                  <div className={`flex items-center space-x-2 ${getStepStatus('generate').color}`}>
+                    {getStepStatus('generate').icon}
                     <span>Generate 3D</span>
                   </div>
                 </div>

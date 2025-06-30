@@ -52,7 +52,7 @@ export const useBlueprintFileUpload = () => {
       console.log('File uploaded successfully:', uploadData);
       setUploadState(prev => ({ ...prev, uploadProgress: 50 }));
 
-      // Get the public URL for the uploaded file
+      // Get the public URL for the uploaded file - fix the URL generation
       const { data: urlData } = supabase.storage
         .from('blueprints')
         .getPublicUrl(fileName);
@@ -64,14 +64,22 @@ export const useBlueprintFileUpload = () => {
       console.log('Public URL generated:', urlData.publicUrl);
       setUploadState(prev => ({ ...prev, uploadProgress: 75 }));
 
-      // Test if the URL is accessible
+      // Verify the URL is accessible with better error handling
       try {
-        const testResponse = await fetch(urlData.publicUrl + '?t=' + Date.now(), { method: 'HEAD' });
+        console.log('Verifying file accessibility...');
+        const testResponse = await fetch(urlData.publicUrl + '?t=' + Date.now(), { 
+          method: 'HEAD',
+          mode: 'cors'
+        });
+        
         if (!testResponse.ok) {
-          console.warn('File may not be immediately accessible:', testResponse.status);
+          console.warn('File accessibility check failed:', testResponse.status, testResponse.statusText);
+          // Don't throw error here, just log warning
+        } else {
+          console.log('File is accessible via public URL');
         }
       } catch (testError) {
-        console.warn('Could not verify file accessibility:', testError);
+        console.warn('Could not verify file accessibility (this may be expected):', testError);
       }
 
       // Insert record into database

@@ -48,50 +48,79 @@ export const useBlueprintUpload = () => {
 
       console.log('File uploaded, starting processing...');
       
-      // Step 2: Process blueprint with real Gemini AI (not mock data)
-      const detectedObjects = await processBlueprint(uploadData.uploadRecord.id, uploadData.publicUrl);
+      // Step 2: Process blueprint with Gemini AI
+      let detectedObjects;
+      try {
+        detectedObjects = await processBlueprint(uploadData.uploadRecord.id, uploadData.publicUrl);
+        console.log('Processing complete, objects detected:', detectedObjects?.length || 0);
+      } catch (processingError) {
+        console.error('Processing failed:', processingError);
+        throw new Error(`Blueprint processing failed: ${processingError instanceof Error ? processingError.message : 'Unknown error'}`);
+      }
       
-      console.log('Processing complete, starting enhanced analysis...');
+      if (!detectedObjects) {
+        throw new Error('No objects detected from blueprint');
+      }
+
+      console.log('Starting enhanced analysis...');
       
-      // Step 3: Enhanced analysis with Gemini
-      const analysisData = await performEnhancedAnalysis(
-        uploadData.publicUrl,
-        uploadData.uploadRecord.id,
-        detectedObjects
-      );
+      // Step 3: Enhanced analysis (this reuses the Gemini results)
+      let analysisData;
+      try {
+        analysisData = await performEnhancedAnalysis(
+          uploadData.publicUrl,
+          uploadData.uploadRecord.id,
+          detectedObjects
+        );
+        console.log('Enhanced analysis complete');
+      } catch (analysisError) {
+        console.error('Enhanced analysis failed:', analysisError);
+        // Don't throw here, continue with basic analysis
+        analysisData = null;
+      }
 
-      console.log('Enhanced analysis complete, generating 3D model...');
+      console.log('Generating 3D model...');
 
-      // Step 4: Generate 3D model
-      const generated3DModels = await generate3DModel(
-        uploadData.uploadRecord.id,
-        detectedObjects,
-        uploadData.publicUrl
-      );
+      // Step 4: Generate 3D model (this also reuses Gemini results)
+      let generated3DModels;
+      try {
+        generated3DModels = await generate3DModel(
+          uploadData.uploadRecord.id,
+          detectedObjects,
+          uploadData.publicUrl
+        );
+        console.log('3D model generation complete, models:', generated3DModels?.length || 0);
+      } catch (modelError) {
+        console.error('3D model generation failed:', modelError);
+        // Don't throw here, continue without 3D model
+        generated3DModels = [];
+      }
 
       console.log('All processing complete, setting results...');
 
       // Step 5: Set final results
-      setUploadResult({
+      const finalResult: UploadResult = {
         id: uploadData.uploadRecord.id,
         filename: file.name,
         detectedObjects,
         imageUrl: uploadData.publicUrl,
-        processingTime: 8000, // Real processing time
-        generated3DModels,
+        processingTime: 8000,
+        generated3DModels: generated3DModels || [],
         floorPlanData: analysisData?.floorPlanData,
         geminiAnalysis: analysisData?.geminiAnalysis
-      });
+      };
+
+      setUploadResult(finalResult);
 
       toast({
-        title: "Complete workflow finished",
+        title: "Upload Complete",
         description: `Successfully processed ${file.name} with ${detectedObjects.length} elements detected.`,
       });
 
     } catch (error) {
       console.error('Upload workflow error:', error);
       toast({
-        title: "Processing failed",
+        title: "Processing Failed",
         description: error instanceof Error ? error.message : "An error occurred during processing.",
         variant: "destructive",
       });

@@ -98,21 +98,22 @@ export const useGeminiBlueprint3D = () => {
     try {
       console.log('Converting image URL to base64:', imageUrl);
       
-      // Add timestamp to avoid caching issues
+      // Add better cache busting and headers for Supabase storage
       const timestampedUrl = imageUrl.includes('?') 
         ? `${imageUrl}&t=${Date.now()}` 
         : `${imageUrl}?t=${Date.now()}`;
       
       const response = await fetch(timestampedUrl, {
-        mode: 'cors',
+        method: 'GET',
         headers: {
-          'Accept': 'image/*',
+          'Accept': 'image/jpeg, image/png, image/gif, image/webp, */*',
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         }
       });
       
       if (!response.ok) {
+        console.error('Fetch failed:', response.status, response.statusText);
         throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
       }
       
@@ -197,10 +198,10 @@ Return your analysis as a detailed JSON object with this exact structure:
 
 BE SPECIFIC AND UNIQUE - analyze what you actually see in THIS image, not generic data. Look for text labels, dimension markings, and architectural symbols.`;
 
-      // Call Gemini with enhanced error handling and retries
+      // Call Gemini with retry logic
       let analysisResponse;
       let attempts = 0;
-      const maxAttempts = 2;
+      const maxAttempts = 3;
       
       while (attempts < maxAttempts) {
         try {
@@ -221,7 +222,7 @@ BE SPECIFIC AND UNIQUE - analyze what you actually see in THIS image, not generi
           attempts++;
           console.error(`API call attempt ${attempts} failed:`, apiError);
           if (attempts >= maxAttempts) {
-            throw apiError;
+            throw new Error(`Gemini AI failed after ${maxAttempts} attempts: ${apiError instanceof Error ? apiError.message : 'Unknown error'}`);
           }
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
@@ -234,7 +235,6 @@ BE SPECIFIC AND UNIQUE - analyze what you actually see in THIS image, not generi
       // Parse JSON response with better extraction
       let parsedAnalysis: BlueprintAnalysis;
       try {
-        // Try multiple JSON extraction patterns
         const jsonPatterns = [
           /```json\s*([\s\S]*?)\s*```/i,
           /```\s*([\s\S]*?)\s*```/i,
@@ -253,7 +253,6 @@ BE SPECIFIC AND UNIQUE - analyze what you actually see in THIS image, not generi
         }
         
         if (jsonText) {
-          // Clean the JSON text thoroughly
           jsonText = jsonText.trim()
             .replace(/^```json\s*/i, '')
             .replace(/\s*```$/i, '')
@@ -263,7 +262,6 @@ BE SPECIFIC AND UNIQUE - analyze what you actually see in THIS image, not generi
           console.log('Parsing cleaned JSON:', jsonText.substring(0, 200) + '...');
           parsedAnalysis = JSON.parse(jsonText);
           
-          // Validate structure
           if (!parsedAnalysis.elements || !Array.isArray(parsedAnalysis.elements)) {
             throw new Error('Invalid analysis structure: missing elements array');
           }
@@ -287,7 +285,7 @@ BE SPECIFIC AND UNIQUE - analyze what you actually see in THIS image, not generi
         throw new Error(`Failed to parse Gemini AI response: ${parseError instanceof Error ? parseError.message : 'Invalid JSON'}`);
       }
 
-      // Add unique identifiers to prevent caching issues
+      // Add unique identifiers to ensure uniqueness
       const timestamp = Date.now();
       const uniqueId = Math.random().toString(36).substring(2);
       
@@ -328,8 +326,8 @@ BE SPECIFIC AND UNIQUE - analyze what you actually see in THIS image, not generi
         .eq('id', uploadId);
 
       toast({
-        title: "Detailed Analysis Complete",
-        description: `Gemini AI identified ${parsedAnalysis.elements.length} elements and ${parsedAnalysis.rooms.length} rooms (${parsedAnalysis.totalArea} ft²)`,
+        title: "Analysis Complete",
+        description: `Gemini AI identified ${parsedAnalysis.elements.length} elements and ${parsedAnalysis.rooms.length} rooms`,
       });
 
       return parsedAnalysis;
@@ -342,7 +340,7 @@ BE SPECIFIC AND UNIQUE - analyze what you actually see in THIS image, not generi
         variant: "destructive",
       });
       
-      throw error; // Re-throw to let caller handle fallback
+      throw error;
     } finally {
       setAnalyzing(false);
     }
