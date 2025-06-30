@@ -33,8 +33,10 @@ export const useBlueprintFileUpload = () => {
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
-      console.log('Uploading file to storage:', fileName);
+      console.log('Starting file upload:', fileName);
+      setUploadState(prev => ({ ...prev, uploadProgress: 25 }));
 
+      // Upload to the blueprints bucket
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('blueprints')
         .upload(fileName, file, {
@@ -47,6 +49,7 @@ export const useBlueprintFileUpload = () => {
         throw new Error(`Upload failed: ${uploadError.message}`);
       }
 
+      console.log('File uploaded successfully:', uploadData);
       setUploadState(prev => ({ ...prev, uploadProgress: 50 }));
 
       // Get the public URL for the uploaded file
@@ -58,9 +61,18 @@ export const useBlueprintFileUpload = () => {
         throw new Error('Failed to get public URL for uploaded file');
       }
 
-      console.log('File uploaded successfully, public URL:', urlData.publicUrl);
-
+      console.log('Public URL generated:', urlData.publicUrl);
       setUploadState(prev => ({ ...prev, uploadProgress: 75 }));
+
+      // Test if the URL is accessible
+      try {
+        const testResponse = await fetch(urlData.publicUrl + '?t=' + Date.now(), { method: 'HEAD' });
+        if (!testResponse.ok) {
+          console.warn('File may not be immediately accessible:', testResponse.status);
+        }
+      } catch (testError) {
+        console.warn('Could not verify file accessibility:', testError);
+      }
 
       // Insert record into database
       const { data: uploadRecord, error: dbError } = await supabase
@@ -86,7 +98,7 @@ export const useBlueprintFileUpload = () => {
       
       toast({
         title: "Upload successful",
-        description: `${file.name} has been uploaded successfully.`,
+        description: `${file.name} has been uploaded and is ready for processing.`,
       });
 
       return {

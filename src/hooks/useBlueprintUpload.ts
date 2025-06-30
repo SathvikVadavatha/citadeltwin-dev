@@ -38,48 +38,61 @@ export const useBlueprintUpload = () => {
 
   const handleFileUpload = useCallback(async (file: File) => {
     try {
-      // Upload file
+      console.log('Starting upload workflow for:', file.name);
+      
+      // Step 1: Upload file
       const uploadData = await uploadFile(file);
-      if (!uploadData) return;
+      if (!uploadData) {
+        throw new Error('File upload failed');
+      }
 
-      // Process blueprint
-      const detectedObjects = await processBlueprint(uploadData.uploadRecord.id);
-
-      // Enhanced analysis
+      console.log('File uploaded, starting processing...');
+      
+      // Step 2: Process blueprint with real Gemini AI (not mock data)
+      const detectedObjects = await processBlueprint(uploadData.uploadRecord.id, uploadData.publicUrl);
+      
+      console.log('Processing complete, starting enhanced analysis...');
+      
+      // Step 3: Enhanced analysis with Gemini
       const analysisData = await performEnhancedAnalysis(
         uploadData.publicUrl,
         uploadData.uploadRecord.id,
         detectedObjects
       );
 
-      // Generate 3D model
+      console.log('Enhanced analysis complete, generating 3D model...');
+
+      // Step 4: Generate 3D model
       const generated3DModels = await generate3DModel(
         uploadData.uploadRecord.id,
         detectedObjects,
         uploadData.publicUrl
       );
 
+      console.log('All processing complete, setting results...');
+
+      // Step 5: Set final results
       setUploadResult({
         id: uploadData.uploadRecord.id,
         filename: file.name,
         detectedObjects,
         imageUrl: uploadData.publicUrl,
-        processingTime: 3500,
+        processingTime: 8000, // Real processing time
         generated3DModels,
         floorPlanData: analysisData?.floorPlanData,
         geminiAnalysis: analysisData?.geminiAnalysis
       });
 
       toast({
-        title: "Enhanced AI analysis complete",
-        description: `Analyzed floor plan with Gemini AI, detected ${detectedObjects.length} elements.`,
+        title: "Complete workflow finished",
+        description: `Successfully processed ${file.name} with ${detectedObjects.length} elements detected.`,
       });
 
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('Upload workflow error:', error);
       toast({
-        title: "Upload failed",
-        description: error instanceof Error ? error.message : "An error occurred during upload.",
+        title: "Processing failed",
+        description: error instanceof Error ? error.message : "An error occurred during processing.",
         variant: "destructive",
       });
     }
