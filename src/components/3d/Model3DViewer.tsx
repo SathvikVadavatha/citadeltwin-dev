@@ -5,7 +5,7 @@ import { OrbitControls, Html, useGLTF } from '@react-three/drei';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Download, ZoomIn, ZoomOut, Eye, AlertCircle, Package, Cube } from "lucide-react";
+import { Loader2, Download, ZoomIn, ZoomOut, Eye, AlertCircle, Package, Box } from "lucide-react";
 import { Enhanced3DViewer } from './Enhanced3DViewer';
 import { use3DViewer } from '@/hooks/use3DViewer';
 import * as THREE from 'three';
@@ -240,7 +240,7 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
             className="bg-background/80 backdrop-blur-sm"
             title="Switch to Enhanced BIM Viewer"
           >
-            <Cube className="h-4 w-4" />
+            <Box className="h-4 w-4" />
           </Button>
         )}
       </div>
@@ -297,7 +297,7 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
                 size="sm"
                 onClick={() => setUseEnhancedViewer(true)}
               >
-                <Cube className="h-4 w-4 mr-2" />
+                <Box className="h-4 w-4 mr-2" />
                 Switch to Enhanced BIM Viewer
               </Button>
             </div>
