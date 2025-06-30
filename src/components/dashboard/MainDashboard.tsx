@@ -34,6 +34,12 @@ export const MainDashboard = () => {
 
   const recentUpload = uploads?.[0];
 
+  // Get the first available 3D model URL from upload result
+  const first3DModel = uploadResult?.generated3DModels?.[0];
+  const model3DUrl = first3DModel?.model_file_path ? 
+    `https://fjybggorcizszcpedjbb.supabase.co/storage/v1/object/public/3d-models/${first3DModel.model_file_path}` : 
+    undefined;
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -119,18 +125,12 @@ export const MainDashboard = () => {
             </TabsContent>
 
             <TabsContent value="3d-viewer" className="space-y-6">
-              {(uploadResult || recentUpload?.id) ? (
-                <Model3DViewer 
-                  modelUrl="/placeholder-model.glb" 
-                  modelName="Demo Model"
-                />
-              ) : (
-                <Card className="cyber-tool-palette">
-                  <CardContent className="p-6 text-center">
-                    <p className="text-gray-400">No project selected. Upload a blueprint first.</p>
-                  </CardContent>
-                </Card>
-              )}
+              <Model3DViewer 
+                modelUrl={model3DUrl || (recentUpload?.id ? "/placeholder-model.glb" : undefined)} 
+                modelName={first3DModel?.model_name || "Demo Model"}
+                uploadId={uploadResult?.id || recentUpload?.id}
+                onDownload={first3DModel ? () => download3DModel(first3DModel) : undefined}
+              />
             </TabsContent>
 
             <TabsContent value="bim" className="space-y-6">

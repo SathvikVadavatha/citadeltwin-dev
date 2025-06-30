@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EnhancedBlueprintAnalysis } from '@/components/analysis/EnhancedBlueprintAnalysis';
+import { Model3DViewer } from '@/components/3d/Model3DViewer';
 import { 
   FileText, 
   Download, 
@@ -14,7 +15,8 @@ import {
   Box,
   Image,
   Brain,
-  Zap
+  Zap,
+  Eye
 } from 'lucide-react';
 
 interface Generated3DModel {
@@ -54,6 +56,12 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
   const totalObjects = uploadResult.detectedObjects?.length || 0;
   const totalRooms = uploadResult.floorPlanData?.rooms?.length || 0;
   const total3DModels = uploadResult.generated3DModels?.length || 0;
+
+  // Get the first available 3D model URL
+  const first3DModel = uploadResult.generated3DModels?.[0];
+  const model3DUrl = first3DModel?.model_file_path ? 
+    `https://fjybggorcizszcpedjbb.supabase.co/storage/v1/object/public/3d-models/${first3DModel.model_file_path}` : 
+    undefined;
 
   return (
     <div className="space-y-6">
@@ -129,10 +137,14 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
 
       {/* Detailed Results Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="analysis" className="flex items-center gap-2">
             <Brain className="h-4 w-4" />
             Blueprint Analysis
+          </TabsTrigger>
+          <TabsTrigger value="3d-view" className="flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            3D View
           </TabsTrigger>
           <TabsTrigger value="3d-models" className="flex items-center gap-2">
             <Box className="h-4 w-4" />
@@ -146,6 +158,15 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
 
         <TabsContent value="analysis" className="space-y-4">
           <EnhancedBlueprintAnalysis uploadResult={uploadResult} />
+        </TabsContent>
+
+        <TabsContent value="3d-view" className="space-y-4">
+          <Model3DViewer 
+            modelUrl={model3DUrl}
+            modelName={first3DModel?.model_name || "Generated Model"}
+            uploadId={uploadResult.id}
+            onDownload={first3DModel ? () => onDownload3DModel(first3DModel) : undefined}
+          />
         </TabsContent>
 
         <TabsContent value="3d-models" className="space-y-4">
@@ -177,13 +198,22 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                           File size: {(model.file_size / 1024).toFixed(1)} KB
                         </div>
                       </div>
-                      <Button 
-                        onClick={() => onDownload3DModel(model)}
-                        disabled={model.generation_status !== 'completed'}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download GLB
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline"
+                          onClick={() => setActiveTab('3d-view')}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View 3D
+                        </Button>
+                        <Button 
+                          onClick={() => onDownload3DModel(model)}
+                          disabled={model.generation_status !== 'completed'}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Download GLB
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

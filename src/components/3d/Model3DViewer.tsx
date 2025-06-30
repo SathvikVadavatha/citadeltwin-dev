@@ -18,7 +18,7 @@ interface Model3DViewerProps {
   onDownload?: () => void;
 }
 
-// Simple 3D scene with basic geometry when no model is available
+// Enhanced 3D scene with better geometry and materials
 const DefaultScene = () => {
   const meshRef = useRef<THREE.Group>(null);
 
@@ -30,39 +30,73 @@ const DefaultScene = () => {
 
   return (
     <group ref={meshRef}>
-      {/* Floor */}
-      <mesh position={[0, -2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[10, 10]} />
-        <meshStandardMaterial color="#f0f0f0" />
+      {/* Floor with better material */}
+      <mesh position={[0, -2, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[12, 12]} />
+        <meshStandardMaterial color="#f5f5f5" roughness={0.8} metalness={0.1} />
       </mesh>
       
-      {/* Simple building structure */}
-      <mesh position={[0, 0, 0]}>
-        <boxGeometry args={[4, 3, 6]} />
-        <meshStandardMaterial color="#e3f2fd" />
+      {/* Main building structure */}
+      <mesh position={[0, 0, 0]} castShadow receiveShadow>
+        <boxGeometry args={[5, 3.5, 7]} />
+        <meshStandardMaterial color="#e8f4fd" roughness={0.7} metalness={0.1} />
       </mesh>
       
       {/* Roof */}
-      <mesh position={[0, 2, 0]}>
-        <coneGeometry args={[3, 1.5, 4]} />
-        <meshStandardMaterial color="#8d6e63" />
+      <mesh position={[0, 2.25, 0]} castShadow>
+        <coneGeometry args={[3.8, 1.5, 4]} />
+        <meshStandardMaterial color="#8b4513" roughness={0.9} metalness={0.0} />
       </mesh>
       
-      {/* Door */}
-      <mesh position={[2.1, -0.5, 0]}>
-        <boxGeometry args={[0.2, 2, 1]} />
-        <meshStandardMaterial color="#5d4037" />
+      {/* Front Door */}
+      <mesh position={[2.6, -0.5, 0]} castShadow>
+        <boxGeometry args={[0.15, 2.2, 1.2]} />
+        <meshStandardMaterial color="#654321" roughness={0.8} metalness={0.0} />
+      </mesh>
+      
+      {/* Door handle */}
+      <mesh position={[2.65, -0.3, -0.3]} castShadow>
+        <sphereGeometry args={[0.05]} />
+        <meshStandardMaterial color="#ffd700" roughness={0.2} metalness={0.8} />
       </mesh>
       
       {/* Windows */}
-      <mesh position={[2.1, 0.5, -1.5]}>
-        <boxGeometry args={[0.2, 1, 1]} />
-        <meshStandardMaterial color="#64b5f6" transparent opacity={0.7} />
+      <mesh position={[2.6, 0.5, -2]} castShadow>
+        <boxGeometry args={[0.15, 1.2, 1.2]} />
+        <meshStandardMaterial color="#87ceeb" transparent opacity={0.8} roughness={0.1} metalness={0.0} />
       </mesh>
       
-      <mesh position={[2.1, 0.5, 1.5]}>
-        <boxGeometry args={[0.2, 1, 1]} />
-        <meshStandardMaterial color="#64b5f6" transparent opacity={0.7} />
+      <mesh position={[2.6, 0.5, 2]} castShadow>
+        <boxGeometry args={[0.15, 1.2, 1.2]} />
+        <meshStandardMaterial color="#87ceeb" transparent opacity={0.8} roughness={0.1} metalness={0.0} />
+      </mesh>
+      
+      {/* Side windows */}
+      <mesh position={[-1, 0.5, 3.6]} castShadow>
+        <boxGeometry args={[1.2, 1.2, 0.15]} />
+        <meshStandardMaterial color="#87ceeb" transparent opacity={0.8} roughness={0.1} metalness={0.0} />
+      </mesh>
+      
+      <mesh position={[1, 0.5, 3.6]} castShadow>
+        <boxGeometry args={[1.2, 1.2, 0.15]} />
+        <meshStandardMaterial color="#87ceeb" transparent opacity={0.8} roughness={0.1} metalness={0.0} />
+      </mesh>
+      
+      {/* Decorative elements */}
+      <mesh position={[0, -1.5, 3.8]} castShadow>
+        <boxGeometry args={[6, 0.3, 0.2]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.5} metalness={0.0} />
+      </mesh>
+      
+      {/* Simple landscaping */}
+      <mesh position={[-4, -1.8, -2]} receiveShadow>
+        <cylinderGeometry args={[0.5, 0.5, 0.4]} />
+        <meshStandardMaterial color="#228b22" roughness={0.9} metalness={0.0} />
+      </mesh>
+      
+      <mesh position={[4, -1.8, 2]} receiveShadow>
+        <cylinderGeometry args={[0.6, 0.6, 0.4]} />
+        <meshStandardMaterial color="#228b22" roughness={0.9} metalness={0.0} />
       </mesh>
     </group>
   );
@@ -101,7 +135,7 @@ const Model3D = ({ url }: { url: string }) => {
         const size = box.getSize(new THREE.Vector3());
         
         const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = maxDim > 0 ? 2 / maxDim : 1;
+        const scale = maxDim > 0 ? 3 / maxDim : 1;
         
         gltf.scene.scale.setScalar(scale);
         gltf.scene.position.sub(center.multiplyScalar(scale));
@@ -137,6 +171,7 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [useEnhancedViewer, setUseEnhancedViewer] = useState(false);
+  const [sceneReady, setSceneReady] = useState(false);
 
   const { 
     hasElements, 
@@ -152,8 +187,18 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
     loading,
     uploadId,
     projectId,
-    useEnhancedViewer
+    useEnhancedViewer,
+    modelUrl,
+    sceneReady
   });
+
+  useEffect(() => {
+    // Simulate scene initialization
+    const timer = setTimeout(() => {
+      setSceneReady(true);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
@@ -174,27 +219,34 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
     <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'h-96'}`}>
       <Canvas
         camera={{ 
-          position: [8, 6, 8], 
+          position: [10, 8, 10], 
           fov: 50,
           near: 0.1,
           far: 1000
         }}
-        style={{ background: 'linear-gradient(to bottom, #87CEEB, #f0f8ff)' }}
-        shadows
+        style={{ background: 'linear-gradient(to bottom, #87CEEB 0%, #98D8E8 50%, #B0E0E6 100%)' }}
+        shadows={{ enabled: true, type: THREE.PCFSoftShadowMap }}
+        gl={{ antialias: true, alpha: false }}
+        onCreated={() => setSceneReady(true)}
       >
-        <ambientLight intensity={0.4} />
+        <ambientLight intensity={0.4} color="#ffffff" />
         <directionalLight 
-          position={[10, 10, 5]} 
-          intensity={0.8}
+          position={[15, 15, 10]} 
+          intensity={1.0}
           castShadow
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
+          shadow-camera-far={50}
+          shadow-camera-left={-10}
+          shadow-camera-right={10}
+          shadow-camera-top={10}
+          shadow-camera-bottom={-10}
         />
-        <pointLight position={[-10, 5, -10]} intensity={0.3} />
+        <pointLight position={[-10, 5, -10]} intensity={0.3} color="#fff8dc" />
         <hemisphereLight args={['#87CEEB', '#f0f8ff', 0.3]} />
         
         <Suspense fallback={<LoadingFallback />}>
-          {modelUrl ? (
+          {modelUrl && sceneReady ? (
             <Model3D url={modelUrl} />
           ) : (
             <DefaultScene />
@@ -205,14 +257,15 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
-          minDistance={2}
-          maxDistance={30}
+          minDistance={3}
+          maxDistance={50}
           enableDamping
           dampingFactor={0.05}
+          maxPolarAngle={Math.PI / 2.2}
         />
       </Canvas>
       
-      {/* 3D Viewer Controls */}
+      {/* Enhanced 3D Viewer Controls */}
       <div className="absolute top-4 right-4 flex flex-col gap-2">
         <Button
           variant="outline"
@@ -255,6 +308,16 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
           </Button>
         </div>
       )}
+
+      {/* Scene loading indicator */}
+      {!sceneReady && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span className="text-sm">Initializing 3D scene...</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -278,6 +341,11 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
                 {elementCount} Elements
               </Badge>
             )}
+            {sceneReady && (
+              <Badge variant="outline" className="bg-blue-600 text-white">
+                Ready
+              </Badge>
+            )}
           </div>
         </CardTitle>
       </CardHeader>
@@ -287,7 +355,7 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
           <p>Use mouse to rotate, zoom, and pan the 3D model</p>
           {!modelUrl && !hasElements && (
             <p className="text-blue-600">
-              🏠 Showing default architectural model - upload a blueprint to generate a custom 3D model
+              🏠 Showing enhanced architectural model - upload a blueprint to generate a custom 3D model
             </p>
           )}
           {hasElements && !useEnhancedViewer && (
