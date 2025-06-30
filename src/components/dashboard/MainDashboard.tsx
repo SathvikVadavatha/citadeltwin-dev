@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,11 +25,12 @@ import { ComplianceEngine } from '@/components/compliance/ComplianceEngine';
 import { DocumentGenerator } from '@/components/documents/DocumentGenerator';
 import { DocumentTemplateManager } from '@/components/documents/DocumentTemplateManager';
 import { useUploads } from '@/hooks/useUploads';
+import { useBlueprintUpload } from '@/hooks/useBlueprintUpload';
 
 export const MainDashboard = () => {
   const [activeTab, setActiveTab] = useState('upload');
-  const [selectedUploadId, setSelectedUploadId] = useState<string | undefined>();
   const { uploads } = useUploads();
+  const { uploadResult, resetUpload, download3DModel } = useBlueprintUpload();
 
   const recentUpload = uploads?.[0];
 
@@ -99,13 +101,25 @@ export const MainDashboard = () => {
           <div className="mt-6">
             <TabsContent value="upload" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <BlueprintUpload onUploadComplete={(uploadId) => setSelectedUploadId(uploadId)} />
-                <UploadResults uploadId={selectedUploadId || recentUpload?.id} />
+                <BlueprintUpload onUploadComplete={() => {}} />
+                {uploadResult ? (
+                  <UploadResults 
+                    uploadResult={uploadResult}
+                    onReset={resetUpload}
+                    onDownload3DModel={download3DModel}
+                  />
+                ) : (
+                  <Card className="cyber-tool-palette">
+                    <CardContent className="p-6 text-center">
+                      <p className="text-gray-400">Upload a blueprint to see analysis results</p>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </TabsContent>
 
             <TabsContent value="3d-viewer" className="space-y-6">
-              {(selectedUploadId || recentUpload?.id) ? (
+              {(uploadResult || recentUpload?.id) ? (
                 <Model3DViewer 
                   modelUrl="/placeholder-model.glb" 
                   modelName="Demo Model"
@@ -128,12 +142,12 @@ export const MainDashboard = () => {
             </TabsContent>
 
             <TabsContent value="compliance" className="space-y-6">
-              <ComplianceEngine uploadId={selectedUploadId || recentUpload?.id} />
+              <ComplianceEngine uploadId={uploadResult?.id || recentUpload?.id} />
             </TabsContent>
 
             <TabsContent value="documents" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <DocumentGenerator uploadId={selectedUploadId || recentUpload?.id} />
+                <DocumentGenerator uploadId={uploadResult?.id || recentUpload?.id} />
                 <DocumentTemplateManager />
               </div>
             </TabsContent>
