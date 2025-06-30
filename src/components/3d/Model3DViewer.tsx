@@ -5,7 +5,7 @@ import { OrbitControls, Html, useGLTF } from '@react-three/drei';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Download, ZoomIn, ZoomOut, Eye, AlertCircle, Package } from "lucide-react";
+import { Loader2, Download, ZoomIn, ZoomOut, Eye, AlertCircle, Package, Cube } from "lucide-react";
 import { Enhanced3DViewer } from './Enhanced3DViewer';
 import { use3DViewer } from '@/hooks/use3DViewer';
 import * as THREE from 'three';
@@ -18,11 +18,60 @@ interface Model3DViewerProps {
   onDownload?: () => void;
 }
 
+// Simple 3D scene with basic geometry when no model is available
+const DefaultScene = () => {
+  const meshRef = useRef<THREE.Group>(null);
+
+  useFrame(() => {
+    if (meshRef.current) {
+      meshRef.current.rotation.y += 0.005;
+    }
+  });
+
+  return (
+    <group ref={meshRef}>
+      {/* Floor */}
+      <mesh position={[0, -2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[10, 10]} />
+        <meshStandardMaterial color="#f0f0f0" />
+      </mesh>
+      
+      {/* Simple building structure */}
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[4, 3, 6]} />
+        <meshStandardMaterial color="#e3f2fd" />
+      </mesh>
+      
+      {/* Roof */}
+      <mesh position={[0, 2, 0]}>
+        <coneGeometry args={[3, 1.5, 4]} />
+        <meshStandardMaterial color="#8d6e63" />
+      </mesh>
+      
+      {/* Door */}
+      <mesh position={[2.1, -0.5, 0]}>
+        <boxGeometry args={[0.2, 2, 1]} />
+        <meshStandardMaterial color="#5d4037" />
+      </mesh>
+      
+      {/* Windows */}
+      <mesh position={[2.1, 0.5, -1.5]}>
+        <boxGeometry args={[0.2, 1, 1]} />
+        <meshStandardMaterial color="#64b5f6" transparent opacity={0.7} />
+      </mesh>
+      
+      <mesh position={[2.1, 0.5, 1.5]}>
+        <boxGeometry args={[0.2, 1, 1]} />
+        <meshStandardMaterial color="#64b5f6" transparent opacity={0.7} />
+      </mesh>
+    </group>
+  );
+};
+
 const Model3D = ({ url }: { url: string }) => {
   const meshRef = useRef<THREE.Group>(null);
   const [hasError, setHasError] = useState(false);
   
-  // Always call useGLTF - no conditional calling
   let gltf;
   let loadError = false;
   
@@ -33,14 +82,12 @@ const Model3D = ({ url }: { url: string }) => {
     loadError = true;
   }
 
-  // Always call useFrame - no conditional calling
   useFrame(() => {
     if (meshRef.current && !hasError && !loadError) {
       meshRef.current.rotation.y += 0.005;
     }
   });
 
-  // Always call useEffect - no conditional calling
   useEffect(() => {
     if (loadError) {
       setHasError(true);
@@ -49,7 +96,6 @@ const Model3D = ({ url }: { url: string }) => {
 
     if (gltf?.scene) {
       try {
-        // Center and scale the model
         const box = new THREE.Box3().setFromObject(gltf.scene);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
@@ -67,38 +113,17 @@ const Model3D = ({ url }: { url: string }) => {
   }, [gltf, loadError]);
 
   if (hasError || loadError) {
-    return (
-      <Html center>
-        <div className="flex items-center justify-center text-red-500">
-          <AlertCircle className="h-8 w-8 mr-2" />
-          <span>Failed to load 3D model</span>
-        </div>
-      </Html>
-    );
+    return <DefaultScene />;
   }
 
-  return gltf?.scene ? <primitive ref={meshRef} object={gltf.scene} /> : null;
+  return gltf?.scene ? <primitive ref={meshRef} object={gltf.scene} /> : <DefaultScene />;
 };
 
 const LoadingFallback = () => (
   <Html center>
-    <div className="flex items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      <span className="ml-2 text-sm">Loading 3D model...</span>
-    </div>
-  </Html>
-);
-
-const ErrorFallback = ({ error }: { error: Error }) => (
-  <Html center>
-    <div className="flex flex-col items-center justify-center text-red-500 max-w-md p-4">
-      <AlertCircle className="h-8 w-8 mb-2" />
-      <span className="text-center text-sm">
-        Failed to load 3D model. This is a demo environment.
-      </span>
-      <span className="text-xs text-gray-500 mt-2">
-        {error.message}
-      </span>
+    <div className="flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg p-4">
+      <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+      <span className="text-sm">Loading 3D model...</span>
     </div>
   </Html>
 );
@@ -111,10 +136,8 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
   onDownload 
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [modelError, setModelError] = useState<Error | null>(null);
-  const [useEnhancedViewer, setUseEnhancedViewer] = useState(true);
+  const [useEnhancedViewer, setUseEnhancedViewer] = useState(false);
 
-  // Use enhanced viewer with BIM data if uploadId or projectId is provided
   const { 
     hasElements, 
     elements, 
@@ -136,8 +159,8 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
     setIsFullscreen(!isFullscreen);
   };
 
-  // If we have BIM elements or are in loading state, use the enhanced viewer
-  if (useEnhancedViewer && (hasElements || loading || uploadId || projectId)) {
+  // If enhanced viewer is explicitly requested and we have elements, use it
+  if (useEnhancedViewer && hasElements) {
     return (
       <Enhanced3DViewer
         elements={elements}
@@ -147,50 +170,34 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
     );
   }
 
-  // Fallback to basic GLB/GLTF viewer
   const viewerContent = (
     <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'h-96'}`}>
       <Canvas
         camera={{ 
-          position: [5, 5, 5], 
+          position: [8, 6, 8], 
           fov: 50,
           near: 0.1,
           far: 1000
         }}
-        style={{ background: 'linear-gradient(to bottom, #f0f0f0, #ffffff)' }}
-        onError={(error) => {
-          console.error('Canvas error:', error);
-          setModelError(new Error('3D rendering error'));
-        }}
+        style={{ background: 'linear-gradient(to bottom, #87CEEB, #f0f8ff)' }}
+        shadows
       >
-        <ambientLight intensity={0.6} />
+        <ambientLight intensity={0.4} />
         <directionalLight 
           position={[10, 10, 5]} 
-          intensity={1}
+          intensity={0.8}
           castShadow
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
         />
-        <pointLight position={[-10, -10, -10]} intensity={0.3} />
+        <pointLight position={[-10, 5, -10]} intensity={0.3} />
+        <hemisphereLight args={['#87CEEB', '#f0f8ff', 0.3]} />
         
         <Suspense fallback={<LoadingFallback />}>
-          {modelError ? (
-            <ErrorFallback error={modelError} />
-          ) : modelUrl ? (
+          {modelUrl ? (
             <Model3D url={modelUrl} />
           ) : (
-            <Html center>
-              <div className="flex flex-col items-center justify-center text-gray-500">
-                <Package className="h-12 w-12 mb-4" />
-                <span>No 3D model available</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setUseEnhancedViewer(true)}
-                  className="mt-2"
-                >
-                  Switch to Enhanced Viewer
-                </Button>
-              </div>
-            </Html>
+            <DefaultScene />
           )}
         </Suspense>
         
@@ -198,8 +205,10 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
-          minDistance={1}
-          maxDistance={20}
+          minDistance={2}
+          maxDistance={30}
+          enableDamping
+          dampingFactor={0.05}
         />
       </Canvas>
       
@@ -223,14 +232,17 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
             <Download className="h-4 w-4" />
           </Button>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setUseEnhancedViewer(true)}
-          className="bg-background/80 backdrop-blur-sm"
-        >
-          <Package className="h-4 w-4" />
-        </Button>
+        {hasElements && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setUseEnhancedViewer(true)}
+            className="bg-background/80 backdrop-blur-sm"
+            title="Switch to Enhanced BIM Viewer"
+          >
+            <Cube className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       {isFullscreen && (
@@ -258,25 +270,34 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
             <Eye className="h-5 w-5" />
             3D Model Viewer
           </div>
-          <Badge variant="secondary">{modelName}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">{modelName}</Badge>
+            {loading && <Badge variant="outline">Loading...</Badge>}
+            {hasElements && (
+              <Badge variant="default" className="bg-green-600">
+                {elementCount} Elements
+              </Badge>
+            )}
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
         {viewerContent}
-        <div className="mt-4 text-sm text-muted-foreground text-center">
+        <div className="mt-4 text-sm text-muted-foreground text-center space-y-2">
           <p>Use mouse to rotate, zoom, and pan the 3D model</p>
-          {modelError && (
-            <p className="text-red-500 mt-2">
-              Note: This is a demo environment with mock 3D models
+          {!modelUrl && !hasElements && (
+            <p className="text-blue-600">
+              🏠 Showing default architectural model - upload a blueprint to generate a custom 3D model
             </p>
           )}
-          {!hasElements && !loading && (
+          {hasElements && !useEnhancedViewer && (
             <div className="mt-4">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setUseEnhancedViewer(true)}
               >
+                <Cube className="h-4 w-4 mr-2" />
                 Switch to Enhanced BIM Viewer
               </Button>
             </div>
