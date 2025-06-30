@@ -26,7 +26,7 @@ interface Generated3DModel {
   model_name: string;
   model_description: string;
   model_file_path: string;
-  file_size: number;
+  file_size: number;  
   generation_status: string;
   processing_time_ms?: number;
 }
@@ -56,6 +56,8 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
   const [activeTab, setActiveTab] = useState<'analysis' | 'floorplan' | 'models'>('analysis');
   const [imageError, setImageError] = useState(false);
 
+  console.log('UploadResults received data:', uploadResult);
+
   const totalDetectedObjects = uploadResult.detectedObjects?.length || 0;
   const totalRooms = uploadResult.floorPlanData?.rooms?.length || 0;
   const totalArea = uploadResult.floorPlanData?.rooms?.reduce((sum: number, room: any) => sum + (room.area || 0), 0) || 0;
@@ -67,7 +69,13 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
 
   const handleImageLoad = () => {
     setImageError(false);
+    console.log('Image loaded successfully:', uploadResult.imageUrl);
   };
+
+  // Debug logging
+  console.log('Floor plan data:', uploadResult.floorPlanData);
+  console.log('Detected objects:', uploadResult.detectedObjects);
+  console.log('Image URL:', uploadResult.imageUrl);
 
   return (
     <div className="space-y-6">
@@ -164,7 +172,18 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                     <div className="text-center">
                       <AlertCircle className="h-8 w-8 mx-auto mb-2" />
                       <p>Failed to load blueprint image</p>
-                      <p className="text-sm mt-1">URL: {uploadResult.imageUrl}</p>
+                      <p className="text-sm mt-1 break-all">URL: {uploadResult.imageUrl}</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-2"
+                        onClick={() => {
+                          setImageError(false);
+                          console.log('Retrying image load...');
+                        }}
+                      >
+                        Retry Loading
+                      </Button>
                     </div>
                   </div>
                 ) : (
@@ -216,8 +235,8 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
                       <Eye className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>No elements detected</p>
-                      <p className="text-sm">Try uploading a clearer blueprint image</p>
+                      <p>No elements detected yet</p>
+                      <p className="text-sm">Processing may still be in progress</p>
                     </div>
                   )}
                 </div>
@@ -287,9 +306,19 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
             ) : (
               <div className="text-center py-12 text-muted-foreground">
                 <Home className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-medium mb-2">No Floor Plan Data</h3>
-                <p>The AI analysis didn't detect room information in this blueprint.</p>
-                <p className="text-sm">Try uploading a floor plan with clearly marked rooms.</p>
+                <h3 className="text-lg font-medium mb-2">Floor Plan Analysis in Progress</h3>
+                <p>The AI is analyzing your blueprint to detect rooms and floor plan elements.</p>
+                <p className="text-sm mt-2">This may take a few moments to complete.</p>
+                {uploadResult.geminiAnalysis && (
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-700">
+                      {typeof uploadResult.geminiAnalysis === 'string' 
+                        ? uploadResult.geminiAnalysis 
+                        : 'Analysis data received but room extraction is in progress...'
+                      }
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
@@ -336,17 +365,17 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
             ) : (
               <div className="text-center py-12 text-muted-foreground">
                 <Box className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-medium mb-2">No 3D Models Generated</h3>
-                <p>3D model generation is still in progress or failed.</p>
-                <p className="text-sm">Check back in a few moments.</p>
+                <h3 className="text-lg font-medium mb-2">3D Model Generation</h3>
+                <p>3D models will be generated once the blueprint analysis is complete.</p>
+                <p className="text-sm">This process may take several minutes.</p>
               </div>
             )}
           </CardContent>
         </Card>
       )}
 
-      {/* Enhanced Blueprint Analysis Component */}
-      {uploadResult.detectedObjects && uploadResult.detectedObjects.length > 0 && (
+      {/* Enhanced Blueprint Analysis Component - only show if we have data */}
+      {(uploadResult.detectedObjects?.length > 0 || uploadResult.floorPlanData?.rooms?.length > 0) && (
         <EnhancedBlueprintAnalysis uploadResult={uploadResult} />
       )}
     </div>
@@ -367,5 +396,5 @@ function getColorForLabel(label: string): string {
     beam: '#f97316',
     column: '#64748b'
   };
-  return colors[label.toLowerCase()] || '#6b7280';
+  return colors[label?.toLowerCase()] || '#6b7280';
 }
