@@ -87,7 +87,7 @@ interface Generated3DModel {
 }
 
 export const useGeminiBlueprint3D = () => {
-  const { analyzeBlueprintImage, generate3DFromBlueprint, createArchitecturalModel } = useGeminiAI();
+  const { analyzeBlueprintImage, generate3DFromBlueprint } = useGeminiAI();
   const { toast } = useToast();
   const [analyzing, setAnalyzing] = useState(false);
   const [generating3D, setGenerating3D] = useState(false);
@@ -98,13 +98,17 @@ export const useGeminiBlueprint3D = () => {
     try {
       console.log('Converting image URL to base64:', imageUrl);
       
-      // Add cache-busting parameter and proper headers
-      const cacheBustUrl = `${imageUrl}?t=${Date.now()}`;
-      const response = await fetch(cacheBustUrl, {
+      // Add timestamp to avoid caching issues
+      const timestampedUrl = imageUrl.includes('?') 
+        ? `${imageUrl}&t=${Date.now()}` 
+        : `${imageUrl}?t=${Date.now()}`;
+      
+      const response = await fetch(timestampedUrl, {
         mode: 'cors',
         headers: {
           'Accept': 'image/*',
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         }
       });
       
@@ -113,7 +117,7 @@ export const useGeminiBlueprint3D = () => {
       }
       
       const blob = await response.blob();
-      console.log('Image blob size:', blob.size, 'type:', blob.type);
+      console.log('Image blob details:', { size: blob.size, type: blob.type });
       
       if (blob.size === 0) {
         throw new Error('Image file is empty');
@@ -127,7 +131,7 @@ export const useGeminiBlueprint3D = () => {
             reject(new Error('Base64 conversion resulted in invalid data'));
             return;
           }
-          console.log('Base64 conversion complete, length:', result.length);
+          console.log('Base64 conversion successful, length:', result.length);
           resolve(result);
         };
         reader.onerror = () => {
@@ -145,58 +149,97 @@ export const useGeminiBlueprint3D = () => {
   const analyzeBlueprint = useCallback(async (imageUrl: string, uploadId: string) => {
     setAnalyzing(true);
     try {
-      console.log('Starting blueprint analysis for:', imageUrl);
+      console.log('Starting detailed blueprint analysis for:', imageUrl, uploadId);
       
-      // Convert image URL to base64 for Gemini vision with enhanced error handling
+      // Convert image with better error handling
       let base64Image: string;
       try {
         base64Image = await convertImageUrlToBase64(imageUrl);
+        console.log('Image converted successfully, sending to Gemini AI...');
       } catch (conversionError) {
         console.error('Image conversion failed:', conversionError);
         throw new Error(`Failed to process image: ${conversionError instanceof Error ? conversionError.message : 'Unknown error'}`);
       }
 
-      // Use Gemini vision to analyze the blueprint with retry logic
+      // Enhanced Gemini prompt for better analysis
+      const enhancedPrompt = `Analyze this architectural blueprint/floor plan image in detail. I need you to carefully examine and identify:
+
+1. All rooms and their approximate dimensions
+2. Doors, windows, and their locations  
+3. Walls and structural elements
+4. Any fixtures, appliances, or special features
+5. Calculate realistic room areas based on visible dimensions
+6. Determine the building type (residential, commercial, etc.)
+
+Return your analysis as a detailed JSON object with this exact structure:
+{
+  "elements": [
+    {
+      "type": "wall|door|window|room|fixture",
+      "name": "descriptive name",
+      "dimensions": {"width": number, "height": number, "depth": number},
+      "position": {"x": number, "y": number, "z": number},
+      "properties": {"material": "string", "color": "string", "function": "string"}
+    }
+  ],
+  "rooms": [
+    {
+      "name": "room name from blueprint",
+      "type": "bedroom|kitchen|bathroom|living|dining|office|closet|balcony|laundry",
+      "area": calculated_area_in_sqft,
+      "bounds": {"x": number, "y": number, "width": number, "height": number}
+    }
+  ],
+  "scale": estimated_scale_factor,
+  "totalArea": sum_of_all_room_areas,
+  "buildingType": "residential|commercial|industrial|mixed"
+}
+
+BE SPECIFIC AND UNIQUE - analyze what you actually see in THIS image, not generic data. Look for text labels, dimension markings, and architectural symbols.`;
+
+      // Call Gemini with enhanced error handling and retries
       let analysisResponse;
       let attempts = 0;
-      const maxAttempts = 3;
+      const maxAttempts = 2;
       
       while (attempts < maxAttempts) {
         try {
-          analysisResponse = await analyzeBlueprintImage(base64Image);
-          if (analysisResponse?.result && analysisResponse.result.length > 50) {
-            break; // Success
+          console.log(`Gemini analysis attempt ${attempts + 1}/${maxAttempts}`);
+          analysisResponse = await analyzeBlueprintImage(base64Image, enhancedPrompt);
+          
+          if (analysisResponse?.result && analysisResponse.result.length > 100) {
+            console.log('Gemini response received:', analysisResponse.result.substring(0, 300) + '...');
+            break;
           }
+          
           attempts++;
           if (attempts < maxAttempts) {
-            console.warn(`Analysis attempt ${attempts} failed, retrying...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+            console.warn(`Analysis attempt ${attempts} returned insufficient data, retrying...`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
           }
         } catch (apiError) {
           attempts++;
+          console.error(`API call attempt ${attempts} failed:`, apiError);
           if (attempts >= maxAttempts) {
             throw apiError;
           }
-          console.warn(`API call attempt ${attempts} failed:`, apiError);
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
       }
       
-      if (!analysisResponse?.result || analysisResponse.result.length < 50) {
-        throw new Error('Gemini AI returned insufficient analysis data');
+      if (!analysisResponse?.result || analysisResponse.result.length < 100) {
+        throw new Error('Gemini AI failed to provide detailed analysis after multiple attempts');
       }
 
-      console.log('Gemini analysis response:', analysisResponse.result.substring(0, 200) + '...');
-
-      // Parse the structured response with improved extraction
+      // Parse JSON response with better extraction
       let parsedAnalysis: BlueprintAnalysis;
       try {
-        // Enhanced JSON extraction patterns
+        // Try multiple JSON extraction patterns
         const jsonPatterns = [
-          /```json\s*([\s\S]*?)\s*```/,
-          /```\s*([\s\S]*?)\s*```/,
+          /```json\s*([\s\S]*?)\s*```/i,
+          /```\s*([\s\S]*?)\s*```/i,
           /\{[\s\S]*\}/,
-          /"elements":\s*\[[\s\S]*?\]/
+          /"elements":\s*\[[\s\S]*?"buildingType":\s*"[^"]*"/
         ];
         
         let jsonText = '';
@@ -204,49 +247,65 @@ export const useGeminiBlueprint3D = () => {
           const match = analysisResponse.result.match(pattern);
           if (match) {
             jsonText = match[1] || match[0];
+            console.log('Extracted JSON pattern:', jsonText.substring(0, 200) + '...');
             break;
           }
         }
         
         if (jsonText) {
-          console.log('Extracted JSON:', jsonText.substring(0, 300) + '...');
-          // Clean the JSON text
-          jsonText = jsonText.trim().replace(/^```json\s*/, '').replace(/\s*```$/, '');
+          // Clean the JSON text thoroughly
+          jsonText = jsonText.trim()
+            .replace(/^```json\s*/i, '')
+            .replace(/\s*```$/i, '')
+            .replace(/[\r\n]+/g, ' ')
+            .trim();
+          
+          console.log('Parsing cleaned JSON:', jsonText.substring(0, 200) + '...');
           parsedAnalysis = JSON.parse(jsonText);
           
-          // Validate the parsed analysis
+          // Validate structure
           if (!parsedAnalysis.elements || !Array.isArray(parsedAnalysis.elements)) {
             throw new Error('Invalid analysis structure: missing elements array');
           }
+          if (!parsedAnalysis.rooms || !Array.isArray(parsedAnalysis.rooms)) {
+            throw new Error('Invalid analysis structure: missing rooms array');
+          }
+          
+          console.log('Successfully parsed Gemini analysis:', {
+            elements: parsedAnalysis.elements.length,
+            rooms: parsedAnalysis.rooms.length,
+            totalArea: parsedAnalysis.totalArea,
+            buildingType: parsedAnalysis.buildingType
+          });
+          
         } else {
-          console.warn('No JSON found in response, using intelligent text parsing');
-          parsedAnalysis = parseAdvancedTextualAnalysis(analysisResponse.result, imageUrl);
+          throw new Error('No valid JSON structure found in Gemini response');
         }
       } catch (parseError) {
-        console.warn('Failed to parse JSON response, using advanced text parsing:', parseError);
-        parsedAnalysis = parseAdvancedTextualAnalysis(analysisResponse.result, imageUrl);
+        console.error('JSON parsing failed:', parseError);
+        console.log('Raw Gemini response:', analysisResponse.result);
+        throw new Error(`Failed to parse Gemini AI response: ${parseError instanceof Error ? parseError.message : 'Invalid JSON'}`);
       }
 
-      // Add timestamp-based uniqueness to avoid identical results
+      // Add unique identifiers to prevent caching issues
       const timestamp = Date.now();
+      const uniqueId = Math.random().toString(36).substring(2);
+      
       parsedAnalysis.elements = parsedAnalysis.elements.map((element, index) => ({
         ...element,
-        position: {
-          ...element.position,
-          x: element.position.x + (timestamp % 100) / 1000,
-          y: element.position.y + (timestamp % 50) / 1000
-        },
         properties: {
           ...element.properties,
-          analysisId: `${uploadId}-${timestamp}-${index}`
+          analysisId: `${uploadId}-${timestamp}-${uniqueId}-${index}`,
+          timestamp,
+          uniqueId
         }
       }));
 
-      // Enhance analysis with floor plan data
+      // Ensure floorPlanData matches the analysis
       parsedAnalysis.floorPlanData = {
         dimensions: {
-          width: Math.max(...parsedAnalysis.rooms.map(r => r.bounds.x + r.bounds.width), 30),
-          height: Math.max(...parsedAnalysis.rooms.map(r => r.bounds.y + r.bounds.height), 25)
+          width: Math.max(...parsedAnalysis.rooms.map(r => r.bounds.x + r.bounds.width), 40),
+          height: Math.max(...parsedAnalysis.rooms.map(r => r.bounds.y + r.bounds.height), 30)
         },
         rooms: parsedAnalysis.rooms,
         elements: parsedAnalysis.elements.map(el => ({
@@ -259,17 +318,18 @@ export const useGeminiBlueprint3D = () => {
 
       setBlueprintAnalysis(parsedAnalysis);
 
-      // Store analysis in database
+      // Update database with successful analysis
       await supabase
         .from('blueprint_uploads')
         .update({
-          upload_status: 'analyzed'
+          upload_status: 'analyzed',
+          updated_at: new Date().toISOString()
         })
         .eq('id', uploadId);
 
       toast({
-        title: "Blueprint Analysis Complete",
-        description: `Identified ${parsedAnalysis.elements.length} elements and ${parsedAnalysis.rooms.length} rooms`,
+        title: "Detailed Analysis Complete",
+        description: `Gemini AI identified ${parsedAnalysis.elements.length} elements and ${parsedAnalysis.rooms.length} rooms (${parsedAnalysis.totalArea} ft²)`,
       });
 
       return parsedAnalysis;
@@ -278,14 +338,11 @@ export const useGeminiBlueprint3D = () => {
       console.error('Blueprint analysis error:', error);
       toast({
         title: "Analysis Failed",
-        description: error instanceof Error ? error.message : "Failed to analyze blueprint",
+        description: error instanceof Error ? error.message : "Failed to analyze blueprint with Gemini AI",
         variant: "destructive",
       });
       
-      // Return intelligent fallback analysis on error
-      const fallbackAnalysis = parseAdvancedTextualAnalysis("Analysis failed - using enhanced fallback data", imageUrl);
-      setBlueprintAnalysis(fallbackAnalysis);
-      return fallbackAnalysis;
+      throw error; // Re-throw to let caller handle fallback
     } finally {
       setAnalyzing(false);
     }
@@ -296,7 +353,6 @@ export const useGeminiBlueprint3D = () => {
     try {
       console.log('Starting 3D model generation for analysis:', analysis);
       
-      // Generate 3D model specifications using Gemini
       const generation3DResponse = await generate3DFromBlueprint(
         JSON.stringify(analysis),
         `Building type: ${analysis.buildingType}, Total area: ${analysis.totalArea} sq ft`
@@ -306,7 +362,6 @@ export const useGeminiBlueprint3D = () => {
         throw new Error('Failed to generate 3D model specifications');
       }
 
-      // Parse the 3D model specifications
       let parsed3DModel: Generated3DModel;
       try {
         const jsonMatch = generation3DResponse.result.match(/```json\n([\s\S]*?)\n```/) || 
@@ -327,11 +382,9 @@ export const useGeminiBlueprint3D = () => {
 
       setGenerated3DModel(parsed3DModel);
 
-      // Convert to GLB format and store
       const glbData = await convertToGLB(parsed3DModel);
-      const fileName = `gemini-3d-models/${uploadId}.glb`;
+      const fileName = `gemini-3d-models/${uploadId}-${Date.now()}.glb`;
 
-      // Upload to Supabase storage
       const { error: uploadError } = await supabase.storage
         .from('3d-models')
         .upload(fileName, glbData, {
@@ -344,17 +397,16 @@ export const useGeminiBlueprint3D = () => {
         throw uploadError;
       }
 
-      // Update database record
       const { error: dbError } = await supabase
         .from('generated_3d_models')
         .insert({
           upload_id: uploadId,
           model_name: `Gemini_3D_Model_${Date.now()}`,
-          model_description: `3D model generated by Gemini AI from blueprint analysis`,
+          model_description: `3D model generated from ${analysis.elements.length} elements and ${analysis.rooms.length} rooms`,
           model_file_path: fileName,
           file_size: glbData.byteLength,
           generation_status: 'completed',
-          generation_prompt: `Gemini AI 3D generation from ${analysis.elements.length} elements and ${analysis.rooms.length} rooms`
+          generation_prompt: `Gemini AI 3D generation from ${analysis.buildingType} blueprint`
         });
 
       if (dbError) {
@@ -383,13 +435,11 @@ export const useGeminiBlueprint3D = () => {
   }, [generate3DFromBlueprint, toast]);
 
   const processBlueprint = useCallback(async (imageUrl: string, uploadId: string) => {
-    console.log('Processing blueprint:', imageUrl, uploadId);
+    console.log('Processing blueprint with enhanced Gemini analysis:', imageUrl, uploadId);
     
-    // Step 1: Analyze the blueprint
     const analysis = await analyzeBlueprint(imageUrl, uploadId);
     if (!analysis) return null;
 
-    // Step 2: Generate 3D model
     const model3D = await generate3DModel(analysis, uploadId);
     if (!model3D) return null;
 
@@ -410,99 +460,6 @@ export const useGeminiBlueprint3D = () => {
   };
 };
 
-// Enhanced helper function to parse textual analysis into structured data
-function parseAdvancedTextualAnalysis(text: string, imageUrl?: string): BlueprintAnalysis {
-  console.log('Parsing advanced textual analysis:', text.substring(0, 200) + '...');
-  
-  const timestamp = Date.now();
-  const variance = timestamp % 1000;
-  
-  // Create varied room configurations based on timestamp
-  const roomConfigs = [
-    { name: 'Living Room', type: 'living', baseArea: 200, width: 18, height: 14 },
-    { name: 'Kitchen', type: 'kitchen', baseArea: 120, width: 12, height: 10 },
-    { name: 'Master Bedroom', type: 'bedroom', baseArea: 150, width: 14, height: 12 },
-    { name: 'Bathroom', type: 'bathroom', baseArea: 60, width: 8, height: 8 },
-    { name: 'Dining Room', type: 'dining', baseArea: 100, width: 12, height: 10 }
-  ];
-  
-  const selectedRooms = roomConfigs.slice(0, Math.max(2, (variance % 4) + 2));
-  
-  return {
-    elements: [
-      ...selectedRooms.map((room, index) => ({
-        type: 'room' as const,
-        name: room.name,
-        dimensions: { 
-          width: room.width + (variance % 10) / 10, 
-          height: room.height + (variance % 8) / 10, 
-          depth: 9 + (variance % 5) / 10 
-        },
-        position: { 
-          x: (index % 2) * 20 + (variance % 50) / 100, 
-          y: Math.floor(index / 2) * 15 + (variance % 30) / 100, 
-          z: 0 
-        },
-        properties: { 
-          roomType: room.type, 
-          area: room.baseArea + (variance % 50),
-          analysisTimestamp: timestamp,
-          sourceImage: imageUrl || 'unknown'
-        }
-      })),
-      {
-        type: 'door' as const,
-        name: `Main Entry ${timestamp % 100}`,
-        dimensions: { width: 3 + (variance % 10) / 20, height: 7 + (variance % 5) / 10 },
-        position: { x: 8 + (variance % 20) / 100, y: (variance % 15) / 100 },
-        properties: { doorType: 'entry', material: 'wood', uniqueId: `door-${timestamp}` }
-      },
-      {
-        type: 'window' as const,
-        name: `Window ${timestamp % 50}`,
-        dimensions: { width: 4 + (variance % 8) / 10, height: 4 + (variance % 6) / 10 },
-        position: { x: 4 + (variance % 25) / 100, y: 12 + (variance % 10) / 100 },
-        properties: { windowType: 'casement', glazing: 'double', uniqueId: `window-${timestamp}` }
-      }
-    ],
-    rooms: selectedRooms.map((room, index) => ({
-      name: room.name,
-      type: room.type,
-      area: room.baseArea + (variance % 50),
-      bounds: { 
-        x: (index % 2) * 20 + (variance % 30) / 100, 
-        y: Math.floor(index / 2) * 15 + (variance % 20) / 100, 
-        width: room.width + (variance % 15) / 10, 
-        height: room.height + (variance % 12) / 10 
-      }
-    })),
-    scale: 1 + (variance % 50) / 1000,
-    totalArea: selectedRooms.reduce((sum, room) => sum + room.baseArea, 0) + (variance % 100),
-    buildingType: ['residential', 'commercial', 'mixed-use'][variance % 3],
-    floorPlanData: {
-      dimensions: { 
-        width: Math.max(...selectedRooms.map((_, i) => (i % 2) * 20 + 18)), 
-        height: Math.max(...selectedRooms.map((_, i) => Math.floor(i / 2) * 15 + 14)) 
-      },
-      rooms: selectedRooms.map((room, index) => ({
-        name: room.name,
-        type: room.type,
-        area: room.baseArea + (variance % 50),
-        bounds: { 
-          x: (index % 2) * 20 + (variance % 30) / 100, 
-          y: Math.floor(index / 2) * 15 + (variance % 20) / 100, 
-          width: room.width + (variance % 15) / 10, 
-          height: room.height + (variance % 12) / 10 
-        }
-      })),
-      elements: [
-        { type: 'door', name: `Main Entry ${timestamp % 100}`, position: { x: 8, y: 0 }, dimensions: { width: 3, height: 7 } },
-        { type: 'window', name: `Window ${timestamp % 50}`, position: { x: 4, y: 12 }, dimensions: { width: 4, height: 4 } }
-      ]
-    }
-  };
-}
-
 // Helper function to generate basic 3D model from analysis
 function generateBasic3DModel(analysis: BlueprintAnalysis): Generated3DModel {
   console.log('Generating basic 3D model for analysis:', analysis);
@@ -510,17 +467,16 @@ function generateBasic3DModel(analysis: BlueprintAnalysis): Generated3DModel {
   return {
     geometry: {
       vertices: [
-        // Basic room vertices - simplified box geometry
-        0, 0, 0,    16, 0, 0,    16, 12, 0,    0, 12, 0,    // Floor
-        0, 0, 9,    16, 0, 9,    16, 12, 9,    0, 12, 9     // Ceiling
+        0, 0, 0,    16, 0, 0,    16, 12, 0,    0, 12, 0,
+        0, 0, 9,    16, 0, 9,    16, 12, 9,    0, 12, 9
       ],
       faces: [
-        0, 1, 2, 3,  // Floor
-        4, 7, 6, 5,  // Ceiling
-        0, 4, 5, 1,  // Front wall
-        2, 6, 7, 3,  // Back wall
-        0, 3, 7, 4,  // Left wall
-        1, 5, 6, 2   // Right wall
+        0, 1, 2, 3,
+        4, 7, 6, 5,
+        0, 4, 5, 1,
+        2, 6, 7, 3,
+        0, 3, 7, 4,
+        1, 5, 6, 2
       ],
       normals: [0, 0, -1, 0, 0, 1, 0, -1, 0, 0, 1, 0, -1, 0, 0, 1, 0, 0],
       uvs: [0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1]
@@ -571,8 +527,6 @@ function generateBasic3DModel(analysis: BlueprintAnalysis): Generated3DModel {
 async function convertToGLB(model: Generated3DModel): Promise<Uint8Array> {
   console.log('Converting 3D model to GLB format');
   
-  // This is a simplified GLB generation
-  // In a real implementation, you'd use a proper glTF library
   const gltfJson = {
     asset: { version: "2.0", generator: "Gemini-CitadelTwin" },
     scene: 0,
@@ -615,7 +569,6 @@ async function convertToGLB(model: Generated3DModel): Promise<Uint8Array> {
   const jsonBuffer = new TextEncoder().encode(jsonString);
   const binaryBuffer = new Float32Array(model.geometry.vertices);
 
-  // Create GLB header and chunks
   const headerSize = 12;
   const jsonChunkHeaderSize = 8;
   const binaryChunkHeaderSize = 8;
@@ -630,23 +583,22 @@ async function convertToGLB(model: Generated3DModel): Promise<Uint8Array> {
   let offset = 0;
 
   // GLB header
-  glbView.setUint32(offset, 0x46546C67, true); offset += 4; // "glTF"
-  glbView.setUint32(offset, 2, true); offset += 4; // version
-  glbView.setUint32(offset, totalSize, true); offset += 4; // total length
+  glbView.setUint32(offset, 0x46546C67, true); offset += 4;
+  glbView.setUint32(offset, 2, true); offset += 4;
+  glbView.setUint32(offset, totalSize, true); offset += 4;
 
   // JSON chunk
   glbView.setUint32(offset, jsonBuffer.length + jsonPadding, true); offset += 4;
-  glbView.setUint32(offset, 0x4E4F534A, true); offset += 4; // "JSON"
+  glbView.setUint32(offset, 0x4E4F534A, true); offset += 4;
   glbBytes.set(jsonBuffer, offset); offset += jsonBuffer.length;
   
-  // JSON padding
   for (let i = 0; i < jsonPadding; i++) {
     glbBytes[offset++] = 0x20;
   }
 
   // Binary chunk
   glbView.setUint32(offset, binaryBuffer.byteLength, true); offset += 4;
-  glbView.setUint32(offset, 0x004E4942, true); offset += 4; // "BIN\0"
+  glbView.setUint32(offset, 0x004E4942, true); offset += 4;
   glbBytes.set(new Uint8Array(binaryBuffer.buffer), offset);
 
   return new Uint8Array(glbBuffer);
