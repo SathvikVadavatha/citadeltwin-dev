@@ -63,7 +63,7 @@ export const useBlueprintProcessing = () => {
         .insert({
           upload_id: uploadId,
           detected_objects: detectedObjects as any,
-          processing_time_ms: geminiResult.processingTime || 5000,
+          processing_time_ms: 5000, // Default processing time
           model_used: 'gemini-pro-vision',
           confidence_threshold: 0.7
         });
