@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { useGeminiAI, AIRequestType } from '@/hooks/useGeminiAI'
-import { Brain, Code, MessageSquare, Zap, AlertCircle, CheckCircle, Image, Cube } from 'lucide-react'
+import { Brain, Code, MessageSquare, Zap, AlertCircle, CheckCircle, Image, Box } from 'lucide-react'
 
 export const AIServicePanel = () => {
   const [prompt, setPrompt] = useState('')
@@ -127,7 +126,7 @@ export const AIServicePanel = () => {
         return <Image className="h-4 w-4" />
       case '3d-generation':
       case 'architectural-modeling':
-        return <Cube className="h-4 w-4" />
+        return <Box className="h-4 w-4" />
       default:
         return <Zap className="h-4 w-4" />
     }
@@ -239,14 +238,14 @@ export const AIServicePanel = () => {
                   </SelectItem>
                   <SelectItem value="3d-generation">
                     <div className="flex items-center gap-2">
-                      <Cube className="h-4 w-4" />
+                      <Box className="h-4 w-4" />
                       3D Model Generation
                       <Badge variant="outline" className="ml-1">New</Badge>
                     </div>
                   </SelectItem>
                   <SelectItem value="architectural-modeling">
                     <div className="flex items-center gap-2">
-                      <Cube className="h-4 w-4" />
+                      <Box className="h-4 w-4" />
                       Architectural Modeling
                       <Badge variant="outline" className="ml-1">Advanced</Badge>
                     </div>
