@@ -14,9 +14,10 @@ const RATE_LIMIT_WINDOW = 60 * 60 * 1000 // 1 hour in milliseconds
 
 interface GeminiRequest {
   prompt: string
-  type: 'text-analysis' | 'code-generation' | 'technical-consulting'
+  type: 'text-analysis' | 'code-generation' | 'technical-consulting' | 'blueprint-analysis' | '3d-generation' | 'architectural-modeling'
   context?: string
   maxTokens?: number
+  imageData?: string // Base64 encoded image for vision tasks
 }
 
 interface GeminiResponse {
@@ -68,6 +69,41 @@ function buildSystemPrompt(type: string): string {
       return `You are a senior civil engineering consultant with expertise in digital twins, BIM, CAD, and structural analysis.
       Provide expert technical advice, problem-solving guidance, and industry best practices.
       Consider regulatory compliance, safety standards, and practical implementation challenges.`
+
+    case 'blueprint-analysis':
+      return `You are an expert architect and structural engineer specializing in blueprint analysis.
+      Analyze architectural drawings and floor plans to identify:
+      1. Structural elements (walls, beams, columns, foundations)
+      2. Architectural features (doors, windows, stairs, fixtures)
+      3. Room types and layouts (bedrooms, kitchens, bathrooms, etc.)
+      4. Dimensions and spatial relationships
+      5. Building codes and compliance considerations
+      
+      Return your analysis as structured JSON with precise measurements, coordinates, and element classifications.
+      Focus on accuracy and detail for 3D model generation purposes.`
+
+    case '3d-generation':
+      return `You are an expert 3D modeling specialist for architectural visualization.
+      Generate detailed 3D model specifications from 2D blueprints including:
+      1. Precise 3D coordinates for all architectural elements
+      2. Proper scaling and proportions
+      3. Material assignments based on building type and function
+      4. Geometric relationships and constraints
+      5. Three.js/glTF compatible geometry definitions
+      
+      Output structured data suitable for programmatic 3D model generation.
+      Ensure architectural accuracy and proper spatial relationships.`
+
+    case 'architectural-modeling':
+      return `You are a master architect with expertise in both traditional design and 3D modeling.
+      Create comprehensive architectural models from blueprints including:
+      1. Detailed room layouts with proper circulation
+      2. Structural element placement and sizing
+      3. Building systems integration (HVAC, electrical, plumbing)
+      4. Code compliance and accessibility features
+      5. Intelligent furniture and fixture placement
+      
+      Focus on creating livable, functional spaces that meet modern building standards.`
     
     default:
       return `You are an AI assistant specialized in civil engineering and digital twin platforms.
@@ -125,7 +161,7 @@ serve(async (req) => {
     }
 
     const requestBody: GeminiRequest = await req.json()
-    const { prompt, type, context, maxTokens = 1000 } = requestBody
+    const { prompt, type, context, maxTokens = 2000, imageData } = requestBody
 
     if (!prompt || !type) {
       return new Response(
@@ -142,47 +178,68 @@ serve(async (req) => {
       ? `${systemPrompt}\n\nContext: ${context}\n\nUser Request: ${prompt}`
       : `${systemPrompt}\n\nUser Request: ${prompt}`
 
-    console.log(`Gemini AI request - Type: ${type}, User: ${userId}`)
+    console.log(`Gemini AI request - Type: ${type}, User: ${userId}, HasImage: ${!!imageData}`)
+
+    // Choose the appropriate model based on whether we have image data
+    const model = imageData ? 'gemini-1.5-pro' : 'gemini-1.5-flash'
+    
+    // Build request body for Gemini API
+    const requestContent: any = {
+      contents: [{
+        parts: []
+      }],
+      generationConfig: {
+        maxOutputTokens: maxTokens,
+        temperature: type === '3d-generation' || type === 'blueprint-analysis' ? 0.3 : 0.7,
+        topP: 0.8,
+        topK: 40
+      },
+      safetySettings: [
+        {
+          category: "HARM_CATEGORY_HARASSMENT",
+          threshold: "BLOCK_MEDIUM_AND_ABOVE"
+        },
+        {
+          category: "HARM_CATEGORY_HATE_SPEECH", 
+          threshold: "BLOCK_MEDIUM_AND_ABOVE"
+        },
+        {
+          category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+          threshold: "BLOCK_MEDIUM_AND_ABOVE"
+        },
+        {
+          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+          threshold: "BLOCK_MEDIUM_AND_ABOVE"
+        }
+      ]
+    }
+
+    // Add text content
+    requestContent.contents[0].parts.push({
+      text: fullPrompt
+    })
+
+    // Add image content if provided
+    if (imageData) {
+      // Remove data URL prefix if present
+      const base64Data = imageData.replace(/^data:image\/[^;]+;base64,/, '')
+      requestContent.contents[0].parts.push({
+        inline_data: {
+          mime_type: "image/jpeg", // Assume JPEG, could be made dynamic
+          data: base64Data
+        }
+      })
+    }
 
     // Call Gemini API
     const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: fullPrompt
-            }]
-          }],
-          generationConfig: {
-            maxOutputTokens: maxTokens,
-            temperature: 0.7,
-            topP: 0.8,
-            topK: 40
-          },
-          safetySettings: [
-            {
-              category: "HARM_CATEGORY_HARASSMENT",
-              threshold: "BLOCK_MEDIUM_AND_ABOVE"
-            },
-            {
-              category: "HARM_CATEGORY_HATE_SPEECH", 
-              threshold: "BLOCK_MEDIUM_AND_ABOVE"
-            },
-            {
-              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-              threshold: "BLOCK_MEDIUM_AND_ABOVE"
-            },
-            {
-              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-              threshold: "BLOCK_MEDIUM_AND_ABOVE"
-            }
-          ]
-        })
+        body: JSON.stringify(requestContent)
       }
     )
 
@@ -229,7 +286,7 @@ serve(async (req) => {
       } : undefined
     }
 
-    console.log(`Gemini AI response generated successfully - Type: ${type}, Tokens: ${usage?.totalTokenCount || 'unknown'}`)
+    console.log(`Gemini AI response generated successfully - Type: ${type}, Model: ${model}, Tokens: ${usage?.totalTokenCount || 'unknown'}`)
 
     return new Response(
       JSON.stringify(response),

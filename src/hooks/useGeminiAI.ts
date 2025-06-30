@@ -5,13 +5,14 @@ import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/providers/AuthProvider'
 import { toast } from 'sonner'
 
-export type AIRequestType = 'text-analysis' | 'code-generation' | 'technical-consulting' | 'engineering-calculations'
+export type AIRequestType = 'text-analysis' | 'code-generation' | 'technical-consulting' | 'engineering-calculations' | 'blueprint-analysis' | '3d-generation' | 'architectural-modeling'
 
 export interface AIRequest {
   prompt: string
   type: AIRequestType
   context?: string
   maxTokens?: number
+  imageData?: string // Base64 encoded image for vision tasks
 }
 
 export interface AIResponse {
@@ -46,7 +47,11 @@ export const useGeminiAI = () => {
       setLoading(true)
       setError(null)
 
-      console.log('Calling Gemini AI with request:', { ...request, prompt: request.prompt.slice(0, 100) + '...' })
+      console.log('Calling Gemini AI with request:', { 
+        ...request, 
+        prompt: request.prompt.slice(0, 100) + '...',
+        hasImage: !!request.imageData
+      })
 
       const { data, error: functionError } = await supabase.functions.invoke('gemini-ai', {
         body: request
@@ -124,6 +129,35 @@ export const useGeminiAI = () => {
     })
   }
 
+  // New specialized methods for 3D generation
+  const analyzeBlueprintImage = async (imageData: string, context?: string): Promise<AIResponse | null> => {
+    return generateResponse({
+      prompt: `Analyze this architectural blueprint/floor plan image. Identify all structural elements, rooms, dimensions, and architectural features. Return detailed analysis as structured JSON suitable for 3D model generation.`,
+      type: 'blueprint-analysis',
+      context,
+      imageData,
+      maxTokens: 3000
+    })
+  }
+
+  const generate3DFromBlueprint = async (blueprintAnalysis: string, requirements?: string): Promise<AIResponse | null> => {
+    return generateResponse({
+      prompt: `Based on the following blueprint analysis, generate detailed 3D model specifications including coordinates, geometries, materials, and Three.js/glTF compatible definitions:\n\n${blueprintAnalysis}\n\nAdditional requirements: ${requirements || 'Standard residential building'}`,
+      type: '3d-generation',
+      context: 'Generate precise 3D model data from architectural analysis',
+      maxTokens: 4000
+    })
+  }
+
+  const createArchitecturalModel = async (blueprintData: string, buildingType?: string): Promise<AIResponse | null> => {
+    return generateResponse({
+      prompt: `Create a comprehensive architectural model from this blueprint data. Include room layouts, structural elements, building systems, and intelligent furniture placement:\n\n${blueprintData}`,
+      type: 'architectural-modeling',
+      context: `Building type: ${buildingType || 'Mixed-use'}`,
+      maxTokens: 4000
+    })
+  }
+
   // Add the generateContent mutation that's being used in the components
   const generateContent = useMutation({
     mutationFn: async (request: AIRequest): Promise<AIResponse> => {
@@ -147,10 +181,13 @@ export const useGeminiAI = () => {
     lastResponse,
     error,
     generateResponse,
-    generateContent, // Add this to the return object
+    generateContent,
     analyzeText,
     generateCode,
     getTechnicalConsulting,
+    analyzeBlueprintImage,
+    generate3DFromBlueprint,
+    createArchitecturalModel,
     clearError,
     clearLastResponse,
     isAvailable: !!user
