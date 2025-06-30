@@ -79,7 +79,30 @@ function buildSystemPrompt(type: string): string {
       4. Dimensions and spatial relationships
       5. Building codes and compliance considerations
       
-      Return your analysis as structured JSON with precise measurements, coordinates, and element classifications.
+      Return your analysis as structured JSON with the following format:
+      {
+        "elements": [
+          {
+            "type": "wall|door|window|room|fixture",
+            "name": "element name",
+            "dimensions": {"width": number, "height": number, "depth": number},
+            "position": {"x": number, "y": number, "z": number},
+            "properties": {"key": "value"}
+          }
+        ],
+        "rooms": [
+          {
+            "name": "room name",
+            "type": "room type",
+            "area": number,
+            "bounds": {"x": number, "y": number, "width": number, "height": number}
+          }
+        ],
+        "scale": number,
+        "totalArea": number,
+        "buildingType": "residential|commercial|industrial"
+      }
+      
       Focus on accuracy and detail for 3D model generation purposes.`
 
     case '3d-generation':
@@ -91,7 +114,27 @@ function buildSystemPrompt(type: string): string {
       4. Geometric relationships and constraints
       5. Three.js/glTF compatible geometry definitions
       
-      Output structured data suitable for programmatic 3D model generation.
+      Output structured JSON data suitable for programmatic 3D model generation with this format:
+      {
+        "geometry": {
+          "vertices": [array of vertex coordinates],
+          "faces": [array of face indices],
+          "normals": [array of normal vectors],
+          "uvs": [array of UV coordinates]
+        },
+        "materials": [
+          {
+            "name": "material name",
+            "type": "material type",
+            "properties": {"key": "value"}
+          }
+        ],
+        "scene": {
+          "objects": [array of 3D objects with transforms],
+          "lights": [array of light definitions]
+        }
+      }
+      
       Ensure architectural accuracy and proper spatial relationships.`
 
     case 'architectural-modeling':
@@ -103,12 +146,29 @@ function buildSystemPrompt(type: string): string {
       4. Code compliance and accessibility features
       5. Intelligent furniture and fixture placement
       
-      Focus on creating livable, functional spaces that meet modern building standards.`
+      Focus on creating livable, functional spaces that meet modern building standards.
+      Return structured JSON with detailed architectural specifications.`
     
     default:
       return `You are an AI assistant specialized in civil engineering and digital twin platforms.
       Provide helpful, accurate, and professional responses.`
   }
+}
+
+function cleanBase64ImageData(imageData: string): string {
+  // Remove data URL prefix if present
+  let cleanData = imageData.replace(/^data:image\/[^;]+;base64,/, '')
+  
+  // Remove any whitespace or newlines
+  cleanData = cleanData.replace(/\s/g, '')
+  
+  // Validate base64 format
+  const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/
+  if (!base64Regex.test(cleanData)) {
+    throw new Error('Invalid base64 image data format')
+  }
+  
+  return cleanData
 }
 
 serve(async (req) => {
@@ -161,7 +221,7 @@ serve(async (req) => {
     }
 
     const requestBody: GeminiRequest = await req.json()
-    const { prompt, type, context, maxTokens = 2000, imageData } = requestBody
+    const { prompt, type, context, maxTokens = 3000, imageData } = requestBody
 
     if (!prompt || !type) {
       return new Response(
@@ -190,7 +250,7 @@ serve(async (req) => {
       }],
       generationConfig: {
         maxOutputTokens: maxTokens,
-        temperature: type === '3d-generation' || type === 'blueprint-analysis' ? 0.3 : 0.7,
+        temperature: type === '3d-generation' || type === 'blueprint-analysis' ? 0.2 : 0.7,
         topP: 0.8,
         topK: 40
       },
@@ -221,14 +281,40 @@ serve(async (req) => {
 
     // Add image content if provided
     if (imageData) {
-      // Remove data URL prefix if present
-      const base64Data = imageData.replace(/^data:image\/[^;]+;base64,/, '')
-      requestContent.contents[0].parts.push({
-        inline_data: {
-          mime_type: "image/jpeg", // Assume JPEG, could be made dynamic
-          data: base64Data
+      try {
+        const cleanedImageData = cleanBase64ImageData(imageData)
+        console.log(`Processed image data: ${cleanedImageData.length} characters`)
+        
+        // Determine MIME type from image data
+        let mimeType = 'image/jpeg' // default
+        if (imageData.includes('data:image/')) {
+          const mimeMatch = imageData.match(/data:image\/([^;]+);/)
+          if (mimeMatch) {
+            mimeType = `image/${mimeMatch[1]}`
+          }
         }
-      })
+        
+        requestContent.contents[0].parts.push({
+          inline_data: {
+            mime_type: mimeType,
+            data: cleanedImageData
+          }
+        })
+        
+        console.log(`Added image data with MIME type: ${mimeType}`)
+      } catch (imageError) {
+        console.error('Error processing image data:', imageError)
+        return new Response(
+          JSON.stringify({ 
+            error: 'Invalid image data format',
+            details: imageError.message 
+          }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        )
+      }
     }
 
     // Call Gemini API
@@ -261,6 +347,7 @@ serve(async (req) => {
     const geminiData = await geminiResponse.json()
     
     if (!geminiData.candidates || geminiData.candidates.length === 0) {
+      console.error('No candidates in Gemini response:', geminiData)
       return new Response(
         JSON.stringify({ 
           error: 'No response generated by Gemini AI',
@@ -273,7 +360,22 @@ serve(async (req) => {
       )
     }
 
-    const result = geminiData.candidates[0].content.parts[0].text
+    const candidate = geminiData.candidates[0]
+    if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+      console.error('Invalid candidate structure:', candidate)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid response structure from Gemini AI',
+          details: candidate
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    const result = candidate.content.parts[0].text
     const usage = geminiData.usageMetadata
 
     const response: GeminiResponse = {

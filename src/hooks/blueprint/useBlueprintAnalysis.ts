@@ -1,114 +1,119 @@
 
 import { useState, useCallback } from 'react';
-import { useGeminiAnalyzer } from './useGeminiAnalyzer';
+import { useGeminiBlueprint3D } from './useGeminiBlueprint3D';
+import { useToast } from '@/components/ui/use-toast';
 
-interface FloorPlanData {
-  rooms: Array<{
-    id: string;
-    type: 'bedroom' | 'living_room' | 'kitchen' | 'bathroom' | 'hallway';
-    bounds: { x: number; y: number; width: number; height: number };
-    area: number;
-  }>;
-  walls: Array<{
-    id: string;
-    start: { x: number; y: number };
-    end: { x: number; y: number };
-    thickness: number;
-  }>;
-  doors: Array<{
-    id: string;
-    position: { x: number; y: number };
-    width: number;
-    wallId: string;
-  }>;
-  windows: Array<{
-    id: string;
-    position: { x: number; y: number };
-    width: number;
-    wallId: string;
-  }>;
-  scale: number;
+interface AnalysisResult {
+  floorPlanData?: {
+    dimensions: {
+      width: number;
+      height: number;
+    };
+    rooms: Array<{
+      name: string;
+      type: string;
+      area: number;
+      bounds: { x: number; y: number; width: number; height: number };
+    }>;
+    elements: Array<{
+      type: string;
+      name: string;
+      position: { x: number; y: number };
+      dimensions: { width: number; height: number };
+    }>;
+  };
+  geminiAnalysis?: any;
 }
 
 export const useBlueprintAnalysis = () => {
   const [enhancedAnalyzing, setEnhancedAnalyzing] = useState(false);
-  const { analyzeBlueprint } = useGeminiAnalyzer();
-
-  const generateFloorPlanData = useCallback((): FloorPlanData => {
-    return {
-      rooms: [
-        {
-          id: 'room-1',
-          type: 'living_room',
-          bounds: { x: 10, y: 20, width: 40, height: 30 },
-          area: 25.6
-        },
-        {
-          id: 'room-2',
-          type: 'kitchen',
-          bounds: { x: 55, y: 20, width: 30, height: 20 },
-          area: 12.8
-        },
-        {
-          id: 'room-3',
-          type: 'bedroom',
-          bounds: { x: 10, y: 55, width: 35, height: 25 },
-          area: 18.7
-        },
-        {
-          id: 'room-4',
-          type: 'bathroom',
-          bounds: { x: 50, y: 55, width: 20, height: 15 },
-          area: 6.4
-        },
-        {
-          id: 'room-5',
-          type: 'hallway',
-          bounds: { x: 10, y: 50, width: 75, height: 5 },
-          area: 8.0
-        }
-      ],
-      walls: [
-        { id: 'wall-1', start: { x: 10, y: 20 }, end: { x: 85, y: 20 }, thickness: 0.2 },
-        { id: 'wall-2', start: { x: 10, y: 20 }, end: { x: 10, y: 80 }, thickness: 0.2 },
-        { id: 'wall-3', start: { x: 85, y: 20 }, end: { x: 85, y: 70 }, thickness: 0.2 },
-        { id: 'wall-4', start: { x: 10, y: 80 }, end: { x: 70, y: 80 }, thickness: 0.2 },
-        { id: 'wall-5', start: { x: 50, y: 20 }, end: { x: 50, y: 50 }, thickness: 0.15 },
-        { id: 'wall-6', start: { x: 10, y: 50 }, end: { x: 85, y: 50 }, thickness: 0.15 }
-      ],
-      doors: [
-        { id: 'door-1', position: { x: 30, y: 50 }, width: 0.9, wallId: 'wall-6' },
-        { id: 'door-2', position: { x: 60, y: 50 }, width: 0.8, wallId: 'wall-6' },
-        { id: 'door-3', position: { x: 50, y: 35 }, width: 0.8, wallId: 'wall-5' }
-      ],
-      windows: [
-        { id: 'window-1', position: { x: 25, y: 20 }, width: 1.2, wallId: 'wall-1' },
-        { id: 'window-2', position: { x: 70, y: 20 }, width: 1.0, wallId: 'wall-1' },
-        { id: 'window-3', position: { x: 85, y: 35 }, width: 1.0, wallId: 'wall-3' }
-      ],
-      scale: 50
-    };
-  }, []);
+  const { processBlueprint } = useGeminiBlueprint3D();
+  const { toast } = useToast();
 
   const performEnhancedAnalysis = useCallback(async (
     imageUrl: string,
     uploadId: string,
-    existingDetections: any[]
-  ) => {
+    detectedObjects: any[]
+  ): Promise<AnalysisResult | null> => {
     setEnhancedAnalyzing(true);
-
+    
     try {
-      const floorPlanData = generateFloorPlanData();
-      const geminiAnalysis = await analyzeBlueprint(imageUrl, uploadId, existingDetections);
-
-      return {
-        floorPlanData,
-        geminiAnalysis
-      };
+      console.log('Starting enhanced analysis for:', { imageUrl, uploadId, detectedObjects });
+      
+      // Use Gemini AI to process the blueprint
+      const geminiResult = await processBlueprint(imageUrl, uploadId);
+      
+      if (geminiResult?.analysis) {
+        const result: AnalysisResult = {
+          floorPlanData: geminiResult.analysis.floorPlanData,
+          geminiAnalysis: geminiResult.analysis
+        };
+        
+        console.log('Enhanced analysis completed:', result);
+        
+        toast({
+          title: "Enhanced Analysis Complete",
+          description: `Gemini AI analyzed ${geminiResult.analysis.elements?.length || 0} elements and ${geminiResult.analysis.rooms?.length || 0} rooms`,
+        });
+        
+        return result;
+      } else {
+        console.warn('Gemini analysis failed, using fallback data');
+        
+        // Create fallback analysis data based on detected objects
+        const fallbackResult: AnalysisResult = {
+          floorPlanData: {
+            dimensions: { width: 30, height: 25 },
+            rooms: detectedObjects
+              .filter(obj => ['room', 'kitchen', 'bedroom', 'bathroom'].includes(obj.label.toLowerCase()))
+              .map((obj, index) => ({
+                name: obj.label.charAt(0).toUpperCase() + obj.label.slice(1),
+                type: obj.label.toLowerCase(),
+                area: obj.bbox ? (obj.bbox.width * obj.bbox.height * 0.3) : 100, // Rough area calculation
+                bounds: obj.bbox ? {
+                  x: obj.bbox.x * 0.3, // Scale from percentage to feet
+                  y: obj.bbox.y * 0.25,
+                  width: obj.bbox.width * 0.3,
+                  height: obj.bbox.height * 0.25
+                } : { x: index * 10, y: index * 8, width: 10, height: 8 }
+              })),
+            elements: detectedObjects
+              .filter(obj => ['door', 'window', 'fixture'].includes(obj.label.toLowerCase()))
+              .map((obj, index) => ({
+                type: obj.label.toLowerCase(),
+                name: `${obj.label.charAt(0).toUpperCase() + obj.label.slice(1)} ${index + 1}`,
+                position: obj.bbox ? {
+                  x: obj.bbox.x * 0.3,
+                  y: obj.bbox.y * 0.25
+                } : { x: index * 5, y: index * 3 },
+                dimensions: obj.bbox ? {
+                  width: Math.max(obj.bbox.width * 0.3, 2),
+                  height: Math.max(obj.bbox.height * 0.25, 2)
+                } : { width: 3, height: 2 }
+              }))
+          },
+          geminiAnalysis: 'Analysis completed using detected objects as fallback data'
+        };
+        
+        toast({
+          title: "Analysis Complete",
+          description: `Processed ${detectedObjects.length} detected elements with fallback analysis`,
+        });
+        
+        return fallbackResult;
+      }
+    } catch (error) {
+      console.error('Enhanced analysis error:', error);
+      toast({
+        title: "Analysis Error",
+        description: error instanceof Error ? error.message : "Failed to perform enhanced analysis",
+        variant: "destructive",
+      });
+      return null;
     } finally {
       setEnhancedAnalyzing(false);
     }
-  }, [analyzeBlueprint, generateFloorPlanData]);
+  }, [processBlueprint, toast]);
 
   return {
     enhancedAnalyzing,

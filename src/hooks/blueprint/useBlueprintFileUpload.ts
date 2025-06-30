@@ -18,28 +18,51 @@ export const useBlueprintFileUpload = () => {
   });
 
   const uploadFile = useCallback(async (file: File) => {
-    if (!user) return null;
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to upload blueprints.",
+        variant: "destructive",
+      });
+      return null;
+    }
 
     try {
       setUploadState({ uploading: true, uploadProgress: 0 });
 
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+
+      console.log('Uploading file to storage:', fileName);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('blueprints')
-        .upload(fileName, file);
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
 
       setUploadState(prev => ({ ...prev, uploadProgress: 50 }));
 
+      // Get the public URL for the uploaded file
       const { data: urlData } = supabase.storage
         .from('blueprints')
         .getPublicUrl(fileName);
 
+      if (!urlData?.publicUrl) {
+        throw new Error('Failed to get public URL for uploaded file');
+      }
+
+      console.log('File uploaded successfully, public URL:', urlData.publicUrl);
+
       setUploadState(prev => ({ ...prev, uploadProgress: 75 }));
 
+      // Insert record into database
       const { data: uploadRecord, error: dbError } = await supabase
         .from('blueprint_uploads')
         .insert({
@@ -54,10 +77,18 @@ export const useBlueprintFileUpload = () => {
         .select()
         .single();
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Database insert error:', dbError);
+        throw new Error(`Database error: ${dbError.message}`);
+      }
 
       setUploadState(prev => ({ ...prev, uploadProgress: 100 }));
       
+      toast({
+        title: "Upload successful",
+        description: `${file.name} has been uploaded successfully.`,
+      });
+
       return {
         uploadRecord,
         publicUrl: urlData.publicUrl

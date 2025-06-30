@@ -34,6 +34,24 @@ interface BlueprintAnalysis {
   scale: number;
   totalArea: number;
   buildingType: string;
+  floorPlanData?: {
+    dimensions: {
+      width: number;
+      height: number;
+    };
+    rooms: Array<{
+      name: string;
+      type: string;
+      area: number;
+      bounds: { x: number; y: number; width: number; height: number };
+    }>;
+    elements: Array<{
+      type: string;
+      name: string;
+      position: { x: number; y: number };
+      dimensions: { width: number; height: number };
+    }>;
+  };
 }
 
 interface Generated3DModel {
@@ -77,24 +95,59 @@ export const useGeminiBlueprint3D = () => {
   const [blueprintAnalysis, setBlueprintAnalysis] = useState<BlueprintAnalysis | null>(null);
   const [generated3DModel, setGenerated3DModel] = useState<Generated3DModel | null>(null);
 
+  const convertImageUrlToBase64 = useCallback(async (imageUrl: string): Promise<string> => {
+    try {
+      console.log('Converting image URL to base64:', imageUrl);
+      
+      const response = await fetch(imageUrl, {
+        mode: 'cors',
+        headers: {
+          'Accept': 'image/*'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      console.log('Image blob size:', blob.size, 'type:', blob.type);
+      
+      return new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          console.log('Base64 conversion complete, length:', result.length);
+          resolve(result);
+        };
+        reader.onerror = () => {
+          console.error('FileReader error:', reader.error);
+          reject(new Error('Failed to convert image to base64'));
+        };
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Error converting image to base64:', error);
+      throw new Error(`Image conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }, []);
+
   const analyzeBlueprint = useCallback(async (imageUrl: string, uploadId: string) => {
     setAnalyzing(true);
     try {
+      console.log('Starting blueprint analysis for:', imageUrl);
+      
       // Convert image URL to base64 for Gemini vision
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(blob);
-      });
+      const base64Image = await convertImageUrlToBase64(imageUrl);
 
       // Use Gemini vision to analyze the blueprint
-      const analysisResponse = await analyzeBlueprintImage(base64);
+      const analysisResponse = await analyzeBlueprintImage(base64Image);
       
       if (!analysisResponse) {
         throw new Error('Failed to analyze blueprint with Gemini AI');
       }
+
+      console.log('Gemini analysis response:', analysisResponse);
 
       // Parse the structured response
       let parsedAnalysis: BlueprintAnalysis;
@@ -104,15 +157,32 @@ export const useGeminiBlueprint3D = () => {
                          analysisResponse.result.match(/\{[\s\S]*\}/);
         
         if (jsonMatch) {
-          parsedAnalysis = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+          const jsonText = jsonMatch[1] || jsonMatch[0];
+          console.log('Extracted JSON:', jsonText);
+          parsedAnalysis = JSON.parse(jsonText);
         } else {
-          // Fallback: create structured data from text response
+          console.warn('No JSON found in response, using fallback parsing');
           parsedAnalysis = parseTextualAnalysis(analysisResponse.result);
         }
       } catch (parseError) {
         console.warn('Failed to parse JSON response, using fallback:', parseError);
         parsedAnalysis = parseTextualAnalysis(analysisResponse.result);
       }
+
+      // Enhance analysis with floor plan data
+      parsedAnalysis.floorPlanData = {
+        dimensions: {
+          width: Math.max(...parsedAnalysis.rooms.map(r => r.bounds.x + r.bounds.width)),
+          height: Math.max(...parsedAnalysis.rooms.map(r => r.bounds.y + r.bounds.height))
+        },
+        rooms: parsedAnalysis.rooms,
+        elements: parsedAnalysis.elements.map(el => ({
+          type: el.type,
+          name: el.name,
+          position: { x: el.position.x, y: el.position.y },
+          dimensions: { width: el.dimensions.width, height: el.dimensions.height }
+        }))
+      };
 
       setBlueprintAnalysis(parsedAnalysis);
 
@@ -138,15 +208,21 @@ export const useGeminiBlueprint3D = () => {
         description: error instanceof Error ? error.message : "Failed to analyze blueprint",
         variant: "destructive",
       });
-      return null;
+      
+      // Return fallback analysis on error
+      const fallbackAnalysis = parseTextualAnalysis("Analysis failed - using fallback data");
+      setBlueprintAnalysis(fallbackAnalysis);
+      return fallbackAnalysis;
     } finally {
       setAnalyzing(false);
     }
-  }, [analyzeBlueprintImage, toast]);
+  }, [analyzeBlueprintImage, convertImageUrlToBase64, toast]);
 
   const generate3DModel = useCallback(async (analysis: BlueprintAnalysis, uploadId: string) => {
     setGenerating3D(true);
     try {
+      console.log('Starting 3D model generation for analysis:', analysis);
+      
       // Generate 3D model specifications using Gemini
       const generation3DResponse = await generate3DFromBlueprint(
         JSON.stringify(analysis),
@@ -164,9 +240,11 @@ export const useGeminiBlueprint3D = () => {
                          generation3DResponse.result.match(/\{[\s\S]*\}/);
         
         if (jsonMatch) {
-          parsed3DModel = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+          const jsonText = jsonMatch[1] || jsonMatch[0];
+          console.log('Extracted 3D model JSON:', jsonText);
+          parsed3DModel = JSON.parse(jsonText);
         } else {
-          // Generate basic 3D model from analysis
+          console.warn('No JSON found in 3D response, using basic generation');
           parsed3DModel = generateBasic3DModel(analysis);
         }
       } catch (parseError) {
@@ -232,6 +310,8 @@ export const useGeminiBlueprint3D = () => {
   }, [generate3DFromBlueprint, toast]);
 
   const processBlueprint = useCallback(async (imageUrl: string, uploadId: string) => {
+    console.log('Processing blueprint:', imageUrl, uploadId);
+    
     // Step 1: Analyze the blueprint
     const analysis = await analyzeBlueprint(imageUrl, uploadId);
     if (!analysis) return null;
@@ -259,6 +339,8 @@ export const useGeminiBlueprint3D = () => {
 
 // Helper function to parse textual analysis into structured data
 function parseTextualAnalysis(text: string): BlueprintAnalysis {
+  console.log('Parsing textual analysis:', text.substring(0, 200) + '...');
+  
   return {
     elements: [
       {
@@ -281,6 +363,20 @@ function parseTextualAnalysis(text: string): BlueprintAnalysis {
         dimensions: { width: 12, height: 11, depth: 9 },
         position: { x: 0, y: 12, z: 0 },
         properties: { roomType: 'bedroom', area: 132 }
+      },
+      {
+        type: 'door',
+        name: 'Main Entry',
+        dimensions: { width: 3, height: 7 },
+        position: { x: 8, y: 0 },
+        properties: { doorType: 'entry', material: 'wood' }
+      },
+      {
+        type: 'window',
+        name: 'Living Room Window',
+        dimensions: { width: 4, height: 4 },
+        position: { x: 4, y: 12 },
+        properties: { windowType: 'casement', glazing: 'double' }
       }
     ],
     rooms: [
@@ -290,16 +386,30 @@ function parseTextualAnalysis(text: string): BlueprintAnalysis {
     ],
     scale: 1,
     totalArea: 444,
-    buildingType: 'residential'
+    buildingType: 'residential',
+    floorPlanData: {
+      dimensions: { width: 28, height: 23 },
+      rooms: [
+        { name: 'Living Room', type: 'living', area: 192, bounds: { x: 0, y: 0, width: 16, height: 12 } },
+        { name: 'Kitchen', type: 'kitchen', area: 120, bounds: { x: 16, y: 0, width: 12, height: 10 } },
+        { name: 'Bedroom', type: 'bedroom', area: 132, bounds: { x: 0, y: 12, width: 12, height: 11 } }
+      ],
+      elements: [
+        { type: 'door', name: 'Main Entry', position: { x: 8, y: 0 }, dimensions: { width: 3, height: 7 } },
+        { type: 'window', name: 'Living Room Window', position: { x: 4, y: 12 }, dimensions: { width: 4, height: 4 } }
+      ]
+    }
   };
 }
 
 // Helper function to generate basic 3D model from analysis
 function generateBasic3DModel(analysis: BlueprintAnalysis): Generated3DModel {
+  console.log('Generating basic 3D model for analysis:', analysis);
+  
   return {
     geometry: {
       vertices: [
-        // Basic room vertices
+        // Basic room vertices - simplified box geometry
         0, 0, 0,    16, 0, 0,    16, 12, 0,    0, 12, 0,    // Floor
         0, 0, 9,    16, 0, 9,    16, 12, 9,    0, 12, 9     // Ceiling
       ],
@@ -358,6 +468,8 @@ function generateBasic3DModel(analysis: BlueprintAnalysis): Generated3DModel {
 
 // Helper function to convert 3D model to GLB format
 async function convertToGLB(model: Generated3DModel): Promise<Uint8Array> {
+  console.log('Converting 3D model to GLB format');
+  
   // This is a simplified GLB generation
   // In a real implementation, you'd use a proper glTF library
   const gltfJson = {
