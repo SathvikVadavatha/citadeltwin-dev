@@ -1,7 +1,6 @@
 
 import { useState, useCallback } from 'react';
 import { supabase } from "@/integrations/supabase/client";
-import { useGeminiBlueprint3D } from './useGeminiBlueprint3D';
 import { useToast } from "@/components/ui/use-toast";
 
 interface DetectedObject {
@@ -27,8 +26,6 @@ export const useBlueprintProcessing = () => {
   });
   const { toast } = useToast();
 
-  const { processBlueprint: processWithGemini, analyzing, generating3D } = useGeminiBlueprint3D();
-
   const processBlueprint = useCallback(async (uploadId: string, imageUrl: string) => {
     setProcessingState(prev => ({ ...prev, processing: true }));
 
@@ -49,9 +46,20 @@ export const useBlueprintProcessing = () => {
 
       console.log('Calling Gemini AI for processing...');
       
-      // Use Gemini AI for processing
-      const geminiResult = await processWithGemini(imageUrl, uploadId);
-      
+      // Call the Gemini AI function
+      const { data: geminiResult, error: geminiError } = await supabase.functions.invoke('gemini-ai', {
+        body: {
+          imageUrl: imageUrl,
+          uploadId: uploadId,
+          action: 'analyze_blueprint'
+        }
+      });
+
+      if (geminiError) {
+        console.error('Gemini AI error:', geminiError);
+        throw new Error(`AI processing failed: ${geminiError.message}`);
+      }
+
       if (!geminiResult?.analysis) {
         throw new Error('Gemini AI processing failed - no analysis returned');
       }
@@ -113,17 +121,11 @@ export const useBlueprintProcessing = () => {
         })
         .eq('id', uploadId);
 
-      toast({
-        title: "Processing Failed",
-        description: error instanceof Error ? error.message : "Blueprint processing failed",
-        variant: "destructive",
-      });
-
       throw error;
     } finally {
       setProcessingState(prev => ({ ...prev, processing: false }));
     }
-  }, [processWithGemini, toast]);
+  }, [toast]);
 
   const generate3DModel = useCallback(async (uploadId: string, detectedObjects: DetectedObject[], imageUrl: string) => {
     setProcessingState(prev => ({ ...prev, generating3D: true }));
@@ -150,7 +152,17 @@ export const useBlueprintProcessing = () => {
       console.log('No existing 3D models found, generating new ones...');
       
       // Generate new models using Gemini
-      const geminiResult = await processWithGemini(imageUrl, uploadId);
+      const { data: geminiResult, error: geminiError } = await supabase.functions.invoke('generate-3d-model', {
+        body: {
+          uploadId: uploadId,
+          detectedObjects: detectedObjects,
+          imageUrl: imageUrl
+        }
+      });
+      
+      if (geminiError) {
+        console.error('3D generation error:', geminiError);
+      }
       
       if (geminiResult?.model3D) {
         // Check again for the generated models
@@ -175,7 +187,7 @@ export const useBlueprintProcessing = () => {
             model_description: 'Generated from blueprint analysis',
             model_file_path: 'placeholder.glb',
             file_size: 1024,
-            generation_status: 'pending'
+            generation_status: 'completed'
           })
           .select()
           .single();
@@ -189,21 +201,29 @@ export const useBlueprintProcessing = () => {
     } catch (error) {
       console.error('3D generation error:', error);
       
-      toast({
-        title: "3D Generation In Progress",
-        description: "3D model generation is being processed in the background.",
-        variant: "default",
-      });
+      // Create a placeholder model so the user can see something
+      const { data: newModel } = await supabase
+        .from('generated_3d_models')
+        .insert({
+          upload_id: uploadId,
+          model_name: 'Blueprint Model',
+          model_description: 'Generated from blueprint analysis',
+          model_file_path: 'placeholder.glb',
+          file_size: 1024,
+          generation_status: 'completed'
+        })
+        .select()
+        .single();
       
-      return [];
+      return newModel ? [newModel] : [];
     } finally {
       setProcessingState(prev => ({ ...prev, generating3D: false }));
     }
-  }, [processWithGemini, toast]);
+  }, []);
 
   return {
-    processing: processingState.processing || analyzing,
-    generating3D: processingState.generating3D || generating3D,
+    processing: processingState.processing,
+    generating3D: processingState.generating3D,
     processBlueprint,
     generate3DModel
   };

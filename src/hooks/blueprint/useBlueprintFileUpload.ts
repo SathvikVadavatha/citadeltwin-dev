@@ -52,10 +52,10 @@ export const useBlueprintFileUpload = () => {
       console.log('File uploaded successfully:', uploadData);
       setUploadState(prev => ({ ...prev, uploadProgress: 50 }));
 
-      // Get the public URL for the uploaded file
+      // Get the public URL for the uploaded file - using the correct method
       const { data: urlData } = supabase.storage
         .from('blueprints')
-        .getPublicUrl(fileName);
+        .getPublicUrl(uploadData.path);
 
       if (!urlData?.publicUrl) {
         throw new Error('Failed to get public URL for uploaded file');
@@ -64,12 +64,22 @@ export const useBlueprintFileUpload = () => {
       console.log('Public URL generated:', urlData.publicUrl);
       setUploadState(prev => ({ ...prev, uploadProgress: 75 }));
 
+      // Test the URL accessibility before proceeding
+      try {
+        const testResponse = await fetch(urlData.publicUrl, { method: 'HEAD' });
+        if (!testResponse.ok) {
+          console.warn('URL accessibility test failed:', testResponse.status);
+        }
+      } catch (testError) {
+        console.warn('URL test failed, but continuing:', testError);
+      }
+
       // Insert record into database
       const { data: uploadRecord, error: dbError } = await supabase
         .from('blueprint_uploads')
         .insert({
           user_id: user.id,
-          filename: fileName,
+          filename: uploadData.path, // Use the storage path as filename
           original_filename: file.name,
           file_size: file.size,
           file_type: file.type,
