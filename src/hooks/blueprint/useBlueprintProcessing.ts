@@ -1,11 +1,10 @@
-
 import { useState, useCallback } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { updateUploadStatus, storeDetectionResults, storeProcessingMetadata } from './utils/databaseOperations';
 import { convertImageToBase64, analyzeImageCharacteristics } from './utils/imageProcessing';
 import { generateMockDetectionResults } from './utils/mockDataGenerator';
-import { processWithGemini } from './utils/geminiProcessor';
+import { processWithPlane2Scene } from './utils/plane2sceneProcessor';
 
 interface DetectedObject {
   label: string;
@@ -35,7 +34,7 @@ export const useBlueprintProcessing = () => {
   const { toast } = useToast();
 
   const processBlueprint = useCallback(async (uploadId: string, imageUrl: string) => {
-    console.log('🚀 Starting blueprint processing pipeline...');
+    console.log('🚀 Starting blueprint processing pipeline with Plane2Scene...');
     
     setProcessingState(prev => ({ 
       ...prev, 
@@ -57,37 +56,37 @@ export const useBlueprintProcessing = () => {
       let isAIGenerated = false;
       let processingError: string | undefined;
       
-      // Step 2: Attempt AI processing
+      // Step 2: Attempt Plane2Scene processing
       try {
-        console.log('🤖 Step 2: Attempting Gemini AI analysis...');
+        console.log('🏗️ Step 2: Attempting Plane2Scene AI analysis...');
         
         // Convert image to base64 with enhanced error handling
         const imageBase64 = await convertImageToBase64(imageUrl);
         console.log('✅ Image converted to base64 successfully');
         
-        // Process with Gemini AI
-        detectedObjects = await processWithGemini(imageBase64);
+        // Process with Plane2Scene AI
+        detectedObjects = await processWithPlane2Scene(imageBase64, uploadId);
         
         if (detectedObjects && detectedObjects.length > 0) {
           isAIGenerated = true;
           setProcessingState(prev => ({ ...prev, processingMethod: 'ai' }));
           
-          console.log('🎉 Gemini AI processing successful!', {
+          console.log('🎉 Plane2Scene AI processing successful!', {
             objectsCount: detectedObjects.length,
             elements: detectedObjects.map(obj => obj.label).join(', ')
           });
           
           toast({
-            title: "AI Analysis Complete! 🎯",
-            description: `Successfully analyzed your blueprint with AI. Found ${detectedObjects.length} architectural elements including ${detectedObjects.slice(0, 3).map(obj => obj.label).join(', ')}${detectedObjects.length > 3 ? ' and more' : ''}.`,
+            title: "Plane2Scene AI Analysis Complete! 🏗️",
+            description: `Successfully generated 3D model from your blueprint using Plane2Scene AI. Found ${detectedObjects.length} architectural elements including ${detectedObjects.slice(0, 3).map(obj => obj.label).join(', ')}${detectedObjects.length > 3 ? ' and more' : ''}.`,
           });
         } else {
-          throw new Error('AI analysis returned no results');
+          throw new Error('Plane2Scene analysis returned no results');
         }
         
       } catch (aiError) {
-        console.error('❌ AI processing failed:', aiError);
-        processingError = aiError instanceof Error ? aiError.message : 'AI processing failed';
+        console.error('❌ Plane2Scene processing failed:', aiError);
+        processingError = aiError instanceof Error ? aiError.message : 'Plane2Scene processing failed';
         
         // Step 3: Enhanced fallback with image-based generation
         console.log('🔄 Step 3: Generating enhanced fallback data...');
@@ -119,7 +118,7 @@ export const useBlueprintProcessing = () => {
         
         toast({
           title: "Using Sample Analysis 📋",
-          description: `AI analysis is currently unavailable (${processingError}). Showing ${detectedObjects.length} sample architectural elements based on your image characteristics. Try uploading a different format or try again later.`,
+          description: `Plane2Scene AI is currently unavailable (${processingError}). Showing ${detectedObjects.length} sample architectural elements based on your image characteristics. The 3D model generation may be limited.`,
           variant: "destructive",
         });
       }
@@ -140,7 +139,7 @@ export const useBlueprintProcessing = () => {
       await updateUploadStatus(uploadId, isAIGenerated ? 'processed' : 'processed_fallback');
 
       console.log('✅ Blueprint processing pipeline completed successfully!', {
-        method: isAIGenerated ? 'AI' : 'Fallback',
+        method: isAIGenerated ? 'Plane2Scene AI' : 'Fallback',
         objectsFound: detectedObjects.length,
         hasError: !!processingError
       });
