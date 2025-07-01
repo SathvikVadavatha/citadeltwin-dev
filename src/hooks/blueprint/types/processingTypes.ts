@@ -23,12 +23,23 @@ export interface Plan2SceneResult {
     type: string;
     confidence?: number;
     bounds?: { x: number; y: number; width: number; height: number };
+    bbox?: { x: number; y: number; width: number; height: number };
     area?: number;
   }>;
   walls?: Array<{
     start?: { x: number; y: number };
     end?: { x: number; y: number };
     confidence?: number;
+  }>;
+  elements?: Array<{
+    type: string;
+    confidence?: number;
+    position?: { x: number; y: number };
+    x?: number;
+    y?: number;
+    size?: { width: number; height: number };
+    width?: number;
+    height?: number;
   }>;
   error?: string;
   errorType?: string;

@@ -44,8 +44,10 @@ export const convertPlan2SceneToDetectedObjects = (plan2sceneResult: Plan2SceneR
   logger.info('🔍 Converting Plan2Scene results to DetectedObjects', 'Data Conversion', {
     hasRooms: !!plan2sceneResult.rooms,
     hasWalls: !!plan2sceneResult.walls,
+    hasElements: !!plan2sceneResult.elements,
     roomCount: plan2sceneResult.rooms?.length || 0,
-    wallCount: plan2sceneResult.walls?.length || 0
+    wallCount: plan2sceneResult.walls?.length || 0,
+    elementCount: plan2sceneResult.elements?.length || 0
   });
 
   // Convert rooms to detected objects
@@ -96,8 +98,10 @@ export const convertPlan2SceneToDetectedObjects = (plan2sceneResult: Plan2SceneR
     });
   }
 
-  // Add any additional elements from Plan2Scene
-  if (plan2sceneResult.elements && Array.isArray(plan2sceneResult.elements)) {
+  // Add any additional elements from Plan2Scene (now properly typed)
+  if (plan2sceneResult.elements && Array.isArray(plan2sceneResult.elements) && plan2sceneResult.elements.length > 0) {
+    logger.info(`🔧 Converting ${plan2sceneResult.elements.length} elements from Plan2Scene`, 'Data Conversion');
+    
     plan2sceneResult.elements.forEach((element: any) => {
       detectedObjects.push({
         label: mapElementTypeToLabel(element.type || 'fixture'),

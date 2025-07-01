@@ -7,7 +7,7 @@ export const updateUploadStatus = async (uploadId: string, status: string) => {
   try {
     const { error } = await supabase
       .from('blueprint_uploads')
-      .update({ status })
+      .update({ upload_status: status })
       .eq('id', uploadId);
     
     if (error) throw error;
@@ -30,14 +30,18 @@ export const storeDetectionResults = async (
   errorMessage?: string
 ) => {
   try {
+    // Store detection results in the dedicated table
     const { error } = await supabase
-      .from('blueprint_uploads')
-      .update({
+      .from('detection_results')
+      .insert({
+        upload_id: uploadId,
         detected_objects: detectedObjects,
         processing_method: isAIGenerated ? 'ai' : 'fallback',
-        error_message: errorMessage
-      })
-      .eq('id', uploadId);
+        is_ai_generated: isAIGenerated,
+        error_message: errorMessage,
+        confidence_threshold: 0.5,
+        processing_time_ms: 5000
+      });
     
     if (error) throw error;
     
@@ -57,12 +61,15 @@ export const storeDetectionResults = async (
 
 export const storeProcessingMetadata = async (uploadId: string, metadata: any) => {
   try {
+    // Update the existing detection result with metadata
     const { error } = await supabase
-      .from('blueprint_uploads')
+      .from('detection_results')
       .update({
-        processing_metadata: metadata
+        metadata: metadata
       })
-      .eq('id', uploadId);
+      .eq('upload_id', uploadId)
+      .order('created_at', { ascending: false })
+      .limit(1);
     
     if (error) throw error;
     
