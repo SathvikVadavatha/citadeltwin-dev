@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { updateUploadStatus, storeDetectionResults, storeProcessingMetadata } from './utils/databaseOperations';
 import { convertImageToBase64, analyzeImageCharacteristics } from './utils/imageProcessing';
 import { generateMockDetectionResults } from './utils/mockDataGenerator';
-import { processWithPlan2Scene } from './utils/plan2sceneProcessor';
 
 interface DetectedObject {
   label: string;
@@ -53,45 +52,50 @@ export const useBlueprintProcessing = () => {
       const imageCharacteristics = await analyzeImageCharacteristics(imageUrl);
       console.log('Image analysis results:', imageCharacteristics);
 
-      let detectedObjects: DetectedObject[];
+      let detectedObjects: DetectedObject[] = [];
       let isAIGenerated = false;
       let processingError: string | undefined;
       
-      // Step 2: Attempt Plan2Scene processing via edge function
+      // Step 2: Attempt Plan2Scene processing
       try {
-        console.log('🏗️ Step 2: Processing with Plan2Scene open-source engine...');
+        console.log('🏗️ Step 2: Processing with Plan2Scene...');
         
-        // Convert image to base64 for edge function
+        // Convert image to base64
         const imageBase64 = await convertImageToBase64(imageUrl);
-        console.log('✅ Image converted to base64 successfully');
+        console.log('✅ Image converted to base64, length:', imageBase64.length);
         
-        // Call Plan2Scene edge function directly
+        // Clean base64 data
+        const cleanImageData = imageBase64.startsWith('data:') ? 
+          imageBase64.split(',')[1] : imageBase64;
+        
         console.log('📤 Calling Plan2Scene edge function...');
         const { data: plan2sceneResult, error: plan2sceneError } = await supabase.functions.invoke('plan2scene-processor', {
           body: {
-            imageData: imageBase64.startsWith('data:') ? imageBase64.split(',')[1] : imageBase64,
+            imageData: cleanImageData,
             uploadId: uploadId
           }
         });
 
-        console.log('📥 Plan2Scene edge function response:', { 
+        console.log('📥 Plan2Scene response:', { 
           hasData: !!plan2sceneResult, 
           hasError: !!plan2sceneError,
-          success: plan2sceneResult?.success 
+          success: plan2sceneResult?.success,
+          error: plan2sceneResult?.error
         });
 
         if (plan2sceneError) {
           throw new Error(`Plan2Scene edge function error: ${plan2sceneError.message}`);
         }
 
-        if (!plan2sceneResult || !plan2sceneResult.success) {
-          throw new Error(`Plan2Scene processing failed: ${plan2sceneResult?.error || 'Unknown error'}`);
+        if (!plan2sceneResult?.success) {
+          const errorMsg = plan2sceneResult?.error || 'Plan2Scene processing failed';
+          throw new Error(errorMsg);
         }
 
-        // Convert Plan2Scene results to detected objects
-        detectedObjects = [];
-        
+        // Process Plan2Scene results
         if (plan2sceneResult.rooms && Array.isArray(plan2sceneResult.rooms)) {
+          console.log('🏠 Processing rooms from Plan2Scene:', plan2sceneResult.rooms.length);
+          
           plan2sceneResult.rooms.forEach((room: any) => {
             // Add room as detected object
             detectedObjects.push({
@@ -125,6 +129,8 @@ export const useBlueprintProcessing = () => {
 
         // Add walls if detected
         if (plan2sceneResult.walls && Array.isArray(plan2sceneResult.walls)) {
+          console.log('🧱 Processing walls from Plan2Scene:', plan2sceneResult.walls.length);
+          
           plan2sceneResult.walls.forEach((wall: any) => {
             detectedObjects.push({
               label: "wall",
@@ -150,7 +156,7 @@ export const useBlueprintProcessing = () => {
           
           toast({
             title: "Plan2Scene Analysis Complete! 🏗️",
-            description: `Successfully analyzed your blueprint using Plan2Scene open-source engine. Found ${detectedObjects.length} architectural elements.`,
+            description: `Successfully analyzed your blueprint using Plan2Scene. Found ${detectedObjects.length} architectural elements.`,
           });
         } else {
           throw new Error('Plan2Scene analysis returned no results');

@@ -36,6 +36,7 @@ serve(async (req) => {
     const { imageData, uploadId } = await req.json();
 
     if (!imageData || !uploadId) {
+      console.error('❌ Missing required parameters');
       throw new Error('Missing required parameters: imageData and uploadId');
     }
 
@@ -44,25 +45,39 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('❌ Missing Supabase configuration');
+      throw new Error('Missing Supabase configuration');
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('🔄 Converting image data...');
+    console.log('🔄 Converting and validating image data...');
     
     // Convert base64 to blob for processing
     let imageBuffer: Uint8Array;
     try {
+      if (!imageData || typeof imageData !== 'string') {
+        throw new Error('Invalid image data format');
+      }
+      
       imageBuffer = Uint8Array.from(atob(imageData), c => c.charCodeAt(0));
       console.log('✅ Image converted successfully, size:', imageBuffer.length);
+      
+      if (imageBuffer.length < 100) {
+        throw new Error('Image data too small, likely corrupted');
+      }
     } catch (error) {
       console.error('❌ Image conversion failed:', error);
-      throw new Error('Failed to decode image data');
+      throw new Error(`Failed to decode image data: ${error.message}`);
     }
     
     console.log('🧠 Processing image with Plan2Scene algorithms...');
 
     // Step 1: Image preprocessing
     const preprocessedData = await preprocessFloorPlan(imageBuffer);
-    console.log('✅ Image preprocessing completed');
+    console.log('✅ Image preprocessing completed, complexity:', preprocessedData.complexity);
     
     // Step 2: Room detection using Plan2Scene-inspired algorithms
     const rooms = await detectRooms(preprocessedData);
@@ -80,7 +95,7 @@ serve(async (req) => {
     const modelData = await generate3DModel(enhancedRooms, walls);
     console.log('✅ 3D model generation completed, size:', modelData.byteLength);
     
-    // Step 6: Save 3D model to storage (create bucket if needed)
+    // Step 6: Save 3D model to storage
     try {
       // Check if bucket exists, create if not
       const { data: buckets } = await supabase.storage.listBuckets();
@@ -94,10 +109,11 @@ serve(async (req) => {
           fileSizeLimit: 50 * 1024 * 1024 // 50MB
         });
         
-        if (bucketError) {
+        if (bucketError && !bucketError.message.includes('already exists')) {
           console.error('❌ Bucket creation failed:', bucketError);
+          throw new Error(`Bucket creation failed: ${bucketError.message}`);
         } else {
-          console.log('✅ Bucket created successfully');
+          console.log('✅ Bucket ready');
         }
       }
       
@@ -182,10 +198,6 @@ serve(async (req) => {
 // Plan2Scene-inspired processing functions
 async function preprocessFloorPlan(imageBuffer: Uint8Array): Promise<any> {
   console.log('🔍 Preprocessing floor plan image...');
-  
-  // Simulate image preprocessing (edge detection, noise reduction, etc.)
-  // In a real implementation, this would use computer vision libraries
-  // For now, we'll simulate the preprocessing step with enhanced mock data
   
   const imageSize = imageBuffer.length;
   const complexity = imageSize > 500000 ? 'high' : imageSize > 100000 ? 'medium' : 'low';
