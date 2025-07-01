@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   Upload, 
   Download, 
@@ -13,7 +14,10 @@ import {
   Home, 
   Box,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Brain,
+  TestTube,
+  RefreshCw
 } from "lucide-react";
 
 interface Generated3DModel {
@@ -35,6 +39,8 @@ interface UploadResult {
   generated3DModels?: Generated3DModel[];
   floorPlanData?: any;
   geminiAnalysis?: any;
+  processingMethod?: 'ai' | 'fallback';
+  errorMessage?: string;
 }
 
 interface UploadResultsProps {
@@ -56,6 +62,8 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
   const totalDetectedObjects = uploadResult.detectedObjects?.length || 0;
   const totalRooms = uploadResult.floorPlanData?.rooms?.length || 0;
   const totalArea = uploadResult.floorPlanData?.rooms?.reduce((sum: number, room: any) => sum + (room.area || 0), 0) || 0;
+  const isAIGenerated = uploadResult.processingMethod === 'ai';
+  const isFallback = uploadResult.processingMethod === 'fallback';
 
   const handleImageError = () => {
     setImageError(true);
@@ -69,6 +77,30 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Processing Status Alert */}
+      {isFallback && (
+        <Alert className="border-orange-200 bg-orange-50">
+          <TestTube className="h-4 w-4 text-orange-600" />
+          <AlertDescription className="text-orange-800">
+            <strong>Sample Analysis Mode:</strong> AI processing was unavailable, so we're showing sample architectural elements. 
+            The analysis below demonstrates typical blueprint detection capabilities. 
+            <Button variant="link" className="h-auto p-0 ml-2 text-orange-700 underline" onClick={onReset}>
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Try uploading a different image
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isAIGenerated && (
+        <Alert className="border-green-200 bg-green-50">
+          <Brain className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">
+            <strong>AI Analysis Complete:</strong> Your blueprint was successfully analyzed using advanced AI technology.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header Stats */}
       <Card>
         <CardHeader>
@@ -77,10 +109,23 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-5 w-5" />
                 Analysis Complete
-                <CheckCircle className="h-5 w-5 text-green-500" />
+                {isAIGenerated ? (
+                  <Badge variant="default" className="bg-green-600">
+                    <Brain className="h-3 w-3 mr-1" />
+                    AI Powered
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+                    <TestTube className="h-3 w-3 mr-1" />
+                    Sample Data
+                  </Badge>
+                )}
               </CardTitle>
               <p className="text-muted-foreground mt-1">
-                Successfully processed {uploadResult.filename}
+                {isAIGenerated 
+                  ? `AI analysis of ${uploadResult.filename}`
+                  : `Sample analysis demonstration for ${uploadResult.filename}`
+                }
               </p>
             </div>
             <Button onClick={onReset} variant="outline">
@@ -189,6 +234,22 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
             <CardContent>
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
+                  <span>Analysis Method:</span>
+                  <Badge variant={isAIGenerated ? "default" : "secondary"}>
+                    {isAIGenerated ? (
+                      <>
+                        <Brain className="h-3 w-3 mr-1" />
+                        AI Powered
+                      </>
+                    ) : (
+                      <>
+                        <TestTube className="h-3 w-3 mr-1" />
+                        Sample Data
+                      </>
+                    )}
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center">
                   <span>Elements Detected:</span>
                   <Badge variant="secondary">{totalDetectedObjects}</Badge>
                 </div>
@@ -258,6 +319,11 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
               <CardTitle className="flex items-center gap-2">
                 <Eye className="h-5 w-5" />
                 Detected Elements ({totalDetectedObjects})
+                {isFallback && (
+                  <Badge variant="outline" className="ml-2 text-orange-600 border-orange-300">
+                    Sample Data
+                  </Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -275,7 +341,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                             <div className="font-medium capitalize">{obj.label}</div>
                             {obj.bbox && (
                               <div className="text-sm text-muted-foreground">
-                                {Math.round(obj.bbox.width)}×{Math.round(obj.bbox.height)} px
+                                {Math.round(obj.bbox.width)}×{Math.round(obj.bbox.height)} units
                               </div>
                             )}
                           </div>
@@ -355,6 +421,11 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                           >
                             {model.generation_status}
                           </Badge>
+                          {isFallback && (
+                            <Badge variant="outline" className="text-orange-600 border-orange-300">
+                              Sample Model
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       <Button 
@@ -371,17 +442,24 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
             </Card>
           )}
 
-          {/* Debug Information */}
-          {uploadResult.geminiAnalysis && (
-            <Card>
+          {/* Processing Info */}
+          {uploadResult.errorMessage && (
+            <Card className="border-orange-200">
               <CardHeader>
-                <CardTitle>AI Analysis Details</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-orange-700">
+                  <AlertCircle className="h-5 w-5" />
+                  Processing Information
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-sm">
-                  <p><strong>Building Type:</strong> {uploadResult.geminiAnalysis.buildingType || 'Unknown'}</p>
-                  <p><strong>Scale:</strong> {uploadResult.geminiAnalysis.scale || 'Not detected'}</p>
-                  <p><strong>Total Elements:</strong> {uploadResult.geminiAnalysis.elements?.length || 0}</p>
+                <div className="text-sm text-orange-600">
+                  <p><strong>AI Processing Status:</strong> Failed</p>
+                  <p><strong>Fallback Mode:</strong> Sample data generated</p>
+                  <p><strong>Note:</strong> {uploadResult.errorMessage}</p>
+                  <Button variant="outline" size="sm" className="mt-2" onClick={onReset}>
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Try Different Image
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -404,7 +482,9 @@ function getColorForLabel(label: string): string {
     bathroom: '#06b6d4',
     fixture: '#84cc16',
     beam: '#f97316',
-    column: '#64748b'
+    column: '#64748b',
+    stairs: '#ec4899',
+    closet: '#8b5cf6'
   };
   return colors[label?.toLowerCase()] || '#6b7280';
 }
