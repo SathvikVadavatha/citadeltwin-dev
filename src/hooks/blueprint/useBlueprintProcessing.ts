@@ -32,7 +32,7 @@ export const useBlueprintProcessing = () => {
     try {
       console.log('Starting blueprint processing for:', uploadId, imageUrl);
 
-      // Update status to processing (handle the database update error)
+      // Update status to processing
       try {
         const { error: updateError } = await supabase
           .from('blueprint_uploads')
@@ -80,8 +80,8 @@ export const useBlueprintProcessing = () => {
           }
         ];
         
-        await this.storeDetectionResults(uploadId, mockObjects);
-        await this.updateUploadStatus(uploadId, 'processed');
+        await storeDetectionResults(uploadId, mockObjects);
+        await updateUploadStatus(uploadId, 'processed');
         return mockObjects;
       }
       
@@ -145,10 +145,10 @@ export const useBlueprintProcessing = () => {
       console.log('Object extraction completed:', detectedObjects.length, 'objects found');
 
       // Store the detection results
-      await this.storeDetectionResults(uploadId, detectedObjects);
+      await storeDetectionResults(uploadId, detectedObjects);
 
       // Update upload status to processed
-      await this.updateUploadStatus(uploadId, 'processed');
+      await updateUploadStatus(uploadId, 'processed');
 
       console.log('Processing completed successfully');
       return detectedObjects;
@@ -157,7 +157,7 @@ export const useBlueprintProcessing = () => {
       console.error('Blueprint processing failed:', error);
       
       // Update upload status to show processing failed
-      await this.updateUploadStatus(uploadId, 'failed');
+      await updateUploadStatus(uploadId, 'failed');
 
       throw error;
     } finally {
