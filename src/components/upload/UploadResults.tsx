@@ -1,9 +1,12 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Model3DViewer } from "@/components/3d/Model3DViewer";
+import { SceneGenerator } from "@/components/3d/SceneGenerator";
 import { 
   Upload, 
   Download, 
@@ -17,7 +20,8 @@ import {
   CheckCircle,
   Brain,
   TestTube,
-  RefreshCw
+  RefreshCw,
+  Cube
 } from "lucide-react";
 
 interface Generated3DModel {
@@ -54,7 +58,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
   onReset,
   onDownload3DModel
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'blueprint' | 'analysis'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'blueprint' | 'analysis' | '3d-view'>('overview');
   const [imageError, setImageError] = useState(false);
 
   console.log('UploadResults received:', uploadResult);
@@ -64,6 +68,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
   const totalArea = uploadResult.floorPlanData?.rooms?.reduce((sum: number, room: any) => sum + (room.area || 0), 0) || 0;
   const isAIGenerated = uploadResult.processingMethod === 'ai';
   const isFallback = uploadResult.processingMethod === 'fallback';
+  const has3DModels = uploadResult.generated3DModels && uploadResult.generated3DModels.length > 0;
 
   const handleImageError = () => {
     setImageError(true);
@@ -74,6 +79,10 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
     setImageError(false);
     console.log('Image loaded successfully:', uploadResult.imageUrl);
   };
+
+  // Get the first 3D model for the viewer
+  const primary3DModel = uploadResult.generated3DModels?.[0];
+  const modelUrl = primary3DModel ? `/api/3d-models/${primary3DModel.model_file_path}` : undefined;
 
   return (
     <div className="space-y-6">
@@ -190,6 +199,15 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
         >
           <Home className="h-4 w-4 mr-2" />
           Analysis
+        </Button>
+        <Button
+          variant={activeTab === '3d-view' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setActiveTab('3d-view')}
+          className="flex-1"
+        >
+          <Cube className="h-4 w-4 mr-2" />
+          3D View
         </Button>
       </div>
 
@@ -317,6 +335,58 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                 />
               )}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === '3d-view' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Cube className="h-5 w-5" />
+              3D Model Viewer
+              {has3DModels && (
+                <Badge variant="outline" className="ml-2">
+                  Interactive
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {has3DModels ? (
+              <div className="space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  <p>Interactive 3D model generated from your blueprint. Use mouse to rotate, zoom, and explore.</p>
+                </div>
+                <div className="h-96 border rounded-lg overflow-hidden">
+                  <Model3DViewer 
+                    uploadId={uploadResult.id}
+                    modelUrl={modelUrl}
+                    useEnhancedViewer={true}
+                  />
+                </div>
+                {uploadResult.floorPlanData && (
+                  <div className="mt-6">
+                    <h4 className="text-sm font-medium mb-3">Floor Plan Visualization</h4>
+                    <SceneGenerator floorPlanData={uploadResult.floorPlanData} />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-64 text-muted-foreground">
+                <div className="text-center">
+                  <Cube className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <h3 className="text-lg font-medium mb-2">No 3D Model Available</h3>
+                  <p className="text-sm">
+                    3D model generation is in progress or encountered an issue.
+                  </p>
+                  <Button variant="outline" size="sm" className="mt-3" onClick={onReset}>
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Try Again
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
