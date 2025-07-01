@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Upload, 
@@ -70,7 +69,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header Stats */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -114,7 +113,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
         </CardContent>
       </Card>
 
-      {/* Navigation Tabs */}
+      {/* Tab Navigation */}
       <div className="flex space-x-1 bg-muted p-1 rounded-lg">
         <Button
           variant={activeTab === 'overview' ? 'default' : 'ghost'}
@@ -162,7 +161,8 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                   <div className="flex items-center justify-center h-full text-muted-foreground">
                     <div className="text-center">
                       <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-                      <p>Image not available</p>
+                      <p>Image loading failed</p>
+                      <p className="text-xs mt-1">URL: {uploadResult.imageUrl}</p>
                     </div>
                   </div>
                 ) : (
@@ -183,7 +183,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-5 w-5" />
-                Quick Stats
+                Analysis Summary
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -204,6 +204,12 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                   <span>3D Models:</span>
                   <Badge variant="secondary">{uploadResult.generated3DModels?.length || 0}</Badge>
                 </div>
+                {uploadResult.processingTime && (
+                  <div className="flex justify-between items-center">
+                    <span>Processing Time:</span>
+                    <Badge variant="outline">{(uploadResult.processingTime / 1000).toFixed(1)}s</Badge>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -255,7 +261,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-64">
+              <ScrollArea className="max-h-64">
                 <div className="space-y-2">
                   {uploadResult.detectedObjects && uploadResult.detectedObjects.length > 0 ? (
                     uploadResult.detectedObjects.map((obj, index) => (
@@ -282,7 +288,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
                       <Eye className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>No elements detected</p>
+                      <p>No elements detected in this analysis</p>
                     </div>
                   )}
                 </div>
@@ -304,16 +310,16 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                   {uploadResult.floorPlanData.rooms.map((room: any, index: number) => (
                     <div key={index} className="p-4 border rounded-lg">
                       <div className="flex items-center justify-between mb-2">
-                        <h5 className="font-medium">{room.name}</h5>
+                        <h5 className="font-medium">{room.name || `Room ${index + 1}`}</h5>
                         <Badge variant="outline" className="capitalize">
-                          {room.type}
+                          {room.type || 'Unknown'}
                         </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground space-y-1">
-                        <div>Area: {room.area} ft²</div>
+                        <div>Area: {room.area || 0} ft²</div>
                         {room.bounds && (
                           <div>
-                            Dimensions: {room.bounds.width}×{room.bounds.height} ft
+                            Dimensions: {room.bounds.width || 0}×{room.bounds.height || 0} ft
                           </div>
                         )}
                       </div>
@@ -360,6 +366,22 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                       </Button>
                     </div>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Debug Information */}
+          {uploadResult.geminiAnalysis && (
+            <Card>
+              <CardHeader>
+                <CardTitle>AI Analysis Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm">
+                  <p><strong>Building Type:</strong> {uploadResult.geminiAnalysis.buildingType || 'Unknown'}</p>
+                  <p><strong>Scale:</strong> {uploadResult.geminiAnalysis.scale || 'Not detected'}</p>
+                  <p><strong>Total Elements:</strong> {uploadResult.geminiAnalysis.elements?.length || 0}</p>
                 </div>
               </CardContent>
             </Card>
