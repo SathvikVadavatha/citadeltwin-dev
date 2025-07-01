@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { updateUploadStatus, storeDetectionResults, storeProcessingMetadata } from './utils/databaseOperations';
 import { convertImageToBase64, analyzeImageCharacteristics } from './utils/imageProcessing';
 import { generateMockDetectionResults } from './utils/mockDataGenerator';
-import { processWithPlane2Scene } from './utils/plane2sceneProcessor';
+import { processWithPlan2Scene } from './utils/plan2sceneProcessor';
 
 interface DetectedObject {
   label: string;
@@ -34,7 +34,7 @@ export const useBlueprintProcessing = () => {
   const { toast } = useToast();
 
   const processBlueprint = useCallback(async (uploadId: string, imageUrl: string) => {
-    console.log('🚀 Starting blueprint processing pipeline with Plane2Scene...');
+    console.log('🚀 Starting blueprint processing pipeline with Plan2Scene...');
     
     setProcessingState(prev => ({ 
       ...prev, 
@@ -56,37 +56,37 @@ export const useBlueprintProcessing = () => {
       let isAIGenerated = false;
       let processingError: string | undefined;
       
-      // Step 2: Attempt Plane2Scene processing
+      // Step 2: Attempt Plan2Scene processing
       try {
-        console.log('🏗️ Step 2: Attempting Plane2Scene AI analysis...');
+        console.log('🏗️ Step 2: Attempting Plan2Scene open-source analysis...');
         
         // Convert image to base64 with enhanced error handling
         const imageBase64 = await convertImageToBase64(imageUrl);
         console.log('✅ Image converted to base64 successfully');
         
-        // Process with Plane2Scene AI
-        detectedObjects = await processWithPlane2Scene(imageBase64, uploadId);
+        // Process with Plan2Scene open-source algorithms
+        detectedObjects = await processWithPlan2Scene(imageBase64, uploadId);
         
         if (detectedObjects && detectedObjects.length > 0) {
           isAIGenerated = true;
           setProcessingState(prev => ({ ...prev, processingMethod: 'ai' }));
           
-          console.log('🎉 Plane2Scene AI processing successful!', {
+          console.log('🎉 Plan2Scene processing successful!', {
             objectsCount: detectedObjects.length,
             elements: detectedObjects.map(obj => obj.label).join(', ')
           });
           
           toast({
-            title: "Plane2Scene AI Analysis Complete! 🏗️",
-            description: `Successfully generated 3D model from your blueprint using Plane2Scene AI. Found ${detectedObjects.length} architectural elements including ${detectedObjects.slice(0, 3).map(obj => obj.label).join(', ')}${detectedObjects.length > 3 ? ' and more' : ''}.`,
+            title: "Plan2Scene Analysis Complete! 🏗️",
+            description: `Successfully generated 3D model from your blueprint using open-source Plan2Scene algorithms. Found ${detectedObjects.length} architectural elements including ${detectedObjects.slice(0, 3).map(obj => obj.label).join(', ')}${detectedObjects.length > 3 ? ' and more' : ''}.`,
           });
         } else {
-          throw new Error('Plane2Scene analysis returned no results');
+          throw new Error('Plan2Scene analysis returned no results');
         }
         
       } catch (aiError) {
-        console.error('❌ Plane2Scene processing failed:', aiError);
-        processingError = aiError instanceof Error ? aiError.message : 'Plane2Scene processing failed';
+        console.error('❌ Plan2Scene processing failed:', aiError);
+        processingError = aiError instanceof Error ? aiError.message : 'Plan2Scene processing failed';
         
         // Step 3: Enhanced fallback with image-based generation
         console.log('🔄 Step 3: Generating enhanced fallback data...');
@@ -118,7 +118,7 @@ export const useBlueprintProcessing = () => {
         
         toast({
           title: "Using Sample Analysis 📋",
-          description: `Plane2Scene AI is currently unavailable (${processingError}). Showing ${detectedObjects.length} sample architectural elements based on your image characteristics. The 3D model generation may be limited.`,
+          description: `Plan2Scene processing is currently unavailable (${processingError}). Showing ${detectedObjects.length} sample architectural elements based on your image characteristics. The 3D model generation may be limited.`,
           variant: "destructive",
         });
       }
@@ -139,7 +139,7 @@ export const useBlueprintProcessing = () => {
       await updateUploadStatus(uploadId, isAIGenerated ? 'processed' : 'processed_fallback');
 
       console.log('✅ Blueprint processing pipeline completed successfully!', {
-        method: isAIGenerated ? 'Plane2Scene AI' : 'Fallback',
+        method: isAIGenerated ? 'Plan2Scene Open-Source' : 'Fallback',
         objectsFound: detectedObjects.length,
         hasError: !!processingError
       });
@@ -191,19 +191,19 @@ export const useBlueprintProcessing = () => {
       
       const isAIGenerated = processingState.processingMethod === 'ai';
       const modelDescription = isAIGenerated 
-        ? `AI-generated 3D model from advanced blueprint analysis with ${detectedObjects.length} detected architectural elements`
-        : `3D model generated from enhanced sample data (${detectedObjects.length} elements) - AI analysis was temporarily unavailable`;
+        ? `AI-generated 3D model from open-source Plan2Scene analysis with ${detectedObjects.length} detected architectural elements`
+        : `3D model generated from enhanced sample data (${detectedObjects.length} elements) - Plan2Scene analysis was temporarily unavailable`;
 
       const { data: newModel } = await supabase
         .from('generated_3d_models')
         .insert({
           upload_id: uploadId,
-          model_name: isAIGenerated ? 'AI-Analyzed Blueprint Model' : 'Sample Blueprint Model',
+          model_name: isAIGenerated ? 'Plan2Scene Analyzed Model' : 'Sample Blueprint Model',
           model_description: modelDescription,
           model_file_path: 'placeholder.glb',
           file_size: 1024,
           generation_status: 'completed',
-          generation_prompt: isAIGenerated ? 'AI-analyzed architectural blueprint' : 'Enhanced sample data with image characteristics'
+          generation_prompt: isAIGenerated ? 'Plan2Scene open-source architectural blueprint analysis' : 'Enhanced sample data with image characteristics'
         })
         .select()
         .single();

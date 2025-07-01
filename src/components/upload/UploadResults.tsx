@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,7 +81,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
         <Alert className="border-orange-200 bg-orange-50">
           <TestTube className="h-4 w-4 text-orange-600" />
           <AlertDescription className="text-orange-800">
-            <strong>Sample Analysis Mode:</strong> AI processing was unavailable, so we're showing sample architectural elements. 
+            <strong>Sample Analysis Mode:</strong> Plan2Scene processing was unavailable, so we're showing sample architectural elements. 
             The analysis below demonstrates typical blueprint detection capabilities. 
             <Button variant="link" className="h-auto p-0 ml-2 text-orange-700 underline" onClick={onReset}>
               <RefreshCw className="h-3 w-3 mr-1" />
@@ -96,7 +95,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
         <Alert className="border-green-200 bg-green-50">
           <Brain className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-800">
-            <strong>AI Analysis Complete:</strong> Your blueprint was successfully analyzed using advanced AI technology.
+            <strong>Plan2Scene Analysis Complete:</strong> Your blueprint was successfully analyzed using open-source Plan2Scene algorithms for accurate architectural understanding.
           </AlertDescription>
         </Alert>
       )}
@@ -112,7 +111,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                 {isAIGenerated ? (
                   <Badge variant="default" className="bg-green-600">
                     <Brain className="h-3 w-3 mr-1" />
-                    AI Powered
+                    Plan2Scene AI
                   </Badge>
                 ) : (
                   <Badge variant="secondary" className="bg-orange-100 text-orange-800">
@@ -123,7 +122,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
               </CardTitle>
               <p className="text-muted-foreground mt-1">
                 {isAIGenerated 
-                  ? `AI analysis of ${uploadResult.filename}`
+                  ? `Plan2Scene open-source analysis of ${uploadResult.filename}`
                   : `Sample analysis demonstration for ${uploadResult.filename}`
                 }
               </p>
@@ -239,7 +238,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                     {isAIGenerated ? (
                       <>
                         <Brain className="h-3 w-3 mr-1" />
-                        AI Powered
+                        Plan2Scene AI
                       </>
                     ) : (
                       <>
@@ -453,7 +452,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
               </CardHeader>
               <CardContent>
                 <div className="text-sm text-orange-600">
-                  <p><strong>AI Processing Status:</strong> Failed</p>
+                  <p><strong>Plan2Scene Processing Status:</strong> Failed</p>
                   <p><strong>Fallback Mode:</strong> Sample data generated</p>
                   <p><strong>Note:</strong> {uploadResult.errorMessage}</p>
                   <Button variant="outline" size="sm" className="mt-2" onClick={onReset}>

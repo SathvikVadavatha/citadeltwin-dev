@@ -42,12 +42,13 @@ export const storeDetectionResults = async (
         upload_id: uploadId,
         detected_objects: detectedObjects as any,
         processing_time_ms: 5000,
-        model_used: isAIGenerated ? 'gemini-pro-vision' : 'mock-fallback',
+        model_used: isAIGenerated ? 'plan2scene-opensource' : 'mock-fallback',
         confidence_threshold: 0.7,
         metadata: {
           is_ai_generated: isAIGenerated,
           processing_error: processingError,
-          fallback_reason: isAIGenerated ? null : 'AI processing failed',
+          fallback_reason: isAIGenerated ? null : 'Plan2Scene processing failed',
+          processing_method: isAIGenerated ? 'plan2scene' : 'fallback',
           timestamp: new Date().toISOString()
         }
       });
@@ -58,7 +59,8 @@ export const storeDetectionResults = async (
       console.log(`Detection results stored for upload ${uploadId}`, {
         objectCount: detectedObjects.length,
         isAIGenerated,
-        hasError: !!processingError
+        hasError: !!processingError,
+        method: isAIGenerated ? 'Plan2Scene' : 'Fallback'
       });
     }
   } catch (error) {
