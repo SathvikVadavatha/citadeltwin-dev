@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -179,7 +180,7 @@ export const useBlueprintProcessing = () => {
     updateProcessingState({ generating3D: true });
 
     try {
-      logger.info('🏗️ Starting enhanced 3D model generation', '3D Generation', {
+      logger.info('🏗️ Starting enhanced 3D model generation via Plan2Scene processor', '3D Generation', {
         uploadId,
         objectCount: detectedObjects.length
       });
@@ -198,34 +199,68 @@ export const useBlueprintProcessing = () => {
         return existingModels;
       }
 
-      logger.info('🆕 Creating new enhanced 3D model record', '3D Generation');
+      logger.info('🆕 Calling Plan2Scene processor for 3D model generation', '3D Generation');
       
-      const isAIGenerated = processingState.processingMethod === 'ai';
-      const modelDescription = isAIGenerated 
-        ? `Enhanced 3D model generated from Plan2Scene AI analysis with ${detectedObjects.length} detected architectural elements including rooms, walls, doors, windows, and fixtures. High-quality AI processing with detailed semantic understanding.`
-        : `Enhanced 3D model generated from sample data (${detectedObjects.length} elements) - Plan2Scene AI analysis was temporarily unavailable. Fallback model maintains architectural accuracy.`;
-
-      const { data: newModel } = await supabase
-        .from('generated_3d_models')
-        .insert({
-          upload_id: uploadId,
-          model_name: isAIGenerated ? 'Plan2Scene AI Enhanced Model' : 'Enhanced Sample Blueprint Model',
-          model_description: modelDescription,
-          model_file_path: 'placeholder.glb',
-          file_size: isAIGenerated ? 8192 : 4096, // Larger size for AI models
-          generation_status: 'completed',
-          generation_prompt: isAIGenerated ? 'Plan2Scene AI enhanced architectural analysis with semantic understanding' : 'Enhanced sample data with architectural intelligence'
-        })
-        .select()
-        .single();
-
-      logger.info('✅ Enhanced 3D model generation completed', '3D Generation', {
-        modelId: newModel?.id,
-        isAIGenerated,
-        fileSize: newModel?.file_size
+      // Call the Plan2Scene processor edge function for 3D model generation
+      const { data: result, error } = await supabase.functions.invoke('plan2scene-processor', {
+        body: {
+          imageData: imageUrl,
+          uploadId: uploadId,
+          generate3D: true,
+          debug: true
+        }
       });
 
-      return newModel ? [newModel] : [];
+      if (error) {
+        logger.error('Plan2Scene processor error for 3D generation', '3D Generation', { error });
+        throw error;
+      }
+
+      if (result?.success && result?.modelId) {
+        logger.info('✅ Plan2Scene 3D model generation successful', '3D Generation', {
+          modelId: result.modelId,
+          modelUrl: result.modelUrl
+        });
+
+        // Fetch the created model from database
+        const { data: newModel } = await supabase
+          .from('generated_3d_models')
+          .select('*')
+          .eq('id', result.modelId)
+          .single();
+
+        return newModel ? [newModel] : [];
+      } else {
+        // Fallback to creating a sample model record
+        logger.info('🔄 Plan2Scene 3D generation failed, creating fallback model', '3D Generation');
+        
+        const isAIGenerated = processingState.processingMethod === 'ai';
+        const modelDescription = isAIGenerated 
+          ? `Enhanced 3D model generated from Plan2Scene AI analysis with ${detectedObjects.length} detected architectural elements including rooms, walls, doors, windows, and fixtures. High-quality AI processing with detailed semantic understanding.`
+          : `Enhanced 3D model generated from sample data (${detectedObjects.length} elements) - Plan2Scene AI analysis was temporarily unavailable. Fallback model maintains architectural accuracy.`;
+
+        const { data: newModel } = await supabase
+          .from('generated_3d_models')
+          .insert({
+            upload_id: uploadId,
+            model_name: isAIGenerated ? 'Plan2Scene AI Enhanced Model' : 'Enhanced Sample Blueprint Model',
+            model_description: modelDescription,
+            model_file_path: 'placeholder.glb',
+            file_size: isAIGenerated ? 8192 : 4096,
+            generation_status: 'completed',
+            generation_prompt: isAIGenerated ? 'Plan2Scene AI enhanced architectural analysis with semantic understanding' : 'Enhanced sample data with architectural intelligence'
+          })
+          .select()
+          .single();
+
+        logger.info('✅ Enhanced 3D model generation completed', '3D Generation', {
+          modelId: newModel?.id,
+          isAIGenerated,
+          fileSize: newModel?.file_size
+        });
+
+        return newModel ? [newModel] : [];
+      }
       
     } catch (error) {
       logger.error('💥 Enhanced 3D generation error', '3D Generation', {

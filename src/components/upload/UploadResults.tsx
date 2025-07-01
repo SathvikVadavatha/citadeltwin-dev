@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Model3DViewer } from "@/components/3d/Model3DViewer";
 import { SceneGenerator } from "@/components/3d/SceneGenerator";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Upload, 
   Download, 
@@ -78,12 +79,30 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
     console.log('Image loaded successfully:', uploadResult.imageUrl);
   };
 
-  // Get the first 3D model for the viewer - fix the modelUrl construction
+  // Get model URL for 3D viewer
+  const get3DModelUrl = (model: Generated3DModel) => {
+    if (!model || model.model_file_path === 'placeholder.glb') {
+      return null;
+    }
+    
+    // Get public URL from Supabase storage
+    const { data } = supabase.storage
+      .from('3d-models')
+      .getPublicUrl(model.model_file_path);
+    
+    return data.publicUrl;
+  };
+
   const primary3DModel = uploadResult.generated3DModels?.[0];
+  const modelUrl = primary3DModel ? get3DModelUrl(primary3DModel) : null;
   
-  // Log the model data for debugging
-  console.log('Primary 3D Model:', primary3DModel);
-  console.log('Upload ID for 3D viewer:', uploadResult.id);
+  console.log('3D Model Debug:', {
+    primary3DModel,
+    modelUrl,
+    uploadId: uploadResult.id,
+    has3DModels,
+    hasFloorPlanData: !!uploadResult.floorPlanData
+  });
 
   return (
     <div className="space-y-6">
@@ -346,7 +365,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
             <CardTitle className="flex items-center gap-2">
               <Box className="h-5 w-5" />
               3D Model Viewer
-              {has3DModels && (
+              {(has3DModels || uploadResult.floorPlanData) && (
                 <Badge variant="outline" className="ml-2">
                   Interactive
                 </Badge>
@@ -354,39 +373,34 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {has3DModels ? (
-              <div className="space-y-4">
-                <div className="text-sm text-muted-foreground">
-                  <p>Interactive 3D model generated from your blueprint. Use mouse to rotate, zoom, and explore.</p>
-                </div>
-                <div className="h-96 border rounded-lg overflow-hidden">
+            <div className="space-y-4">
+              <div className="text-sm text-muted-foreground">
+                <p>Interactive 3D visualization of your blueprint analysis.</p>
+              </div>
+              <div className="h-96 border rounded-lg overflow-hidden">
+                {modelUrl ? (
+                  <Model3DViewer 
+                    modelUrl={modelUrl}
+                    modelName={primary3DModel?.model_name}
+                    uploadId={uploadResult.id}
+                    projectId={uploadResult.id}
+                    onDownload={() => primary3DModel && onDownload3DModel(primary3DModel)}
+                  />
+                ) : uploadResult.floorPlanData && uploadResult.floorPlanData.rooms?.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="text-sm text-muted-foreground">
+                      <p>Floor plan visualization generated from detected elements.</p>
+                    </div>
+                    <SceneGenerator floorPlanData={uploadResult.floorPlanData} />
+                  </div>
+                ) : (
                   <Model3DViewer 
                     uploadId={uploadResult.id}
                     projectId={uploadResult.id}
                   />
-                </div>
-                {uploadResult.floorPlanData && (
-                  <div className="mt-6">
-                    <h4 className="text-sm font-medium mb-3">Floor Plan Visualization</h4>
-                    <SceneGenerator floorPlanData={uploadResult.floorPlanData} />
-                  </div>
                 )}
               </div>
-            ) : (
-              <div className="flex items-center justify-center h-64 text-muted-foreground">
-                <div className="text-center">
-                  <Box className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <h3 className="text-lg font-medium mb-2">No 3D Model Available</h3>
-                  <p className="text-sm">
-                    3D model generation is in progress or encountered an issue.
-                  </p>
-                  <Button variant="outline" size="sm" className="mt-3" onClick={onReset}>
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    Try Again
-                  </Button>
-                </div>
-              </div>
-            )}
+            </div>
           </CardContent>
         </Card>
       )}
