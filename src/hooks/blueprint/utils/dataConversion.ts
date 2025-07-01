@@ -40,19 +40,12 @@ export const mapElementTypeToLabel = (elementType: string): string => {
 
 export const convertPlan2SceneToDetectedObjects = (plan2sceneResult: Plan2SceneResult): DetectedObject[] => {
   const detectedObjects: DetectedObject[] = [];
-  let conversionSuccess = false;
 
-  logger.info('🔍 Processing enhanced Plan2Scene results', 'Data Conversion', {
+  logger.info('🔍 Converting Plan2Scene results to DetectedObjects', 'Data Conversion', {
     hasRooms: !!plan2sceneResult.rooms,
     hasWalls: !!plan2sceneResult.walls,
-    hasStats: !!plan2sceneResult.processingStats,
     roomCount: plan2sceneResult.rooms?.length || 0,
-    wallCount: plan2sceneResult.walls?.length || 0,
-    fullResultKeys: Object.keys(plan2sceneResult),
-    resultStructure: {
-      rooms: plan2sceneResult.rooms?.slice(0, 2), // Sample first 2 rooms for structure
-      walls: plan2sceneResult.walls?.slice(0, 2)  // Sample first 2 walls for structure
-    }
+    wallCount: plan2sceneResult.walls?.length || 0
   });
 
   // Convert rooms to detected objects
@@ -60,26 +53,24 @@ export const convertPlan2SceneToDetectedObjects = (plan2sceneResult: Plan2SceneR
     logger.info(`🏠 Converting ${plan2sceneResult.rooms.length} rooms from Plan2Scene`, 'Data Conversion');
     
     plan2sceneResult.rooms.forEach((room: any, index: number) => {
-      logger.debug(`Converting room ${index + 1}:`, 'Data Conversion', {
-        type: room.type,
-        confidence: room.confidence,
-        bounds: room.bounds,
-        area: room.area
-      });
+      // Handle different room data structures from Plan2Scene
+      const roomBounds = room.bounds || room.bbox || { 
+        x: (index % 3) * 30, 
+        y: Math.floor(index / 3) * 25, 
+        width: 25, 
+        height: 20 
+      };
       
-      // Create room detection with proper bounds
-      const roomBounds = room.bounds || { x: index * 15, y: index * 10, width: 15, height: 12 };
       detectedObjects.push({
-        label: mapRoomTypeToLabel(room.type),
+        label: mapRoomTypeToLabel(room.type || 'room'),
         confidence: Math.max(0.75, room.confidence || 0.80),
         bbox: {
           x: roomBounds.x || 0,
           y: roomBounds.y || 0,
-          width: roomBounds.width || 15,
-          height: roomBounds.height || 12
+          width: roomBounds.width || 25,
+          height: roomBounds.height || 20
         }
       });
-      conversionSuccess = true;
     });
   }
 
@@ -88,15 +79,9 @@ export const convertPlan2SceneToDetectedObjects = (plan2sceneResult: Plan2SceneR
     logger.info(`🧱 Converting ${plan2sceneResult.walls.length} walls from Plan2Scene`, 'Data Conversion');
     
     plan2sceneResult.walls.forEach((wall: any, index: number) => {
-      logger.debug(`Converting wall ${index + 1}:`, 'Data Conversion', {
-        start: wall.start,
-        end: wall.end,
-        confidence: wall.confidence
-      });
-      
-      // Create wall detection with proper bounds
-      const wallStart = wall.start || { x: index * 10, y: 5 };
-      const wallEnd = wall.end || { x: (index * 10) + 8, y: 5 };
+      // Handle different wall data structures
+      const wallStart = wall.start || { x: index * 15, y: 5 };
+      const wallEnd = wall.end || { x: (index * 15) + 12, y: 5 };
       
       detectedObjects.push({
         label: "wall",
@@ -104,34 +89,43 @@ export const convertPlan2SceneToDetectedObjects = (plan2sceneResult: Plan2SceneR
         bbox: {
           x: wallStart.x || 0,
           y: wallStart.y || 0,
-          width: Math.abs((wallEnd.x || 8) - (wallStart.x || 0)) || 8,
-          height: Math.abs((wallEnd.y || 1) - (wallStart.y || 0)) || 1
+          width: Math.abs((wallEnd.x || 12) - (wallStart.x || 0)) || 12,
+          height: Math.abs((wallEnd.y || 2) - (wallStart.y || 0)) || 2
         }
       });
-      conversionSuccess = true;
     });
   }
 
-  // Validate conversion success
-  if (!conversionSuccess || detectedObjects.length === 0) {
-    logger.error('❌ Plan2Scene returned data but conversion to detectedObjects failed', 'Data Conversion', {
-      hasRooms: !!plan2sceneResult.rooms,
-      hasWalls: !!plan2sceneResult.walls,
-      roomsLength: plan2sceneResult.rooms?.length || 0,
-      wallsLength: plan2sceneResult.walls?.length || 0,
-      detectedObjectsLength: detectedObjects.length,
-      conversionSuccess
+  // Add any additional elements from Plan2Scene
+  if (plan2sceneResult.elements && Array.isArray(plan2sceneResult.elements)) {
+    plan2sceneResult.elements.forEach((element: any) => {
+      detectedObjects.push({
+        label: mapElementTypeToLabel(element.type || 'fixture'),
+        confidence: Math.max(0.70, element.confidence || 0.75),
+        bbox: {
+          x: element.position?.x || element.x || 0,
+          y: element.position?.y || element.y || 0,
+          width: element.size?.width || element.width || 5,
+          height: element.size?.height || element.height || 5
+        }
+      });
     });
-    throw new Error('Plan2Scene analysis completed but data conversion to detectedObjects failed - no valid room or wall data found');
   }
 
-  logger.info('🎉 Plan2Scene processing and conversion successful!', 'Data Conversion', {
-    objectsCount: detectedObjects.length,
-    roomCount: plan2sceneResult.rooms?.length || 0,
-    wallCount: plan2sceneResult.walls?.length || 0,
-    conversionSuccess: true,
-    qualityMetrics: plan2sceneResult.qualityMetrics
+  logger.info('✅ Plan2Scene conversion completed successfully!', 'Data Conversion', {
+    totalObjectsConverted: detectedObjects.length,
+    roomsConverted: plan2sceneResult.rooms?.length || 0,
+    wallsConverted: plan2sceneResult.walls?.length || 0,
+    elementsConverted: plan2sceneResult.elements?.length || 0
   });
+
+  // Ensure we have at least some objects
+  if (detectedObjects.length === 0) {
+    logger.warn('⚠️ No objects converted from Plan2Scene data', 'Data Conversion', {
+      plan2sceneKeys: Object.keys(plan2sceneResult)
+    });
+    throw new Error('Plan2Scene returned data but no objects could be converted');
+  }
 
   return detectedObjects;
 };

@@ -7,7 +7,7 @@ import { convertImageToBase64 } from './imageProcessing';
 export const performPlan2SceneHealthCheck = async (uploadId: string): Promise<boolean> => {
   let healthCheckSuccess = false;
   let healthCheckAttempts = 0;
-  const maxHealthCheckAttempts = 3;
+  const maxHealthCheckAttempts = 2; // Reduced attempts for faster processing
   
   while (!healthCheckSuccess && healthCheckAttempts < maxHealthCheckAttempts) {
     healthCheckAttempts++;
@@ -18,33 +18,27 @@ export const performPlan2SceneHealthCheck = async (uploadId: string): Promise<bo
         body: { test: true, uploadId: uploadId }
       });
       
-      logger.debug('Health check response received', 'Plan2Scene', {
-        attempt: healthCheckAttempts,
-        hasData: !!healthCheck,
-        hasError: !!healthError,
-        success: healthCheck?.success
-      });
-      
       if (healthError) {
-        throw new Error(`Health check failed (attempt ${healthCheckAttempts}): ${healthError.message}`);
+        throw new Error(`Health check failed: ${healthError.message}`);
       }
       
       if (healthCheck?.success) {
         healthCheckSuccess = true;
-        logger.info('✅ Health check successful', 'Plan2Scene', {
+        logger.info('✅ Plan2Scene health check passed', 'Plan2Scene', {
           version: healthCheck.version,
           capabilities: healthCheck.capabilities
         });
       } else {
-        throw new Error(`Health check returned unsuccessful result: ${JSON.stringify(healthCheck)}`);
+        throw new Error(`Health check unsuccessful: ${JSON.stringify(healthCheck)}`);
       }
     } catch (error) {
-      logger.warn(`Health check attempt ${healthCheckAttempts} failed`, 'Plan2Scene', { error: error.message });
+      logger.warn(`Health check attempt ${healthCheckAttempts} failed`, 'Plan2Scene', { 
+        error: error.message 
+      });
       if (healthCheckAttempts >= maxHealthCheckAttempts) {
         throw error;
       }
-      // Wait before retry
-      await new Promise(resolve => setTimeout(resolve, 1000 * healthCheckAttempts));
+      await new Promise(resolve => setTimeout(resolve, 500)); // Shorter wait
     }
   }
   
@@ -52,15 +46,16 @@ export const performPlan2SceneHealthCheck = async (uploadId: string): Promise<bo
 };
 
 export const callPlan2SceneProcessor = async (imageUrl: string, uploadId: string): Promise<Plan2SceneResult> => {
-  // Enhanced image conversion with validation
-  logger.info('🖼️ Converting image to base64 with enhanced validation', 'Plan2Scene');
+  logger.info('🖼️ Starting Plan2Scene image processing', 'Plan2Scene', { uploadId });
+  
+  // Convert image to base64
   const imageBase64 = await convertImageToBase64(imageUrl);
   
   if (!imageBase64 || imageBase64.length < 100) {
     throw new Error(`Image conversion failed: invalid result (length: ${imageBase64?.length || 0})`);
   }
   
-  // Enhanced base64 validation
+  // Clean base64 data
   const cleanImageData = imageBase64.startsWith('data:') ? 
     imageBase64.split(',')[1] : imageBase64;
   
@@ -68,25 +63,12 @@ export const callPlan2SceneProcessor = async (imageUrl: string, uploadId: string
     throw new Error(`Invalid base64 data after cleaning (length: ${cleanImageData?.length || 0})`);
   }
   
-  // Validate base64 format
-  const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
-  if (!base64Regex.test(cleanImageData)) {
-    throw new Error('Base64 data contains invalid characters');
-  }
-  
-  logger.info('✅ Image conversion successful', 'Plan2Scene', {
-    originalLength: imageBase64.length,
-    cleanedLength: cleanImageData.length,
-    sampleStart: cleanImageData.substring(0, 20),
-    sampleEnd: cleanImageData.substring(Math.max(0, cleanImageData.length - 20))
-  });
-  
-  // Enhanced Plan2Scene API call with detailed logging
-  logger.info('📤 Calling enhanced Plan2Scene processor', 'Plan2Scene', {
+  logger.info('📤 Calling Plan2Scene processor', 'Plan2Scene', {
     payloadSize: cleanImageData.length,
     uploadId
   });
   
+  // Call Plan2Scene edge function
   const { data: plan2sceneResult, error: plan2sceneError } = await supabase.functions.invoke('plan2scene-processor', {
     body: {
       imageData: cleanImageData,
@@ -98,8 +80,7 @@ export const callPlan2SceneProcessor = async (imageUrl: string, uploadId: string
   logger.info('📥 Plan2Scene response received', 'Plan2Scene', { 
     hasData: !!plan2sceneResult, 
     hasError: !!plan2sceneError,
-    success: plan2sceneResult?.success,
-    errorType: plan2sceneResult?.errorType
+    success: plan2sceneResult?.success
   });
 
   if (plan2sceneError) {
@@ -111,14 +92,21 @@ export const callPlan2SceneProcessor = async (imageUrl: string, uploadId: string
   }
 
   if (!plan2sceneResult.success) {
-    const errorMsg = plan2sceneResult.error || plan2sceneResult.errorDetails?.originalError || 'Plan2Scene processing failed';
-    logger.error('Plan2Scene processing unsuccessful', 'Plan2Scene', {
+    const errorMsg = plan2sceneResult.error || 'Plan2Scene processing failed';
+    logger.error('❌ Plan2Scene processing unsuccessful', 'Plan2Scene', {
       error: errorMsg,
-      errorType: plan2sceneResult.errorType,
-      errorDetails: plan2sceneResult.errorDetails
+      errorType: plan2sceneResult.errorType
     });
     throw new Error(errorMsg);
   }
+
+  // Log the successful result structure
+  logger.info('✅ Plan2Scene processing successful', 'Plan2Scene', {
+    roomCount: plan2sceneResult.rooms?.length || 0,
+    wallCount: plan2sceneResult.walls?.length || 0,
+    elementCount: plan2sceneResult.elements?.length || 0,
+    hasQualityMetrics: !!plan2sceneResult.qualityMetrics
+  });
 
   return plan2sceneResult;
 };
