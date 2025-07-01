@@ -26,6 +26,8 @@ interface UploadResult {
   generated3DModels?: Generated3DModel[];
   floorPlanData?: any;
   geminiAnalysis?: any;
+  processingMethod?: 'ai' | 'fallback';
+  errorMessage?: string;
 }
 
 export const useBlueprintUpload = () => {
@@ -33,7 +35,7 @@ export const useBlueprintUpload = () => {
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   
   const { uploading, uploadProgress, uploadFile } = useBlueprintFileUpload();
-  const { processing, generating3D, processBlueprint, generate3DModel } = useBlueprintProcessing();
+  const { processing, generating3D, processingMethod, errorMessage, processBlueprint, generate3DModel } = useBlueprintProcessing();
   const { enhancedAnalyzing, performEnhancedAnalysis } = useBlueprintAnalysis();
 
   const handleFileUpload = useCallback(async (file: File) => {
@@ -48,7 +50,7 @@ export const useBlueprintUpload = () => {
 
       console.log('File uploaded, starting processing...');
       
-      // Step 2: Process blueprint with Gemini AI
+      // Step 2: Process blueprint with Plan2Scene
       let detectedObjects;
       try {
         detectedObjects = await processBlueprint(uploadData.uploadRecord.id, uploadData.publicUrl);
@@ -64,7 +66,7 @@ export const useBlueprintUpload = () => {
 
       console.log('Starting enhanced analysis...');
       
-      // Step 3: Enhanced analysis (this reuses the Gemini results)
+      // Step 3: Enhanced analysis (optional, continues on failure)
       let analysisData;
       try {
         analysisData = await performEnhancedAnalysis(
@@ -75,13 +77,12 @@ export const useBlueprintUpload = () => {
         console.log('Enhanced analysis complete');
       } catch (analysisError) {
         console.error('Enhanced analysis failed:', analysisError);
-        // Don't throw here, continue with basic analysis
         analysisData = null;
       }
 
       console.log('Generating 3D model...');
 
-      // Step 4: Generate 3D model (this also reuses Gemini results)
+      // Step 4: Generate 3D model (optional, continues on failure)
       let generated3DModels;
       try {
         generated3DModels = await generate3DModel(
@@ -92,7 +93,6 @@ export const useBlueprintUpload = () => {
         console.log('3D model generation complete, models:', generated3DModels?.length || 0);
       } catch (modelError) {
         console.error('3D model generation failed:', modelError);
-        // Don't throw here, continue without 3D model
         generated3DModels = [];
       }
 
@@ -107,14 +107,17 @@ export const useBlueprintUpload = () => {
         processingTime: 8000,
         generated3DModels: generated3DModels || [],
         floorPlanData: analysisData?.floorPlanData,
-        geminiAnalysis: analysisData?.geminiAnalysis
+        geminiAnalysis: analysisData?.geminiAnalysis,
+        processingMethod,
+        errorMessage
       };
 
       setUploadResult(finalResult);
 
+      const processingMethodText = processingMethod === 'ai' ? 'Plan2Scene AI' : 'Enhanced Sample Data';
       toast({
         title: "Upload Complete",
-        description: `Successfully processed ${file.name} with ${detectedObjects.length} elements detected.`,
+        description: `Successfully processed ${file.name} using ${processingMethodText} with ${detectedObjects.length} elements detected.`,
       });
 
     } catch (error) {
@@ -125,7 +128,7 @@ export const useBlueprintUpload = () => {
         variant: "destructive",
       });
     }
-  }, [uploadFile, processBlueprint, performEnhancedAnalysis, generate3DModel, toast]);
+  }, [uploadFile, processBlueprint, performEnhancedAnalysis, generate3DModel, toast, processingMethod, errorMessage]);
 
   const resetUpload = () => {
     setUploadResult(null);

@@ -52,7 +52,10 @@ export const storeDetectionResults = async (
           engine_type: isAIGenerated ? 'plan2scene-open-source' : 'sample-data-generator',
           accuracy_level: isAIGenerated ? 'high' : 'demonstration',
           timestamp: new Date().toISOString()
-        }
+        },
+        processing_method: isAIGenerated ? 'plan2scene' : 'enhanced-fallback',
+        error_message: processingError,
+        is_ai_generated: isAIGenerated
       });
 
     if (error) {

@@ -781,8 +781,12 @@ export type Database = {
           confidence_threshold: number | null
           created_at: string
           detected_objects: Json
+          error_message: string | null
           id: string
+          is_ai_generated: boolean | null
+          metadata: Json | null
           model_used: string | null
+          processing_method: string | null
           processing_time_ms: number | null
           upload_id: string
         }
@@ -790,8 +794,12 @@ export type Database = {
           confidence_threshold?: number | null
           created_at?: string
           detected_objects: Json
+          error_message?: string | null
           id?: string
+          is_ai_generated?: boolean | null
+          metadata?: Json | null
           model_used?: string | null
+          processing_method?: string | null
           processing_time_ms?: number | null
           upload_id: string
         }
@@ -799,8 +807,12 @@ export type Database = {
           confidence_threshold?: number | null
           created_at?: string
           detected_objects?: Json
+          error_message?: string | null
           id?: string
+          is_ai_generated?: boolean | null
+          metadata?: Json | null
           model_used?: string | null
+          processing_method?: string | null
           processing_time_ms?: number | null
           upload_id?: string
         }
