@@ -29,13 +29,14 @@ export const handleProcessingError = (
   logger.error('❌ Processing failed, using enhanced fallback', 'Error Handler', {
     errorType: processingError.type,
     error: processingError.message,
-    stack: processingError.originalError?.stack?.split('\n').slice(0, 3)
+    stack: processingError.originalError?.stack?.split('\n').slice(0, 3),
+    hasImageCharacteristics: !!imageCharacteristics
   });
   
   // Enhanced fallback generation
   logger.info('🔄 Generating enhanced fallback data', 'Error Handler', {
-    reason: processingError.message,
-    imageComplexity: imageCharacteristics?.complexity
+    reason: processingError.message.substring(0, 100),
+    imageComplexity: imageCharacteristics?.complexity || 'unknown'
   });
   
   let detectedObjects = generateMockDetectionResults(uploadId);
@@ -49,10 +50,16 @@ export const handleProcessingError = (
     detectedObjects = detectedObjects.slice(0, Math.max(5, Math.floor(detectedObjects.length * 0.6)));
   }
   
+  // Ensure we have at least a minimum number of objects
+  if (detectedObjects.length < 3) {
+    detectedObjects = generateMockDetectionResults(uploadId);
+  }
+  
   logger.info('📝 Enhanced fallback data generated', 'Error Handler', {
     objectsCount: detectedObjects.length,
     reason: processingError.message.substring(0, 100),
-    complexity: imageCharacteristics?.complexity
+    complexity: imageCharacteristics?.complexity || 'unknown',
+    errorType: processingError.type
   });
 
   return {

@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,6 +56,14 @@ export const useBlueprintProcessing = () => {
         // Enhanced Plan2Scene API call
         const plan2sceneResult = await callPlan2SceneProcessor(imageUrl, uploadId);
         
+        logger.info('🔍 Plan2Scene API call successful, starting conversion', 'Blueprint Processing', {
+          hasResult: !!plan2sceneResult,
+          success: plan2sceneResult?.success,
+          roomCount: plan2sceneResult?.rooms?.length || 0,
+          wallCount: plan2sceneResult?.walls?.length || 0,
+          elementCount: plan2sceneResult?.elements?.length || 0
+        });
+        
         // Enhanced result processing with proper data transformation
         detectedObjects = convertPlan2SceneToDetectedObjects(plan2sceneResult);
         
@@ -69,9 +76,15 @@ export const useBlueprintProcessing = () => {
           variant: "default",
         });
         
+        logger.info('✅ Plan2Scene processing completed successfully', 'Blueprint Processing', {
+          objectsDetected: detectedObjects.length,
+          isAIGenerated: true
+        });
+        
       } catch (aiError) {
         logger.warn('Plan2Scene processing failed, using fallback', 'Blueprint Processing', {
-          error: aiError instanceof Error ? aiError.message : 'Unknown error'
+          error: aiError instanceof Error ? aiError.message : 'Unknown error',
+          stack: aiError instanceof Error ? aiError.stack?.split('\n').slice(0, 3) : undefined
         });
 
         const errorResult = handleProcessingError(
@@ -97,7 +110,12 @@ export const useBlueprintProcessing = () => {
       }
 
       // Step 4: Enhanced result storage with metadata
-      logger.info('💾 Storing enhanced detection results', 'Blueprint Processing');
+      logger.info('💾 Storing enhanced detection results', 'Blueprint Processing', {
+        objectCount: detectedObjects.length,
+        isAIGenerated,
+        hasError: !!processingError
+      });
+      
       try {
         await storeDetectionResults(uploadId, detectedObjects, isAIGenerated, processingError);
         
@@ -106,7 +124,8 @@ export const useBlueprintProcessing = () => {
           processingMethod: isAIGenerated ? 'ai' : 'fallback',
           errorMessage: processingError,
           imageCharacteristics,
-          processingTimeMs: 5000
+          processingTimeMs: 5000,
+          objectCount: detectedObjects.length
         });
       } catch (storageError) {
         logger.error('Failed to store results but continuing', 'Blueprint Processing', {
