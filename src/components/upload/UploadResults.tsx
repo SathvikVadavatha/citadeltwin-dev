@@ -78,9 +78,12 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
     console.log('Image loaded successfully:', uploadResult.imageUrl);
   };
 
-  // Get the first 3D model for the viewer
+  // Get the first 3D model for the viewer - fix the modelUrl construction
   const primary3DModel = uploadResult.generated3DModels?.[0];
-  const modelUrl = primary3DModel ? `/api/3d-models/${primary3DModel.model_file_path}` : undefined;
+  
+  // Log the model data for debugging
+  console.log('Primary 3D Model:', primary3DModel);
+  console.log('Upload ID for 3D viewer:', uploadResult.id);
 
   return (
     <div className="space-y-6">
@@ -359,7 +362,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                 <div className="h-96 border rounded-lg overflow-hidden">
                   <Model3DViewer 
                     uploadId={uploadResult.id}
-                    modelUrl={modelUrl}
+                    projectId={uploadResult.id}
                   />
                 </div>
                 {uploadResult.floorPlanData && (
