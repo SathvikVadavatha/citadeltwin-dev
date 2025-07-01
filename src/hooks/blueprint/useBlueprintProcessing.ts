@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -177,6 +176,16 @@ export const useBlueprintProcessing = () => {
           throw new Error(errorMsg);
         }
 
+        // DEBUG: Log the raw Plan2Scene result structure
+        logger.info('🔍 DEBUGGING: Raw Plan2Scene result structure', 'Blueprint Processing', {
+          hasRooms: !!plan2sceneResult.rooms,
+          hasWalls: !!plan2sceneResult.walls,
+          hasStats: !!plan2sceneResult.processingStats,
+          roomCount: plan2sceneResult.rooms?.length || 0,
+          wallCount: plan2sceneResult.walls?.length || 0,
+          fullStructure: JSON.stringify(plan2sceneResult, null, 2).substring(0, 500) + '...'
+        });
+        
         // Enhanced result processing with comprehensive validation
         logger.info('🔍 Processing enhanced Plan2Scene results', 'Blueprint Processing', {
           hasRooms: !!plan2sceneResult.rooms,
@@ -186,63 +195,72 @@ export const useBlueprintProcessing = () => {
           wallCount: plan2sceneResult.walls?.length || 0
         });
         
-        if (plan2sceneResult.rooms && Array.isArray(plan2sceneResult.rooms)) {
-          logger.info(`🏠 Processing ${plan2sceneResult.rooms.length} rooms from Plan2Scene`, 'Blueprint Processing');
+        // FIXED: Better conversion logic from Plan2Scene to detectedObjects
+        if (plan2sceneResult.rooms && Array.isArray(plan2sceneResult.rooms) && plan2sceneResult.rooms.length > 0) {
+          logger.info(`🏠 Converting ${plan2sceneResult.rooms.length} rooms from Plan2Scene`, 'Blueprint Processing');
           
           plan2sceneResult.rooms.forEach((room: any, index: number) => {
-            logger.debug(`Processing room ${index + 1}: ${room.type}`, 'Blueprint Processing', {
+            logger.debug(`Converting room ${index + 1}: ${room.type}`, 'Blueprint Processing', {
               confidence: room.confidence,
-              elementCount: room.elements?.length || 0
+              elementCount: room.elements?.length || 0,
+              bounds: room.bounds
             });
             
-            // Add room as detected object
-            detectedObjects.push({
-              label: mapRoomTypeToLabel(room.type),
-              confidence: room.confidence || 0.85,
-              bbox: {
-                x: room.bounds?.x || 0,
-                y: room.bounds?.y || 0,
-                width: room.bounds?.width || 10,
-                height: room.bounds?.height || 10
-              }
-            });
+            // Add room as detected object with proper bounds validation
+            if (room.bounds && typeof room.bounds === 'object') {
+              detectedObjects.push({
+                label: mapRoomTypeToLabel(room.type),
+                confidence: room.confidence || 0.85,
+                bbox: {
+                  x: room.bounds.x || 0,
+                  y: room.bounds.y || 0,
+                  width: room.bounds.width || 10,
+                  height: room.bounds.height || 10
+                }
+              });
+            }
 
             // Add room elements with enhanced processing
             if (room.elements && Array.isArray(room.elements)) {
               room.elements.forEach((element: any) => {
-                detectedObjects.push({
-                  label: mapElementTypeToLabel(element.type),
-                  confidence: Math.max(0.7, (room.confidence || 0.85) * 0.9),
-                  bbox: {
-                    x: element.position?.x || 0,
-                    y: element.position?.y || 0,
-                    width: element.size?.width || 5,
-                    height: element.size?.height || 5
-                  }
-                });
+                if (element.position && element.size) {
+                  detectedObjects.push({
+                    label: mapElementTypeToLabel(element.type),
+                    confidence: Math.max(0.7, (room.confidence || 0.85) * 0.9),
+                    bbox: {
+                      x: element.position.x || 0,
+                      y: element.position.y || 0,
+                      width: element.size.width || 5,
+                      height: element.size.height || 5
+                    }
+                  });
+                }
               });
             }
           });
         }
 
-        // Enhanced wall processing
-        if (plan2sceneResult.walls && Array.isArray(plan2sceneResult.walls)) {
-          logger.info(`🧱 Processing ${plan2sceneResult.walls.length} walls from Plan2Scene`, 'Blueprint Processing');
+        // Enhanced wall processing with proper validation
+        if (plan2sceneResult.walls && Array.isArray(plan2sceneResult.walls) && plan2sceneResult.walls.length > 0) {
+          logger.info(`🧱 Converting ${plan2sceneResult.walls.length} walls from Plan2Scene`, 'Blueprint Processing');
           
           plan2sceneResult.walls.forEach((wall: any) => {
-            detectedObjects.push({
-              label: "wall",
-              confidence: wall.confidence || 0.85,
-              bbox: {
-                x: wall.start?.x || 0,
-                y: wall.start?.y || 0,
-                width: Math.abs((wall.end?.x || 5) - (wall.start?.x || 0)) || 5,
-                height: Math.abs((wall.end?.y || 5) - (wall.start?.y || 0)) || 5
-              }
-            });
+            if (wall.start && wall.end) {
+              detectedObjects.push({
+                label: "wall",
+                confidence: wall.confidence || 0.85,
+                bbox: {
+                  x: wall.start.x || 0,
+                  y: wall.start.y || 0,
+                  width: Math.abs((wall.end.x || 5) - (wall.start.x || 0)) || 5,
+                  height: Math.abs((wall.end.y || 5) - (wall.start.y || 0)) || 5
+                }
+              });
+            }
           });
         }
 
+        // CRITICAL: Check if we successfully converted Plan2Scene data
         if (detectedObjects.length > 0) {
           isAIGenerated = true;
           setProcessingState(prev => ({ ...prev, processingMethod: 'ai' }));
@@ -260,7 +278,14 @@ export const useBlueprintProcessing = () => {
             variant: "default",
           });
         } else {
-          throw new Error('Plan2Scene analysis completed but returned no architectural elements');
+          // This is a conversion failure, not a Plan2Scene failure
+          logger.warn('⚠️ Plan2Scene returned data but conversion to detectedObjects failed', 'Blueprint Processing', {
+            hasRooms: !!plan2sceneResult.rooms,
+            hasWalls: !!plan2sceneResult.walls,
+            roomsLength: plan2sceneResult.rooms?.length || 0,
+            wallsLength: plan2sceneResult.walls?.length || 0
+          });
+          throw new Error('Plan2Scene analysis completed but data conversion to detectedObjects failed - check room/wall data structure');
         }
         
       } catch (aiError) {
