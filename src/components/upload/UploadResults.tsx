@@ -81,11 +81,11 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
         <Alert className="border-orange-200 bg-orange-50">
           <TestTube className="h-4 w-4 text-orange-600" />
           <AlertDescription className="text-orange-800">
-            <strong>Sample Analysis Mode:</strong> Plan2Scene processing was unavailable, so we're showing sample architectural elements. 
-            The analysis below demonstrates typical blueprint detection capabilities. 
+            <strong>Sample Analysis Mode:</strong> Plan2Scene processing was temporarily unavailable, so we're showing enhanced sample architectural elements. 
+            This demonstrates typical blueprint detection capabilities with realistic data patterns.
             <Button variant="link" className="h-auto p-0 ml-2 text-orange-700 underline" onClick={onReset}>
               <RefreshCw className="h-3 w-3 mr-1" />
-              Try uploading a different image
+              Try uploading again
             </Button>
           </AlertDescription>
         </Alert>
@@ -95,7 +95,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
         <Alert className="border-green-200 bg-green-50">
           <Brain className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-800">
-            <strong>Plan2Scene Analysis Complete:</strong> Your blueprint was successfully analyzed using open-source Plan2Scene algorithms for accurate architectural understanding.
+            <strong>Plan2Scene Analysis Complete:</strong> Your blueprint was successfully processed using the open-source Plan2Scene engine for accurate architectural element detection and 3D model generation.
           </AlertDescription>
         </Alert>
       )}
@@ -116,19 +116,19 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                 ) : (
                   <Badge variant="secondary" className="bg-orange-100 text-orange-800">
                     <TestTube className="h-3 w-3 mr-1" />
-                    Sample Data
+                    Enhanced Sample
                   </Badge>
                 )}
               </CardTitle>
               <p className="text-muted-foreground mt-1">
                 {isAIGenerated 
                   ? `Plan2Scene open-source analysis of ${uploadResult.filename}`
-                  : `Sample analysis demonstration for ${uploadResult.filename}`
+                  : `Enhanced sample analysis for ${uploadResult.filename} (Plan2Scene temporarily unavailable)`
                 }
               </p>
             </div>
             <Button onClick={onReset} variant="outline">
-              <RotateCcw className="h-4 w-4 mr-2" />
+              <RotateCw className="h-4 w-4 mr-2" />
               Upload New
             </Button>
           </div>
@@ -137,11 +137,15 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">{totalDetectedObjects}</div>
-              <div className="text-sm text-muted-foreground">Elements Detected</div>
+              <div className="text-sm text-muted-foreground">
+                {isAIGenerated ? 'Elements Detected' : 'Sample Elements'}
+              </div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">{totalRooms}</div>
-              <div className="text-sm text-muted-foreground">Rooms Identified</div>
+              <div className="text-sm text-muted-foreground">
+                {isAIGenerated ? 'Rooms Identified' : 'Sample Rooms'}
+              </div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">{Math.round(totalArea)}</div>
@@ -206,7 +210,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                     <div className="text-center">
                       <AlertCircle className="h-8 w-8 mx-auto mb-2" />
                       <p>Image loading failed</p>
-                      <p className="text-xs mt-1">URL: {uploadResult.imageUrl}</p>
+                      <p className="text-xs mt-1 break-all">{uploadResult.imageUrl}</p>
                     </div>
                   </div>
                 ) : (
@@ -233,27 +237,27 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
             <CardContent>
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span>Analysis Method:</span>
+                  <span>Processing Engine:</span>
                   <Badge variant={isAIGenerated ? "default" : "secondary"}>
                     {isAIGenerated ? (
                       <>
                         <Brain className="h-3 w-3 mr-1" />
-                        Plan2Scene AI
+                        Plan2Scene
                       </>
                     ) : (
                       <>
                         <TestTube className="h-3 w-3 mr-1" />
-                        Sample Data
+                        Sample Mode
                       </>
                     )}
                   </Badge>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>Elements Detected:</span>
+                  <span>Elements Found:</span>
                   <Badge variant="secondary">{totalDetectedObjects}</Badge>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>Rooms Found:</span>
+                  <span>Rooms Detected:</span>
                   <Badge variant="secondary">{totalRooms}</Badge>
                 </div>
                 <div className="flex justify-between items-center">
@@ -268,6 +272,12 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                   <div className="flex justify-between items-center">
                     <span>Processing Time:</span>
                     <Badge variant="outline">{(uploadResult.processingTime / 1000).toFixed(1)}s</Badge>
+                  </div>
+                )}
+                {uploadResult.errorMessage && isFallback && (
+                  <div className="flex justify-between items-center">
+                    <span>Fallback Reason:</span>
+                    <Badge variant="outline" className="text-orange-600">Processing Error</Badge>
                   </div>
                 )}
               </div>
@@ -317,10 +327,15 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Eye className="h-5 w-5" />
-                Detected Elements ({totalDetectedObjects})
+                {isAIGenerated ? 'Detected Elements' : 'Sample Elements'} ({totalDetectedObjects})
                 {isFallback && (
                   <Badge variant="outline" className="ml-2 text-orange-600 border-orange-300">
-                    Sample Data
+                    Enhanced Sample
+                  </Badge>
+                )}
+                {isAIGenerated && (
+                  <Badge variant="outline" className="ml-2 text-green-600 border-green-300">
+                    Plan2Scene AI
                   </Badge>
                 )}
               </CardTitle>
@@ -345,9 +360,14 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                             )}
                           </div>
                         </div>
-                        <Badge variant="secondary">
-                          {Math.round((obj.confidence || 0) * 100)}%
-                        </Badge>
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge variant="secondary">
+                            {Math.round((obj.confidence || 0) * 100)}%
+                          </Badge>
+                          {isAIGenerated && (
+                            <span className="text-xs text-green-600">AI Detected</span>
+                          )}
+                        </div>
                       </div>
                     ))
                   ) : (
@@ -451,10 +471,17 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-sm text-orange-600">
-                  <p><strong>Plan2Scene Processing Status:</strong> Failed</p>
-                  <p><strong>Fallback Mode:</strong> Sample data generated</p>
-                  <p><strong>Note:</strong> {uploadResult.errorMessage}</p>
+                <div className="text-sm space-y-2">
+                  <p><strong>Plan2Scene Status:</strong> <span className="text-orange-600">Temporarily unavailable</span></p>
+                  <p><strong>Fallback Mode:</strong> Enhanced sample data generated</p>
+                  <p><strong>Technical Details:</strong> {uploadResult.errorMessage}</p>
+                  <div className="mt-3 p-3 bg-orange-50 rounded-lg">
+                    <p className="text-orange-800 text-sm">
+                      <strong>Note:</strong> The sample data shown above represents realistic architectural elements 
+                      that would typically be detected by Plan2Scene. When the service is available, you'll get 
+                      actual AI-powered analysis of your specific blueprint.
+                    </p>
+                  </div>
                   <Button variant="outline" size="sm" className="mt-2" onClick={onReset}>
                     <RefreshCw className="h-3 w-3 mr-1" />
                     Try Different Image

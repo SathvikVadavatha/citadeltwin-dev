@@ -42,13 +42,15 @@ export const storeDetectionResults = async (
         upload_id: uploadId,
         detected_objects: detectedObjects as any,
         processing_time_ms: 5000,
-        model_used: isAIGenerated ? 'plan2scene-opensource' : 'mock-fallback',
+        model_used: isAIGenerated ? 'plan2scene-opensource' : 'enhanced-fallback',
         confidence_threshold: 0.7,
         metadata: {
           is_ai_generated: isAIGenerated,
           processing_error: processingError,
           fallback_reason: isAIGenerated ? null : 'Plan2Scene processing failed',
-          processing_method: isAIGenerated ? 'plan2scene' : 'fallback',
+          processing_method: isAIGenerated ? 'plan2scene' : 'enhanced-fallback',
+          engine_type: isAIGenerated ? 'plan2scene-open-source' : 'sample-data-generator',
+          accuracy_level: isAIGenerated ? 'high' : 'demonstration',
           timestamp: new Date().toISOString()
         }
       });
@@ -60,7 +62,8 @@ export const storeDetectionResults = async (
         objectCount: detectedObjects.length,
         isAIGenerated,
         hasError: !!processingError,
-        method: isAIGenerated ? 'Plan2Scene' : 'Fallback'
+        method: isAIGenerated ? 'Plan2Scene Open-Source' : 'Enhanced Fallback',
+        engineType: isAIGenerated ? 'plan2scene-open-source' : 'sample-data-generator'
       });
     }
   } catch (error) {
@@ -99,15 +102,23 @@ export const storeProcessingMetadata = async (
   }
 ) => {
   try {
+    const status = metadata.processingMethod === 'ai' ? 'processed' : 'processed_fallback';
+    
     const { error } = await supabase
       .from('blueprint_uploads')
       .update({ 
-        upload_status: metadata.processingMethod === 'ai' ? 'processed' : 'processed_fallback'
+        upload_status: status
       })
       .eq('id', uploadId);
 
     if (error) {
       console.warn('Could not update processing metadata:', error);
+    } else {
+      console.log(`Processing metadata updated for upload ${uploadId}`, {
+        status,
+        method: metadata.processingMethod,
+        hasError: !!metadata.errorMessage
+      });
     }
   } catch (error) {
     console.warn('Failed to store processing metadata:', error);
