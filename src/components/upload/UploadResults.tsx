@@ -12,14 +12,10 @@ import {
   Building2, 
   Eye, 
   Home, 
-  Ruler,
   Box,
   AlertCircle,
-  CheckCircle,
-  ZoomIn,
-  ZoomOut
+  CheckCircle
 } from "lucide-react";
-import { EnhancedBlueprintAnalysis } from "@/components/analysis/EnhancedBlueprintAnalysis";
 
 interface Generated3DModel {
   id: string;
@@ -53,10 +49,10 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
   onReset,
   onDownload3DModel
 }) => {
-  const [activeTab, setActiveTab] = useState<'analysis' | 'floorplan' | 'models'>('analysis');
+  const [activeTab, setActiveTab] = useState<'overview' | 'blueprint' | 'analysis'>('overview');
   const [imageError, setImageError] = useState(false);
 
-  console.log('UploadResults received data:', uploadResult);
+  console.log('UploadResults received:', uploadResult);
 
   const totalDetectedObjects = uploadResult.detectedObjects?.length || 0;
   const totalRooms = uploadResult.floorPlanData?.rooms?.length || 0;
@@ -72,14 +68,9 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
     console.log('Image loaded successfully:', uploadResult.imageUrl);
   };
 
-  // Debug logging
-  console.log('Floor plan data:', uploadResult.floorPlanData);
-  console.log('Detected objects:', uploadResult.detectedObjects);
-  console.log('Image URL:', uploadResult.imageUrl);
-
   return (
     <div className="space-y-6">
-      {/* Header with Results Summary */}
+      {/* Header */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -126,36 +117,36 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
       {/* Navigation Tabs */}
       <div className="flex space-x-1 bg-muted p-1 rounded-lg">
         <Button
+          variant={activeTab === 'overview' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setActiveTab('overview')}
+          className="flex-1"
+        >
+          <Eye className="h-4 w-4 mr-2" />
+          Overview
+        </Button>
+        <Button
+          variant={activeTab === 'blueprint' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setActiveTab('blueprint')}
+          className="flex-1"
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          Blueprint
+        </Button>
+        <Button
           variant={activeTab === 'analysis' ? 'default' : 'ghost'}
           size="sm"
           onClick={() => setActiveTab('analysis')}
           className="flex-1"
         >
-          <Eye className="h-4 w-4 mr-2" />
-          Blueprint Analysis
-        </Button>
-        <Button
-          variant={activeTab === 'floorplan' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => setActiveTab('floorplan')}
-          className="flex-1"
-        >
           <Home className="h-4 w-4 mr-2" />
-          Floor Plan
-        </Button>
-        <Button
-          variant={activeTab === 'models' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => setActiveTab('models')}
-          className="flex-1"
-        >
-          <Box className="h-4 w-4 mr-2" />
-          3D Models
+          Analysis
         </Button>
       </div>
 
       {/* Tab Content */}
-      {activeTab === 'analysis' && (
+      {activeTab === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Blueprint Image */}
           <Card>
@@ -171,19 +162,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                   <div className="flex items-center justify-center h-full text-muted-foreground">
                     <div className="text-center">
                       <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-                      <p>Failed to load blueprint image</p>
-                      <p className="text-sm mt-1 break-all">URL: {uploadResult.imageUrl}</p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="mt-2"
-                        onClick={() => {
-                          setImageError(false);
-                          console.log('Retrying image load...');
-                        }}
-                      >
-                        Retry Loading
-                      </Button>
+                      <p>Image not available</p>
                     </div>
                   </div>
                 ) : (
@@ -199,6 +178,74 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
             </CardContent>
           </Card>
 
+          {/* Quick Stats */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Quick Stats
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span>Elements Detected:</span>
+                  <Badge variant="secondary">{totalDetectedObjects}</Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Rooms Found:</span>
+                  <Badge variant="secondary">{totalRooms}</Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Total Area:</span>
+                  <Badge variant="secondary">{Math.round(totalArea)} ft²</Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>3D Models:</span>
+                  <Badge variant="secondary">{uploadResult.generated3DModels?.length || 0}</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {activeTab === 'blueprint' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Blueprint Image
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="relative border rounded-lg overflow-hidden bg-gray-50" style={{ minHeight: '500px' }}>
+              {imageError ? (
+                <div className="flex items-center justify-center h-full text-muted-foreground p-8">
+                  <div className="text-center">
+                    <AlertCircle className="h-12 w-12 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">Blueprint Not Available</h3>
+                    <p className="text-sm">Unable to load the blueprint image</p>
+                    <p className="text-xs mt-2 break-all">URL: {uploadResult.imageUrl}</p>
+                  </div>
+                </div>
+              ) : (
+                <img
+                  src={uploadResult.imageUrl}
+                  alt="Blueprint"
+                  className="w-full h-full object-contain"
+                  onError={handleImageError}
+                  onLoad={handleImageLoad}
+                  style={{ minHeight: '500px' }}
+                />
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'analysis' && (
+        <div className="space-y-6">
           {/* Detected Objects */}
           <Card>
             <CardHeader>
@@ -208,7 +255,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-96">
+              <ScrollArea className="h-64">
                 <div className="space-y-2">
                   {uploadResult.detectedObjects && uploadResult.detectedObjects.length > 0 ? (
                     uploadResult.detectedObjects.map((obj, index) => (
@@ -235,148 +282,89 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
                       <Eye className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>No elements detected yet</p>
-                      <p className="text-sm">Processing may still be in progress</p>
+                      <p>No elements detected</p>
                     </div>
                   )}
                 </div>
               </ScrollArea>
             </CardContent>
           </Card>
-        </div>
-      )}
 
-      {activeTab === 'floorplan' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Home className="h-5 w-5" />
-              Floor Plan Analysis
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {uploadResult.floorPlanData?.rooms && uploadResult.floorPlanData.rooms.length > 0 ? (
-              <div className="space-y-6">
-                {/* Room Summary */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">{totalRooms}</div>
-                    <div className="text-sm text-blue-600">Total Rooms</div>
-                  </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">{Math.round(totalArea)}</div>
-                    <div className="text-sm text-green-600">Total Area (ft²)</div>
-                  </div>
-                  <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600">
-                      {uploadResult.floorPlanData?.dimensions?.width || 'N/A'}×{uploadResult.floorPlanData?.dimensions?.height || 'N/A'}
+          {/* Floor Plan Data */}
+          {uploadResult.floorPlanData?.rooms && uploadResult.floorPlanData.rooms.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Home className="h-5 w-5" />
+                  Room Analysis ({totalRooms})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {uploadResult.floorPlanData.rooms.map((room: any, index: number) => (
+                    <div key={index} className="p-4 border rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <h5 className="font-medium">{room.name}</h5>
+                        <Badge variant="outline" className="capitalize">
+                          {room.type}
+                        </Badge>
+                      </div>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <div>Area: {room.area} ft²</div>
+                        {room.bounds && (
+                          <div>
+                            Dimensions: {room.bounds.width}×{room.bounds.height} ft
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-sm text-purple-600">Dimensions (ft)</div>
-                  </div>
+                  ))}
                 </div>
+              </CardContent>
+            </Card>
+          )}
 
-                <Separator />
-
-                {/* Rooms List */}
-                <div>
-                  <h4 className="font-semibold mb-4 flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    Room Details
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {uploadResult.floorPlanData.rooms.map((room: any, index: number) => (
-                      <div key={index} className="p-4 border rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <h5 className="font-medium">{room.name}</h5>
-                          <Badge variant="outline" className="capitalize">
-                            {room.type}
+          {/* 3D Models */}
+          {uploadResult.generated3DModels && uploadResult.generated3DModels.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Box className="h-5 w-5" />
+                  Generated 3D Models
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {uploadResult.generated3DModels.map((model, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h4 className="font-medium">{model.model_name}</h4>
+                        <p className="text-sm text-muted-foreground">{model.model_description}</p>
+                        <div className="flex gap-2 mt-2">
+                          <Badge variant="outline">
+                            {(model.file_size / 1024 / 1024).toFixed(2)} MB
+                          </Badge>
+                          <Badge 
+                            variant={model.generation_status === 'completed' ? 'default' : 'secondary'}
+                          >
+                            {model.generation_status}
                           </Badge>
                         </div>
-                        <div className="text-sm text-muted-foreground space-y-1">
-                          <div>Area: {room.area} ft²</div>
-                          <div>
-                            Dimensions: {room.bounds?.width}×{room.bounds?.height} ft
-                          </div>
-                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <Home className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-medium mb-2">Floor Plan Analysis in Progress</h3>
-                <p>The AI is analyzing your blueprint to detect rooms and floor plan elements.</p>
-                <p className="text-sm mt-2">This may take a few moments to complete.</p>
-                {uploadResult.geminiAnalysis && (
-                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-700">
-                      {typeof uploadResult.geminiAnalysis === 'string' 
-                        ? uploadResult.geminiAnalysis 
-                        : 'Analysis data received but room extraction is in progress...'
-                      }
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {activeTab === 'models' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Box className="h-5 w-5" />
-              Generated 3D Models
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {uploadResult.generated3DModels && uploadResult.generated3DModels.length > 0 ? (
-              <div className="space-y-4">
-                {uploadResult.generated3DModels.map((model, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h4 className="font-medium">{model.model_name}</h4>
-                      <p className="text-sm text-muted-foreground">{model.model_description}</p>
-                      <div className="flex gap-2 mt-2">
-                        <Badge variant="outline">
-                          {(model.file_size / 1024 / 1024).toFixed(2)} MB
-                        </Badge>
-                        <Badge 
-                          variant={model.generation_status === 'completed' ? 'default' : 'secondary'}
-                        >
-                          {model.generation_status}
-                        </Badge>
-                      </div>
+                      <Button 
+                        onClick={() => onDownload3DModel(model)}
+                        disabled={model.generation_status !== 'completed'}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </Button>
                     </div>
-                    <Button 
-                      onClick={() => onDownload3DModel(model)}
-                      disabled={model.generation_status !== 'completed'}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download GLB
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <Box className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-medium mb-2">3D Model Generation</h3>
-                <p>3D models will be generated once the blueprint analysis is complete.</p>
-                <p className="text-sm">This process may take several minutes.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Enhanced Blueprint Analysis Component - only show if we have data */}
-      {(uploadResult.detectedObjects?.length > 0 || uploadResult.floorPlanData?.rooms?.length > 0) && (
-        <EnhancedBlueprintAnalysis uploadResult={uploadResult} />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
     </div>
   );
