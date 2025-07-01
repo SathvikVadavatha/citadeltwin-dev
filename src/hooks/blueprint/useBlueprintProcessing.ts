@@ -35,6 +35,8 @@ export const useBlueprintProcessing = () => {
 
   const processBlueprint = useCallback(async (uploadId: string, imageUrl: string) => {
     console.log('🚀 Starting Plan2Scene blueprint processing pipeline...');
+    console.log('Upload ID:', uploadId);
+    console.log('Image URL:', imageUrl);
     
     setProcessingState(prev => ({ 
       ...prev, 
@@ -56,23 +58,48 @@ export const useBlueprintProcessing = () => {
       let isAIGenerated = false;
       let processingError: string | undefined;
       
-      // Step 2: Attempt Plan2Scene processing
+      // Step 2: Attempt Plan2Scene processing with enhanced debugging
       try {
         console.log('🏗️ Step 2: Processing with Plan2Scene...');
+        console.log('Checking edge function availability...');
         
-        // Convert image to base64
+        // Test edge function connectivity first
+        const { data: healthCheck, error: healthError } = await supabase.functions.invoke('plan2scene-processor', {
+          body: { test: true, uploadId: uploadId }
+        });
+        
+        console.log('Health check response:', { healthCheck, healthError });
+        
+        if (healthError) {
+          throw new Error(`Edge function not accessible: ${healthError.message}`);
+        }
+        
+        // Convert image to base64 with enhanced validation
+        console.log('Converting image to base64...');
         const imageBase64 = await convertImageToBase64(imageUrl);
+        
+        if (!imageBase64 || imageBase64.length < 100) {
+          throw new Error('Image conversion failed or resulted in invalid data');
+        }
+        
         console.log('✅ Image converted to base64, length:', imageBase64.length);
         
-        // Clean base64 data
+        // Clean and validate base64 data
         const cleanImageData = imageBase64.startsWith('data:') ? 
           imageBase64.split(',')[1] : imageBase64;
         
-        console.log('📤 Calling Plan2Scene edge function...');
+        if (!cleanImageData || cleanImageData.length < 50) {
+          throw new Error('Invalid base64 data after cleaning');
+        }
+        
+        console.log('📤 Calling Plan2Scene edge function with payload...');
+        console.log('Payload size:', cleanImageData.length, 'characters');
+        
         const { data: plan2sceneResult, error: plan2sceneError } = await supabase.functions.invoke('plan2scene-processor', {
           body: {
             imageData: cleanImageData,
-            uploadId: uploadId
+            uploadId: uploadId,
+            debug: true
           }
         });
 
@@ -80,32 +107,44 @@ export const useBlueprintProcessing = () => {
           hasData: !!plan2sceneResult, 
           hasError: !!plan2sceneError,
           success: plan2sceneResult?.success,
-          error: plan2sceneResult?.error
+          error: plan2sceneResult?.error,
+          fullResponse: plan2sceneResult
         });
 
         if (plan2sceneError) {
+          console.error('❌ Plan2Scene edge function error:', plan2sceneError);
           throw new Error(`Plan2Scene edge function error: ${plan2sceneError.message}`);
         }
 
-        if (!plan2sceneResult?.success) {
-          const errorMsg = plan2sceneResult?.error || 'Plan2Scene processing failed';
+        if (!plan2sceneResult) {
+          throw new Error('No response from Plan2Scene edge function');
+        }
+
+        if (!plan2sceneResult.success) {
+          const errorMsg = plan2sceneResult.error || 'Plan2Scene processing failed without specific error';
+          console.error('❌ Plan2Scene processing failed:', errorMsg);
           throw new Error(errorMsg);
         }
 
-        // Process Plan2Scene results
+        // Process Plan2Scene results with validation
+        console.log('🔍 Processing Plan2Scene results...');
+        console.log('Available data:', Object.keys(plan2sceneResult));
+        
         if (plan2sceneResult.rooms && Array.isArray(plan2sceneResult.rooms)) {
           console.log('🏠 Processing rooms from Plan2Scene:', plan2sceneResult.rooms.length);
           
-          plan2sceneResult.rooms.forEach((room: any) => {
+          plan2sceneResult.rooms.forEach((room: any, index: number) => {
+            console.log(`Processing room ${index}:`, room);
+            
             // Add room as detected object
             detectedObjects.push({
               label: mapRoomTypeToLabel(room.type),
-              confidence: room.confidence,
+              confidence: room.confidence || 0.85,
               bbox: {
-                x: room.bounds.x,
-                y: room.bounds.y,
-                width: room.bounds.width,
-                height: room.bounds.height
+                x: room.bounds?.x || 0,
+                y: room.bounds?.y || 0,
+                width: room.bounds?.width || 10,
+                height: room.bounds?.height || 10
               }
             });
 
@@ -114,12 +153,12 @@ export const useBlueprintProcessing = () => {
               room.elements.forEach((element: any) => {
                 detectedObjects.push({
                   label: mapElementTypeToLabel(element.type),
-                  confidence: room.confidence * 0.9,
+                  confidence: (room.confidence || 0.85) * 0.9,
                   bbox: {
-                    x: element.position.x,
-                    y: element.position.y,
-                    width: element.size.width,
-                    height: element.size.height
+                    x: element.position?.x || 0,
+                    y: element.position?.y || 0,
+                    width: element.size?.width || 5,
+                    height: element.size?.height || 5
                   }
                 });
               });
@@ -136,10 +175,10 @@ export const useBlueprintProcessing = () => {
               label: "wall",
               confidence: wall.confidence || 0.85,
               bbox: {
-                x: wall.start.x,
-                y: wall.start.y,
-                width: Math.abs(wall.end.x - wall.start.x) || 5,
-                height: Math.abs(wall.end.y - wall.start.y) || 5
+                x: wall.start?.x || 0,
+                y: wall.start?.y || 0,
+                width: Math.abs((wall.end?.x || 5) - (wall.start?.x || 0)) || 5,
+                height: Math.abs((wall.end?.y || 5) - (wall.start?.y || 0)) || 5
               }
             });
           });
@@ -156,10 +195,11 @@ export const useBlueprintProcessing = () => {
           
           toast({
             title: "Plan2Scene Analysis Complete! 🏗️",
-            description: `Successfully analyzed your blueprint using Plan2Scene. Found ${detectedObjects.length} architectural elements.`,
+            description: `Successfully analyzed your blueprint using Plan2Scene AI. Found ${detectedObjects.length} architectural elements.`,
+            variant: "default",
           });
         } else {
-          throw new Error('Plan2Scene analysis returned no results');
+          throw new Error('Plan2Scene analysis returned no architectural elements');
         }
         
       } catch (aiError) {
@@ -168,6 +208,7 @@ export const useBlueprintProcessing = () => {
         
         // Step 3: Enhanced fallback with image-based generation
         console.log('🔄 Step 3: Generating enhanced fallback data...');
+        console.log('Fallback reason:', processingError);
         
         detectedObjects = generateMockDetectionResults(uploadId);
         
@@ -194,8 +235,8 @@ export const useBlueprintProcessing = () => {
         });
         
         toast({
-          title: "Using Sample Analysis 📋",
-          description: `Plan2Scene processing unavailable. Showing ${detectedObjects.length} sample elements based on your image.`,
+          title: "Using Enhanced Sample Data 📋",
+          description: `Plan2Scene temporarily unavailable: ${processingError.substring(0, 50)}... Showing ${detectedObjects.length} sample elements.`,
           variant: "destructive",
         });
       }
@@ -216,7 +257,7 @@ export const useBlueprintProcessing = () => {
       await updateUploadStatus(uploadId, isAIGenerated ? 'processed' : 'processed_fallback');
 
       console.log('✅ Blueprint processing pipeline completed successfully!', {
-        method: isAIGenerated ? 'Plan2Scene' : 'Fallback',
+        method: isAIGenerated ? 'Plan2Scene AI' : 'Enhanced Fallback',
         objectsFound: detectedObjects.length,
         hasError: !!processingError
       });
@@ -268,19 +309,19 @@ export const useBlueprintProcessing = () => {
       
       const isAIGenerated = processingState.processingMethod === 'ai';
       const modelDescription = isAIGenerated 
-        ? `3D model generated from Plan2Scene analysis with ${detectedObjects.length} detected architectural elements`
+        ? `3D model generated from Plan2Scene AI analysis with ${detectedObjects.length} detected architectural elements`
         : `3D model generated from enhanced sample data (${detectedObjects.length} elements) - Plan2Scene analysis was temporarily unavailable`;
 
       const { data: newModel } = await supabase
         .from('generated_3d_models')
         .insert({
           upload_id: uploadId,
-          model_name: isAIGenerated ? 'Plan2Scene Generated Model' : 'Sample Blueprint Model',
+          model_name: isAIGenerated ? 'Plan2Scene AI Generated Model' : 'Sample Blueprint Model',
           model_description: modelDescription,
           model_file_path: 'placeholder.glb',
           file_size: 1024,
           generation_status: 'completed',
-          generation_prompt: isAIGenerated ? 'Plan2Scene open-source architectural analysis' : 'Enhanced sample data'
+          generation_prompt: isAIGenerated ? 'Plan2Scene AI architectural analysis' : 'Enhanced sample data'
         })
         .select()
         .single();
@@ -336,7 +377,7 @@ function mapRoomTypeToLabel(roomType: string): string {
     'laundry': 'room'
   };
   
-  return mapping[roomType.toLowerCase()] || 'room';
+  return mapping[roomType?.toLowerCase()] || 'room';
 }
 
 function mapElementTypeToLabel(elementType: string): string {
@@ -355,5 +396,5 @@ function mapElementTypeToLabel(elementType: string): string {
     'cabinet': 'fixture'
   };
   
-  return mapping[elementType.toLowerCase()] || 'fixture';
+  return mapping[elementType?.toLowerCase()] || 'fixture';
 }
