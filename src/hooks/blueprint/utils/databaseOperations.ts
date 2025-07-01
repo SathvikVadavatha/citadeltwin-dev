@@ -30,12 +30,15 @@ export const storeDetectionResults = async (
   errorMessage?: string
 ) => {
   try {
+    // Convert DetectedObject[] to JSON-compatible format
+    const detectedObjectsJson = JSON.parse(JSON.stringify(detectedObjects));
+    
     // Store detection results in the dedicated table
     const { error } = await supabase
       .from('detection_results')
       .insert({
         upload_id: uploadId,
-        detected_objects: detectedObjects,
+        detected_objects: detectedObjectsJson,
         processing_method: isAIGenerated ? 'ai' : 'fallback',
         is_ai_generated: isAIGenerated,
         error_message: errorMessage,
@@ -61,11 +64,14 @@ export const storeDetectionResults = async (
 
 export const storeProcessingMetadata = async (uploadId: string, metadata: any) => {
   try {
+    // Convert metadata to JSON-compatible format
+    const metadataJson = JSON.parse(JSON.stringify(metadata));
+    
     // Update the existing detection result with metadata
     const { error } = await supabase
       .from('detection_results')
       .update({
-        metadata: metadata
+        metadata: metadataJson
       })
       .eq('upload_id', uploadId)
       .order('created_at', { ascending: false })
