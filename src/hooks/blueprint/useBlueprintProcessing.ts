@@ -30,11 +30,15 @@ export const useBlueprintProcessing = () => {
     });
 
     try {
-      // Update status to processing
-      await updateUploadStatus(uploadId, 'processing');
+      // Step 1: Update status to processing (non-blocking)
+      logger.info('📊 Step 1: Updating upload status', 'Blueprint Processing');
+      const statusUpdated = await updateUploadStatus(uploadId, 'processing');
+      if (!statusUpdated) {
+        logger.warn('Status update failed but continuing processing', 'Blueprint Processing');
+      }
 
-      // Step 1: Enhanced image analysis
-      logger.info('📊 Step 1: Enhanced image analysis starting', 'Blueprint Processing');
+      // Step 2: Enhanced image analysis
+      logger.info('📊 Step 2: Enhanced image analysis starting', 'Blueprint Processing');
       const imageCharacteristics = await analyzeImageCharacteristics(imageUrl);
       logger.info('Image analysis completed', 'Blueprint Processing', imageCharacteristics);
 
@@ -42,9 +46,9 @@ export const useBlueprintProcessing = () => {
       let isAIGenerated = false;
       let processingError: string | undefined;
       
-      // Step 2: Enhanced Plan2Scene processing with comprehensive error handling
+      // Step 3: Enhanced Plan2Scene processing with comprehensive error handling
       try {
-        logger.info('🏗️ Step 2: Enhanced Plan2Scene processing starting', 'Blueprint Processing');
+        logger.info('🏗️ Step 3: Enhanced Plan2Scene processing starting', 'Blueprint Processing');
         
         // Enhanced health check with retry mechanism
         logger.debug('Performing enhanced health check with retry', 'Blueprint Processing');
@@ -61,11 +65,15 @@ export const useBlueprintProcessing = () => {
         
         toast({
           title: "🎉 Plan2Scene AI Success!",
-          description: `Successfully analyzed your blueprint using Plan2Scene AI! Detected ${detectedObjects.length} architectural elements including ${plan2sceneResult.rooms?.length || 0} rooms and ${plan2sceneResult.walls?.length || 0} walls.`,
+          description: `Successfully analyzed your blueprint using Plan2Scene AI! Detected ${detectedObjects.length} architectural elements.`,
           variant: "default",
         });
         
       } catch (aiError) {
+        logger.warn('Plan2Scene processing failed, using fallback', 'Blueprint Processing', {
+          error: aiError instanceof Error ? aiError.message : 'Unknown error'
+        });
+
         const errorResult = handleProcessingError(
           createProcessingError('plan2scene_failure', aiError instanceof Error ? aiError.message : 'Plan2Scene processing failed', aiError instanceof Error ? aiError : undefined),
           uploadId,
@@ -88,34 +96,44 @@ export const useBlueprintProcessing = () => {
         });
       }
 
-      // Enhanced result storage with metadata
+      // Step 4: Enhanced result storage with metadata
       logger.info('💾 Storing enhanced detection results', 'Blueprint Processing');
-      await storeDetectionResults(uploadId, detectedObjects, isAIGenerated, processingError);
+      try {
+        await storeDetectionResults(uploadId, detectedObjects, isAIGenerated, processingError);
+        
+        // Enhanced metadata storage (non-blocking)
+        await storeProcessingMetadata(uploadId, {
+          processingMethod: isAIGenerated ? 'ai' : 'fallback',
+          errorMessage: processingError,
+          imageCharacteristics,
+          processingTimeMs: 5000
+        });
+      } catch (storageError) {
+        logger.error('Failed to store results but continuing', 'Blueprint Processing', {
+          error: storageError instanceof Error ? storageError.message : 'Unknown error'
+        });
+      }
 
-      // Enhanced metadata storage
-      await storeProcessingMetadata(uploadId, {
-        processingMethod: isAIGenerated ? 'ai' : 'fallback',
-        errorMessage: processingError,
-        imageCharacteristics,
-        processingTimeMs: 5000
-      });
-
-      // Update final status
-      await updateUploadStatus(uploadId, isAIGenerated ? 'processed' : 'processed_fallback');
+      // Step 5: Update final status (non-blocking)
+      const finalStatus = isAIGenerated ? 'processed' : 'processed_fallback';
+      const finalStatusUpdated = await updateUploadStatus(uploadId, finalStatus);
+      if (!finalStatusUpdated) {
+        logger.warn('Final status update failed but processing completed', 'Blueprint Processing');
+      }
 
       logger.info('✅ Enhanced blueprint processing completed successfully!', 'Blueprint Processing', {
         method: isAIGenerated ? 'Plan2Scene AI' : 'Enhanced Fallback',
         objectsFound: detectedObjects.length,
         hasError: !!processingError,
-        finalStatus: isAIGenerated ? 'processed' : 'processed_fallback'
+        finalStatus
       });
 
       return detectedObjects;
 
     } catch (error) {
       logger.error('💥 Blueprint processing pipeline failed', 'Blueprint Processing', {
-        error: error.message,
-        stack: error.stack?.split('\n').slice(0, 5)
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack?.split('\n').slice(0, 5) : undefined
       });
       
       updateProcessingState({ 
@@ -123,6 +141,7 @@ export const useBlueprintProcessing = () => {
         errorMessage: error instanceof Error ? error.message : 'Processing failed'
       });
       
+      // Try to update status to failed (non-blocking)
       await updateUploadStatus(uploadId, 'failed');
       
       toast({
@@ -191,7 +210,7 @@ export const useBlueprintProcessing = () => {
       
     } catch (error) {
       logger.error('💥 Enhanced 3D generation error', '3D Generation', {
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
       
       // Enhanced error recovery
