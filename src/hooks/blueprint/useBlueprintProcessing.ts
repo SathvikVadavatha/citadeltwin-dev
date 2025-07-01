@@ -1,6 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { updateUploadStatus, storeDetectionResults, storeProcessingMetadata } from './utils/databaseOperations';
 import { convertImageToBase64, analyzeImageCharacteristics } from './utils/imageProcessing';
 import { generateMockDetectionResults } from './utils/mockDataGenerator';
