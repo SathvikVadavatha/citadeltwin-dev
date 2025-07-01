@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,8 +19,7 @@ import {
   CheckCircle,
   Brain,
   TestTube,
-  RefreshCw,
-  Cube
+  RefreshCw
 } from "lucide-react";
 
 interface Generated3DModel {
@@ -206,7 +204,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
           onClick={() => setActiveTab('3d-view')}
           className="flex-1"
         >
-          <Cube className="h-4 w-4 mr-2" />
+          <Box className="h-4 w-4 mr-2" />
           3D View
         </Button>
       </div>
@@ -343,7 +341,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Cube className="h-5 w-5" />
+              <Box className="h-5 w-5" />
               3D Model Viewer
               {has3DModels && (
                 <Badge variant="outline" className="ml-2">
@@ -362,7 +360,6 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                   <Model3DViewer 
                     uploadId={uploadResult.id}
                     modelUrl={modelUrl}
-                    useEnhancedViewer={true}
                   />
                 </div>
                 {uploadResult.floorPlanData && (
@@ -375,7 +372,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
             ) : (
               <div className="flex items-center justify-center h-64 text-muted-foreground">
                 <div className="text-center">
-                  <Cube className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <Box className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <h3 className="text-lg font-medium mb-2">No 3D Model Available</h3>
                   <p className="text-sm">
                     3D model generation is in progress or encountered an issue.
