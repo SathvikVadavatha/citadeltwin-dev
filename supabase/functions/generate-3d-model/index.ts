@@ -2,6 +2,16 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.10';
+import { 
+  generateFloorGeometry, 
+  generateWallGeometry, 
+  generateDoorGeometry, 
+  generateWindowGeometry, 
+  generateRoofGeometry,
+  generateWallIndices,
+  generateQuadIndices,
+  generateRoofIndices
+} from './architectural-geometry.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -66,8 +76,8 @@ serve(async (req) => {
 
     console.log('Created unique 3D model record:', modelRecord.id);
 
-    // Generate unique GLB file with variation based on detected objects
-    const uniqueGLBData = generateUniqueGLB(detectedObjects, uploadId, isAIGenerated);
+    // Generate architectural GLB file with real building elements based on detected objects
+    const uniqueGLBData = generateArchitecturalGLB(detectedObjects, uploadId, isAIGenerated);
     const fileName = uniqueFileName || `${uploadId}/${modelRecord.id}_${timestamp}.glb`;
 
     console.log('Uploading unique GLB file:', fileName, 'Size:', uniqueGLBData.length);
@@ -144,69 +154,97 @@ serve(async (req) => {
   }
 });
 
-// Generate a unique GLB file with variations based on detected objects
-function generateUniqueGLB(detectedObjects: any[], uploadId: string, isAIGenerated: boolean): Uint8Array {
-  // Create unique geometry based on detected objects and upload ID
+// Generate an architectural GLB file with real building elements based on detected objects
+function generateArchitecturalGLB(detectedObjects: any[], uploadId: string, isAIGenerated: boolean): Uint8Array {
   const seed = hashCode(uploadId);
   const rng = new SeededRandom(seed);
   
-  console.log('Generating unique GLB with seed:', seed, 'Objects:', detectedObjects?.length || 0);
+  console.log('Generating architectural 3D model with seed:', seed, 'Objects:', detectedObjects?.length || 0);
   
-  // Vary the base geometry based on detected objects
-  const objectCount = detectedObjects?.length || 8;
-  const scaleVariation = 0.5 + (objectCount / 20); // Scale based on complexity
-  const heightVariation = isAIGenerated ? 1.2 : 0.8; // AI models are taller
-  // Create unique architectural geometry based on detected objects
-  const vertices = new Float32Array([
-    // Generate unique building geometry based on detected objects
-    // Front face - varied width and height
-    -scaleVariation, -1, scaleVariation, scaleVariation, -1, scaleVariation, 
-    scaleVariation, heightVariation, scaleVariation, -scaleVariation, heightVariation, scaleVariation,
-    // Back face
-    -scaleVariation, -1, -scaleVariation, -scaleVariation, heightVariation, -scaleVariation, 
-    scaleVariation, heightVariation, -scaleVariation, scaleVariation, -1, -scaleVariation,
-    // Top face - add variation based on object count
-    -scaleVariation, heightVariation, -scaleVariation, -scaleVariation, heightVariation, scaleVariation, 
-    scaleVariation, heightVariation, scaleVariation, scaleVariation, heightVariation, -scaleVariation,
-    // Bottom face
-    -scaleVariation, -1, -scaleVariation, scaleVariation, -1, -scaleVariation, 
-    scaleVariation, -1, scaleVariation, -scaleVariation, -1, scaleVariation,
-    // Right face - add architectural details based on doors/windows
-    scaleVariation, -1, -scaleVariation, scaleVariation, heightVariation, -scaleVariation, 
-    scaleVariation, heightVariation, scaleVariation, scaleVariation, -1, scaleVariation,
-    // Left face
-    -scaleVariation, -1, -scaleVariation, -scaleVariation, -1, scaleVariation, 
-    -scaleVariation, heightVariation, scaleVariation, -scaleVariation, heightVariation, -scaleVariation
-  ]);
+  // Analyze detected objects to determine building characteristics
+  const walls = detectedObjects?.filter(obj => obj.label === 'wall') || [];
+  const doors = detectedObjects?.filter(obj => obj.label === 'door') || [];
+  const windows = detectedObjects?.filter(obj => obj.label === 'window') || [];
+  const rooms = detectedObjects?.filter(obj => obj.label.includes('room') || obj.label === 'kitchen' || obj.label === 'bathroom') || [];
+  
+  const buildingWidth = Math.max(10, Math.min(20, walls.length * 2 + rng.next() * 5));
+  const buildingDepth = Math.max(8, Math.min(15, rooms.length * 3 + rng.next() * 4));
+  const buildingHeight = Math.max(3, Math.min(6, isAIGenerated ? 4 + rng.next() * 2 : 3 + rng.next() * 1.5));
+  
+  const vertices = [];
+  const indices = [];
+  const normals = [];
+  let vertexIndex = 0;
+  
+  // Generate building structure based on detected elements
+  
+  // 1. Generate floor foundation
+  const floorVertices = generateFloorGeometry(buildingWidth, buildingDepth);
+  vertices.push(...floorVertices);
+  normals.push(...Array(floorVertices.length / 3).fill([0, 1, 0]).flat());
+  
+  // 2. Generate walls based on detected wall elements
+  for (let i = 0; i < walls.length; i++) {
+    const wall = walls[i];
+    const wallGeometry = generateWallGeometry(wall, buildingWidth, buildingDepth, buildingHeight, i);
+    vertices.push(...wallGeometry.vertices);
+    normals.push(...wallGeometry.normals);
+    
+    // Add wall indices
+    const wallIndices = generateWallIndices(vertexIndex, wallGeometry.vertices.length / 3);
+    indices.push(...wallIndices);
+    vertexIndex += wallGeometry.vertices.length / 3;
+  }
+  
+  // 3. Generate door openings
+  for (let i = 0; i < Math.min(doors.length, 3); i++) {
+    const door = doors[i];
+    const doorGeometry = generateDoorGeometry(door, buildingWidth, buildingDepth, buildingHeight, i);
+    vertices.push(...doorGeometry.vertices);
+    normals.push(...doorGeometry.normals);
+    
+    const doorIndices = generateQuadIndices(vertexIndex, 4);
+    indices.push(...doorIndices);
+    vertexIndex += 4;
+  }
+  
+  // 4. Generate window openings  
+  for (let i = 0; i < Math.min(windows.length, 6); i++) {
+    const window = windows[i];
+    const windowGeometry = generateWindowGeometry(window, buildingWidth, buildingDepth, buildingHeight, i);
+    vertices.push(...windowGeometry.vertices);
+    normals.push(...windowGeometry.normals);
+    
+    const windowIndices = generateQuadIndices(vertexIndex, 4);
+    indices.push(...windowIndices);
+    vertexIndex += 4;
+  }
+  
+  // 5. Generate roof structure
+  const roofGeometry = generateRoofGeometry(buildingWidth, buildingDepth, buildingHeight);
+  vertices.push(...roofGeometry.vertices);
+  normals.push(...roofGeometry.normals);
+  
+  const roofIndices = generateRoofIndices(vertexIndex, roofGeometry.vertices.length / 3);
+  indices.push(...roofIndices);
+  
+  console.log('Generated architectural model:', {
+    vertices: vertices.length / 3,
+    walls: walls.length,
+    doors: doors.length,
+    windows: windows.length,
+    dimensions: [buildingWidth, buildingHeight, buildingDepth]
+  });
 
-  const indices = new Uint16Array([
-     0,  1,  2,    0,  2,  3,    // front
-     4,  5,  6,    4,  6,  7,    // back
-     8,  9, 10,    8, 10, 11,    // top
-    12, 13, 14,   12, 14, 15,    // bottom
-    16, 17, 18,   16, 18, 19,    // right
-    20, 21, 22,   20, 22, 23     // left
-  ]);
-
-  const normals = new Float32Array([
-    // Front face
-     0,  0,  1,    0,  0,  1,    0,  0,  1,    0,  0,  1,
-    // Back face
-     0,  0, -1,    0,  0, -1,    0,  0, -1,    0,  0, -1,
-    // Top face
-     0,  1,  0,    0,  1,  0,    0,  1,  0,    0,  1,  0,
-    // Bottom face
-     0, -1,  0,    0, -1,  0,    0, -1,  0,    0, -1,  0,
-    // Right face
-     1,  0,  0,    1,  0,  0,    1,  0,  0,    1,  0,  0,
-    // Left face
-    -1,  0,  0,   -1,  0,  0,   -1,  0,  0,   -1,  0,  0
-  ]);
+  // Convert collected geometry to typed arrays
+  const verticesArray = new Float32Array(vertices);
+  const normalsArray = new Float32Array(normals);  
+  const indicesArray = new Uint16Array(indices);
 
   // Calculate buffer sizes
-  const vertexBufferSize = vertices.byteLength;
-  const normalBufferSize = normals.byteLength;
-  const indexBufferSize = indices.byteLength;
+  const vertexBufferSize = verticesArray.byteLength;
+  const normalBufferSize = normalsArray.byteLength;
+  const indexBufferSize = indicesArray.byteLength;
   
   // Align to 4-byte boundaries
   const vertexBufferAligned = Math.ceil(vertexBufferSize / 4) * 4;
@@ -237,21 +275,21 @@ function generateUniqueGLB(detectedObjects: any[], uploadId: string, isAIGenerat
       {
         bufferView: 0,
         componentType: 5126, // FLOAT
-        count: 24, // 24 vertices
+        count: verticesArray.length / 3,
         type: "VEC3",
-        max: [1, 1, 1],
-        min: [-1, -1, -1]
+        max: [buildingWidth, buildingHeight, buildingDepth],
+        min: [-buildingWidth, -1, -buildingDepth]
       },
       {
         bufferView: 1,
         componentType: 5126, // FLOAT
-        count: 24, // 24 normals
+        count: normalsArray.length / 3,
         type: "VEC3"
       },
       {
         bufferView: 2,
         componentType: 5123, // UNSIGNED_SHORT
-        count: 36, // 36 indices
+        count: indicesArray.length,
         type: "SCALAR"
       }
     ],
@@ -291,13 +329,13 @@ function generateUniqueGLB(detectedObjects: any[], uploadId: string, isAIGenerat
   const binaryView = new Uint8Array(binaryBuffer);
   
   // Copy vertex data
-  binaryView.set(new Uint8Array(vertices.buffer), 0);
+  binaryView.set(new Uint8Array(verticesArray.buffer), 0);
   
   // Copy normal data
-  binaryView.set(new Uint8Array(normals.buffer), vertexBufferAligned);
+  binaryView.set(new Uint8Array(normalsArray.buffer), vertexBufferAligned);
   
   // Copy index data
-  binaryView.set(new Uint8Array(indices.buffer), vertexBufferAligned + normalBufferAligned);
+  binaryView.set(new Uint8Array(indicesArray.buffer), vertexBufferAligned + normalBufferAligned);
 
   // Calculate total GLB size
   const headerSize = 12;

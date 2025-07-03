@@ -1,4 +1,6 @@
 
+import { generateCoreStructure, generateRoomsLayout, generateArchitecturalFeatures } from './intelligentLayoutGenerator';
+
 interface DetectedObject {
   label: string;
   confidence: number;
@@ -50,63 +52,37 @@ const ELEMENT_TYPES = [
 ];
 
 export const generateMockDetectionResults = (uploadId: string): DetectedObject[] => {
-  console.warn('🚨 ENHANCED FALLBACK MODE: Generating unique sample data per blueprint - Gemini AI analysis unavailable');
+  console.warn('🚨 INTELLIGENT FALLBACK MODE: Generating realistic architectural sample data per blueprint - Gemini AI analysis unavailable');
   
   const rng = new SeededRandom(uploadId);
-  const numElements = Math.floor(rng.next() * 12) + 6; // 6-17 elements for more variation
+  
+  // Generate more realistic building layout
+  const buildingType = rng.next() > 0.5 ? 'residential' : 'commercial';
+  const numElements = buildingType === 'residential' ? 
+    Math.floor(rng.next() * 8) + 8 : // 8-15 elements for residential
+    Math.floor(rng.next() * 15) + 10; // 10-24 elements for commercial
+  
+  console.log(`🏗️ Generating intelligent ${buildingType} architectural layout with ${numElements} elements for upload ${uploadId}`);
+
   const results: DetectedObject[] = [];
   
-  console.log(`🔄 Generating ${numElements} unique architectural elements for upload ${uploadId}`);
+  // Generate core structural elements first
+  generateCoreStructure(results, rng, buildingType);
+  
+  // Add rooms based on building type
+  generateRoomsLayout(results, rng, buildingType);
+  
+  // Add architectural features
+  generateArchitecturalFeatures(results, rng, buildingType);
+  
+  console.log(`Generated intelligent ${buildingType} layout:`, {
+    walls: results.filter(r => r.label === 'wall').length,
+    rooms: results.filter(r => r.label.includes('room') || r.label === 'kitchen' || r.label === 'bathroom').length,
+    doors: results.filter(r => r.label === 'door').length,
+    windows: results.filter(r => r.label === 'window').length,
+    total: results.length
+  });
 
-  // Track used positions to avoid overlaps
-  const usedPositions: Array<{ x: number; y: number; width: number; height: number }> = [];
-
-  for (let i = 0; i < numElements; i++) {
-    // Select element type based on weights
-    let randomValue = rng.next();
-    let selectedType = ELEMENT_TYPES[0];
-    
-    for (const elementType of ELEMENT_TYPES) {
-      if (randomValue <= elementType.weight) {
-        selectedType = elementType;
-        break;
-      }
-      randomValue -= elementType.weight;
-    }
-
-    // Generate position with collision avoidance
-    let attempts = 0;
-    let position = { x: 0, y: 0 };
-    let size = {
-      width: selectedType.minSize.width + rng.next() * (selectedType.maxSize.width - selectedType.minSize.width),
-      height: selectedType.minSize.height + rng.next() * (selectedType.maxSize.height - selectedType.minSize.height)
-    };
-
-    do {
-      position = {
-        x: rng.next() * (100 - size.width),
-        y: rng.next() * (100 - size.height)
-      };
-      attempts++;
-    } while (attempts < 10 && isOverlapping(position, size, usedPositions));
-
-    usedPositions.push({ ...position, ...size });
-
-    const confidence = 0.6 + rng.next() * 0.35; // 0.6-0.95 confidence
-
-    results.push({
-      label: selectedType.type,
-      confidence: Math.round(confidence * 100) / 100,
-      bbox: {
-        x: Math.round(position.x * 10) / 10,
-        y: Math.round(position.y * 10) / 10,
-        width: Math.round(size.width * 10) / 10,
-        height: Math.round(size.height * 10) / 10
-      }
-    });
-  }
-
-  console.log(`Generated ${results.length} unique mock elements for upload ${uploadId}`);
   return results;
 };
 

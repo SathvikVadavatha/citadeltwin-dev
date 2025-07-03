@@ -14,15 +14,15 @@ interface DetectedObject {
 
 export const processWithGemini = async (imageBase64: string): Promise<DetectedObject[]> => {
   try {
-    console.log('🤖 Starting enhanced Gemini AI processing...');
+    console.log('🤖 Starting enhanced Gemini AI architectural processing...');
     
     // Enhanced validation of base64 image data
     if (!imageBase64 || typeof imageBase64 !== 'string') {
-      throw new Error('No image data provided');
+      throw new Error('No image data provided for Gemini AI analysis');
     }
 
     if (imageBase64.length < 100) {
-      throw new Error('Image data too short - possible conversion error');
+      throw new Error('Image data too short - possible conversion error in upload pipeline');
     }
 
     // Clean base64 data - remove data URL prefix if present
@@ -30,67 +30,91 @@ export const processWithGemini = async (imageBase64: string): Promise<DetectedOb
     if (imageBase64.startsWith('data:image/')) {
       const parts = imageBase64.split(',');
       if (parts.length !== 2) {
-        throw new Error('Invalid data URL format');
+        throw new Error('Invalid data URL format - malformed image data prefix');
       }
       cleanImageData = parts[1];
-      console.log('🧹 Removed data URL prefix, clean data length:', cleanImageData.length);
+      console.log('🧹 Cleaned image data - removed data URL prefix, clean length:', cleanImageData.length);
     }
 
-    // Enhanced base64 validation
+    // Enhanced base64 validation with detailed error reporting
     const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
     if (!base64Regex.test(cleanImageData)) {
-      console.error('❌ Invalid base64 format detected');
-      console.error('Sample of invalid data:', cleanImageData.substring(0, 50));
-      throw new Error('Invalid base64 image format - contains invalid characters');
+      console.error('❌ Invalid base64 format detected in image data');
+      console.error('Sample of problematic data:', cleanImageData.substring(0, 50));
+      console.error('Expected base64 characters: A-Z, a-z, 0-9, +, /, =');
+      throw new Error('Invalid base64 image format - contains non-base64 characters, check image upload process');
     }
 
-    // Check for reasonable size limits
+    // Check for reasonable size limits (Gemini has specific limits)
     const estimatedSize = (cleanImageData.length * 3) / 4;
+    console.log(`📊 Image size analysis: ${cleanImageData.length} base64 chars ≈ ${(estimatedSize / 1024 / 1024).toFixed(2)} MB`);
+    
     if (estimatedSize > 20 * 1024 * 1024) {
-      throw new Error('Image too large for processing (estimated > 20MB)');
+      throw new Error(`Image too large for Gemini AI processing: ${(estimatedSize / 1024 / 1024).toFixed(2)} MB (max 20 MB)`);
     }
 
-    console.log('📤 Calling Gemini AI edge function with validated data...');
+    if (estimatedSize < 1000) {
+      console.warn('⚠️ Very small image detected, may not contain meaningful architectural content');
+    }
+
+    console.log('📤 Calling enhanced Gemini AI edge function for architectural analysis...');
     console.log('✅ Image data validation passed:', {
       originalLength: imageBase64.length,
       cleanLength: cleanImageData.length,
-      estimatedSizeMB: (estimatedSize / 1024 / 1024).toFixed(2)
+      estimatedSizeMB: (estimatedSize / 1024 / 1024).toFixed(2),
+      imageType: imageBase64.includes('data:image/') ? imageBase64.split(';')[0].split('/')[1] : 'unknown'
     });
 
     const { data: geminiResult, error: geminiError } = await supabase.functions.invoke('gemini-ai', {
       body: {
-        prompt: `Analyze this architectural blueprint image and identify all structural and architectural elements. 
+        prompt: `You are an expert architect and structural engineer analyzing a blueprint/floor plan image. Extract ALL architectural and structural elements with precise measurements and coordinates.
 
-For each element found, provide:
-1. Element type (wall, door, window, room, beam, column, etc.)
-2. Precise location coordinates (x, y position)
-3. Dimensions (width, height)
-4. Confidence score (0.0 to 1.0)
+CRITICAL REQUIREMENTS:
+1. Identify and measure ALL visible elements (walls, doors, windows, rooms, fixtures, structural elements)
+2. Provide realistic measurements in feet/meters suitable for 3D architectural modeling
+3. Use a consistent coordinate system with (0,0) at bottom-left of the drawing
+4. Estimate realistic building proportions and scale
 
-Return results as JSON in this exact format:
+REQUIRED OUTPUT FORMAT (JSON):
 {
   "elements": [
     {
-      "type": "wall",
-      "confidence": 0.95,
-      "position": {"x": 10, "y": 20},
-      "dimensions": {"width": 100, "height": 5}
+      "type": "wall|door|window|beam|column|fixture|stairs",
+      "confidence": 0.0-1.0,
+      "position": {"x": number, "y": number, "z": 0},
+      "dimensions": {"width": number, "height": number, "depth": number},
+      "properties": {"material": "string", "thickness": number}
     }
   ],
   "rooms": [
     {
-      "name": "Living Room",
-      "type": "living_room",
-      "area": 250,
-      "bounds": {"x": 10, "y": 10, "width": 50, "height": 40}
+      "name": "Room Name",
+      "type": "living_room|bedroom|kitchen|bathroom|office|etc",
+      "area": number_in_sqft,
+      "bounds": {"x": number, "y": number, "width": number, "height": number},
+      "features": ["door", "window", "etc"]
     }
-  ]
+  ],
+  "metadata": {
+    "scale": "architectural scale if visible",
+    "totalArea": number,
+    "buildingType": "residential|commercial|industrial",
+    "floorCount": number,
+    "estimatedDimensions": {"width": number, "height": number}
+  }
 }
 
-Focus on accuracy and provide specific measurements suitable for 3D model generation.`,
+FOCUS ON:
+- Accurate wall thickness and heights (typical 8-12ft ceilings)
+- Proper door sizes (typically 3ft x 7ft)
+- Realistic window dimensions
+- Room proportions and layouts
+- Structural elements and their proper sizing
+
+Analyze the image thoroughly and provide comprehensive architectural data.`,
         type: 'blueprint-analysis',
         imageData: cleanImageData,
-        context: 'Architectural blueprint analysis for 3D model generation',
+        context: 'Professional architectural blueprint analysis for accurate 3D building model generation',
         maxTokens: 4000
       }
     });
