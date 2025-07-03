@@ -12,6 +12,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, metadata?: any) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  updatePassword: (password: string) => Promise<{ error: any }>;
   clearError: () => void;
 }
 
@@ -39,6 +40,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('Auth state change:', event, session?.user?.id);
     setSession(session);
     setUser(session?.user || null);
+    
+    // Handle password recovery flow
+    if (event === 'PASSWORD_RECOVERY') {
+      console.log('Password recovery detected');
+      // The session will contain the recovery tokens
+    }
     
     // Only set loading to false after we've processed the auth state
     if (initializationRef.current) {
@@ -181,6 +188,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updatePassword = async (password: string) => {
+    try {
+      setError(null);
+      const { error } = await supabase.auth.updateUser({
+        password: password,
+      });
+
+      if (error) {
+        setError(error.message);
+        toast({
+          title: "Password Update Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Password Updated",
+          description: "Your password has been successfully updated.",
+        });
+      }
+
+      return { error };
+    } catch (error: any) {
+      const errorMessage = "An unexpected error occurred. Please try again.";
+      setError(errorMessage);
+      toast({
+        title: "Password Update Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return { error };
+    }
+  };
+
   const signOut = async () => {
     try {
       setError(null);
@@ -204,6 +245,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signIn, 
       signUp, 
       signOut, 
+      updatePassword,
       clearError 
     }}>
       {children}

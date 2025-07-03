@@ -23,7 +23,7 @@ export const ForgotPasswordPage = ({ onNavigateToLogin }: ForgotPasswordPageProp
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: `${window.location.origin}/auth/login`,
       });
 
       if (error) {

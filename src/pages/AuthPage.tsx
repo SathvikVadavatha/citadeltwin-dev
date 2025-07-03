@@ -1,11 +1,21 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LoginPage } from '@/components/auth/LoginPage';
 import { SignupPage } from '@/components/auth/SignupPage';
 import { ForgotPasswordPage } from '@/components/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/components/auth/ResetPasswordPage';
 
 export const AuthPage: React.FC = () => {
-  const [currentView, setCurrentView] = useState<'login' | 'signup' | 'forgot-password'>('login');
+  const [currentView, setCurrentView] = useState<'login' | 'signup' | 'forgot-password' | 'reset-password'>('login');
+
+  // Check URL hash for password recovery
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes('type=recovery') || hash.includes('access_token')) {
+      console.log('Password recovery detected in URL');
+      setCurrentView('reset-password');
+    }
+  }, []);
 
   const handleNavigateToSignup = () => {
     setCurrentView('signup');
@@ -30,6 +40,14 @@ export const AuthPage: React.FC = () => {
   if (currentView === 'forgot-password') {
     return (
       <ForgotPasswordPage 
+        onNavigateToLogin={handleNavigateToLogin}
+      />
+    );
+  }
+
+  if (currentView === 'reset-password') {
+    return (
+      <ResetPasswordPage 
         onNavigateToLogin={handleNavigateToLogin}
       />
     );
