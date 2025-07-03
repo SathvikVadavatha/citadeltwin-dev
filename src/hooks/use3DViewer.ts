@@ -38,6 +38,12 @@ export const use3DViewer = (uploadId?: string, projectId?: string) => {
   // Transform BIM elements for 3D viewer with better error handling
   const transformedElements = useMemo(() => {
     try {
+      if (!elements || !Array.isArray(elements)) {
+        console.log('No elements array found, returning empty array');
+        return [];
+      }
+      
+      console.log('Transforming elements:', elements.length);
       return elements.map((element, index) => ({
         id: element.id,
         name: element.name || `Element ${index + 1}`,

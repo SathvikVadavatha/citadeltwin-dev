@@ -386,7 +386,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                     projectId={uploadResult.id}
                     onDownload={() => primary3DModel && onDownload3DModel(primary3DModel)}
                   />
-                ) : uploadResult.floorPlanData && uploadResult.floorPlanData.rooms?.length > 0 ? (
+                ) : uploadResult.floorPlanData?.rooms?.length > 0 ? (
                   <div className="space-y-4">
                     <div className="text-sm text-muted-foreground">
                       <p>Floor plan visualization generated from detected elements.</p>

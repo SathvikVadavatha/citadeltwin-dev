@@ -175,19 +175,19 @@ const Scene3D = ({ floorPlanData }: { floorPlanData: FloorPlanData }) => {
       </mesh>
 
       {/* Rooms */}
-      {floorPlanData.rooms.map((room) => (
+      {floorPlanData.rooms?.map((room) => (
         <Room3D key={room.id} room={room} scale={sceneScale} />
-      ))}
+      )) || null}
 
       {/* Walls */}
-      {floorPlanData.walls.map((wall) => (
+      {floorPlanData.walls?.map((wall) => (
         <Wall3D key={wall.id} wall={wall} scale={sceneScale} />
-      ))}
+      )) || null}
 
       {/* Furniture */}
-      {floorPlanData.rooms.map((room) => (
+      {floorPlanData.rooms?.map((room) => (
         <Furniture key={`furniture-${room.id}`} room={room} scale={sceneScale} />
-      ))}
+      )) || null}
     </>
   );
 };
