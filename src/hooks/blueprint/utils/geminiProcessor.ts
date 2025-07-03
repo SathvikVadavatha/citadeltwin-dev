@@ -14,28 +14,48 @@ interface DetectedObject {
 
 export const processWithGemini = async (imageBase64: string): Promise<DetectedObject[]> => {
   try {
-    console.log('🤖 Starting Gemini AI processing...');
+    console.log('🤖 Starting enhanced Gemini AI processing...');
     
-    // Validate base64 image data
-    if (!imageBase64 || imageBase64.length < 100) {
-      throw new Error('Invalid or empty image data');
+    // Enhanced validation of base64 image data
+    if (!imageBase64 || typeof imageBase64 !== 'string') {
+      throw new Error('No image data provided');
+    }
+
+    if (imageBase64.length < 100) {
+      throw new Error('Image data too short - possible conversion error');
     }
 
     // Clean base64 data - remove data URL prefix if present
     let cleanImageData = imageBase64;
     if (imageBase64.startsWith('data:image/')) {
-      cleanImageData = imageBase64.split(',')[1];
+      const parts = imageBase64.split(',');
+      if (parts.length !== 2) {
+        throw new Error('Invalid data URL format');
+      }
+      cleanImageData = parts[1];
+      console.log('🧹 Removed data URL prefix, clean data length:', cleanImageData.length);
     }
 
-    // Validate base64 format
+    // Enhanced base64 validation
     const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
     if (!base64Regex.test(cleanImageData)) {
-      console.error('Invalid base64 format detected');
-      throw new Error('Invalid base64 image format');
+      console.error('❌ Invalid base64 format detected');
+      console.error('Sample of invalid data:', cleanImageData.substring(0, 50));
+      throw new Error('Invalid base64 image format - contains invalid characters');
     }
 
-    console.log('📤 Calling Gemini AI edge function...');
-    console.log('Image data length:', cleanImageData.length);
+    // Check for reasonable size limits
+    const estimatedSize = (cleanImageData.length * 3) / 4;
+    if (estimatedSize > 20 * 1024 * 1024) {
+      throw new Error('Image too large for processing (estimated > 20MB)');
+    }
+
+    console.log('📤 Calling Gemini AI edge function with validated data...');
+    console.log('✅ Image data validation passed:', {
+      originalLength: imageBase64.length,
+      cleanLength: cleanImageData.length,
+      estimatedSizeMB: (estimatedSize / 1024 / 1024).toFixed(2)
+    });
 
     const { data: geminiResult, error: geminiError } = await supabase.functions.invoke('gemini-ai', {
       body: {
@@ -81,33 +101,72 @@ Focus on accuracy and provide specific measurements suitable for 3D model genera
     });
 
     if (geminiError) {
-      console.error('❌ Gemini AI error:', geminiError);
-      throw new Error(`Gemini AI processing failed: ${geminiError.message || 'Unknown error'}`);
+      console.error('❌ Gemini AI edge function error:', geminiError);
+      
+      // Enhanced error reporting
+      let errorMessage = 'Gemini AI processing failed';
+      if (geminiError.message) {
+        if (geminiError.message.includes('400')) {
+          errorMessage = 'Invalid image format for AI processing';
+        } else if (geminiError.message.includes('401') || geminiError.message.includes('403')) {
+          errorMessage = 'Gemini AI authentication failed - API key issue';
+        } else if (geminiError.message.includes('429')) {
+          errorMessage = 'Gemini AI rate limit exceeded - too many requests';
+        } else if (geminiError.message.includes('500')) {
+          errorMessage = 'Gemini AI service temporarily unavailable';
+        } else {
+          errorMessage = `Gemini AI error: ${geminiError.message}`;
+        }
+      }
+      
+      throw new Error(errorMessage);
     }
 
-    if (!geminiResult || !geminiResult.result) {
-      console.error('❌ No result from Gemini AI:', geminiResult);
-      throw new Error('Gemini AI returned no analysis results');
+    if (!geminiResult) {
+      console.error('❌ No result from Gemini AI edge function');
+      throw new Error('Gemini AI edge function returned no data');
+    }
+
+    if (!geminiResult.result) {
+      console.error('❌ Empty result from Gemini AI:', geminiResult);
+      throw new Error('Gemini AI returned empty analysis results');
     }
 
     console.log('✅ Gemini AI processing successful, parsing results...');
     return parseGeminiResults(geminiResult.result);
 
   } catch (error) {
-    console.error('💥 Gemini processing error:', error);
+    console.error('💥 Enhanced Gemini processing error:', error);
     
-    // More specific error messages
+    // Enhanced error analysis and reporting
     if (error instanceof Error) {
-      if (error.message.includes('400')) {
-        throw new Error('Image format not supported by AI - try a different image format (PNG, JPEG)');
-      } else if (error.message.includes('413')) {
-        throw new Error('Image too large - please use an image smaller than 10MB');
-      } else if (error.message.includes('timeout')) {
+      const errorMsg = error.message.toLowerCase();
+      
+      if (errorMsg.includes('400') || errorMsg.includes('bad request')) {
+        throw new Error('Image format not supported by Gemini AI - try PNG or JPEG under 10MB');
+      } else if (errorMsg.includes('401') || errorMsg.includes('unauthorized')) {
+        throw new Error('Gemini AI authentication failed - API key not configured properly');
+      } else if (errorMsg.includes('403') || errorMsg.includes('forbidden')) {
+        throw new Error('Gemini AI access denied - check API key permissions');
+      } else if (errorMsg.includes('413') || errorMsg.includes('too large')) {
+        throw new Error('Image too large for AI processing - please use an image smaller than 10MB');
+      } else if (errorMsg.includes('429') || errorMsg.includes('rate limit')) {
+        throw new Error('Gemini AI rate limit exceeded - please wait a few minutes and try again');
+      } else if (errorMsg.includes('500') || errorMsg.includes('internal server')) {
+        throw new Error('Gemini AI service temporarily unavailable - please try again in a few minutes');
+      } else if (errorMsg.includes('timeout')) {
         throw new Error('AI processing timed out - try a simpler image or try again');
+      } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+        throw new Error('Network error connecting to Gemini AI - check your internet connection');
+      } else if (errorMsg.includes('invalid base64')) {
+        throw new Error('Image processing error - please try uploading the image again');
       }
     }
     
-    throw new Error(`AI analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    // Fallback error message
+    const finalError = `Gemini AI analysis failed: ${error instanceof Error ? error.message : 'Unknown error occurred'}`;
+    console.error('🚨 Final error being thrown:', finalError);
+    throw new Error(finalError);
   }
 };
 

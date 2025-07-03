@@ -50,11 +50,13 @@ const ELEMENT_TYPES = [
 ];
 
 export const generateMockDetectionResults = (uploadId: string): DetectedObject[] => {
-  console.warn('🚨 FALLBACK MODE: Using mock data - AI analysis unavailable');
+  console.warn('🚨 ENHANCED FALLBACK MODE: Generating unique sample data per blueprint - Gemini AI analysis unavailable');
   
   const rng = new SeededRandom(uploadId);
-  const numElements = Math.floor(rng.next() * 15) + 8; // 8-22 elements
+  const numElements = Math.floor(rng.next() * 12) + 6; // 6-17 elements for more variation
   const results: DetectedObject[] = [];
+  
+  console.log(`🔄 Generating ${numElements} unique architectural elements for upload ${uploadId}`);
 
   // Track used positions to avoid overlaps
   const usedPositions: Array<{ x: number; y: number; width: number; height: number }> = [];

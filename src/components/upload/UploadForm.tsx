@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Upload, Loader2, Zap, Brain, Box, CheckCircle, AlertCircle, Cpu, Search } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { ProcessingStatusPanel } from "./ProcessingStatusPanel";
 
 interface UploadFormProps {
   uploading: boolean;
@@ -12,7 +13,10 @@ interface UploadFormProps {
   enhancedAnalyzing: boolean;
   generating3D: boolean;
   uploadProgress: number;
+  processingMethod?: 'ai' | 'fallback' | null;
+  errorMessage?: string;
   onFileUpload: (file: File) => void;
+  onRetry?: () => void;
 }
 
 export const UploadForm: React.FC<UploadFormProps> = ({
@@ -21,7 +25,10 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   enhancedAnalyzing,
   generating3D,
   uploadProgress,
-  onFileUpload
+  processingMethod,
+  errorMessage,
+  onFileUpload,
+  onRetry
 }) => {
   const { toast } = useToast();
 
@@ -216,8 +223,9 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   };
 
   return (
-    <Card className="border-2 hover:border-primary/20 transition-colors">
-      <CardContent className="pt-6">
+    <div className="space-y-4">
+      <Card className="border-2 hover:border-primary/20 transition-colors">
+        <CardContent className="pt-6">
         <div
           {...getRootProps()}
           className={`
@@ -299,5 +307,19 @@ export const UploadForm: React.FC<UploadFormProps> = ({
         </div>
       </CardContent>
     </Card>
+    
+    {/* Processing Status Panel */}
+    {(isProcessing || processingMethod) && (
+      <ProcessingStatusPanel
+        uploading={uploading}
+        processing={processing}
+        enhancedAnalyzing={enhancedAnalyzing}
+        generating3D={generating3D}
+        processingMethod={processingMethod}
+        errorMessage={errorMessage}
+        onRetry={onRetry}
+      />
+    )}
+  </div>
   );
 };

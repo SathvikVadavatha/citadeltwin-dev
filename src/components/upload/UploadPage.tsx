@@ -71,7 +71,10 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onNavigate }) => {
           enhancedAnalyzing={enhancedAnalyzing}
           generating3D={generating3D}
           uploadProgress={uploadProgress}
+          processingMethod={uploadResult?.processingMethod}
+          errorMessage={uploadResult?.errorMessage}
           onFileUpload={uploadFile}
+          onRetry={resetUpload}
         />
         
         {/* Preview/Results Placeholder */}

@@ -12,6 +12,7 @@ import { useProcessingState } from './utils/processingStateManager';
 import { processWithGemini } from './utils/geminiProcessor';
 import { convertPlan2SceneToDetectedObjects } from './utils/dataConversion';
 import { handleProcessingError, createProcessingError } from './utils/processingErrorHandler';
+import { debugGeminiPipeline } from './utils/debugUtils';
 
 export const useBlueprintProcessing = () => {
   const { processingState, updateProcessingState } = useProcessingState();
@@ -46,25 +47,74 @@ export const useBlueprintProcessing = () => {
       let isAIGenerated = false;
       let processingError: string | undefined;
       
-      // Step 3: Enhanced Gemini AI processing with comprehensive error handling
+      // Step 3: Enhanced Gemini AI processing with comprehensive error handling and debugging
       try {
         logger.info('🏗️ Step 3: Enhanced Gemini AI processing starting', 'Blueprint Processing');
         
-        // Convert image URL to base64 for Gemini
+        // Debug the pipeline first
+        const debugResult = await debugGeminiPipeline(imageUrl, uploadId);
+        logger.info('🔍 Pipeline debug completed', 'Blueprint Processing', debugResult);
+        
+        if (!debugResult.success) {
+          throw new Error(`Pipeline debug failed: ${debugResult.error}`);
+        }
+        
+        // Enhanced image processing with better error handling
+        logger.info('📥 Starting image fetch and conversion', 'Blueprint Processing', { imageUrl: imageUrl.substring(0, 100) + '...' });
+        
         const imageResponse = await fetch(imageUrl);
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`);
+        }
+        
         const imageBlob = await imageResponse.blob();
-        const reader = new FileReader();
+        logger.info('📷 Image blob created', 'Blueprint Processing', { 
+          size: imageBlob.size, 
+          type: imageBlob.type 
+        });
+
+        if (imageBlob.size === 0) {
+          throw new Error('Empty image file received');
+        }
+
+        if (imageBlob.size > 10 * 1024 * 1024) {
+          throw new Error('Image too large for AI processing (max 10MB)');
+        }
+
+        // Enhanced base64 conversion with validation
         const imageBase64 = await new Promise<string>((resolve, reject) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            if (!result || result.length < 100) {
+              reject(new Error('Invalid base64 conversion result'));
+              return;
+            }
+            logger.info('✅ Base64 conversion successful', 'Blueprint Processing', { 
+              length: result.length,
+              hasPrefix: result.startsWith('data:image/') 
+            });
+            resolve(result);
+          };
+          reader.onerror = () => reject(new Error('FileReader conversion failed'));
           reader.readAsDataURL(imageBlob);
         });
         
-        // Enhanced Gemini AI call
+        // Enhanced Gemini AI call with detailed logging
+        logger.info('🤖 Calling Gemini AI with enhanced data', 'Blueprint Processing', {
+          imageDataLength: imageBase64.length,
+          hasDataPrefix: imageBase64.startsWith('data:image/')
+        });
+        
         detectedObjects = await processWithGemini(imageBase64);
         
+        if (!detectedObjects || !Array.isArray(detectedObjects) || detectedObjects.length === 0) {
+          throw new Error('Gemini AI returned empty or invalid results');
+        }
+        
         logger.info('🔍 Gemini AI call successful', 'Blueprint Processing', {
-          objectsDetected: detectedObjects.length
+          objectsDetected: detectedObjects.length,
+          objectTypes: detectedObjects.map(obj => obj.label).slice(0, 5)
         });
         
         isAIGenerated = true;
@@ -72,13 +122,14 @@ export const useBlueprintProcessing = () => {
         
         toast({
           title: "🎉 Gemini AI Success!",
-          description: `Successfully analyzed your blueprint using Gemini AI! Detected ${detectedObjects.length} architectural elements.`,
+          description: `Successfully analyzed your blueprint using Gemini AI! Detected ${detectedObjects.length} architectural elements including ${detectedObjects.map(obj => obj.label).slice(0, 3).join(', ')}.`,
           variant: "default",
         });
         
         logger.info('✅ Gemini AI processing completed successfully', 'Blueprint Processing', {
           objectsDetected: detectedObjects.length,
-          isAIGenerated: true
+          isAIGenerated: true,
+          processingTimeMs: Date.now()
         });
         
       } catch (aiError) {
@@ -179,56 +230,74 @@ export const useBlueprintProcessing = () => {
     updateProcessingState({ generating3D: true });
 
     try {
-      logger.info('🏗️ Starting enhanced 3D model generation via Gemini AI analysis', '3D Generation', {
+      logger.info('🏗️ Starting enhanced 3D model generation with unique GLB files', '3D Generation', {
         uploadId,
         objectCount: detectedObjects.length
       });
 
-      // Check if models already exist
-      const { data: existingModels } = await supabase
-        .from('generated_3d_models')
-        .select('*')
-        .eq('upload_id', uploadId)
-        .order('created_at', { ascending: false });
+      // Generate unique model identifier
+      const modelTimestamp = Date.now();
+      const modelId = `${uploadId}_${modelTimestamp}`;
+      const uniqueFileName = `${uploadId}/model_${modelTimestamp}.glb`;
 
-      if (existingModels && existingModels.length > 0) {
-        logger.info('♻️ 3D models already exist, returning existing', '3D Generation', {
-          count: existingModels.length
-        });
-        return existingModels;
-      }
-
-      logger.info('🆕 Creating 3D model record for Gemini AI analysis', '3D Generation');
+      logger.info('🆕 Generating unique 3D model GLB file', '3D Generation', {
+        modelId,
+        fileName: uniqueFileName
+      });
       
-      // Create a sample model record since Gemini AI focused on element detection
-      logger.info('🔄 Creating 3D model from Gemini AI analysis', '3D Generation');
-        
-        const isAIGenerated = processingState.processingMethod === 'ai';
-        const modelDescription = isAIGenerated 
-          ? `Enhanced 3D model generated from Gemini AI analysis with ${detectedObjects.length} detected architectural elements including rooms, walls, doors, windows, and fixtures. High-quality AI processing with detailed semantic understanding.`
-          : `Enhanced 3D model generated from sample data (${detectedObjects.length} elements) - Gemini AI analysis was temporarily unavailable. Fallback model maintains architectural accuracy.`;
+      const isAIGenerated = processingState.processingMethod === 'ai';
+      
+      // Call the enhanced 3D generation edge function
+      const { data: generationResult, error: generationError } = await supabase.functions.invoke('generate-3d-model', {
+        body: {
+          uploadId,
+          detectedObjects,
+          imageUrl,
+          uniqueFileName,
+          isAIGenerated
+        }
+      });
 
-        const { data: newModel } = await supabase
+      if (generationError) {
+        logger.warn('3D generation service failed, creating fallback model', '3D Generation', {
+          error: generationError.message
+        });
+        
+        // Create fallback model record
+        const { data: fallbackModel } = await supabase
           .from('generated_3d_models')
           .insert({
             upload_id: uploadId,
-            model_name: isAIGenerated ? 'Gemini AI Enhanced Model' : 'Enhanced Sample Blueprint Model',
-            model_description: modelDescription,
+            model_name: `Fallback Model ${modelTimestamp}`,
+            model_description: `Fallback 3D model for upload ${uploadId} - Generation service unavailable`,
             model_file_path: 'placeholder.glb',
-            file_size: isAIGenerated ? 8192 : 4096,
+            file_size: 2048,
             generation_status: 'completed',
-            generation_prompt: isAIGenerated ? 'Gemini AI enhanced architectural analysis with semantic understanding' : 'Enhanced sample data with architectural intelligence'
+            generation_prompt: 'Fallback generation'
           })
           .select()
           .single();
 
-        logger.info('✅ Enhanced 3D model generation completed', '3D Generation', {
-          modelId: newModel?.id,
-          isAIGenerated,
-          fileSize: newModel?.file_size
-        });
+        return fallbackModel ? [fallbackModel] : [];
+      }
 
-        return newModel ? [newModel] : [];
+      // Retrieve the generated model from database
+      const { data: newModel } = await supabase
+        .from('generated_3d_models')
+        .select('*')
+        .eq('upload_id', uploadId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      logger.info('✅ Unique 3D model generation completed', '3D Generation', {
+        modelId: newModel?.id,
+        fileName: newModel?.model_file_path,
+        fileSize: newModel?.file_size,
+        isAIGenerated
+      });
+
+      return newModel ? [newModel] : [];
       
     } catch (error) {
       logger.error('💥 Enhanced 3D generation error', '3D Generation', {
