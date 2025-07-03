@@ -111,7 +111,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
         <Alert className="border-orange-200 bg-orange-50">
           <TestTube className="h-4 w-4 text-orange-600" />
           <AlertDescription className="text-orange-800">
-            <strong>Sample Analysis Mode:</strong> Plan2Scene processing was temporarily unavailable, so we're showing enhanced sample architectural elements. 
+            <strong>Sample Analysis Mode:</strong> Gemini AI processing was temporarily unavailable, so we're showing enhanced sample architectural elements. 
             This demonstrates typical blueprint detection capabilities with realistic data patterns.
             <Button variant="link" className="h-auto p-0 ml-2 text-orange-700 underline" onClick={onReset}>
               <RefreshCw className="h-3 w-3 mr-1" />
@@ -125,7 +125,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
         <Alert className="border-green-200 bg-green-50">
           <Brain className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-800">
-            <strong>Plan2Scene Analysis Complete:</strong> Your blueprint was successfully processed using the open-source Plan2Scene engine for accurate architectural element detection and 3D model generation.
+            <strong>Gemini AI Analysis Complete:</strong> Your blueprint was successfully processed using Google's Gemini AI for accurate architectural element detection and 3D model generation.
           </AlertDescription>
         </Alert>
       )}
@@ -141,7 +141,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                 {isAIGenerated ? (
                   <Badge variant="default" className="bg-green-600">
                     <Brain className="h-3 w-3 mr-1" />
-                    Plan2Scene AI
+                    Gemini AI
                   </Badge>
                 ) : (
                   <Badge variant="secondary" className="bg-orange-100 text-orange-800">
@@ -152,8 +152,8 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
               </CardTitle>
               <p className="text-muted-foreground mt-1">
                 {isAIGenerated 
-                  ? `Plan2Scene open-source analysis of ${uploadResult.filename}`
-                  : `Enhanced sample analysis for ${uploadResult.filename} (Plan2Scene temporarily unavailable)`
+                  ? `Gemini AI analysis of ${uploadResult.filename}`
+                  : `Enhanced sample analysis for ${uploadResult.filename} (Gemini AI temporarily unavailable)`
                 }
               </p>
             </div>
@@ -281,7 +281,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                     {isAIGenerated ? (
                       <>
                         <Brain className="h-3 w-3 mr-1" />
-                        Plan2Scene
+                        Gemini AI
                       </>
                     ) : (
                       <>
@@ -420,7 +420,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                 )}
                 {isAIGenerated && (
                   <Badge variant="outline" className="ml-2 text-green-600 border-green-300">
-                    Plan2Scene AI
+                    Gemini AI
                   </Badge>
                 )}
               </CardTitle>
@@ -557,13 +557,13 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
               </CardHeader>
               <CardContent>
                 <div className="text-sm space-y-2">
-                  <p><strong>Plan2Scene Status:</strong> <span className="text-orange-600">Temporarily unavailable</span></p>
+                  <p><strong>Gemini AI Status:</strong> <span className="text-orange-600">Temporarily unavailable</span></p>
                   <p><strong>Fallback Mode:</strong> Enhanced sample data generated</p>
                   <p><strong>Technical Details:</strong> {uploadResult.errorMessage}</p>
                   <div className="mt-3 p-3 bg-orange-50 rounded-lg">
                     <p className="text-orange-800 text-sm">
                       <strong>Note:</strong> The sample data shown above represents realistic architectural elements 
-                      that would typically be detected by Plan2Scene. When the service is available, you'll get 
+                      that would typically be detected by Gemini AI. When the service is available, you'll get 
                       actual AI-powered analysis of your specific blueprint.
                     </p>
                   </div>

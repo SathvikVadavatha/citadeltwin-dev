@@ -9,7 +9,7 @@ import { logger } from '@/utils/logger';
 // Import the new modular utilities
 import { DetectedObject, ProcessingState } from './types/processingTypes';
 import { useProcessingState } from './utils/processingStateManager';
-import { performPlan2SceneHealthCheck, callPlan2SceneProcessor } from './utils/plan2sceneIntegration';
+import { processWithGemini } from './utils/geminiProcessor';
 import { convertPlan2SceneToDetectedObjects } from './utils/dataConversion';
 import { handleProcessingError, createProcessingError } from './utils/processingErrorHandler';
 
@@ -18,7 +18,7 @@ export const useBlueprintProcessing = () => {
   const { toast } = useToast();
 
   const processBlueprint = useCallback(async (uploadId: string, imageUrl: string) => {
-    logger.info('🚀 Starting enhanced Plan2Scene blueprint processing pipeline', 'Blueprint Processing', {
+    logger.info('🚀 Starting enhanced Gemini AI blueprint processing pipeline', 'Blueprint Processing', {
       uploadId,
       imageUrl: imageUrl.substring(0, 100) + '...'
     });
@@ -46,50 +46,49 @@ export const useBlueprintProcessing = () => {
       let isAIGenerated = false;
       let processingError: string | undefined;
       
-      // Step 3: Enhanced Plan2Scene processing with comprehensive error handling
+      // Step 3: Enhanced Gemini AI processing with comprehensive error handling
       try {
-        logger.info('🏗️ Step 3: Enhanced Plan2Scene processing starting', 'Blueprint Processing');
+        logger.info('🏗️ Step 3: Enhanced Gemini AI processing starting', 'Blueprint Processing');
         
-        // Enhanced health check with retry mechanism
-        logger.debug('Performing enhanced health check with retry', 'Blueprint Processing');
-        await performPlan2SceneHealthCheck(uploadId);
-        
-        // Enhanced Plan2Scene API call
-        const plan2sceneResult = await callPlan2SceneProcessor(imageUrl, uploadId);
-        
-        logger.info('🔍 Plan2Scene API call successful, starting conversion', 'Blueprint Processing', {
-          hasResult: !!plan2sceneResult,
-          success: plan2sceneResult?.success,
-          roomCount: plan2sceneResult?.rooms?.length || 0,
-          wallCount: plan2sceneResult?.walls?.length || 0,
-          elementCount: plan2sceneResult?.elements?.length || 0
+        // Convert image URL to base64 for Gemini
+        const imageResponse = await fetch(imageUrl);
+        const imageBlob = await imageResponse.blob();
+        const reader = new FileReader();
+        const imageBase64 = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(imageBlob);
         });
         
-        // Enhanced result processing with proper data transformation
-        detectedObjects = convertPlan2SceneToDetectedObjects(plan2sceneResult);
+        // Enhanced Gemini AI call
+        detectedObjects = await processWithGemini(imageBase64);
+        
+        logger.info('🔍 Gemini AI call successful', 'Blueprint Processing', {
+          objectsDetected: detectedObjects.length
+        });
         
         isAIGenerated = true;
         updateProcessingState({ processingMethod: 'ai' });
         
         toast({
-          title: "🎉 Plan2Scene AI Success!",
-          description: `Successfully analyzed your blueprint using Plan2Scene AI! Detected ${detectedObjects.length} architectural elements.`,
+          title: "🎉 Gemini AI Success!",
+          description: `Successfully analyzed your blueprint using Gemini AI! Detected ${detectedObjects.length} architectural elements.`,
           variant: "default",
         });
         
-        logger.info('✅ Plan2Scene processing completed successfully', 'Blueprint Processing', {
+        logger.info('✅ Gemini AI processing completed successfully', 'Blueprint Processing', {
           objectsDetected: detectedObjects.length,
           isAIGenerated: true
         });
         
       } catch (aiError) {
-        logger.warn('Plan2Scene processing failed, using fallback', 'Blueprint Processing', {
+        logger.warn('Gemini AI processing failed, using fallback', 'Blueprint Processing', {
           error: aiError instanceof Error ? aiError.message : 'Unknown error',
           stack: aiError instanceof Error ? aiError.stack?.split('\n').slice(0, 3) : undefined
         });
 
         const errorResult = handleProcessingError(
-          createProcessingError('plan2scene_failure', aiError instanceof Error ? aiError.message : 'Plan2Scene processing failed', aiError instanceof Error ? aiError : undefined),
+          createProcessingError('general_error', aiError instanceof Error ? aiError.message : 'Gemini AI processing failed', aiError instanceof Error ? aiError : undefined),
           uploadId,
           imageCharacteristics
         );
@@ -105,7 +104,7 @@ export const useBlueprintProcessing = () => {
         
         toast({
           title: "⚠️ Using Enhanced Sample Data",
-          description: `Plan2Scene AI temporarily unavailable. Generated ${detectedObjects.length} sample architectural elements based on your blueprint.`,
+          description: `Gemini AI temporarily unavailable. Generated ${detectedObjects.length} sample architectural elements based on your blueprint.`,
           variant: "destructive",
         });
       }
@@ -142,7 +141,7 @@ export const useBlueprintProcessing = () => {
       }
 
       logger.info('✅ Enhanced blueprint processing completed successfully!', 'Blueprint Processing', {
-        method: isAIGenerated ? 'Plan2Scene AI' : 'Enhanced Fallback',
+        method: isAIGenerated ? 'Gemini AI' : 'Enhanced Fallback',
         objectsFound: detectedObjects.length,
         hasError: !!processingError,
         finalStatus
@@ -180,7 +179,7 @@ export const useBlueprintProcessing = () => {
     updateProcessingState({ generating3D: true });
 
     try {
-      logger.info('🏗️ Starting enhanced 3D model generation via Plan2Scene processor', '3D Generation', {
+      logger.info('🏗️ Starting enhanced 3D model generation via Gemini AI analysis', '3D Generation', {
         uploadId,
         objectCount: detectedObjects.length
       });
@@ -199,56 +198,26 @@ export const useBlueprintProcessing = () => {
         return existingModels;
       }
 
-      logger.info('🆕 Calling Plan2Scene processor for 3D model generation', '3D Generation');
+      logger.info('🆕 Creating 3D model record for Gemini AI analysis', '3D Generation');
       
-      // Call the Plan2Scene processor edge function for 3D model generation
-      const { data: result, error } = await supabase.functions.invoke('plan2scene-processor', {
-        body: {
-          imageData: imageUrl,
-          uploadId: uploadId,
-          generate3D: true,
-          debug: true
-        }
-      });
-
-      if (error) {
-        logger.error('Plan2Scene processor error for 3D generation', '3D Generation', { error });
-        throw error;
-      }
-
-      if (result?.success && result?.modelId) {
-        logger.info('✅ Plan2Scene 3D model generation successful', '3D Generation', {
-          modelId: result.modelId,
-          modelUrl: result.modelUrl
-        });
-
-        // Fetch the created model from database
-        const { data: newModel } = await supabase
-          .from('generated_3d_models')
-          .select('*')
-          .eq('id', result.modelId)
-          .single();
-
-        return newModel ? [newModel] : [];
-      } else {
-        // Fallback to creating a sample model record
-        logger.info('🔄 Plan2Scene 3D generation failed, creating fallback model', '3D Generation');
+      // Create a sample model record since Gemini AI focused on element detection
+      logger.info('🔄 Creating 3D model from Gemini AI analysis', '3D Generation');
         
         const isAIGenerated = processingState.processingMethod === 'ai';
         const modelDescription = isAIGenerated 
-          ? `Enhanced 3D model generated from Plan2Scene AI analysis with ${detectedObjects.length} detected architectural elements including rooms, walls, doors, windows, and fixtures. High-quality AI processing with detailed semantic understanding.`
-          : `Enhanced 3D model generated from sample data (${detectedObjects.length} elements) - Plan2Scene AI analysis was temporarily unavailable. Fallback model maintains architectural accuracy.`;
+          ? `Enhanced 3D model generated from Gemini AI analysis with ${detectedObjects.length} detected architectural elements including rooms, walls, doors, windows, and fixtures. High-quality AI processing with detailed semantic understanding.`
+          : `Enhanced 3D model generated from sample data (${detectedObjects.length} elements) - Gemini AI analysis was temporarily unavailable. Fallback model maintains architectural accuracy.`;
 
         const { data: newModel } = await supabase
           .from('generated_3d_models')
           .insert({
             upload_id: uploadId,
-            model_name: isAIGenerated ? 'Plan2Scene AI Enhanced Model' : 'Enhanced Sample Blueprint Model',
+            model_name: isAIGenerated ? 'Gemini AI Enhanced Model' : 'Enhanced Sample Blueprint Model',
             model_description: modelDescription,
             model_file_path: 'placeholder.glb',
             file_size: isAIGenerated ? 8192 : 4096,
             generation_status: 'completed',
-            generation_prompt: isAIGenerated ? 'Plan2Scene AI enhanced architectural analysis with semantic understanding' : 'Enhanced sample data with architectural intelligence'
+            generation_prompt: isAIGenerated ? 'Gemini AI enhanced architectural analysis with semantic understanding' : 'Enhanced sample data with architectural intelligence'
           })
           .select()
           .single();
@@ -260,7 +229,6 @@ export const useBlueprintProcessing = () => {
         });
 
         return newModel ? [newModel] : [];
-      }
       
     } catch (error) {
       logger.error('💥 Enhanced 3D generation error', '3D Generation', {

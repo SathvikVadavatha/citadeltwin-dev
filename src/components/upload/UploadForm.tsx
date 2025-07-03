@@ -94,7 +94,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   // Enhanced step descriptions
   const getCurrentStep = () => {
     if (uploading) return "Uploading blueprint to secure cloud storage...";
-    if (processing) return "🤖 Analyzing blueprint with Plan2Scene AI vision...";
+    if (processing) return "🤖 Analyzing blueprint with Gemini AI vision...";
     if (enhancedAnalyzing) return "🔍 Performing enhanced architectural analysis...";
     if (generating3D) return "🏗️ Generating detailed 3D model...";
     return "";
@@ -291,7 +291,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                 <p>📏 Size limit: 10MB maximum</p>
                 <div className="flex items-center justify-center gap-2 text-primary font-semibold mt-4 p-3 bg-primary/5 rounded-lg">
                   <Brain className="h-5 w-5" />
-                  <span>Enhanced with Plan2Scene AI for architectural analysis!</span>
+                  <span>Enhanced with Gemini AI for architectural analysis!</span>
                 </div>
               </div>
             </div>
