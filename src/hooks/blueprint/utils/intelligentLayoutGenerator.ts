@@ -11,27 +11,9 @@ interface DetectedObject {
   };
 }
 
-class SeededRandom {
-  private seed: number;
-
-  constructor(seed: string) {
-    this.seed = this.hashCode(seed);
-  }
-
-  private hashCode(str: string): number {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash);
-  }
-
-  next(): number {
-    this.seed = (this.seed * 9301 + 49297) % 233280;
-    return this.seed / 233280;
-  }
+// Import SeededRandom from mockDataGenerator to avoid duplication
+export interface SeededRandom {
+  next(): number;
 }
 
 export function generateCoreStructure(results: DetectedObject[], rng: SeededRandom, buildingType: string): void {

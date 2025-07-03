@@ -1,5 +1,5 @@
 
-import { generateCoreStructure, generateRoomsLayout, generateArchitecturalFeatures } from './intelligentLayoutGenerator';
+import { generateCoreStructure, generateRoomsLayout, generateArchitecturalFeatures, type SeededRandom as ISeededRandom } from './intelligentLayoutGenerator';
 
 interface DetectedObject {
   label: string;
