@@ -17,43 +17,86 @@ export const testGeminiConnection = async (): Promise<{success: boolean, message
 
     if (testError) {
       console.error('❌ Gemini connection test failed:', testError);
+      console.error('Full error details:', JSON.stringify(testError, null, 2));
       
-      if (testError.message?.includes('404')) {
+      // Enhanced error analysis
+      const errorMessage = testError.message || 'Unknown error';
+      const errorContext = testError.context || '';
+      
+      if (errorMessage.includes('404') || errorMessage.includes('not found')) {
         return {
           success: false,
-          message: 'Gemini AI edge function not found - deployment issue',
-          details: testError
+          message: 'Gemini AI edge function not deployed or not found',
+          details: { error: testError, suggestion: 'Check if the edge function is properly deployed' }
         };
-      } else if (testError.message?.includes('401') || testError.message?.includes('403')) {
+      } else if (errorMessage.includes('401') || errorMessage.includes('unauthorized')) {
         return {
           success: false,
-          message: 'Gemini API key not configured or invalid',
-          details: testError
+          message: 'Authentication failed - check Supabase configuration',
+          details: { error: testError, suggestion: 'Verify Supabase keys and authentication' }
         };
-      } else if (testError.message?.includes('500')) {
+      } else if (errorMessage.includes('403') || errorMessage.includes('forbidden')) {
         return {
           success: false,
-          message: 'Gemini AI service error - temporary outage',
-          details: testError
+          message: 'Access denied - Gemini API key not configured or invalid',
+          details: { error: testError, suggestion: 'Check GEMINI_API_KEY in Supabase secrets' }
+        };
+      } else if (errorMessage.includes('500') || errorMessage.includes('internal server')) {
+        return {
+          success: false,
+          message: 'Internal server error in Gemini AI edge function',
+          details: { 
+            error: testError, 
+            suggestion: 'Check edge function logs for detailed error information',
+            context: errorContext
+          }
+        };
+      } else if (errorMessage.includes('timeout')) {
+        return {
+          success: false,
+          message: 'Request timeout - Gemini AI taking too long to respond',
+          details: { error: testError, suggestion: 'Try again or check Gemini API status' }
+        };
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        return {
+          success: false,
+          message: 'Network error connecting to Gemini AI',
+          details: { error: testError, suggestion: 'Check internet connection and API endpoints' }
         };
       } else {
         return {
           success: false,
-          message: `Connection test failed: ${testError.message}`,
-          details: testError
+          message: `Connection test failed: ${errorMessage}`,
+          details: { 
+            error: testError, 
+            fullError: JSON.stringify(testError),
+            suggestion: 'Check console logs for more details'
+          }
         };
       }
     }
 
-    if (!testResult || !testResult.result) {
+    if (!testResult) {
       return {
         success: false,
-        message: 'Gemini AI returned empty response',
-        details: testResult
+        message: 'Gemini AI returned null response',
+        details: { suggestion: 'Check edge function implementation' }
+      };
+    }
+
+    if (!testResult.result) {
+      return {
+        success: false,
+        message: 'Gemini AI returned response without result field',
+        details: { 
+          response: testResult,
+          suggestion: 'Check edge function response format'
+        }
       };
     }
 
     const resultText = testResult.result.toLowerCase();
+    console.log('🔍 Gemini response text:', resultText.substring(0, 100));
     
     if (resultText.includes('connection_test_success')) {
       console.log('✅ Gemini AI connection test successful');
@@ -62,24 +105,36 @@ export const testGeminiConnection = async (): Promise<{success: boolean, message
         message: 'Gemini AI connection working correctly',
         details: {
           model: testResult.model || 'gemini-1.5-flash',
-          usage: testResult.usage
+          usage: testResult.usage,
+          response: resultText.substring(0, 200)
         }
       };
     } else {
-      console.warn('⚠️ Gemini AI responded but with unexpected content:', resultText);
+      console.warn('⚠️ Gemini AI responded but with unexpected content:', resultText.substring(0, 200));
       return {
         success: true,
         message: 'Gemini AI connected but response format may be inconsistent',
-        details: testResult
+        details: {
+          actualResponse: resultText.substring(0, 200),
+          expected: 'connection_test_success',
+          suggestion: 'Response format is different than expected but connection works'
+        }
       };
     }
 
   } catch (error) {
     console.error('💥 Gemini connection test error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
     return {
       success: false,
-      message: `Connection test error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      details: error
+      message: `Connection test error: ${errorMessage}`,
+      details: { 
+        error: errorMessage,
+        stack: errorStack?.split('\n').slice(0, 5),
+        suggestion: 'Check network connection and Supabase configuration'
+      }
     };
   }
 };

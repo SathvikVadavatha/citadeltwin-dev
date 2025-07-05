@@ -14,6 +14,7 @@ import { DiagnosticHealthCheck } from './DiagnosticHealthCheck';
 import { TestReportGenerator } from './TestReportGenerator';
 import { TestingSummaryCards } from './TestingSummaryCards';
 import { TestingControls } from './TestingControls';
+import { GeminiConnectionTester } from './GeminiConnectionTester';
 
 interface TestingFrameworkProps {
   uploadId?: string;
@@ -104,7 +105,7 @@ export const TestingFramework: React.FC<TestingFrameworkProps> = ({ uploadId, pr
 
       {/* Testing Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="automated" className="flex items-center gap-2">
             <TestTube className="w-4 h-4" />
             Automated Tests
@@ -116,6 +117,10 @@ export const TestingFramework: React.FC<TestingFrameworkProps> = ({ uploadId, pr
           <TabsTrigger value="diagnostics" className="flex items-center gap-2">
             <Activity className="w-4 h-4" />
             Health Diagnostics
+          </TabsTrigger>
+          <TabsTrigger value="gemini" className="flex items-center gap-2">
+            <Activity className="w-4 h-4" />
+            Gemini AI
           </TabsTrigger>
           <TabsTrigger value="reports" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
@@ -148,6 +153,12 @@ export const TestingFramework: React.FC<TestingFrameworkProps> = ({ uploadId, pr
         <TabsContent value="diagnostics" className="space-y-4">
           <FeatureErrorBoundary featureName="Health Diagnostics">
             <DiagnosticHealthCheck />
+          </FeatureErrorBoundary>
+        </TabsContent>
+
+        <TabsContent value="gemini" className="space-y-4">
+          <FeatureErrorBoundary featureName="Gemini AI Testing">
+            <GeminiConnectionTester />
           </FeatureErrorBoundary>
         </TabsContent>
 

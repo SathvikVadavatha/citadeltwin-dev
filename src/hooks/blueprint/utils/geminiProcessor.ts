@@ -121,29 +121,82 @@ Analyze the image thoroughly and provide comprehensive architectural data.`,
 
     console.log('📥 Gemini AI response received:', { 
       hasData: !!geminiResult, 
-      hasError: !!geminiError 
+      hasError: !!geminiError,
+      statusInfo: geminiError ? {
+        message: geminiError.message,
+        name: geminiError.name,
+        details: geminiError.details
+      } : null
     });
 
     if (geminiError) {
       console.error('❌ Gemini AI edge function error:', geminiError);
+      console.error('Full error object:', JSON.stringify(geminiError, null, 2));
       
-      // Enhanced error reporting
+      // Enhanced error reporting with specific diagnosis
       let errorMessage = 'Gemini AI processing failed';
+      let errorDetails = '';
+      let troubleshootingTips = '';
+      
       if (geminiError.message) {
-        if (geminiError.message.includes('400')) {
-          errorMessage = 'Invalid image format for AI processing';
-        } else if (geminiError.message.includes('401') || geminiError.message.includes('403')) {
-          errorMessage = 'Gemini AI authentication failed - API key issue';
-        } else if (geminiError.message.includes('429')) {
-          errorMessage = 'Gemini AI rate limit exceeded - too many requests';
-        } else if (geminiError.message.includes('500')) {
+        const errorMsg = geminiError.message.toLowerCase();
+        
+        if (errorMsg.includes('400') || errorMsg.includes('bad request')) {
+          errorMessage = 'Invalid request format for Gemini AI';
+          errorDetails = 'The image data or request parameters are malformed';
+          troubleshootingTips = 'Try uploading a different image format (PNG/JPEG under 10MB)';
+        } else if (errorMsg.includes('401') || errorMsg.includes('unauthorized')) {
+          errorMessage = 'Gemini AI authentication failed';
+          errorDetails = 'API key not configured or invalid';
+          troubleshootingTips = 'Check if GEMINI_API_KEY is properly set in Supabase secrets';
+        } else if (errorMsg.includes('403') || errorMsg.includes('forbidden')) {
+          errorMessage = 'Gemini API access denied';
+          errorDetails = 'API key permissions insufficient or quota exceeded';
+          troubleshootingTips = 'Verify API key permissions and check quota limits';
+        } else if (errorMsg.includes('404') || errorMsg.includes('not found')) {
+          errorMessage = 'Gemini AI service endpoint not found';
+          errorDetails = 'Edge function may not be deployed or misconfigured';
+          troubleshootingTips = 'Check if the gemini-ai edge function is properly deployed';
+        } else if (errorMsg.includes('413') || errorMsg.includes('too large')) {
+          errorMessage = 'Image too large for Gemini AI processing';
+          errorDetails = `Image size exceeds API limits`;
+          troubleshootingTips = 'Use an image smaller than 10MB';
+        } else if (errorMsg.includes('429') || errorMsg.includes('rate limit')) {
+          errorMessage = 'Gemini AI rate limit exceeded';
+          errorDetails = 'Too many requests sent recently';
+          troubleshootingTips = 'Wait a few minutes before trying again';
+        } else if (errorMsg.includes('500') || errorMsg.includes('internal server')) {
           errorMessage = 'Gemini AI service temporarily unavailable';
+          errorDetails = 'Internal server error or service outage';
+          troubleshootingTips = 'Try again in a few minutes or check service status';
+        } else if (errorMsg.includes('timeout')) {
+          errorMessage = 'Gemini AI processing timed out';
+          errorDetails = 'Request took too long to process';
+          troubleshootingTips = 'Try with a simpler image or try again later';
+        } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+          errorMessage = 'Network error connecting to Gemini AI';
+          errorDetails = 'Connection issue or DNS resolution failure';
+          troubleshootingTips = 'Check internet connection and try again';
+        } else if (errorMsg.includes('edge function returned a non-2xx status')) {
+          errorMessage = 'Gemini AI edge function error';
+          errorDetails = 'The edge function returned an error response';
+          troubleshootingTips = 'Check edge function logs for detailed error information';
         } else {
           errorMessage = `Gemini AI error: ${geminiError.message}`;
+          errorDetails = 'Unexpected error occurred during processing';
+          troubleshootingTips = 'Try again or contact support if the issue persists';
         }
       }
       
-      throw new Error(errorMessage);
+      const finalError = `${errorMessage}. ${errorDetails} | Troubleshooting: ${troubleshootingTips}`;
+      console.error('🚨 Detailed error analysis:', {
+        originalError: geminiError.message,
+        diagnosis: errorMessage,
+        details: errorDetails,
+        troubleshooting: troubleshootingTips
+      });
+      
+      throw new Error(finalError);
     }
 
     if (!geminiResult) {

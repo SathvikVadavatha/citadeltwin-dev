@@ -51,7 +51,25 @@ export const useBlueprintProcessing = () => {
       try {
         logger.info('🏗️ Step 3: Enhanced Gemini AI processing starting', 'Blueprint Processing');
         
-        // Debug the pipeline first
+        // First, test Gemini AI connection
+        logger.info('🔧 Testing Gemini AI connection before processing', 'Blueprint Processing');
+        const { testGeminiConnection } = await import('./utils/geminiConnectionTest');
+        const connectionTest = await testGeminiConnection();
+        
+        logger.info('🔍 Connection test result', 'Blueprint Processing', {
+          success: connectionTest.success,
+          message: connectionTest.message
+        });
+        
+        if (!connectionTest.success) {
+          logger.error('❌ Gemini AI connection test failed', 'Blueprint Processing', {
+            error: connectionTest.message,
+            details: connectionTest.details
+          });
+          throw new Error(`Gemini AI connection failed: ${connectionTest.message}. ${connectionTest.details?.suggestion || ''}`);
+        }
+        
+        // Debug the pipeline
         const debugResult = await debugGeminiPipeline(imageUrl, uploadId);
         logger.info('🔍 Pipeline debug completed', 'Blueprint Processing', debugResult);
         
