@@ -143,8 +143,8 @@ export const testGeminiVision = async (): Promise<{success: boolean, message: st
   try {
     console.log('🖼️ Testing Gemini AI vision capabilities...');
     
-    // Create a simple test image (1x1 red pixel as base64)
-    const testImageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
+    // Create a simple test image (1x1 red pixel as base64 with proper data URL format)
+    const testImageBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
     
     const { data: visionResult, error: visionError } = await supabase.functions.invoke('gemini-ai', {
       body: {
