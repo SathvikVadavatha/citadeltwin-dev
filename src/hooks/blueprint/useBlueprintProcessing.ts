@@ -143,14 +143,18 @@ export const useBlueprintProcessing = () => {
 
         if (connectionTest.success) {
           logger.info('🤖 Processing with Phase 2 Hybrid Gemini AI', 'Blueprint Processing');
+          console.log('🔧 DEBUG: Connection test passed, starting hybrid processing');
           
           // Use the new hybrid processor
           const { processWithHybridGemini } = await import('./utils/hybridGeminiProcessor');
+          console.log('✅ DEBUG: Hybrid processor imported successfully');
+          
           const processingResult = await processWithHybridGemini(
             imageBase64 || '',
             imageUrl,
             extractedTextData
           );
+          console.log('📊 DEBUG: Hybrid processing result:', processingResult);
           
           detectedObjects = processingResult.objects;
           isAIGenerated = processingResult.method !== 'fallback';
@@ -189,6 +193,7 @@ export const useBlueprintProcessing = () => {
         } else {
           // Enhanced fallback when AI is unavailable
           logger.info('🔄 Using enhanced fallback (AI unavailable)', 'Blueprint Processing');
+          console.log('⚠️ DEBUG: Connection test failed, using fallback. Reason:', connectionTest.message);
           
           detectedObjects = generateObjectsFromTextData(extractedTextData, uploadId);
           isAIGenerated = false;
