@@ -3,8 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, AlertTriangle, TestTube } from 'lucide-react';
 import { testGeminiConnection, testGeminiVision } from '@/hooks/blueprint/utils/geminiConnectionTest';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TestResult {
   success: boolean;
@@ -14,8 +15,10 @@ interface TestResult {
 
 export const GeminiConnectionTester: React.FC = () => {
   const [testing, setTesting] = useState(false);
+  const [testingEdgeFunction, setTestingEdgeFunction] = useState(false);
   const [connectionResult, setConnectionResult] = useState<TestResult | null>(null);
   const [visionResult, setVisionResult] = useState<TestResult | null>(null);
+  const [edgeFunctionResult, setEdgeFunctionResult] = useState<TestResult | null>(null);
 
   const runConnectionTest = async () => {
     setTesting(true);
@@ -59,7 +62,46 @@ export const GeminiConnectionTester: React.FC = () => {
     }
   };
 
+  const testEdgeFunction = async () => {
+    setTestingEdgeFunction(true);
+    setEdgeFunctionResult(null);
+
+    try {
+      console.log('🧪 Testing edge function connectivity...');
+      
+      const { data, error } = await supabase.functions.invoke('gemini-connection-test', {
+        body: {}
+      });
+
+      if (error) {
+        console.error('Edge function test error:', error);
+        setEdgeFunctionResult({ 
+          success: false, 
+          message: `Edge function error: ${error.message}`,
+          details: error
+        });
+      } else {
+        console.log('Edge function test result:', data);
+        setEdgeFunctionResult({ 
+          success: data.success, 
+          message: data.message,
+          details: data
+        });
+      }
+    } catch (error) {
+      console.error('Edge function test error:', error);
+      setEdgeFunctionResult({ 
+        success: false, 
+        message: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        details: error
+      });
+    } finally {
+      setTestingEdgeFunction(false);
+    }
+  };
+
   const runAllTests = async () => {
+    await testEdgeFunction();
     await runConnectionTest();
     if (connectionResult?.success !== false) {
       await runVisionTest();
@@ -100,11 +142,22 @@ export const GeminiConnectionTester: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-4">
+          <div className="flex gap-2 flex-wrap">
+            <Button 
+              onClick={testEdgeFunction} 
+              disabled={testingEdgeFunction || testing}
+              variant="outline"
+              size="sm"
+            >
+              {testingEdgeFunction ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <TestTube className="h-4 w-4 mr-2" />}
+              Test Edge Function
+            </Button>
+            
             <Button 
               onClick={runConnectionTest} 
-              disabled={testing}
+              disabled={testing || testingEdgeFunction}
               variant="outline"
+              size="sm"
             >
               {testing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Test Connection
@@ -112,8 +165,9 @@ export const GeminiConnectionTester: React.FC = () => {
             
             <Button 
               onClick={runVisionTest} 
-              disabled={testing}
-              variant="outline"
+              disabled={testing || testingEdgeFunction}
+              variant="outline"  
+              size="sm"
             >
               {testing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Test Vision
@@ -121,11 +175,49 @@ export const GeminiConnectionTester: React.FC = () => {
             
             <Button 
               onClick={runAllTests} 
-              disabled={testing}
+              disabled={testing || testingEdgeFunction}
             >
-              {testing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {(testing || testingEdgeFunction) ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Run All Tests
             </Button>
+          </div>
+
+          {/* Edge Function Test Results */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium flex items-center gap-2">
+                {getStatusIcon(edgeFunctionResult)}
+                Edge Function Connectivity
+              </h3>
+              {getStatusBadge(edgeFunctionResult)}
+            </div>
+            
+            {edgeFunctionResult && (
+              <Alert variant={edgeFunctionResult.success ? "default" : "destructive"}>
+                <AlertDescription>
+                  <div className="space-y-2">
+                    <p><strong>Message:</strong> {edgeFunctionResult.message}</p>
+                    
+                    {edgeFunctionResult.details && (
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-sm font-medium">
+                          Technical Details
+                        </summary>
+                        <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-auto max-h-32">
+                          {JSON.stringify(edgeFunctionResult.details, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                    
+                    {edgeFunctionResult.details?.suggestion && (
+                      <p className="text-sm text-muted-foreground">
+                        <strong>Suggestion:</strong> {edgeFunctionResult.details.suggestion}
+                      </p>
+                    )}
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
 
           {/* Connection Test Results */}
@@ -199,25 +291,42 @@ export const GeminiConnectionTester: React.FC = () => {
           </div>
 
           {/* Overall Status */}
-          {(connectionResult || visionResult) && (
+          {(edgeFunctionResult || connectionResult || visionResult) && (
             <div className="mt-6 p-4 bg-muted rounded-lg">
               <h4 className="font-medium mb-2">Diagnostic Summary</h4>
               <div className="text-sm space-y-1">
-                {connectionResult?.success && visionResult?.success && (
+                {!edgeFunctionResult?.success && edgeFunctionResult && (
+                  <p className="text-red-600">🚨 Edge function deployment issue - check function logs and API key configuration</p>
+                )}
+                
+                {edgeFunctionResult?.success && connectionResult?.success && visionResult?.success && (
                   <p className="text-green-600">✅ Gemini AI is fully operational and ready for blueprint processing</p>
                 )}
                 
-                {connectionResult?.success && !visionResult?.success && (
+                {edgeFunctionResult?.success && connectionResult?.success && !visionResult?.success && (
                   <p className="text-amber-600">⚠️ Basic connection works but vision processing may have issues</p>
                 )}
                 
-                {!connectionResult?.success && (
+                {edgeFunctionResult?.success && !connectionResult?.success && (
+                  <p className="text-red-600">❌ Gemini AI connection failed - blueprint processing will use fallback mode</p>
+                )}
+                
+                {!edgeFunctionResult && !connectionResult?.success && (
                   <p className="text-red-600">❌ Gemini AI connection failed - blueprint processing will use fallback mode</p>
                 )}
                 
                 <p className="text-muted-foreground mt-2">
                   Check the console logs and technical details above for more information.
                 </p>
+                
+                {!edgeFunctionResult?.success && edgeFunctionResult && (
+                  <div className="mt-3 p-2 bg-red-50 dark:bg-red-900/20 rounded border-l-4 border-red-500">
+                    <p className="text-sm text-red-700 dark:text-red-300">
+                      <strong>Next Steps:</strong> Edge function connectivity is failing. This is likely the root cause of 500 errors. 
+                      Check that GEMINI_API_KEY is properly configured in Supabase Edge Function Secrets.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -172,15 +172,19 @@ function cleanBase64ImageData(imageData: string): string {
 }
 
 serve(async (req) => {
+  console.log('🚀 Gemini AI function called - Method:', req.method)
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('✅ Handling CORS preflight request')
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
+    console.log('🔑 Checking GEMINI_API_KEY configuration...')
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
     if (!GEMINI_API_KEY) {
-      console.error('GEMINI_API_KEY is not configured')
+      console.error('❌ GEMINI_API_KEY is not configured in edge function secrets')
       return new Response(
         JSON.stringify({ error: 'Gemini API key not configured' }),
         { 
@@ -189,6 +193,7 @@ serve(async (req) => {
         }
       )
     }
+    console.log('✅ GEMINI_API_KEY found, length:', GEMINI_API_KEY.length, 'first 4 chars:', GEMINI_API_KEY.substring(0, 4))
 
     // Get user ID from authorization header for rate limiting
     const authHeader = req.headers.get('authorization')
@@ -220,10 +225,20 @@ serve(async (req) => {
       )
     }
 
+    console.log('📦 Parsing request body...')
     const requestBody: GeminiRequest = await req.json()
     const { prompt, type, context, maxTokens = 3000, imageData } = requestBody
+    
+    console.log('📝 Request details:', {
+      type,
+      promptLength: prompt?.length || 0,
+      hasContext: !!context,
+      hasImageData: !!imageData,
+      maxTokens
+    })
 
     if (!prompt || !type) {
+      console.error('❌ Missing required fields:', { hasPrompt: !!prompt, hasType: !!type })
       return new Response(
         JSON.stringify({ error: 'Missing required fields: prompt and type' }),
         { 
@@ -318,24 +333,48 @@ serve(async (req) => {
     }
 
     // Call Gemini API
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestContent)
-      }
-    )
+    console.log('🤖 Calling Gemini API with model:', model)
+    console.log('📊 Request payload size:', JSON.stringify(requestContent).length, 'characters')
+    
+    let geminiResponse
+    try {
+      geminiResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestContent)
+        }
+      )
+      console.log('📡 Gemini API response status:', geminiResponse.status, geminiResponse.statusText)
+    } catch (fetchError) {
+      console.error('💥 Fetch error calling Gemini API:', fetchError)
+      throw fetchError
+    }
 
     if (!geminiResponse.ok) {
+      console.error('❌ Gemini API returned non-OK status:', geminiResponse.status)
       const errorText = await geminiResponse.text()
-      console.error('Gemini API error:', errorText)
+      console.error('📜 Gemini API error details:', errorText)
+      
+      // Parse error details if possible
+      let errorDetails = errorText
+      try {
+        const errorJson = JSON.parse(errorText)
+        errorDetails = errorJson
+        console.error('🔍 Parsed error JSON:', errorJson)
+      } catch (parseError) {
+        console.error('🔧 Could not parse error as JSON, using raw text')
+      }
+      
       return new Response(
         JSON.stringify({ 
           error: 'Failed to get response from Gemini AI',
-          details: errorText
+          status: geminiResponse.status,
+          statusText: geminiResponse.statusText,
+          details: errorDetails
         }),
         { 
           status: 500, 
@@ -398,11 +437,17 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error in gemini-ai function:', error)
+    console.error('💥 Critical error in gemini-ai function:', error)
+    console.error('🔍 Error name:', error.name)
+    console.error('📜 Error message:', error.message)
+    console.error('📋 Error stack:', error.stack)
+    
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        details: error.message 
+        errorType: error.name,
+        details: error.message,
+        timestamp: new Date().toISOString()
       }),
       { 
         status: 500, 
