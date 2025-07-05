@@ -9,8 +9,12 @@ const corsHeaders = {
 
 // Rate limiting store (in-memory for simplicity)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
-const RATE_LIMIT_REQUESTS = 50 // requests per hour
-const RATE_LIMIT_WINDOW = 60 * 60 * 1000 // 1 hour in milliseconds
+const RATE_LIMIT_REQUESTS = 12 // requests per minute (720 per hour, under Gemini's 15 RPM limit)
+const RATE_LIMIT_WINDOW = 60 * 1000 // 1 minute in milliseconds
+
+// Request queue for managing API calls
+const requestQueue = new Map<string, Array<{ resolve: Function; reject: Function; request: Function }>>()
+const processingQueue = new Map<string, boolean>()
 
 interface GeminiRequest {
   prompt: string
@@ -50,6 +54,89 @@ function checkRateLimit(userId: string): boolean {
   
   userLimit.count++
   return true
+}
+
+// Exponential backoff retry logic
+async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: Error
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation()
+    } catch (error) {
+      lastError = error as Error
+      
+      // Check if it's a rate limit error (429)
+      const isRateLimitError = error.message?.includes('429') || 
+                              error.message?.toLowerCase().includes('rate limit') ||
+                              error.message?.toLowerCase().includes('quota exceeded')
+      
+      // If not a rate limit error or final attempt, throw immediately
+      if (!isRateLimitError || attempt === maxRetries) {
+        throw error
+      }
+      
+      // Wait with exponential backoff
+      const delay = baseDelay * Math.pow(2, attempt)
+      console.log(`Rate limit hit, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries + 1})`)
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+  }
+  
+  throw lastError
+}
+
+// Request queuing to manage API calls
+async function queueRequest<T>(userId: string, operation: () => Promise<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    if (!requestQueue.has(userId)) {
+      requestQueue.set(userId, [])
+    }
+    
+    requestQueue.get(userId)!.push({
+      resolve,
+      reject,
+      request: operation
+    })
+    
+    processQueue(userId)
+  })
+}
+
+async function processQueue(userId: string) {
+  if (processingQueue.get(userId)) {
+    return // Already processing
+  }
+  
+  processingQueue.set(userId, true)
+  
+  const queue = requestQueue.get(userId)
+  if (!queue || queue.length === 0) {
+    processingQueue.set(userId, false)
+    return
+  }
+  
+  const { resolve, reject, request } = queue.shift()!
+  
+  try {
+    const result = await retryWithBackoff(request)
+    resolve(result)
+  } catch (error) {
+    reject(error)
+  } finally {
+    // Small delay between requests to avoid hitting rate limits
+    await new Promise(resolve => setTimeout(resolve, 100))
+    processingQueue.set(userId, false)
+    
+    // Process next item in queue
+    if (queue.length > 0) {
+      setTimeout(() => processQueue(userId), 0)
+    }
+  }
 }
 
 function buildSystemPrompt(type: string): string {
@@ -255,8 +342,8 @@ serve(async (req) => {
 
     console.log(`Gemini AI request - Type: ${type}, User: ${userId}, HasImage: ${!!imageData}`)
 
-    // Choose the appropriate model based on whether we have image data
-    const model = imageData ? 'gemini-1.5-pro' : 'gemini-1.5-flash'
+    // Always use gemini-1.5-flash for better rate limits and reliability
+    const model = 'gemini-1.5-flash'
     
     // Build request body for Gemini API
     const requestContent: any = {
@@ -332,13 +419,12 @@ serve(async (req) => {
       }
     }
 
-    // Call Gemini API
+    // Call Gemini API with retry logic and queuing
     console.log('🤖 Calling Gemini API with model:', model)
     console.log('📊 Request payload size:', JSON.stringify(requestContent).length, 'characters')
     
-    let geminiResponse
-    try {
-      geminiResponse = await fetch(
+    const callGeminiAPI = async () => {
+      const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
         {
           method: 'POST',
@@ -348,6 +434,20 @@ serve(async (req) => {
           body: JSON.stringify(requestContent)
         }
       )
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        const error = new Error(`Gemini API error: ${response.status} ${response.statusText}`)
+        error.message = errorText
+        throw error
+      }
+      
+      return response
+    }
+    
+    let geminiResponse
+    try {
+      geminiResponse = await queueRequest(userId, callGeminiAPI)
       console.log('📡 Gemini API response status:', geminiResponse.status, geminiResponse.statusText)
     } catch (fetchError) {
       console.error('💥 Fetch error calling Gemini API:', fetchError)

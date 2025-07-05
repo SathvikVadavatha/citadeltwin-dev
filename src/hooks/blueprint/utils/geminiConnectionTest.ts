@@ -151,7 +151,8 @@ export const testGeminiVision = async (): Promise<{success: boolean, message: st
         prompt: 'Describe what you see in this image. Respond with "VISION_TEST_SUCCESS" if you can see it.',
         type: 'blueprint-analysis',
         imageData: testImageBase64,
-        maxTokens: 100
+        maxTokens: 100,
+        forceModel: 'gemini-1.5-flash' // Ensure we use flash for testing
       }
     });
 

@@ -4,7 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TestingFramework } from '@/components/testing/TestingFramework';
 import { PerformanceDashboard } from '@/components/performance/PerformanceDashboard';
 import { RenderingAnalysisDashboard } from '@/components/performance/RenderingAnalysisDashboard';
-import { Activity, TestTube, Zap } from 'lucide-react';
+import { GeminiConnectionTester } from '@/components/testing/GeminiConnectionTester';
+import { Activity, TestTube, Zap, Bot } from 'lucide-react';
 
 export const Testing: React.FC = () => {
   return (
@@ -20,10 +21,14 @@ export const Testing: React.FC = () => {
         </div>
 
         <Tabs defaultValue="testing" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="testing" className="flex items-center gap-2">
               <TestTube className="w-4 h-4" />
               Testing Framework
+            </TabsTrigger>
+            <TabsTrigger value="gemini" className="flex items-center gap-2">
+              <Bot className="w-4 h-4" />
+              Gemini AI Test
             </TabsTrigger>
             <TabsTrigger value="performance" className="flex items-center gap-2">
               <Activity className="w-4 h-4" />
@@ -37,6 +42,10 @@ export const Testing: React.FC = () => {
 
           <TabsContent value="testing" className="space-y-4">
             <TestingFramework />
+          </TabsContent>
+
+          <TabsContent value="gemini" className="space-y-4">
+            <GeminiConnectionTester />
           </TabsContent>
 
           <TabsContent value="performance" className="space-y-4">
