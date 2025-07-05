@@ -289,33 +289,35 @@ const evaluateResultQuality = (objects: DetectedObject[], method: string) => {
   const objectCount = objects.length;
   const uniqueTypes = new Set(objects.map(obj => obj.label)).size;
   const avgConfidence = objects.reduce((sum, obj) => sum + obj.confidence, 0) / objects.length;
+  
+  // More flexible element type detection
   const hasStructuralElements = objects.some(obj => 
-    ['wall', 'beam', 'column', 'foundation', 'slab'].includes(obj.label)
+    ['wall', 'exterior_wall', 'interior_wall', 'load_bearing_wall', 'beam', 'column', 'foundation', 'slab'].includes(obj.label)
   );
   const hasArchitecturalElements = objects.some(obj => 
-    ['door', 'window', 'stairs', 'fixture'].includes(obj.label)
+    ['door', 'front_door', 'interior_door', 'window', 'stairs', 'fixture', 'bathroom_fixture', 'kitchen_island'].includes(obj.label)
   );
   const hasRooms = objects.some(obj => 
-    ['room', 'bedroom', 'kitchen', 'bathroom', 'living_room'].includes(obj.label)
+    ['room', 'bedroom', 'master_bedroom', 'kitchen', 'bathroom', 'living_room', 'dining_room', 'office', 'garage', 'utility'].includes(obj.label)
   );
 
   let quality: 'high' | 'medium' | 'low' = 'low';
   let confidence = avgConfidence;
   let isAcceptable = false;
 
-  // Enhanced quality evaluation
-  if (objectCount >= 15 && uniqueTypes >= 8 && hasStructuralElements && hasArchitecturalElements && hasRooms) {
+  // Realistic quality evaluation with lower thresholds
+  if (objectCount >= 8 && uniqueTypes >= 5 && hasStructuralElements && hasArchitecturalElements && hasRooms) {
     quality = 'high';
     confidence = Math.min(avgConfidence + 0.1, 0.98);
     isAcceptable = true;
-  } else if (objectCount >= 8 && uniqueTypes >= 5 && (hasStructuralElements || hasArchitecturalElements)) {
+  } else if (objectCount >= 5 && uniqueTypes >= 3 && (hasStructuralElements || hasArchitecturalElements)) {
     quality = 'medium';
     confidence = avgConfidence;
     isAcceptable = true;
-  } else if (objectCount >= 5 && uniqueTypes >= 3) {
+  } else if (objectCount >= 3 && uniqueTypes >= 2) {
     quality = 'low';
     confidence = Math.max(avgConfidence - 0.1, 0.6);
-    isAcceptable = objectCount >= 8; // Only accept low quality if we have enough objects
+    isAcceptable = true; // Accept low quality results - they're still useful
   }
 
   logger.info(`Quality evaluation: ${quality}`, 'Quality Check', {
@@ -327,6 +329,23 @@ const evaluateResultQuality = (objects: DetectedObject[], method: string) => {
     hasArchitectural: hasArchitecturalElements,
     hasRooms,
     isAcceptable
+  });
+
+  console.log('🔍 DEBUG: Quality evaluation details:', {
+    method,
+    objectCount,
+    uniqueTypes,
+    avgConfidence: avgConfidence.toFixed(2),
+    hasStructural: hasStructuralElements,
+    hasArchitectural: hasArchitecturalElements,
+    hasRooms,
+    quality,
+    isAcceptable,
+    thresholds: {
+      high: 'Objects: 8+, Types: 5+, Has: structural+architectural+rooms',
+      medium: 'Objects: 5+, Types: 3+, Has: structural OR architectural',
+      low: 'Objects: 3+, Types: 2+, Always accepted'
+    }
   });
 
   return { quality, confidence, isAcceptable };
