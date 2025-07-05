@@ -145,7 +145,7 @@ export const useBlueprintProcessing = () => {
           logger.info('🤖 Processing with Phase 2 Hybrid Gemini AI', 'Blueprint Processing');
           console.log('🔧 DEBUG: Connection test passed, starting hybrid processing');
           
-          // Use the new hybrid processor
+          // Use the new hybrid processor with enhanced error handling
           const { processWithHybridGemini } = await import('./utils/hybridGeminiProcessor');
           console.log('✅ DEBUG: Hybrid processor imported successfully');
           
@@ -155,6 +155,11 @@ export const useBlueprintProcessing = () => {
             extractedTextData
           );
           console.log('📊 DEBUG: Hybrid processing result:', processingResult);
+          
+          // Enhanced validation - ensure we have valid results
+          if (!processingResult.objects || processingResult.objects.length === 0) {
+            throw new Error('Hybrid processing returned no objects');
+          }
           
           detectedObjects = processingResult.objects;
           isAIGenerated = processingResult.method !== 'fallback';
