@@ -13,7 +13,7 @@ export interface DetectedObject {
 export interface ProcessingState {
   processing: boolean;
   generating3D: boolean;
-  processingMethod: 'ai' | 'fallback' | null;
+  processingMethod: 'ai' | 'fallback' | 'text-ai' | 'text-fallback' | null;
   errorMessage: string | null;
 }
 

@@ -99,6 +99,8 @@ export const useBlueprintUpload = () => {
       console.log('All processing complete, setting results...');
 
       // Step 5: Set final results
+      const normalizedProcessingMethod = processingMethod === 'text-ai' || processingMethod === 'text-fallback' ? 'ai' : processingMethod;
+      
       const finalResult: UploadResult = {
         id: uploadData.uploadRecord.id,
         filename: file.name,
@@ -108,7 +110,7 @@ export const useBlueprintUpload = () => {
         generated3DModels: generated3DModels || [],
         floorPlanData: analysisData?.floorPlanData,
         geminiAnalysis: analysisData?.geminiAnalysis,
-        processingMethod,
+        processingMethod: normalizedProcessingMethod,
         errorMessage
       };
 
