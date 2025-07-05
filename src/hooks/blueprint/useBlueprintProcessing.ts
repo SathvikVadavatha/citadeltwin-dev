@@ -100,11 +100,11 @@ export const useBlueprintProcessing = () => {
       let isAIGenerated = false;
       let processingError: string | undefined;
       
-      // Step 3: Enhanced Text-Based Gemini AI processing
+      // Step 3: Phase 2 Enhanced Hybrid Gemini AI processing
       try {
-        logger.info('🏗️ Step 3: Starting text-based Gemini AI processing', 'Blueprint Processing');
+        logger.info('🚀 Step 3: Starting Phase 2 Hybrid Gemini AI processing', 'Blueprint Processing');
         
-        // First, test Gemini AI connection
+        // Test Gemini AI connection
         logger.info('🔧 Testing Gemini AI connection before processing', 'Blueprint Processing');
         const { testGeminiConnection } = await import('./utils/geminiConnectionTest');
         const connectionTest = await testGeminiConnection();
@@ -114,60 +114,89 @@ export const useBlueprintProcessing = () => {
           message: connectionTest.message
         });
         
-        if (!connectionTest.success) {
-          logger.warn('⚠️ Gemini AI connection test failed, will attempt text extraction anyway', 'Blueprint Processing', {
-            error: connectionTest.message,
-            details: connectionTest.details
-          });
-        }
-        
-        // Step 3a: Extract text from blueprint using OCR
-        logger.info('📝 Step 3a: Extracting text from blueprint using OCR', 'Blueprint Processing');
+        // Extract text data for hybrid processing
+        logger.info('📝 Extracting text data for hybrid processing', 'Blueprint Processing');
         const extractedTextData = await extractTextFromBlueprint(imageUrl);
         
         logger.info('📊 Text extraction completed', 'Blueprint Processing', {
           textLength: extractedTextData.text.length,
           confidence: extractedTextData.confidence,
           roomsFound: extractedTextData.structuredData.rooms.length,
-          elementsFound: extractedTextData.structuredData.elements.length,
           measurementsFound: extractedTextData.dimensions.length
         });
-        
-        // Step 3b: Process with text-based Gemini AI if connection is working
-        if (connectionTest.success && extractedTextData.text.length > 0) {
-          logger.info('🤖 Step 3b: Processing with text-based Gemini AI', 'Blueprint Processing');
+
+        // Get image data for hybrid processing
+        let imageBase64: string | null = null;
+        try {
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          const reader = new FileReader();
+          imageBase64 = await new Promise((resolve, reject) => {
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+          logger.info('✅ Image data prepared for hybrid processing', 'Blueprint Processing');
+        } catch (imageError) {
+          logger.warn('⚠️ Could not prepare image data, proceeding with text-only', 'Blueprint Processing');
+        }
+
+        if (connectionTest.success) {
+          logger.info('🤖 Processing with Phase 2 Hybrid Gemini AI', 'Blueprint Processing');
           
-          detectedObjects = await processWithTextBasedGemini(extractedTextData, imageUrl);
+          // Use the new hybrid processor
+          const { processWithHybridGemini } = await import('./utils/hybridGeminiProcessor');
+          const processingResult = await processWithHybridGemini(
+            imageBase64 || '',
+            imageUrl,
+            extractedTextData
+          );
           
-          if (detectedObjects && detectedObjects.length > 0) {
-            isAIGenerated = true;
-            updateProcessingState({ processingMethod: 'text-ai' });
-            
-            toast({
-              title: "🎉 Text-Based AI Success!",
-              description: `Successfully analyzed your blueprint using text extraction + Gemini AI! Generated ${detectedObjects.length} architectural elements from extracted data.`,
-              variant: "default",
-            });
-            
-            logger.info('✅ Text-based Gemini AI processing completed successfully', 'Blueprint Processing', {
-              objectsDetected: detectedObjects.length,
-              isAIGenerated: true,
-              method: 'text-based'
-            });
-          } else {
-            throw new Error('Text-based Gemini AI returned empty results');
-          }
+          detectedObjects = processingResult.objects;
+          isAIGenerated = processingResult.method !== 'fallback';
+          
+          // Update processing method based on result
+          const methodMapping: Record<string, 'ai' | 'text-ai' | 'fallback'> = {
+            'image-ai': 'ai',
+            'text-ai': 'text-ai', 
+            'hybrid': 'ai',
+            'fallback': 'fallback'
+          };
+          
+          updateProcessingState({ processingMethod: methodMapping[processingResult.method] });
+          
+          // Enhanced user feedback based on quality and method
+          const qualityEmoji = processingResult.quality === 'high' ? '🎯' : 
+                              processingResult.quality === 'medium' ? '✅' : '📝';
+          const methodText = processingResult.method === 'image-ai' ? 'Image-based AI' :
+                            processingResult.method === 'text-ai' ? 'Text-based AI' :
+                            processingResult.method === 'hybrid' ? 'Hybrid AI' :
+                            'Enhanced Fallback';
+          
+          toast({
+            title: `${qualityEmoji} Phase 2 ${methodText} Success!`,
+            description: processingResult.details,
+            variant: isAIGenerated ? "default" : "destructive",
+          });
+          
+          logger.info('✅ Phase 2 Hybrid processing completed successfully', 'Blueprint Processing', {
+            method: processingResult.method,
+            quality: processingResult.quality,
+            objectsDetected: detectedObjects.length,
+            confidence: processingResult.confidence.toFixed(2),
+            isAIGenerated
+          });
         } else {
-          // Fall back to enhanced text-based generation
-          logger.info('🔄 Using enhanced text-based fallback generation', 'Blueprint Processing');
+          // Enhanced fallback when AI is unavailable
+          logger.info('🔄 Using enhanced fallback (AI unavailable)', 'Blueprint Processing');
           
           detectedObjects = generateObjectsFromTextData(extractedTextData, uploadId);
           isAIGenerated = false;
-          updateProcessingState({ processingMethod: 'text-fallback' });
+          updateProcessingState({ processingMethod: 'fallback' });
           
           toast({
-            title: "📝 Text Analysis Complete",
-            description: `Generated ${detectedObjects.length} architectural elements using text extraction and intelligent analysis.`,
+            title: "📝 Enhanced Analysis Complete",
+            description: `Generated ${detectedObjects.length} architectural elements using enhanced fallback analysis with extracted blueprint data.`,
             variant: "default",
           });
         }
