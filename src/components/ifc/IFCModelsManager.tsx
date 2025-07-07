@@ -205,6 +205,12 @@ export const IFCModelsManager = ({ projectId, onElementSelect }: IFCModelsManage
               modelUrl={getModelUrl(selectedModel)}
               modelName={selectedModel.name}
               onElementSelect={onElementSelect}
+              onElementCreateBIM={(elementData) => {
+                toast.success(`BIM element created from ${elementData.name || elementData.type}`);
+                onElementSelect?.(elementData);
+              }}
+              projectId={projectId}
+              ifcModelId={selectedModel.id}
             />
           ) : (
             <Card className="gradient-border">

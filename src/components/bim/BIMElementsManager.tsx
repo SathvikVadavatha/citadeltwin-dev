@@ -11,6 +11,7 @@ import { CreateBIMElementModal } from './CreateBIMElementModal';
 import { MaterialsManager } from './MaterialsManager';
 import { ElementConstraintsPanel } from './ElementConstraintsPanel';
 import { IFCModelsManager } from '@/components/ifc/IFCModelsManager';
+import { toast } from 'sonner';
 
 interface BIMElementsManagerProps {
   uploadId?: string;
@@ -210,17 +211,11 @@ export const BIMElementsManager = ({ uploadId, projectId }: BIMElementsManagerPr
           <IFCModelsManager 
             projectId={projectId}
             onElementSelect={(elementData) => {
-              // Handle IFC element selection - could sync with BIM elements
+              // Handle IFC element selection and potentially create BIM element
               console.log('IFC element selected:', elementData);
-              // Future: Create BIM element from IFC selection
-              // const newElement = {
-              //   project_id: projectId,
-              //   element_type: elementData.type.toLowerCase(),
-              //   name: elementData.name || `IFC ${elementData.type}`,
-              //   ifc_element_guid: elementData.globalId,
-              //   ifc_properties: elementData.properties
-              // };
-              // createElement(newElement);
+              if (elementData.classification) {
+                toast.success(`Selected ${elementData.classification.category} element: ${elementData.name || elementData.type}`);
+              }
             }}
           />
         </TabsContent>

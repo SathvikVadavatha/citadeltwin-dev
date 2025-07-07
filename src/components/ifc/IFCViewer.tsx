@@ -10,37 +10,43 @@ import {
   Eye,
   EyeOff,
   Info,
-  Loader2
+  Loader2,
+  Layers,
+  Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { IFCClassifier, IFCElementMetadata } from '@/services/ifcClassifier';
+import { IFCElementPropertiesPanel } from './IFCElementPropertiesPanel';
 
 interface IFCViewerProps {
   modelUrl?: string;
   modelName?: string;
   onElementSelect?: (elementData: any) => void;
+  onElementCreateBIM?: (elementData: any) => void;
   className?: string;
+  projectId?: string;
+  ifcModelId?: string;
 }
 
-interface IFCElement {
-  expressID: number;
-  type: string;
-  name?: string;
-  globalId?: string;
-  properties: Record<string, any>;
-}
+// Remove this interface as we'll use IFCElementMetadata from the service
 
 export const IFCViewer = ({ 
   modelUrl, 
   modelName = 'IFC Model',
   onElementSelect,
-  className = ''
+  onElementCreateBIM,
+  className = '',
+  projectId,
+  ifcModelId
 }: IFCViewerProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
   const modelRef = useRef<any>(null);
   const [loading, setLoading] = useState(false);
-  const [selectedElement, setSelectedElement] = useState<IFCElement | null>(null);
-  const [showMetadata, setShowMetadata] = useState(false);
+  const [selectedElement, setSelectedElement] = useState<IFCElementMetadata | null>(null);
+  const [showPropertiesPanel, setShowPropertiesPanel] = useState(false);
+  const [isolatedElements, setIsolatedElements] = useState<number[]>([]);
+  const [highlightedElements, setHighlightedElements] = useState<number[]>([]);
 
   useEffect(() => {
     if (!containerRef.current || !modelUrl) return;
@@ -126,27 +132,66 @@ export const IFCViewer = ({
           // Get element properties
           const properties = await viewer.IFC.getProperties(modelID, id, true);
           
-          const elementData: IFCElement = {
-            expressID: id,
-            type: properties.type || 'Unknown',
-            name: properties.Name?.value || `Element ${id}`,
-            globalId: properties.GlobalId?.value,
-            properties: properties
-          };
+          // Use IFC Classifier to extract comprehensive metadata
+          const metadata = await IFCClassifier.extractMetadata(id, properties, viewer, modelID);
 
-          setSelectedElement(elementData);
-          setShowMetadata(true);
-          onElementSelect?.(elementData);
+          setSelectedElement(metadata);
+          setShowPropertiesPanel(true);
+          onElementSelect?.(metadata);
 
           // Highlight element
-          await viewer.IFC.selector.highlightIfcItem(modelID, [id]);
+          await highlightElement(id);
           
-          toast.success(`Selected: ${elementData.name || elementData.type}`);
+          toast.success(`Selected: ${metadata.name || metadata.type}`);
         }
       } catch (error) {
         console.error('Error selecting element:', error);
+        toast.error('Failed to select element');
       }
     });
+  };
+
+  const highlightElement = async (expressID: number) => {
+    if (!viewerRef.current || !modelRef.current) return;
+    
+    try {
+      await viewerRef.current.IFC.selector.highlightIfcItem(modelRef.current.modelID, [expressID]);
+      setHighlightedElements([expressID]);
+    } catch (error) {
+      console.error('Error highlighting element:', error);
+    }
+  };
+
+  const isolateElements = async (expressIDs: number[]) => {
+    if (!viewerRef.current || !modelRef.current) return;
+    
+    try {
+      // Hide all elements first
+      await viewerRef.current.IFC.hideAllItems();
+      
+      // Show only selected elements
+      for (const id of expressIDs) {
+        await viewerRef.current.IFC.showItem(modelRef.current.modelID, [id]);
+      }
+      
+      setIsolatedElements(expressIDs);
+      toast.success(`Isolated ${expressIDs.length} element(s)`);
+    } catch (error) {
+      console.error('Error isolating elements:', error);
+      toast.error('Failed to isolate elements');
+    }
+  };
+
+  const showAllElements = async () => {
+    if (!viewerRef.current || !modelRef.current) return;
+    
+    try {
+      await viewerRef.current.IFC.showAllItems();
+      setIsolatedElements([]);
+      toast.success('All elements visible');
+    } catch (error) {
+      console.error('Error showing all elements:', error);
+    }
   };
 
   const resetCamera = () => {
@@ -166,148 +211,153 @@ export const IFCViewer = ({
     if (viewerRef.current) {
       viewerRef.current.IFC.selector.unHighlightIfcItems();
       setSelectedElement(null);
-      setShowMetadata(false);
+      setShowPropertiesPanel(false);
+      setHighlightedElements([]);
     }
   };
 
   return (
-    <div className={`space-y-4 ${className}`}>
-      {/* Viewer Controls */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <h3 className="text-lg font-semibold">{modelName}</h3>
-          {selectedElement && (
-            <Badge variant="secondary" className="text-xs">
-              {selectedElement.name || selectedElement.type}
-            </Badge>
-          )}
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={resetCamera}
-            className="cyber-button"
-            title="Reset Camera"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </Button>
-          
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={toggleVisibility}
-            className="cyber-button"
-            title="Toggle Visibility"
-          >
-            <Eye className="w-4 h-4" />
-          </Button>
-          
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={clearSelection}
-            className="cyber-button"
-            title="Clear Selection"
-            disabled={!selectedElement}
-          >
-            Clear
-          </Button>
-          
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowMetadata(!showMetadata)}
-            className="cyber-button"
-            title="Toggle Metadata"
-            disabled={!selectedElement}
-          >
-            <Info className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Main Viewer */}
-      <div className="relative">
-        <div
-          ref={containerRef}
-          className="w-full h-[500px] bg-gray-900 rounded-lg border border-border overflow-hidden"
-        />
-        
-        {loading && (
-          <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-lg">
-            <div className="text-center space-y-4">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto text-accent" />
-              <p className="text-sm text-muted-foreground">Loading IFC model...</p>
-            </div>
+    <div className={`grid grid-cols-1 lg:grid-cols-3 gap-4 ${className}`}>
+      {/* Main Viewer Section */}
+      <div className="lg:col-span-2 space-y-4">
+        {/* Viewer Controls */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <h3 className="text-lg font-semibold">{modelName}</h3>
+            {selectedElement && (
+              <Badge variant="secondary" className="text-xs">
+                {selectedElement.name || selectedElement.type}
+              </Badge>
+            )}
+            {isolatedElements.length > 0 && (
+              <Badge variant="outline" className="text-xs border-accent text-accent">
+                {isolatedElements.length} isolated
+              </Badge>
+            )}
           </div>
-        )}
+          
+          <div className="flex items-center space-x-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={resetCamera}
+              className="cyber-button"
+              title="Reset Camera"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </Button>
+            
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={toggleVisibility}
+              className="cyber-button"
+              title="Toggle Model Visibility"
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
 
-        {!modelUrl && !loading && (
-          <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-lg">
-            <p className="text-muted-foreground">No IFC model loaded</p>
-          </div>
-        )}
-      </div>
-
-      {/* Element Metadata Panel */}
-      {showMetadata && selectedElement && (
-        <Card className="cyber-tool-palette">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center justify-between">
-              <span>Element Properties</span>
+            {isolatedElements.length > 0 ? (
               <Button
                 size="sm"
-                variant="ghost"
-                onClick={() => setShowMetadata(false)}
-                className="h-6 w-6 p-0"
+                variant="outline"
+                onClick={showAllElements}
+                className="cyber-button"
+                title="Show All Elements"
               >
-                ×
+                <Layers className="w-4 h-4" />
               </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">Type:</span>
-                <p className="font-medium">{selectedElement.type}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Name:</span>
-                <p className="font-medium">{selectedElement.name || 'N/A'}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Express ID:</span>
-                <p className="font-medium">{selectedElement.expressID}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Global ID:</span>
-                <p className="font-medium text-xs break-all">
-                  {selectedElement.globalId || 'N/A'}
-                </p>
+            ) : (
+              selectedElement && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => isolateElements([selectedElement.expressID])}
+                  className="cyber-button"
+                  title="Isolate Selected"
+                >
+                  <Layers className="w-4 h-4" />
+                </Button>
+              )
+            )}
+            
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={clearSelection}
+              className="cyber-button"
+              title="Clear Selection"
+              disabled={!selectedElement}
+            >
+              Clear
+            </Button>
+            
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowPropertiesPanel(!showPropertiesPanel)}
+              className="cyber-button"
+              title="Toggle Properties Panel"
+              disabled={!selectedElement}
+            >
+              <Info className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Main Viewer */}
+        <div className="relative">
+          <div
+            ref={containerRef}
+            className="w-full h-[600px] bg-gray-900 rounded-lg border border-border overflow-hidden"
+          />
+          
+          {loading && (
+            <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-lg">
+              <div className="text-center space-y-4">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto text-accent" />
+                <p className="text-sm text-muted-foreground">Loading IFC model...</p>
               </div>
             </div>
-            
-            {/* Additional Properties */}
-            {Object.keys(selectedElement.properties).length > 0 && (
-              <div className="mt-4">
-                <h4 className="text-sm font-medium mb-2">Additional Properties</h4>
-                <div className="max-h-32 overflow-y-auto space-y-1 text-xs">
-                  {Object.entries(selectedElement.properties).map(([key, value]) => (
-                    <div key={key} className="flex justify-between">
-                      <span className="text-muted-foreground">{key}:</span>
-                      <span className="font-mono">
-                        {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+          )}
+
+          {!modelUrl && !loading && (
+            <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-lg">
+              <p className="text-muted-foreground">No IFC model loaded</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Properties Panel */}
+      <div className="lg:col-span-1">
+        {showPropertiesPanel && selectedElement ? (
+          <IFCElementPropertiesPanel
+            element={selectedElement}
+            onClose={() => setShowPropertiesPanel(false)}
+            onCreateBIMElement={onElementCreateBIM}
+            onUpdateElement={(updates) => {
+              if (selectedElement) {
+                const updatedElement = { ...selectedElement, ...updates };
+                setSelectedElement(updatedElement);
+                onElementSelect?.(updatedElement);
+              }
+            }}
+            projectId={projectId}
+            ifcModelId={ifcModelId}
+          />
+        ) : (
+          <Card className="cyber-tool-palette h-full">
+            <CardContent className="p-8 text-center">
+              <Settings className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No Element Selected</h3>
+              <p className="text-muted-foreground">
+                Double-click on an element in the 3D viewer to view its properties and create BIM elements.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };
