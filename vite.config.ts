@@ -55,6 +55,10 @@ export default defineConfig(({ mode }) => ({
       'tailwind-merge'
     ],
   },
+  // Support for WebAssembly (needed for IFC.js)
+  worker: {
+    format: 'es'
+  },
   // Reduce build complexity
   esbuild: {
     logOverride: { 'this-is-undefined-in-esm': 'silent' }

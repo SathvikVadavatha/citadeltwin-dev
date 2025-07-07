@@ -107,6 +107,13 @@ export const useBIMElements = (projectIdOrUploadId?: string, filterType: 'projec
 
     try {
       setCreating(true);
+      
+      // Ensure we have either upload_id or project_id
+      if (!elementData.upload_id && !elementData.project_id) {
+        toast.error('Element must be associated with either an upload or project');
+        return null;
+      }
+
       const { data, error } = await (supabase as any)
         .from('bim_elements')
         .insert({

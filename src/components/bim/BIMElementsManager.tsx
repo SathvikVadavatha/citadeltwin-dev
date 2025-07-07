@@ -4,12 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Edit, Trash2, Copy, Layers, Settings } from 'lucide-react';
+import { Plus, Edit, Trash2, Copy, Layers, Settings, Building2 } from 'lucide-react';
 import { useBIMElements, BIMElement } from '@/hooks/useBIMElements';
 import { useMaterials } from '@/hooks/useMaterials';
 import { CreateBIMElementModal } from './CreateBIMElementModal';
 import { MaterialsManager } from './MaterialsManager';
 import { ElementConstraintsPanel } from './ElementConstraintsPanel';
+import { IFCModelsManager } from '@/components/ifc/IFCModelsManager';
 
 interface BIMElementsManagerProps {
   uploadId?: string;
@@ -91,10 +92,14 @@ export const BIMElementsManager = ({ uploadId, projectId }: BIMElementsManagerPr
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-card border border-border">
+        <TabsList className="grid w-full grid-cols-4 bg-card border border-border">
           <TabsTrigger value="elements" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <Layers className="w-4 h-4 mr-2" />
             Elements
+          </TabsTrigger>
+          <TabsTrigger value="ifc" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Building2 className="w-4 h-4 mr-2" />
+            IFC Models
           </TabsTrigger>
           <TabsTrigger value="materials" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <Settings className="w-4 h-4 mr-2" />
@@ -199,6 +204,25 @@ export const BIMElementsManager = ({ uploadId, projectId }: BIMElementsManagerPr
               ))}
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="ifc" className="space-y-4">
+          <IFCModelsManager 
+            projectId={projectId}
+            onElementSelect={(elementData) => {
+              // Handle IFC element selection - could sync with BIM elements
+              console.log('IFC element selected:', elementData);
+              // Future: Create BIM element from IFC selection
+              // const newElement = {
+              //   project_id: projectId,
+              //   element_type: elementData.type.toLowerCase(),
+              //   name: elementData.name || `IFC ${elementData.type}`,
+              //   ifc_element_guid: elementData.globalId,
+              //   ifc_properties: elementData.properties
+              // };
+              // createElement(newElement);
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="materials">

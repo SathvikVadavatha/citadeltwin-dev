@@ -211,7 +211,6 @@ const BIMElementMesh = ({
 
   return (
     <group
-      ref={meshRef}
       position={explodedPosition()}
       rotation={element.rotation || [0, 0, 0]}
       scale={element.scale || [1, 1, 1]}

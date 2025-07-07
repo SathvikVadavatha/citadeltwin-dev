@@ -198,10 +198,14 @@ export type Database = {
           element_type: Database["public"]["Enums"]["element_type"]
           geometry: Json
           id: string
+          ifc_element_guid: string | null
+          ifc_model_id: string | null
+          ifc_properties: Json | null
           material_id: string | null
           name: string
           parameters: Json
           parent_element_id: string | null
+          project_id: string | null
           updated_at: string
           upload_id: string | null
         }
@@ -211,10 +215,14 @@ export type Database = {
           element_type: Database["public"]["Enums"]["element_type"]
           geometry: Json
           id?: string
+          ifc_element_guid?: string | null
+          ifc_model_id?: string | null
+          ifc_properties?: Json | null
           material_id?: string | null
           name: string
           parameters?: Json
           parent_element_id?: string | null
+          project_id?: string | null
           updated_at?: string
           upload_id?: string | null
         }
@@ -224,14 +232,25 @@ export type Database = {
           element_type?: Database["public"]["Enums"]["element_type"]
           geometry?: Json
           id?: string
+          ifc_element_guid?: string | null
+          ifc_model_id?: string | null
+          ifc_properties?: Json | null
           material_id?: string | null
           name?: string
           parameters?: Json
           parent_element_id?: string | null
+          project_id?: string | null
           updated_at?: string
           upload_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "bim_elements_ifc_model_id_fkey"
+            columns: ["ifc_model_id"]
+            isOneToOne: false
+            referencedRelation: "ifc_models"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bim_elements_material_id_fkey"
             columns: ["material_id"]
@@ -244,6 +263,13 @@ export type Database = {
             columns: ["parent_element_id"]
             isOneToOne: false
             referencedRelation: "bim_elements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bim_elements_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
@@ -1456,6 +1482,59 @@ export type Database = {
           update_frequency?: string | null
         }
         Relationships: []
+      }
+      ifc_models: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_path: string
+          file_size: number
+          id: string
+          model_metadata: Json | null
+          name: string
+          processed_at: string | null
+          project_id: string | null
+          updated_at: string
+          upload_status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_path: string
+          file_size: number
+          id?: string
+          model_metadata?: Json | null
+          name: string
+          processed_at?: string | null
+          project_id?: string | null
+          updated_at?: string
+          upload_status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_path?: string
+          file_size?: number
+          id?: string
+          model_metadata?: Json | null
+          name?: string
+          processed_at?: string | null
+          project_id?: string | null
+          updated_at?: string
+          upload_status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ifc_models_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ip_whitelist: {
         Row: {
