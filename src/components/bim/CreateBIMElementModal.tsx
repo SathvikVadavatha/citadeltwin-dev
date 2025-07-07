@@ -45,8 +45,8 @@ export const CreateBIMElementModal = ({
       rotation: { x: 0, y: 0, z: 0 }
     },
     parameters: {},
-    material_id: '',
-    parent_element_id: ''
+    material_id: undefined,
+    parent_element_id: undefined
   });
 
   const [geometryParams, setGeometryParams] = useState({
@@ -116,8 +116,8 @@ export const CreateBIMElementModal = ({
           rotation: { x: 0, y: 0, z: 0 }
         },
         parameters: {},
-        material_id: '',
-        parent_element_id: ''
+        material_id: undefined,
+        parent_element_id: undefined
       });
       setCustomParams({});
     }
@@ -215,7 +215,6 @@ export const CreateBIMElementModal = ({
                           <SelectValue placeholder="Select material" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
                           {materials.map(material => (
                             <SelectItem key={material.id} value={material.id}>
                               {material.name} ({material.material_type})
@@ -235,7 +234,6 @@ export const CreateBIMElementModal = ({
                           <SelectValue placeholder="Select parent" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
                           {elements.map(element => (
                             <SelectItem key={element.id} value={element.id}>
                               {element.name} ({element.element_type})
