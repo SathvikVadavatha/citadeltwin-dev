@@ -455,52 +455,436 @@ Generate 18-35 detailed architectural elements that create a complete, buildable
 Use comprehensive JSON format with realistic materials, dimensions, and construction specifications suitable for actual construction documentation.`;
 };
 
+// Phase 4: Enhanced Unique Fallback Generation with Blueprint-Specific Characteristics
 const generateEnhancedFallback = (extractedData: ExtractedTextData): DetectedObject[] => {
   const objects: DetectedObject[] = [];
   
-  // Generate comprehensive architectural elements based on extracted data
-  const roomCount = Math.max(extractedData.structuredData.rooms.length, 4);
+  // Generate unique seed from extracted data characteristics
+  const dataHash = hashBlueprintData(extractedData);
+  const uniqueRng = new BlueprintSpecificRandom(dataHash);
   
-  // Create room-based objects
-  extractedData.structuredData.rooms.forEach((room, index) => {
-    objects.push({
-      label: room.type.replace('_', ' '),
-      confidence: 0.88,
-      bbox: {
-        x: 15 + (index % 3) * 25,
-        y: 15 + Math.floor(index / 3) * 22,
-        width: getEnhancedRoomWidth(room.type),
-        height: getEnhancedRoomHeight(room.type)
-      }
-    });
-  });
-
-  // Add comprehensive structural elements
-  const structuralElements = [
-    { label: 'exterior wall', confidence: 0.92, bbox: { x: 5, y: 5, width: 70, height: 3 } },
-    { label: 'interior wall', confidence: 0.90, bbox: { x: 25, y: 15, width: 25, height: 3 } },
-    { label: 'load bearing wall', confidence: 0.88, bbox: { x: 15, y: 5, width: 35, height: 3 } },
-    { label: 'foundation', confidence: 0.95, bbox: { x: 0, y: 0, width: 80, height: 85 } },
-    { label: 'beam', confidence: 0.85, bbox: { x: 10, y: 30, width: 45, height: 2 } },
-    { label: 'column', confidence: 0.87, bbox: { x: 35, y: 35, width: 3, height: 3 } }
-  ];
-
-  // Add architectural elements
-  const architecturalElements = [
-    { label: 'front door', confidence: 0.85, bbox: { x: 35, y: 5, width: 6, height: 12 } },
-    { label: 'window', confidence: 0.83, bbox: { x: 15, y: 6, width: 12, height: 8 } },
-    { label: 'window', confidence: 0.83, bbox: { x: 55, y: 6, width: 12, height: 8 } },
-    { label: 'interior door', confidence: 0.80, bbox: { x: 25, y: 25, width: 5, height: 10 } },
-    { label: 'stairs', confidence: 0.78, bbox: { x: 65, y: 25, width: 12, height: 18 } },
-    { label: 'kitchen island', confidence: 0.75, bbox: { x: 45, y: 35, width: 8, height: 12 } },
-    { label: 'bathroom fixture', confidence: 0.82, bbox: { x: 20, y: 50, width: 6, height: 8 } }
-  ];
-
-  objects.push(...structuralElements.map(el => ({ ...el, confidence: el.confidence })));
-  objects.push(...architecturalElements.map(el => ({ ...el, confidence: el.confidence })));
-
+  console.log('🛠️ Phase 4: Generating blueprint-specific fallback with hash:', dataHash);
+  
+  // Determine building characteristics from extracted data
+  const roomCount = Math.max(extractedData.structuredData.rooms.length, 3);
+  const dimensionCount = extractedData.dimensions.length;
+  const textComplexity = extractedData.text.length;
+  
+  // Building type analysis
+  const buildingType = determineBuildingType(extractedData);
+  const architecturalStyle = determineArchitecturalStyle(extractedData, uniqueRng);
+  
+  console.log('🏗️ Building characteristics:', { buildingType, architecturalStyle, roomCount, dimensionCount });
+  
+  // Create unique room layouts based on extracted data
+  const roomVariations = generateUniqueRoomLayout(extractedData, uniqueRng, buildingType);
+  objects.push(...roomVariations);
+  
+  // Generate structural elements with blueprint-specific variations
+  const structuralElements = generateBlueprintSpecificStructure(
+    extractedData, 
+    uniqueRng, 
+    buildingType, 
+    architecturalStyle
+  );
+  objects.push(...structuralElements);
+  
+  // Add architectural features based on building type and style
+  const architecturalElements = generateArchitecturalFeatures(
+    extractedData,
+    uniqueRng,
+    buildingType,
+    architecturalStyle,
+    roomCount
+  );
+  objects.push(...architecturalElements);
+  
+  // Add building-specific systems and fixtures
+  const buildingSystems = generateBuildingSystems(
+    extractedData,
+    uniqueRng,
+    buildingType
+  );
+  objects.push(...buildingSystems);
+  
+  console.log(`✅ Generated ${objects.length} unique architectural elements for ${buildingType} (${architecturalStyle})`);
+  
   return objects;
 };
+
+// Helper functions for Phase 4 unique generation
+function hashBlueprintData(data: ExtractedTextData): number {
+  const hashString = JSON.stringify({
+    rooms: data.structuredData.rooms.map(r => r.type).sort(),
+    dimensions: data.dimensions.slice(0, 5).sort(),
+    textLength: Math.floor(data.text.length / 100) * 100,
+    annotations: data.annotations.slice(0, 3).sort()
+  });
+  
+  let hash = 0;
+  for (let i = 0; i < hashString.length; i++) {
+    const char = hashString.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash);
+}
+
+class BlueprintSpecificRandom {
+  private seed: number;
+  
+  constructor(seed: number) {
+    this.seed = seed;
+  }
+  
+  next(): number {
+    this.seed = (this.seed * 9301 + 49297) % 233280;
+    return this.seed / 233280;
+  }
+  
+  range(min: number, max: number): number {
+    return min + (max - min) * this.next();
+  }
+  
+  choice<T>(array: T[]): T {
+    return array[Math.floor(this.next() * array.length)];
+  }
+}
+
+function determineBuildingType(data: ExtractedTextData): string {
+  const rooms = data.structuredData.rooms.map(r => r.type.toLowerCase());
+  
+  if (rooms.includes('bedroom') && rooms.includes('kitchen')) {
+    return rooms.length > 4 ? 'multi_family_residential' : 'single_family_residential';
+  } else if (rooms.includes('office') || rooms.includes('conference')) {
+    return 'commercial_office';
+  } else if (rooms.includes('warehouse') || rooms.includes('storage')) {
+    return 'industrial';
+  } else if (rooms.includes('classroom') || rooms.includes('library')) {
+    return 'institutional';
+  }
+  
+  return rooms.length > 3 ? 'mixed_use' : 'residential';
+}
+
+function determineArchitecturalStyle(data: ExtractedTextData, rng: BlueprintSpecificRandom): string {
+  const styles = ['modern', 'traditional', 'contemporary', 'industrial', 'minimalist'];
+  const annotations = data.annotations.join(' ').toLowerCase();
+  
+  if (annotations.includes('steel') || annotations.includes('concrete')) {
+    return rng.choice(['modern', 'industrial', 'contemporary']);
+  } else if (annotations.includes('wood') || annotations.includes('frame')) {
+    return rng.choice(['traditional', 'contemporary']);
+  }
+  
+  return rng.choice(styles);
+}
+
+function generateUniqueRoomLayout(
+  data: ExtractedTextData, 
+  rng: BlueprintSpecificRandom, 
+  buildingType: string
+): DetectedObject[] {
+  const rooms: DetectedObject[] = [];
+  const extractedRooms = data.structuredData.rooms;
+  
+  // Use actual room data if available, otherwise generate based on building type
+  if (extractedRooms.length > 0) {
+    extractedRooms.forEach((room, index) => {
+      const baseX = 10 + (index % 3) * 30;
+      const baseY = 10 + Math.floor(index / 3) * 25;
+      
+      rooms.push({
+        label: room.type.replace('_', ' '),
+        confidence: 0.85 + rng.next() * 0.10,
+        bbox: {
+          x: baseX + rng.range(-5, 5),
+          y: baseY + rng.range(-3, 3),
+          width: getUniqueRoomWidth(room.type, buildingType, rng),
+          height: getUniqueRoomHeight(room.type, buildingType, rng)
+        }
+      });
+    });
+  } else {
+    // Generate default rooms based on building type
+    const defaultRooms = getDefaultRoomsForBuildingType(buildingType);
+    defaultRooms.forEach((roomType, index) => {
+      rooms.push({
+        label: roomType,
+        confidence: 0.80 + rng.next() * 0.15,
+        bbox: {
+          x: 15 + (index % 2) * 35 + rng.range(-3, 3),
+          y: 15 + Math.floor(index / 2) * 30 + rng.range(-3, 3),
+          width: getUniqueRoomWidth(roomType, buildingType, rng),
+          height: getUniqueRoomHeight(roomType, buildingType, rng)
+        }
+      });
+    });
+  }
+  
+  return rooms;
+}
+
+function generateBlueprintSpecificStructure(
+  data: ExtractedTextData,
+  rng: BlueprintSpecificRandom,
+  buildingType: string,
+  style: string
+): DetectedObject[] {
+  const elements: DetectedObject[] = [];
+  const complexity = Math.min(data.text.length / 1000, 3); // 0-3 complexity scale
+  
+  // Exterior walls with building-specific characteristics
+  const wallThickness = style === 'industrial' ? 6 : 3;
+  const wallHeight = buildingType.includes('commercial') ? 4 : 3;
+  
+  elements.push(
+    {
+      label: 'exterior_wall',
+      confidence: 0.92 + rng.next() * 0.06,
+      bbox: { 
+        x: 2 + rng.range(-1, 1), 
+        y: 2 + rng.range(-1, 1), 
+        width: 75 + rng.range(-5, 10), 
+        height: wallThickness + rng.range(-1, 1)
+      }
+    },
+    {
+      label: 'exterior_wall',
+      confidence: 0.90 + rng.next() * 0.08,
+      bbox: { 
+        x: 75 + rng.range(-2, 2), 
+        y: 2 + rng.range(-1, 1), 
+        width: wallThickness + rng.range(-1, 1), 
+        height: 70 + rng.range(-5, 10)
+      }
+    }
+  );
+  
+  // Interior walls based on complexity and room count
+  const interiorWallCount = Math.max(1, Math.floor(complexity) + data.structuredData.rooms.length);
+  for (let i = 0; i < Math.min(interiorWallCount, 4); i++) {
+    elements.push({
+      label: 'interior_wall',
+      confidence: 0.85 + rng.next() * 0.10,
+      bbox: {
+        x: 20 + i * 15 + rng.range(-3, 3),
+        y: 15 + rng.range(-5, 5),
+        width: 25 + rng.range(-5, 10),
+        height: 2 + rng.range(0, 1)
+      }
+    });
+  }
+  
+  // Load-bearing elements for larger buildings
+  if (buildingType.includes('commercial') || buildingType === 'industrial') {
+    elements.push(
+      {
+        label: 'load_bearing_wall',
+        confidence: 0.88 + rng.next() * 0.08,
+        bbox: { x: 35 + rng.range(-3, 3), y: 5, width: 30 + rng.range(-5, 5), height: wallHeight }
+      },
+      {
+        label: 'column',
+        confidence: 0.87 + rng.next() * 0.08,
+        bbox: { x: 25 + rng.range(-2, 2), y: 25 + rng.range(-2, 2), width: 3, height: 3 }
+      },
+      {
+        label: 'beam',
+        confidence: 0.85 + rng.next() * 0.10,
+        bbox: { x: 10 + rng.range(-2, 2), y: 30 + rng.range(-3, 3), width: 50 + rng.range(-5, 10), height: 2 }
+      }
+    );
+  }
+  
+  // Foundation that encompasses the building
+  elements.push({
+    label: 'foundation',
+    confidence: 0.95,
+    bbox: { x: 0, y: 0, width: 80 + rng.range(-5, 10), height: 75 + rng.range(-5, 10) }
+  });
+  
+  return elements;
+}
+
+function generateArchitecturalFeatures(
+  data: ExtractedTextData,
+  rng: BlueprintSpecificRandom,
+  buildingType: string,
+  style: string,
+  roomCount: number
+): DetectedObject[] {
+  const features: DetectedObject[] = [];
+  
+  // Doors based on building type and room count
+  const doorCount = Math.max(1, Math.min(roomCount, 4));
+  const doorWidth = buildingType.includes('commercial') ? 8 : 6;
+  
+  // Main entrance
+  features.push({
+    label: buildingType.includes('commercial') ? 'main_entrance' : 'front_door',
+    confidence: 0.90 + rng.next() * 0.08,
+    bbox: { 
+      x: 35 + rng.range(-5, 5), 
+      y: 2 + rng.range(0, 3), 
+      width: doorWidth + rng.range(-1, 2), 
+      height: 12 + rng.range(-1, 2) 
+    }
+  });
+  
+  // Interior doors
+  for (let i = 1; i < doorCount; i++) {
+    features.push({
+      label: 'interior_door',
+      confidence: 0.80 + rng.next() * 0.15,
+      bbox: {
+        x: 20 + i * 12 + rng.range(-3, 3),
+        y: 20 + rng.range(-5, 5),
+        width: 5 + rng.range(0, 1),
+        height: 10 + rng.range(-1, 2)
+      }
+    });
+  }
+  
+  // Windows based on architectural style and building type
+  const windowCount = style === 'modern' ? 
+    Math.max(3, roomCount + 1) : 
+    Math.max(2, Math.floor(roomCount * 0.8));
+    
+  for (let i = 0; i < Math.min(windowCount, 6); i++) {
+    const windowSize = style === 'modern' ? { width: 15, height: 10 } : { width: 12, height: 8 };
+    features.push({
+      label: 'window',
+      confidence: 0.83 + rng.next() * 0.12,
+      bbox: {
+        x: 10 + i * 12 + rng.range(-2, 2),
+        y: 3 + rng.range(0, 2),
+        width: windowSize.width + rng.range(-2, 3),
+        height: windowSize.height + rng.range(-1, 2)
+      }
+    });
+  }
+  
+  // Building-specific features
+  if (buildingType === 'industrial') {
+    features.push({
+      label: 'loading_dock',
+      confidence: 0.75 + rng.next() * 0.15,
+      bbox: { x: 60, y: 2, width: 15, height: 8 }
+    });
+  } else if (buildingType.includes('residential') && roomCount > 2) {
+    features.push({
+      label: 'stairs',
+      confidence: 0.78 + rng.next() * 0.12,
+      bbox: { 
+        x: 65 + rng.range(-5, 3), 
+        y: 25 + rng.range(-3, 3), 
+        width: 12 + rng.range(-2, 3), 
+        height: 18 + rng.range(-3, 5) 
+      }
+    });
+  }
+  
+  return features;
+}
+
+function generateBuildingSystems(
+  data: ExtractedTextData,
+  rng: BlueprintSpecificRandom,
+  buildingType: string
+): DetectedObject[] {
+  const systems: DetectedObject[] = [];
+  
+  // Kitchen features for residential buildings
+  if (buildingType.includes('residential') || data.structuredData.rooms.some(r => r.type === 'kitchen')) {
+    systems.push({
+      label: 'kitchen_island',
+      confidence: 0.75 + rng.next() * 0.15,
+      bbox: { 
+        x: 40 + rng.range(-5, 5), 
+        y: 35 + rng.range(-3, 3), 
+        width: 8 + rng.range(-1, 4), 
+        height: 12 + rng.range(-2, 4) 
+      }
+    });
+  }
+  
+  // Bathroom fixtures
+  if (data.structuredData.rooms.some(r => r.type === 'bathroom') || buildingType.includes('residential')) {
+    systems.push({
+      label: 'bathroom_fixture',
+      confidence: 0.82 + rng.next() * 0.12,
+      bbox: { 
+        x: 15 + rng.range(-3, 3), 
+        y: 50 + rng.range(-5, 5), 
+        width: 6 + rng.range(-1, 2), 
+        height: 8 + rng.range(-1, 2) 
+      }
+    });
+  }
+  
+  // HVAC systems for larger buildings
+  if (buildingType.includes('commercial') || buildingType === 'industrial') {
+    systems.push({
+      label: 'hvac_unit',
+      confidence: 0.70 + rng.next() * 0.20,
+      bbox: { x: 5, y: 5, width: 6, height: 6 }
+    });
+  }
+  
+  return systems;
+}
+
+function getDefaultRoomsForBuildingType(buildingType: string): string[] {
+  switch (buildingType) {
+    case 'single_family_residential':
+      return ['living_room', 'kitchen', 'bedroom', 'bathroom'];
+    case 'multi_family_residential':
+      return ['living_room', 'kitchen', 'master_bedroom', 'bedroom', 'bathroom', 'dining_room'];
+    case 'commercial_office':
+      return ['office', 'conference_room', 'reception', 'break_room'];
+    case 'industrial':
+      return ['warehouse', 'office', 'loading_area'];
+    case 'institutional':
+      return ['main_hall', 'office', 'storage', 'utility'];
+    default:
+      return ['main_space', 'secondary_space', 'utility'];
+  }
+}
+
+function getUniqueRoomWidth(roomType: string, buildingType: string, rng: BlueprintSpecificRandom): number {
+  const baseWidths: Record<string, number> = {
+    living_room: 32, master_bedroom: 28, bedroom: 22, kitchen: 24,
+    bathroom: 12, dining_room: 26, office: 20, utility: 14,
+    garage: 45, closet: 8, hallway: 6, foyer: 15,
+    warehouse: 60, loading_area: 25, conference_room: 30,
+    reception: 20, break_room: 15, main_hall: 40,
+    main_space: 30, secondary_space: 20
+  };
+  
+  const baseWidth = baseWidths[roomType] || 20;
+  const multiplier = buildingType.includes('commercial') ? 1.2 : 1.0;
+  const variation = rng.range(0.8, 1.3);
+  
+  return Math.round(baseWidth * multiplier * variation);
+}
+
+function getUniqueRoomHeight(roomType: string, buildingType: string, rng: BlueprintSpecificRandom): number {
+  const baseHeights: Record<string, number> = {
+    living_room: 28, master_bedroom: 24, bedroom: 18, kitchen: 20,
+    bathroom: 10, dining_room: 22, office: 18, utility: 12,
+    garage: 35, closet: 6, hallway: 4, foyer: 12,
+    warehouse: 45, loading_area: 20, conference_room: 25,
+    reception: 18, break_room: 15, main_hall: 35,
+    main_space: 25, secondary_space: 18
+  };
+  
+  const baseHeight = baseHeights[roomType] || 16;
+  const multiplier = buildingType.includes('commercial') ? 1.3 : 1.0;
+  const variation = rng.range(0.9, 1.2);
+  
+  return Math.round(baseHeight * multiplier * variation);
+}
 
 const getEnhancedDefaultWidth = (elementType: string): number => {
   const defaults: Record<string, number> = {

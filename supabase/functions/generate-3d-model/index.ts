@@ -13,6 +13,18 @@ import {
   generateRoofIndices
 } from './architectural-geometry.ts';
 
+// Import Phase 4 blueprint-specific helpers
+import {
+  type BuildingCharacteristics,
+  calculateBuildingCharacteristics,
+  generateBlueprintSpecificFoundation,
+  generateBlueprintSpecificWall,
+  generateBlueprintSpecificDoor,
+  generateBlueprintSpecificWindow,
+  generateInteriorFeatures,
+  generateBlueprintSpecificRoof
+} from './phase4-helpers.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -154,86 +166,127 @@ serve(async (req) => {
   }
 });
 
-// Generate an architectural GLB file with real building elements based on detected objects
+// Phase 4: Generate unique architectural GLB using actual detected object data
 function generateArchitecturalGLB(detectedObjects: any[], uploadId: string, isAIGenerated: boolean): Uint8Array {
   const seed = hashCode(uploadId);
   const rng = new SeededRandom(seed);
   
-  console.log('Generating architectural 3D model with seed:', seed, 'Objects:', detectedObjects?.length || 0);
+  console.log('🏗️ Phase 4: Generating unique architectural 3D model with seed:', seed, 'Objects:', detectedObjects?.length || 0);
+  console.log('📊 Detected objects summary:', detectedObjects?.map(obj => `${obj.label}(${obj.confidence.toFixed(2)})`).join(', '));
   
-  // Analyze detected objects to determine building characteristics
-  const walls = detectedObjects?.filter(obj => obj.label === 'wall') || [];
-  const doors = detectedObjects?.filter(obj => obj.label === 'door') || [];
-  const windows = detectedObjects?.filter(obj => obj.label === 'window') || [];
-  const rooms = detectedObjects?.filter(obj => obj.label.includes('room') || obj.label === 'kitchen' || obj.label === 'bathroom') || [];
+  // Phase 4: Enhanced object analysis using actual bounding box data
+  const wallElements = detectedObjects?.filter(obj => 
+    obj.label.includes('wall') || obj.label === 'exterior_wall' || obj.label === 'interior_wall' || obj.label === 'load_bearing_wall'
+  ) || [];
+  const doorElements = detectedObjects?.filter(obj => 
+    obj.label.includes('door') || obj.label === 'front_door' || obj.label === 'main_entrance'
+  ) || [];
+  const windowElements = detectedObjects?.filter(obj => obj.label.includes('window')) || [];
+  const roomElements = detectedObjects?.filter(obj => 
+    obj.label.includes('room') || obj.label === 'kitchen' || obj.label === 'bathroom' || 
+    obj.label === 'office' || obj.label === 'bedroom' || obj.label === 'living'
+  ) || [];
+  const structuralElements = detectedObjects?.filter(obj => 
+    obj.label === 'foundation' || obj.label === 'beam' || obj.label === 'column'
+  ) || [];
   
-  const buildingWidth = Math.max(10, Math.min(20, walls.length * 2 + rng.next() * 5));
-  const buildingDepth = Math.max(8, Math.min(15, rooms.length * 3 + rng.next() * 4));
-  const buildingHeight = Math.max(3, Math.min(6, isAIGenerated ? 4 + rng.next() * 2 : 3 + rng.next() * 1.5));
+  // Phase 4: Calculate unique building dimensions from actual object data
+  const buildingCharacteristics = calculateBuildingCharacteristics(
+    detectedObjects, wallElements, roomElements, isAIGenerated, rng
+  );
+  
+  console.log('🏢 Building characteristics:', buildingCharacteristics);
   
   const vertices = [];
   const indices = [];
   const normals = [];
   let vertexIndex = 0;
   
-  // Generate building structure based on detected elements
+  // Phase 4: Generate building structure using actual detected object positions and sizes
   
-  // 1. Generate floor foundation
-  const floorVertices = generateFloorGeometry(buildingWidth, buildingDepth);
-  vertices.push(...floorVertices);
-  normals.push(...Array(floorVertices.length / 3).fill([0, 1, 0]).flat());
+  // 1. Generate foundation based on actual building footprint
+  const foundationGeometry = generateBlueprintSpecificFoundation(
+    structuralElements, buildingCharacteristics, rng
+  );
+  vertices.push(...foundationGeometry.vertices);
+  normals.push(...foundationGeometry.normals);
   
-  // 2. Generate walls based on detected wall elements
-  for (let i = 0; i < walls.length; i++) {
-    const wall = walls[i];
-    const wallGeometry = generateWallGeometry(wall, buildingWidth, buildingDepth, buildingHeight, i);
+  const foundationIndices = generateQuadIndices(vertexIndex, foundationGeometry.vertices.length / 3);
+  indices.push(...foundationIndices);
+  vertexIndex += foundationGeometry.vertices.length / 3;
+  
+  // 2. Generate walls using actual detected wall elements and their bounding boxes
+  for (let i = 0; i < wallElements.length; i++) {
+    const wall = wallElements[i];
+    const wallGeometry = generateBlueprintSpecificWall(
+      wall, buildingCharacteristics, i, rng
+    );
     vertices.push(...wallGeometry.vertices);
     normals.push(...wallGeometry.normals);
     
-    // Add wall indices
     const wallIndices = generateWallIndices(vertexIndex, wallGeometry.vertices.length / 3);
     indices.push(...wallIndices);
     vertexIndex += wallGeometry.vertices.length / 3;
   }
   
-  // 3. Generate door openings
-  for (let i = 0; i < Math.min(doors.length, 3); i++) {
-    const door = doors[i];
-    const doorGeometry = generateDoorGeometry(door, buildingWidth, buildingDepth, buildingHeight, i);
+  // 3. Generate doors using actual detected door positions
+  for (let i = 0; i < Math.min(doorElements.length, 4); i++) {
+    const door = doorElements[i];
+    const doorGeometry = generateBlueprintSpecificDoor(
+      door, buildingCharacteristics, i, rng
+    );
     vertices.push(...doorGeometry.vertices);
     normals.push(...doorGeometry.normals);
     
-    const doorIndices = generateQuadIndices(vertexIndex, 4);
+    const doorIndices = generateQuadIndices(vertexIndex, doorGeometry.vertices.length / 3);
     indices.push(...doorIndices);
-    vertexIndex += 4;
+    vertexIndex += doorGeometry.vertices.length / 3;
   }
   
-  // 4. Generate window openings  
-  for (let i = 0; i < Math.min(windows.length, 6); i++) {
-    const window = windows[i];
-    const windowGeometry = generateWindowGeometry(window, buildingWidth, buildingDepth, buildingHeight, i);
+  // 4. Generate windows using actual detected window positions and sizes
+  for (let i = 0; i < Math.min(windowElements.length, 8); i++) {
+    const window = windowElements[i];
+    const windowGeometry = generateBlueprintSpecificWindow(
+      window, buildingCharacteristics, i, rng
+    );
     vertices.push(...windowGeometry.vertices);
     normals.push(...windowGeometry.normals);
     
-    const windowIndices = generateQuadIndices(vertexIndex, 4);
+    const windowIndices = generateQuadIndices(vertexIndex, windowGeometry.vertices.length / 3);
     indices.push(...windowIndices);
-    vertexIndex += 4;
+    vertexIndex += windowGeometry.vertices.length / 3;
   }
   
-  // 5. Generate roof structure
-  const roofGeometry = generateRoofGeometry(buildingWidth, buildingDepth, buildingHeight);
+  // 5. Generate architectural details based on detected room types
+  const interiorFeatures = generateInteriorFeatures(
+    roomElements, buildingCharacteristics, rng
+  );
+  vertices.push(...interiorFeatures.vertices);
+  normals.push(...interiorFeatures.normals);
+  
+  const interiorIndices = generateQuadIndices(vertexIndex, interiorFeatures.vertices.length / 3);
+  indices.push(...interiorIndices);
+  vertexIndex += interiorFeatures.vertices.length / 3;
+  
+  // 6. Generate unique roof structure based on building characteristics
+  const roofGeometry = generateBlueprintSpecificRoof(buildingCharacteristics, rng);
   vertices.push(...roofGeometry.vertices);
   normals.push(...roofGeometry.normals);
   
   const roofIndices = generateRoofIndices(vertexIndex, roofGeometry.vertices.length / 3);
   indices.push(...roofIndices);
   
-  console.log('Generated architectural model:', {
+  console.log('🎯 Phase 4: Generated unique architectural model:', {
     vertices: vertices.length / 3,
-    walls: walls.length,
-    doors: doors.length,
-    windows: windows.length,
-    dimensions: [buildingWidth, buildingHeight, buildingDepth]
+    wallElements: wallElements.length,
+    doorElements: doorElements.length,
+    windowElements: windowElements.length,
+    roomElements: roomElements.length,
+    structuralElements: structuralElements.length,
+    buildingType: buildingCharacteristics.buildingType,
+    architecturalStyle: buildingCharacteristics.architecturalStyle,
+    dimensions: [buildingCharacteristics.width, buildingCharacteristics.height, buildingCharacteristics.depth],
+    isAIGenerated
   });
 
   // Convert collected geometry to typed arrays
@@ -277,8 +330,8 @@ function generateArchitecturalGLB(detectedObjects: any[], uploadId: string, isAI
         componentType: 5126, // FLOAT
         count: verticesArray.length / 3,
         type: "VEC3",
-        max: [buildingWidth, buildingHeight, buildingDepth],
-        min: [-buildingWidth, -1, -buildingDepth]
+        max: [buildingCharacteristics.width, buildingCharacteristics.height, buildingCharacteristics.depth],
+        min: [-buildingCharacteristics.width, -1, -buildingCharacteristics.depth]
       },
       {
         bufferView: 1,
