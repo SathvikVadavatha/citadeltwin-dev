@@ -149,8 +149,8 @@ export const ProcessingStatusPanel: React.FC<ProcessingStatusPanelProps> = ({
               <div className="space-y-2">
                 <p><strong>Processing Note:</strong> {errorMessage}</p>
                 <p className="text-sm">
-                  The system automatically switched to enhanced sample data mode to continue processing your blueprint. 
-                  This provides realistic architectural elements for demonstration purposes.
+                  The system automatically switched to geometric pattern analysis to continue processing your blueprint. 
+                  This method uses mathematical algorithms to detect architectural patterns and elements.
                 </p>
                 {onRetry && (
                   <Button 
@@ -160,7 +160,7 @@ export const ProcessingStatusPanel: React.FC<ProcessingStatusPanelProps> = ({
                     className="mt-2"
                   >
                     <RefreshCw className="h-3 w-3 mr-1" />
-                    Retry with Gemini AI
+                    Retry Computer Vision
                   </Button>
                 )}
               </div>

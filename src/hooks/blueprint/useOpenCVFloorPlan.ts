@@ -26,76 +26,230 @@ export const useOpenCVFloorPlan = () => {
 
   const loadOpenCV = useCallback(async (): Promise<any> => {
     return new Promise((resolve, reject) => {
-      if ((window as any).cv) {
+      // Check if OpenCV is already loaded
+      if ((window as any).cv && (window as any).cv.Mat) {
+        logger.info('✅ OpenCV already loaded', 'OpenCV Loader');
         resolve((window as any).cv);
         return;
       }
 
-      setLoadingState({ isLoading: true, progress: 25, status: 'initializing' });
-      
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/opencv-ts@1.3.6/opencv.js';
-      script.async = true;
-      
-      script.onload = () => {
-        setLoadingState({ isLoading: true, progress: 75, status: 'initializing' });
+      logger.info('🔄 Loading OpenCV.js library...', 'OpenCV Loader');
+      setLoadingState({ isLoading: true, progress: 10, status: 'initializing' });
+
+      // Check browser compatibility first
+      if (!window.WebAssembly) {
+        const error = 'WebAssembly not supported - OpenCV requires WebAssembly';
+        logger.error('❌ Browser compatibility check failed', 'OpenCV Loader', { error });
+        setLoadingState({ isLoading: false, progress: 0, status: 'error', error });
+        reject(new Error(error));
+        return;
+      }
+
+      // Check canvas support
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          throw new Error('Canvas 2D context not available');
+        }
+      } catch (canvasError) {
+        const error = 'Canvas not supported - OpenCV requires HTML5 Canvas';
+        logger.error('❌ Canvas compatibility check failed', 'OpenCV Loader', { error });
+        setLoadingState({ isLoading: false, progress: 0, status: 'error', error });
+        reject(new Error(error));
+        return;
+      }
+
+      setLoadingState({ isLoading: true, progress: 20, status: 'initializing' });
+
+      // Primary OpenCV CDN sources (official and reliable mirrors)
+      const openCVSources = [
+        'https://docs.opencv.org/4.8.0/opencv.js', // Official OpenCV
+        'https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/dist/opencv.js', // JSDelivr backup
+        'https://unpkg.com/opencv.js@1.2.1/dist/opencv.js' // UNPKG backup
+      ];
+
+      let currentSourceIndex = 0;
+      let loadingTimeout: NodeJS.Timeout;
+
+      const tryLoadOpenCV = () => {
+        if (currentSourceIndex >= openCVSources.length) {
+          const error = 'All OpenCV sources failed to load';
+          logger.error('❌ All OpenCV CDN sources failed', 'OpenCV Loader', { triedSources: openCVSources });
+          setLoadingState({ isLoading: false, progress: 0, status: 'error', error });
+          reject(new Error(error));
+          return;
+        }
+
+        const currentSource = openCVSources[currentSourceIndex];
+        logger.info('🔄 Trying OpenCV source', 'OpenCV Loader', { source: currentSource, attempt: currentSourceIndex + 1 });
+
+        // Remove any existing script
+        const existingScript = document.querySelector('script[data-opencv-loader]');
+        if (existingScript) {
+          existingScript.remove();
+        }
+
+        const script = document.createElement('script');
+        script.src = currentSource;
+        script.async = true;
+        script.setAttribute('data-opencv-loader', 'true');
         
-        // Wait for OpenCV to be ready
-        const checkOpenCV = () => {
-          if ((window as any).cv && (window as any).cv.Mat) {
-            setLoadingState({ isLoading: false, progress: 100, status: 'ready' });
-            resolve((window as any).cv);
-          } else {
-            setTimeout(checkOpenCV, 100);
-          }
+        // Set timeout for loading
+        loadingTimeout = setTimeout(() => {
+          logger.warn('⏰ OpenCV loading timeout', 'OpenCV Loader', { source: currentSource });
+          script.remove();
+          currentSourceIndex++;
+          tryLoadOpenCV();
+        }, 15000); // 15 second timeout
+
+        script.onload = () => {
+          clearTimeout(loadingTimeout);
+          logger.info('📦 OpenCV script loaded, waiting for initialization...', 'OpenCV Loader', { source: currentSource });
+          setLoadingState({ isLoading: true, progress: 60, status: 'initializing' });
+          
+          // Wait for OpenCV to be ready with timeout
+          let checkAttempts = 0;
+          const maxCheckAttempts = 100; // 10 seconds max
+          
+          const checkOpenCV = () => {
+            checkAttempts++;
+            
+            if ((window as any).cv && (window as any).cv.Mat) {
+              logger.info('✅ OpenCV fully initialized', 'OpenCV Loader', { 
+                source: currentSource, 
+                initTime: checkAttempts * 100 
+              });
+              setLoadingState({ isLoading: false, progress: 100, status: 'ready' });
+              resolve((window as any).cv);
+            } else if (checkAttempts >= maxCheckAttempts) {
+              logger.error('❌ OpenCV initialization timeout', 'OpenCV Loader', { 
+                source: currentSource, 
+                maxWaitTime: maxCheckAttempts * 100 
+              });
+              currentSourceIndex++;
+              tryLoadOpenCV();
+            } else {
+              setLoadingState({ 
+                isLoading: true, 
+                progress: 60 + (checkAttempts / maxCheckAttempts) * 30, 
+                status: 'initializing' 
+              });
+              setTimeout(checkOpenCV, 100);
+            }
+          };
+          
+          checkOpenCV();
         };
-        checkOpenCV();
+        
+        script.onerror = (event) => {
+          clearTimeout(loadingTimeout);
+          logger.warn('⚠️ OpenCV source failed, trying next...', 'OpenCV Loader', { 
+            source: currentSource, 
+            error: event 
+          });
+          currentSourceIndex++;
+          tryLoadOpenCV();
+        };
+        
+        setLoadingState({ isLoading: true, progress: 30 + (currentSourceIndex * 10), status: 'initializing' });
+        document.head.appendChild(script);
       };
-      
-      script.onerror = () => {
-        setLoadingState({ 
-          isLoading: false, 
-          progress: 0, 
-          status: 'error', 
-          error: 'Failed to load OpenCV' 
-        });
-        reject(new Error('Failed to load OpenCV'));
-      };
-      
-      document.head.appendChild(script);
+
+      tryLoadOpenCV();
     });
   }, []);
 
   const imageUrlToMat = useCallback(async (imageUrl: string, cv: any): Promise<any> => {
     return new Promise((resolve, reject) => {
+      logger.info('🖼️ Loading image for OpenCV processing', 'OpenCV Image Loader', { imageUrl });
+
       const img = new Image();
-      img.crossOrigin = 'anonymous';
+      
+      // Handle CORS properly
+      if (imageUrl.startsWith('http') && !imageUrl.includes(window.location.hostname)) {
+        img.crossOrigin = 'anonymous';
+      }
+      
+      // Timeout for image loading
+      const imageTimeout = setTimeout(() => {
+        const error = 'Image loading timeout (30 seconds)';
+        logger.error('⏰ Image loading timeout', 'OpenCV Image Loader', { imageUrl });
+        reject(new Error(error));
+      }, 30000);
       
       img.onload = () => {
+        clearTimeout(imageTimeout);
+        
         try {
+          logger.info('📐 Converting image to OpenCV Mat', 'OpenCV Image Loader', { 
+            originalSize: `${img.width}x${img.height}` 
+          });
+
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           
           if (!ctx) {
-            reject(new Error('Could not get canvas context'));
-            return;
+            throw new Error('Could not get 2D canvas context - browser may not support canvas');
           }
           
-          // Resize to 512x512 for consistency
+          // Validate image dimensions
+          if (img.width === 0 || img.height === 0) {
+            throw new Error('Invalid image dimensions - image may be corrupted');
+          }
+          
+          // Resize to 512x512 for consistency and performance
           canvas.width = 512;
           canvas.height = 512;
+          
+          // Clear canvas and draw image
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, 512, 512);
           ctx.drawImage(img, 0, 0, 512, 512);
           
+          // Get image data and validate
           const imageData = ctx.getImageData(0, 0, 512, 512);
+          if (!imageData || imageData.data.length === 0) {
+            throw new Error('Failed to extract image data from canvas');
+          }
+          
+          // Create OpenCV Mat
           const mat = cv.matFromImageData(imageData);
+          if (!mat || mat.empty()) {
+            mat?.delete(); // Cleanup if created but empty
+            throw new Error('Failed to create OpenCV Mat from image data');
+          }
+          
+          logger.info('✅ Image successfully converted to OpenCV Mat', 'OpenCV Image Loader', {
+            matSize: `${mat.cols}x${mat.rows}`,
+            channels: mat.channels(),
+            type: mat.type()
+          });
           
           resolve(mat);
+          
         } catch (error) {
-          reject(error);
+          clearTimeout(imageTimeout);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown image processing error';
+          logger.error('❌ Image to Mat conversion failed', 'OpenCV Image Loader', { 
+            error: errorMessage, 
+            imageUrl 
+          });
+          reject(new Error(`Image processing failed: ${errorMessage}`));
         }
       };
       
-      img.onerror = () => reject(new Error('Failed to load image'));
+      img.onerror = (event) => {
+        clearTimeout(imageTimeout);
+        const error = 'Failed to load image - check image URL and CORS settings';
+        logger.error('❌ Image loading failed', 'OpenCV Image Loader', { 
+          imageUrl, 
+          event 
+        });
+        reject(new Error(error));
+      };
+      
+      // Start loading
       img.src = imageUrl;
     });
   }, []);
@@ -224,22 +378,59 @@ export const useOpenCVFloorPlan = () => {
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'OpenCV analysis failed';
-      logger.error('❌ OpenCV floor plan analysis failed', 'OpenCV FloorPlan', { error: errorMessage });
+      
+      // Enhanced error categorization and reporting
+      let userFriendlyMessage = errorMessage;
+      let category = 'unknown';
+      
+      if (errorMessage.includes('WebAssembly')) {
+        category = 'browser_compatibility';
+        userFriendlyMessage = 'Your browser doesn\'t support WebAssembly (required for computer vision)';
+      } else if (errorMessage.includes('Canvas')) {
+        category = 'canvas_support';
+        userFriendlyMessage = 'Canvas support issue detected - try refreshing the page';
+      } else if (errorMessage.includes('timeout')) {
+        category = 'network_timeout';
+        userFriendlyMessage = 'Network timeout loading computer vision library - check your internet connection';
+      } else if (errorMessage.includes('CORS')) {
+        category = 'cors_error';
+        userFriendlyMessage = 'Image access blocked by browser security - try a different image';
+      } else if (errorMessage.includes('Failed to load')) {
+        category = 'loading_failure';
+        userFriendlyMessage = 'Computer vision library failed to load - try refreshing the page';
+      } else if (errorMessage.includes('image')) {
+        category = 'image_processing';
+        userFriendlyMessage = 'Image processing failed - ensure image is valid and try again';
+      } else {
+        category = 'opencv_processing';
+        userFriendlyMessage = 'Computer vision processing failed - falling back to geometric analysis';
+      }
+      
+      logger.error('❌ OpenCV floor plan analysis failed', 'OpenCV FloorPlan', { 
+        error: errorMessage,
+        category,
+        userMessage: userFriendlyMessage
+      });
       
       setLoadingState({ 
         isLoading: false, 
         progress: 0, 
         status: 'error', 
-        error: errorMessage 
+        error: userFriendlyMessage 
       });
       
       toast({
-        title: "❌ Computer Vision Analysis Failed",
-        description: errorMessage,
+        title: "Computer Vision Failed",
+        description: userFriendlyMessage,
         variant: "destructive",
       });
       
-      throw error;
+      // Create a detailed error for proper fallback handling
+      const detailedError = new Error(userFriendlyMessage);
+      (detailedError as any).category = category;
+      (detailedError as any).originalError = errorMessage;
+      
+      throw detailedError;
     }
   }, [loadOpenCV, imageUrlToMat, toast]);
 

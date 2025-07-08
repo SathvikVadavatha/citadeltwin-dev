@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { updateUploadStatus, storeDetectionResults, storeProcessingMetadata } from './utils/databaseOperations';
@@ -408,8 +408,27 @@ export const useBlueprintProcessing = () => {
   const { 
     detectRoomPolygons, 
     isReady: isOpenCVReady, 
-    loadingState: openCVState 
+    loadingState: openCVState,
+    loadOpenCV 
   } = useOpenCVFloorPlan();
+
+  // Pre-initialize OpenCV on component mount for better UX
+  const initializeOpenCV = useCallback(async () => {
+    try {
+      logger.info('🚀 Pre-initializing OpenCV for better performance', 'Blueprint Processing');
+      await loadOpenCV();
+      logger.info('✅ OpenCV pre-initialization complete', 'Blueprint Processing');
+    } catch (error) {
+      logger.warn('⚠️ OpenCV pre-initialization failed (will retry during processing)', 'Blueprint Processing', { 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  }, [loadOpenCV]);
+
+  // Initialize OpenCV on mount
+  React.useEffect(() => {
+    initializeOpenCV();
+  }, [initializeOpenCV]);
 
   const processBlueprint = useCallback(async (uploadId: string, imageUrl: string) => {
     logger.info('🚀 Starting OpenCV computer vision blueprint processing', 'Blueprint Processing', {
@@ -446,36 +465,65 @@ export const useBlueprintProcessing = () => {
       try {
         updateProcessingState({ processingMethod: 'opencv' });
         
+        // Validate OpenCV is ready
+        if (openCVState.status === 'error') {
+          throw new Error(`OpenCV initialization failed: ${openCVState.error}`);
+        }
+        
         toast({
           title: "🔍 Computer Vision Processing",
-          description: "Analyzing floor plan using advanced computer vision algorithms...",
+          description: "Analyzing floor plan using OpenCV algorithms...",
           variant: "default",
         });
         
         detectedObjects = await detectRoomPolygons(imageUrl);
-        isOpenCVGenerated = true;
         
-        logger.info('✅ OpenCV computer vision analysis completed', 'Blueprint Processing', {
-          objectsDetected: detectedObjects.length,
-          method: 'opencv'
-        });
-        
-        toast({
-          title: "✅ Computer Vision Analysis Complete",
-          description: `OpenCV detected ${detectedObjects.length} architectural elements`,
-        });
+        if (detectedObjects && detectedObjects.length > 0) {
+          isOpenCVGenerated = true;
+          
+          logger.info('✅ OpenCV computer vision analysis completed', 'Blueprint Processing', {
+            objectsDetected: detectedObjects.length,
+            method: 'opencv',
+            openCVState: openCVState.status
+          });
+          
+          toast({
+            title: "✅ Computer Vision Analysis Complete",
+            description: `OpenCV detected ${detectedObjects.length} architectural elements`,
+          });
+        } else {
+          throw new Error('OpenCV detected no architectural elements in the blueprint');
+        }
         
       } catch (visionError) {
-        // Fallback to basic geometric generation
-        logger.info('📐 OpenCV failed, using geometric fallback', 'Blueprint Processing', {
-          error: visionError instanceof Error ? visionError.message : 'Unknown error'
+        const errorMessage = visionError instanceof Error ? visionError.message : 'Unknown error';
+        const errorCategory = (visionError as any)?.category || 'unknown';
+        
+        logger.warn('⚠️ OpenCV processing failed, using geometric fallback', 'Blueprint Processing', {
+          error: errorMessage,
+          category: errorCategory,
+          openCVState: openCVState.status
         });
         
-        updateProcessingState({ processingMethod: 'fallback' });
+        // Set specific error message based on failure type
+        if (errorCategory === 'browser_compatibility') {
+          processingError = 'Browser compatibility issue - using geometric pattern analysis instead';
+        } else if (errorCategory === 'network_timeout') {
+          processingError = 'Network timeout loading computer vision - using geometric analysis';
+        } else if (errorCategory === 'loading_failure') {
+          processingError = 'Computer vision library failed to load - using geometric analysis';
+        } else {
+          processingError = `Computer vision failed (${errorMessage}) - using geometric analysis`;
+        }
+        
+        updateProcessingState({ 
+          processingMethod: 'fallback',
+          errorMessage: processingError
+        });
         
         toast({
-          title: "🔧 Enhanced Analysis Mode",
-          description: "Using geometric pattern analysis as fallback...",
+          title: "🔧 Geometric Analysis Mode",
+          description: "Using geometric pattern analysis instead...",
           variant: "default",
         });
         
