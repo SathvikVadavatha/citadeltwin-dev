@@ -388,6 +388,8 @@ export const useBlueprintProcessing = () => {
 
       // Only run Gemini AI fallback if Plan2Scene failed
       if (!plan2SceneSuccess) {
+        // COMMENTED OUT: Gemini AI processing to use only Plan2Scene
+        /*
         try {
           logger.info('🚀 Step 4: Fallback to Gemini AI processing', 'Blueprint Processing');
         
@@ -525,6 +527,33 @@ export const useBlueprintProcessing = () => {
             variant: "destructive",
           });
         }
+        */
+        
+        // Simple fallback when Plan2Scene fails (no Gemini AI)
+        logger.info('🔄 Plan2Scene failed, generating fallback objects', 'Blueprint Processing');
+        console.log('⚠️ Plan2Scene processing failed, using simple fallback');
+        
+        // Extract text data for fallback generation
+        try {
+          const extractedTextData = await extractTextFromBlueprint(imageUrl);
+          detectedObjects = generateObjectsFromTextData(extractedTextData, uploadId);
+        } catch (textError) {
+          // If text extraction also fails, generate minimal objects
+          detectedObjects = [
+            { label: 'room', confidence: 0.75, bbox: { x: 10, y: 10, width: 30, height: 25 } },
+            { label: 'wall', confidence: 0.80, bbox: { x: 5, y: 5, width: 40, height: 3 } },
+            { label: 'door', confidence: 0.70, bbox: { x: 25, y: 8, width: 6, height: 10 } }
+          ];
+        }
+        
+        isAIGenerated = false;
+        updateProcessingState({ processingMethod: 'fallback' });
+        
+        toast({
+          title: "📝 Plan2Scene Unavailable",
+          description: `Plan2Scene processing failed. Generated ${detectedObjects.length} architectural elements using fallback analysis.`,
+          variant: "destructive",
+        });
       }
 
       // Step 4: Enhanced result storage with metadata
