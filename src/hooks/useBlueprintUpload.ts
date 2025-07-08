@@ -99,7 +99,9 @@ export const useBlueprintUpload = () => {
       console.log('All processing complete, setting results...');
 
       // Step 5: Set final results
-      const normalizedProcessingMethod = processingMethod === 'text-ai' || processingMethod === 'text-fallback' ? 'ai' : processingMethod;
+      // Determine if AI was used based on Plan2Scene success (detectedObjects length > 0 indicates Plan2Scene worked)
+      const isAIGenerated = detectedObjects && detectedObjects.length > 0;
+      const finalProcessingMethod = isAIGenerated ? 'ai' : 'fallback';
       
       const finalResult: UploadResult = {
         id: uploadData.uploadRecord.id,
@@ -110,13 +112,13 @@ export const useBlueprintUpload = () => {
         generated3DModels: generated3DModels || [],
         floorPlanData: analysisData?.floorPlanData,
         geminiAnalysis: analysisData?.geminiAnalysis,
-        processingMethod: normalizedProcessingMethod,
+        processingMethod: finalProcessingMethod,
         errorMessage
       };
 
       setUploadResult(finalResult);
 
-      const processingMethodText = processingMethod === 'ai' ? 'Plan2Scene AI' : 'Fallback Analysis';
+      const processingMethodText = finalProcessingMethod === 'ai' ? 'Plan2Scene AI' : 'Fallback Analysis';
       toast({
         title: "Upload Complete",
         description: `Successfully processed ${file.name} using ${processingMethodText} with ${detectedObjects.length} elements detected.`,
