@@ -79,9 +79,19 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
     console.log('Image loaded successfully:', uploadResult.imageUrl);
   };
 
-  // Get model URL for 3D viewer
+  // Get model URL for 3D viewer with enhanced debug logging
   const get3DModelUrl = (model: Generated3DModel) => {
+    console.log('🔍 get3DModelUrl Debug:', {
+      model: model ? {
+        id: model.id,
+        name: model.model_name,
+        filePath: model.model_file_path,
+        status: model.generation_status
+      } : null
+    });
+    
     if (!model || model.model_file_path === 'placeholder.glb') {
+      console.log('❌ No valid model or placeholder file');
       return null;
     }
     
@@ -90,18 +100,35 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
       .from('3d-models')
       .getPublicUrl(model.model_file_path);
     
+    console.log('🔗 Generated 3D model URL:', {
+      filePath: model.model_file_path,
+      publicUrl: data.publicUrl,
+      isValid: !!data.publicUrl && data.publicUrl.length > 0
+    });
+    
     return data.publicUrl;
   };
 
   const primary3DModel = uploadResult.generated3DModels?.[0];
   const modelUrl = primary3DModel ? get3DModelUrl(primary3DModel) : null;
   
-  console.log('3D Model Debug:', {
-    primary3DModel,
+  console.log('🎯 3D Model Debug Summary:', {
+    totalModels: uploadResult.generated3DModels?.length || 0,
+    modelDetails: uploadResult.generated3DModels?.map(m => ({
+      name: m.model_name,
+      status: m.generation_status,
+      filePath: m.model_file_path
+    })),
+    primary3DModel: primary3DModel ? {
+      name: primary3DModel.model_name,
+      status: primary3DModel.generation_status,
+      filePath: primary3DModel.model_file_path
+    } : null,
     modelUrl,
     uploadId: uploadResult.id,
     has3DModels,
-    hasFloorPlanData: !!uploadResult.floorPlanData
+    hasFloorPlanData: !!uploadResult.floorPlanData,
+    processingMethod: uploadResult.processingMethod
   });
 
   return (
@@ -127,9 +154,9 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
         <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/50">
           <Brain className="h-4 w-4 text-green-600 dark:text-green-400" />
           <AlertDescription className="text-green-800 dark:text-green-200">
-            <strong>Phase 2 Gemini AI Analysis Complete:</strong> Your blueprint was successfully processed using our enhanced AI system with hybrid image and text analysis for comprehensive architectural element detection and professional-grade 3D model generation.
+            <strong>Plan2Scene AI Processing Complete:</strong> Your blueprint was successfully processed using Plan2Scene open-source AI for comprehensive architectural element detection and professional-grade 3D model generation.
             <div className="mt-2 text-sm opacity-75">
-              Advanced architectural analysis with building code compliance, realistic materials, and construction-ready specifications.
+              Advanced architectural analysis with realistic room layouts, structural elements, and construction-ready specifications.
             </div>
           </AlertDescription>
         </Alert>
@@ -146,7 +173,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                 {isAIGenerated ? (
                   <Badge variant="default" className="bg-gradient-to-r from-green-600 to-blue-600 text-white">
                     <Brain className="h-3 w-3 mr-1" />
-                    Phase 2 AI Enhanced
+                    Plan2Scene AI
                   </Badge>
                 ) : (
                   <Badge variant="secondary" className="bg-gradient-to-r from-orange-100 to-yellow-100 text-orange-800 border-orange-200">
@@ -155,9 +182,9 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                   </Badge>
                 )}
               </CardTitle>
-              <p className="text-muted-foreground mt-1">
+               <p className="text-muted-foreground mt-1">
                 {isAIGenerated 
-                  ? `Phase 2 enhanced AI analysis of ${uploadResult.filename} with hybrid processing`
+                  ? `Plan2Scene AI analysis of ${uploadResult.filename} with architectural element detection`
                   : `Enhanced architectural analysis for ${uploadResult.filename} using intelligent fallback with extracted blueprint data`
                 }
               </p>
@@ -284,10 +311,10 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                   <span>Processing Engine:</span>
                   <Badge variant={isAIGenerated ? "default" : "secondary"} 
                          className={isAIGenerated ? "bg-gradient-to-r from-green-600 to-blue-600" : "bg-gradient-to-r from-orange-100 to-yellow-100"}>
-                    {isAIGenerated ? (
+                     {isAIGenerated ? (
                       <>
                         <Brain className="h-3 w-3 mr-1" />
-                        Phase 2 Hybrid AI
+                        Plan2Scene AI
                       </>
                     ) : (
                       <>
@@ -424,11 +451,11 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                   Enhanced Fallback
                 </Badge>
               )}
-              {isAIGenerated && (
+               {isAIGenerated && (
                 <Badge variant="outline" className="ml-2 text-green-600 border-green-300 bg-green-50">
-                  Phase 2 Hybrid AI
+                  Plan2Scene AI
                 </Badge>
-              )}
+               )}
             </CardTitle>
             </CardHeader>
             <CardContent>

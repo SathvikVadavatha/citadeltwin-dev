@@ -116,7 +116,7 @@ export const useBlueprintUpload = () => {
 
       setUploadResult(finalResult);
 
-      const processingMethodText = processingMethod === 'ai' ? 'Gemini AI' : 'Enhanced Sample Data';
+      const processingMethodText = processingMethod === 'ai' ? 'Plan2Scene AI' : 'Enhanced Sample Data';
       toast({
         title: "Upload Complete",
         description: `Successfully processed ${file.name} using ${processingMethodText} with ${detectedObjects.length} elements detected.`,
