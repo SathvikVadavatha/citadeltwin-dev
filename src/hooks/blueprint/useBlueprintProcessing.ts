@@ -332,6 +332,14 @@ export const useBlueprintProcessing = () => {
       try {
         logger.info('🚀 Step 3: Starting Plan2Scene AI processing (Primary)', 'Blueprint Processing');
         
+        updateProcessingState({ processingMethod: 'ai' });
+        
+        toast({
+          title: "🏗️ Plan2Scene AI Processing",
+          description: "Analyzing blueprint with Plan2Scene open-source AI...",
+          variant: "default",
+        });
+        
         // Get image data for Plan2Scene processing
         const response = await fetch(imageUrl);
         const blob = await response.blob();
