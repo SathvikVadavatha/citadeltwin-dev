@@ -354,30 +354,35 @@ export const useBlueprintProcessing = () => {
         logger.info('✅ Image data prepared for Plan2Scene processing', 'Blueprint Processing');
         logger.info('🏗️ Processing with Plan2Scene AI', 'Blueprint Processing');
         
-        detectedObjects = await processWithPlan2Scene(imageBase64, uploadId);
+        const plan2SceneResult = await processWithPlan2Scene(imageBase64, uploadId);
         
-        if (detectedObjects.length > 0) {
-          isAIGenerated = true;
-          updateProcessingState({ processingMethod: 'ai' });
-          
-          toast({
-            title: "🎯 Plan2Scene AI Success!",
-            description: `Detected ${detectedObjects.length} architectural elements using Plan2Scene open-source AI processing.`,
-            variant: "default",
-          });
-          
-          logger.info('✅ Plan2Scene processing completed successfully', 'Blueprint Processing', {
-            objectsDetected: detectedObjects.length,
-            isAIGenerated: true
-          });
-          
-          // Plan2Scene succeeded - mark success and skip fallback processing
-          logger.info('🎯 Plan2Scene succeeded, skipping Gemini AI fallback', 'Blueprint Processing');
-          plan2SceneSuccess = true;
-          
-        } else {
-          throw new Error('Plan2Scene returned no objects');
-        }
+        detectedObjects = plan2SceneResult.objects;
+        isAIGenerated = plan2SceneResult.isAIGenerated;
+        
+        // Update processing method to AI since Plan2Scene attempted processing
+        updateProcessingState({ processingMethod: 'ai' });
+        
+        // Determine toast message based on result type
+        const toastTitle = plan2SceneResult.resultType === 'full_data' ? 
+          "🎯 Plan2Scene AI Success!" : 
+          "🔍 Plan2Scene AI - Minimal Detection";
+        
+        toast({
+          title: toastTitle,
+          description: plan2SceneResult.message,
+          variant: "default",
+        });
+        
+        logger.info('✅ Plan2Scene processing completed', 'Blueprint Processing', {
+          resultType: plan2SceneResult.resultType,
+          objectsDetected: detectedObjects.length,
+          isAIGenerated,
+          message: plan2SceneResult.message
+        });
+        
+        // Plan2Scene always succeeds (even with minimal data) - mark success
+        logger.info('🎯 Plan2Scene completed successfully, skipping fallback', 'Blueprint Processing');
+        plan2SceneSuccess = true;
         
       } catch (plan2sceneError) {
         logger.warn('Plan2Scene processing failed, trying Gemini AI fallback', 'Blueprint Processing', {

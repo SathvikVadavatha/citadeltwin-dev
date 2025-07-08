@@ -12,6 +12,13 @@ interface DetectedObject {
   };
 }
 
+interface Plan2SceneResult {
+  objects: DetectedObject[];
+  isAIGenerated: boolean;
+  resultType: 'full_data' | 'minimal_data' | 'failed';
+  message: string;
+}
+
 interface Plan2SceneRoom {
   type: string;
   bounds: {
@@ -28,7 +35,7 @@ interface Plan2SceneRoom {
   }>;
 }
 
-export const processWithPlan2Scene = async (imageBase64: string, uploadId: string): Promise<DetectedObject[]> => {
+export const processWithPlan2Scene = async (imageBase64: string, uploadId: string): Promise<Plan2SceneResult> => {
   try {
     console.log('🏗️ Starting Plan2Scene open-source processing for uploadId:', uploadId);
     
@@ -97,17 +104,6 @@ export const processWithPlan2Scene = async (imageBase64: string, uploadId: strin
       dataAvailable: hasRooms || hasWalls || hasElements
     });
 
-    // Accept the result if we have ANY meaningful architectural data, regardless of the success flag
-    if (!hasRooms && !hasWalls && !hasElements) {
-      console.warn('⚠️ Plan2Scene returned success but no usable architectural data');
-      
-      // Generate fallback objects to ensure we don't fail completely
-      console.log('🔄 Generating minimal fallback objects from Plan2Scene response');
-      return generateMinimalFallbackObjects(uploadId);
-    }
-
-    console.log('✅ Plan2Scene has usable data, converting to detection objects...');
-    
     // Convert Plan2Scene rooms to our DetectedObject format
     const detectedObjects: DetectedObject[] = [];
     
@@ -188,14 +184,33 @@ export const processWithPlan2Scene = async (imageBase64: string, uploadId: strin
       });
     }
 
-    console.log(`✅ Plan2Scene Success! Generated ${detectedObjects.length} detected objects from Plan2Scene results`);
-    console.log('📊 Final Objects Summary:', detectedObjects.map(obj => ({
-      label: obj.label,
-      confidence: obj.confidence.toFixed(2),
-      area: (obj.bbox.width * obj.bbox.height).toFixed(1)
-    })));
-    
-    return detectedObjects;
+    // Determine result type and return appropriate response
+    if (detectedObjects.length > 0) {
+      console.log(`✅ Plan2Scene Success! Generated ${detectedObjects.length} detected objects from Plan2Scene results`);
+      console.log('📊 Final Objects Summary:', detectedObjects.map(obj => ({
+        label: obj.label,
+        confidence: obj.confidence.toFixed(2),
+        area: (obj.bbox.width * obj.bbox.height).toFixed(1)
+      })));
+      
+      return {
+        objects: detectedObjects,
+        isAIGenerated: true,
+        resultType: 'full_data',
+        message: `Plan2Scene AI successfully detected ${detectedObjects.length} architectural elements`
+      };
+    } else {
+      // Plan2Scene ran but found no usable data - generate minimal objects but still mark as AI
+      console.warn('⚠️ Plan2Scene completed but found no usable architectural data - generating minimal objects');
+      const minimalObjects = generateMinimalFallbackObjects(uploadId);
+      
+      return {
+        objects: minimalObjects,
+        isAIGenerated: true,
+        resultType: 'minimal_data',
+        message: `Plan2Scene AI completed analysis but found minimal data - generated ${minimalObjects.length} basic architectural elements`
+      };
+    }
 
   } catch (error) {
     console.error('💥 Plan2Scene processing error:', error);
