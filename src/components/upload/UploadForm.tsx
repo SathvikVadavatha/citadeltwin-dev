@@ -13,14 +13,13 @@ interface UploadFormProps {
   enhancedAnalyzing: boolean;
   generating3D: boolean;
   uploadProgress: number;
-  processingMethod?: 'ai' | 'fallback' | null;
+  processingMethod?: 'opencv' | 'ai' | 'fallback' | null;
   errorMessage?: string;
   onFileUpload: (file: File) => void;
   onRetry?: () => void;
-  // AI Vision props
-  isModelReady?: boolean;
-  modelState?: any;
-  supportsWebGPU?: boolean;
+  // OpenCV props
+  isOpenCVReady?: boolean;
+  openCVState?: any;
 }
 
 export const UploadForm: React.FC<UploadFormProps> = ({
@@ -33,9 +32,8 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   errorMessage,
   onFileUpload,
   onRetry,
-  isModelReady,
-  modelState,
-  supportsWebGPU
+  isOpenCVReady,
+  openCVState
 }) => {
   const { toast } = useToast();
 
@@ -108,7 +106,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   // Enhanced step descriptions
   const getCurrentStep = () => {
     if (uploading) return "Uploading blueprint to secure cloud storage...";
-    if (processing) return "🤖 Analyzing blueprint with FloorPlanVisionAIAdaptor...";
+    if (processing) return "🔍 Analyzing blueprint with OpenCV computer vision...";
     if (enhancedAnalyzing) return "🔍 Performing enhanced architectural analysis...";
     if (generating3D) return "🏗️ Generating detailed 3D model...";
     return "";
@@ -117,8 +115,8 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   // Enhanced step details
   const getCurrentStepDetails = () => {
     if (uploading) return "Securing your blueprint data with enterprise-grade encryption";
-    if (processing) return "FloorPlanVisionAIAdaptor detecting rooms, walls, doors, windows, and fixtures";
-    if (enhancedAnalyzing) return "Deep learning models analyzing structural elements";
+    if (processing) return "OpenCV detecting rooms, walls, doors, windows, and fixtures";
+    if (enhancedAnalyzing) return "Computer vision algorithms analyzing structural elements";
     if (generating3D) return "Creating parametric 3D model with architectural details";
     return "";
   };
@@ -272,7 +270,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                   <div className={getStepStatus('process').style}>
                     <div className={getStepStatus('process').color}>
                       {getStepStatus('process').icon}
-                      <span>AI Process</span>
+                      <span>CV Process</span>
                     </div>
                   </div>
                   <div className={getStepStatus('analyze').style}>
@@ -306,7 +304,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                 <p>📏 Size limit: 10MB maximum</p>
                 <div className="flex items-center justify-center gap-2 text-primary font-semibold mt-4 p-3 bg-primary/5 rounded-lg">
                   <Brain className="h-5 w-5" />
-                  <span>Enhanced with FloorPlanVisionAIAdaptor for architectural analysis!</span>
+                  <span>Enhanced with OpenCV Computer Vision for architectural analysis!</span>
                 </div>
               </div>
             </div>

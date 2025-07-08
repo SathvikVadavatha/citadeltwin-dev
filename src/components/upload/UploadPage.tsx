@@ -22,9 +22,8 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onNavigate }) => {
     uploadFile,
     resetUpload,
     download3DModel,
-    isModelReady,
-    modelState,
-    supportsWebGPU
+    isOpenCVReady,
+    openCVState
   } = useBlueprintUpload();
 
   // Show results if we have them
@@ -62,7 +61,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onNavigate }) => {
       <div>
         <h1 className="text-3xl font-bold">Upload Blueprint</h1>
         <p className="text-muted-foreground mt-2">
-          Upload a 2D blueprint to extract architectural elements and generate 3D models using FloorPlanVisionAIAdaptor AI analysis.
+          Upload a 2D blueprint to extract architectural elements and generate 3D models using OpenCV computer vision analysis.
         </p>
       </div>
 
@@ -78,9 +77,8 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onNavigate }) => {
           errorMessage={uploadResult?.errorMessage}
           onFileUpload={uploadFile}
           onRetry={resetUpload}
-          isModelReady={isModelReady}
-          modelState={modelState}
-          supportsWebGPU={supportsWebGPU}
+          isOpenCVReady={isOpenCVReady}
+          openCVState={openCVState}
         />
         
         {/* Preview/Results Placeholder */}
@@ -92,7 +90,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onNavigate }) => {
             <div className="text-center py-12 text-muted-foreground">
               <p className="text-lg">Upload a blueprint to see analysis results</p>
               <p className="text-sm mt-2">
-                Your blueprint will be processed with AI to extract architectural elements,
+                Your blueprint will be processed with OpenCV computer vision to extract architectural elements,
                 identify rooms, and generate 3D models.
               </p>
             </div>

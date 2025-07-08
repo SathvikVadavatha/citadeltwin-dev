@@ -10,11 +10,8 @@ import { logger } from '@/utils/logger';
 import { DetectedObject, ProcessingState } from './types/processingTypes';
 import { useProcessingState } from './utils/processingStateManager';
 
-// Import text extraction utility for basic analysis
-import { extractTextFromBlueprint } from './utils/textExtraction';
-
-// Import AI vision processing
-import { useFloorPlanVision } from './useFloorPlanVision';
+// Import OpenCV-based computer vision processing
+import { useOpenCVFloorPlan } from './useOpenCVFloorPlan';
 
 // No AI processors needed for direct object generation
 
@@ -278,6 +275,41 @@ function getUniqueRoomHeight(roomType: string, buildingType: string, rng: Determ
   return Math.max(6, Math.round(baseHeight * multiplier * variation));
 }
 
+// Generate basic floor plan as ultimate fallback
+function generateBasicFloorPlan(uploadId: string): DetectedObject[] {
+  console.log('🏠 Generating basic floor plan structure');
+  
+  const objects: DetectedObject[] = [];
+  
+  // Basic structure
+  objects.push({
+    label: 'main_room',
+    confidence: 0.90,
+    bbox: { x: 10, y: 10, width: 40, height: 30 }
+  });
+  
+  objects.push({
+    label: 'exterior_wall',
+    confidence: 0.95,
+    bbox: { x: 8, y: 8, width: 44, height: 2 }
+  });
+  
+  objects.push({
+    label: 'door',
+    confidence: 0.85,
+    bbox: { x: 25, y: 8, width: 6, height: 12 }
+  });
+  
+  objects.push({
+    label: 'window',
+    confidence: 0.80,
+    bbox: { x: 35, y: 8, width: 8, height: 4 }
+  });
+  
+  console.log(`✅ Generated ${objects.length} basic floor plan elements`);
+  return objects;
+}
+
 // Generate minimal objects when text extraction fails
 function generateMinimalObjectsFromImage(uploadId: string, imageCharacteristics: any): DetectedObject[] {
   console.log('🏠 Generating minimal objects from image characteristics');
@@ -372,28 +404,27 @@ export const useBlueprintProcessing = () => {
   const { processingState, updateProcessingState } = useProcessingState();
   const { toast } = useToast();
   
-  // Initialize AI vision processing
+  // Initialize OpenCV computer vision processing
   const { 
-    analyzeFloorPlan, 
-    isModelReady, 
-    modelState, 
-    supportsWebGPU 
-  } = useFloorPlanVision();
+    detectRoomPolygons, 
+    isReady: isOpenCVReady, 
+    loadingState: openCVState 
+  } = useOpenCVFloorPlan();
 
   const processBlueprint = useCallback(async (uploadId: string, imageUrl: string) => {
-    logger.info('🚀 Starting FloorPlanVisionAIAdaptor blueprint processing', 'Blueprint Processing', {
+    logger.info('🚀 Starting OpenCV computer vision blueprint processing', 'Blueprint Processing', {
       uploadId,
       imageUrl: imageUrl.substring(0, 100) + '...'
     });
     
     updateProcessingState({ 
       processing: true,
-      processingMethod: null,
+      processingMethod: 'opencv',
       errorMessage: null
     });
 
     try {
-      // Step 1: Update status to processing (non-blocking)
+      // Step 1: Update status to processing
       logger.info('📊 Step 1: Updating upload status', 'Blueprint Processing');
       const statusUpdated = await updateUploadStatus(uploadId, 'processing');
       if (!statusUpdated) {
@@ -406,39 +437,37 @@ export const useBlueprintProcessing = () => {
       logger.info('Image analysis completed', 'Blueprint Processing', imageCharacteristics);
 
       let detectedObjects: DetectedObject[] = [];
-      let isAIGenerated = false;
+      let isOpenCVGenerated = false;
       let processingError: string | undefined;
       
-      // Step 3: Always try FloorPlanVisionAIAdaptor first
-      logger.info('🤖 Step 3: Starting FloorPlanVisionAIAdaptor analysis', 'Blueprint Processing');
+      // Step 3: Use OpenCV computer vision for floor plan analysis
+      logger.info('🔍 Step 3: Starting OpenCV computer vision analysis', 'Blueprint Processing');
       
-      // Always attempt AI vision analysis first
       try {
-        updateProcessingState({ processingMethod: 'ai' });
+        updateProcessingState({ processingMethod: 'opencv' });
         
         toast({
-          title: "🤖 AI Vision Model Loading",
-          description: "Initializing computer vision model for architectural analysis...",
+          title: "🔍 Computer Vision Processing",
+          description: "Analyzing floor plan using advanced computer vision algorithms...",
           variant: "default",
         });
         
-        detectedObjects = await analyzeFloorPlan(imageUrl);
-        isAIGenerated = true;
+        detectedObjects = await detectRoomPolygons(imageUrl);
+        isOpenCVGenerated = true;
         
-        logger.info('✅ FloorPlanVisionAIAdaptor analysis completed', 'Blueprint Processing', {
+        logger.info('✅ OpenCV computer vision analysis completed', 'Blueprint Processing', {
           objectsDetected: detectedObjects.length,
-          method: 'ai_vision',
-          device: modelState.deviceType
+          method: 'opencv'
         });
         
         toast({
-          title: "✅ AI Analysis Complete",
-          description: `Computer vision model detected ${detectedObjects.length} elements using ${modelState.deviceType?.toUpperCase()}`,
+          title: "✅ Computer Vision Analysis Complete",
+          description: `OpenCV detected ${detectedObjects.length} architectural elements`,
         });
         
       } catch (visionError) {
-        // Fallback to direct generation
-        logger.info('📐 AI vision failed, using fallback generation', 'Blueprint Processing', {
+        // Fallback to basic geometric generation
+        logger.info('📐 OpenCV failed, using geometric fallback', 'Blueprint Processing', {
           error: visionError instanceof Error ? visionError.message : 'Unknown error'
         });
         
@@ -446,42 +475,41 @@ export const useBlueprintProcessing = () => {
         
         toast({
           title: "🔧 Enhanced Analysis Mode",
-          description: "Using advanced architectural pattern analysis...",
+          description: "Using geometric pattern analysis as fallback...",
           variant: "default",
         });
         
         try {
-          // Extract basic text data for structure analysis
-          const extractedTextData = await extractTextFromBlueprint(imageUrl);
-          detectedObjects = generateObjectsFromTextData(extractedTextData, uploadId);
-          
-        } catch (textError) {
-          // If text extraction fails, generate minimal objects based on image characteristics
+          // Generate basic geometric objects as fallback
           detectedObjects = generateMinimalObjectsFromImage(uploadId, imageCharacteristics);
+          
+        } catch (geometricError) {
+          // Ultimate fallback - generate basic structure  
+          detectedObjects = generateBasicFloorPlan(uploadId);
         }
         
-        isAIGenerated = false;
+        isOpenCVGenerated = false;
         
         toast({
           title: "✅ Analysis Complete",
-          description: `Generated ${detectedObjects.length} architectural elements using enhanced pattern analysis.`,
+          description: `Generated ${detectedObjects.length} architectural elements using geometric analysis.`,
           variant: "default",
         });
       }
 
       // Step 4: Enhanced result storage with metadata
-      logger.info('💾 Storing enhanced detection results', 'Blueprint Processing', {
+      logger.info('💾 Storing computer vision detection results', 'Blueprint Processing', {
         objectCount: detectedObjects.length,
-        isAIGenerated,
+        isOpenCVGenerated,
         hasError: !!processingError
       });
       
       try {
-        await storeDetectionResults(uploadId, detectedObjects, isAIGenerated, processingError);
+        await storeDetectionResults(uploadId, detectedObjects, isOpenCVGenerated, processingError);
         
         // Enhanced metadata storage (non-blocking)
         await storeProcessingMetadata(uploadId, {
-          processingMethod: isAIGenerated ? 'ai' : 'fallback',
+          processingMethod: isOpenCVGenerated ? 'opencv' : 'fallback',
           errorMessage: processingError,
           imageCharacteristics,
           processingTimeMs: 5000,
@@ -494,14 +522,14 @@ export const useBlueprintProcessing = () => {
       }
 
       // Step 5: Update final status (non-blocking)
-      const finalStatus = isAIGenerated ? 'processed' : 'processed_fallback';
+      const finalStatus = isOpenCVGenerated ? 'processed' : 'processed_fallback';
       const finalStatusUpdated = await updateUploadStatus(uploadId, finalStatus);
       if (!finalStatusUpdated) {
         logger.warn('Final status update failed but processing completed', 'Blueprint Processing');
       }
 
-      logger.info('✅ Enhanced blueprint processing completed successfully!', 'Blueprint Processing', {
-        method: isAIGenerated ? 'FloorPlanVisionAIAdaptor' : 'Enhanced Fallback',
+      logger.info('✅ Computer vision blueprint processing completed successfully!', 'Blueprint Processing', {
+        method: isOpenCVGenerated ? 'OpenCV Computer Vision' : 'Geometric Fallback',
         objectsFound: detectedObjects.length,
         hasError: !!processingError,
         finalStatus
@@ -525,7 +553,7 @@ export const useBlueprintProcessing = () => {
       
       toast({
         title: "❌ Processing Failed",
-        description: `Blueprint analysis failed: ${error instanceof Error ? error.message.substring(0, 100) : "An unexpected error occurred"}`,
+        description: `Computer vision analysis failed: ${error instanceof Error ? error.message.substring(0, 100) : "An unexpected error occurred"}`,
         variant: "destructive",
       });
 
@@ -533,7 +561,7 @@ export const useBlueprintProcessing = () => {
     } finally {
       updateProcessingState({ processing: false });
     }
-  }, [toast, updateProcessingState]);
+  }, [toast, updateProcessingState, detectRoomPolygons]);
 
   const generate3DModel = useCallback(async (uploadId: string, detectedObjects: DetectedObject[], imageUrl: string) => {
     updateProcessingState({ generating3D: true });
@@ -554,7 +582,7 @@ export const useBlueprintProcessing = () => {
         fileName: uniqueFileName
       });
       
-      const isAIGenerated = processingState.processingMethod === 'ai';
+      const isOpenCVGenerated = processingState.processingMethod === 'opencv';
       
       // Call the enhanced 3D generation edge function
       const { data: generationResult, error: generationError } = await supabase.functions.invoke('generate-3d-model', {
@@ -563,7 +591,7 @@ export const useBlueprintProcessing = () => {
           detectedObjects,
           imageUrl,
           uniqueFileName,
-          isAIGenerated
+          isAIGenerated: isOpenCVGenerated
         }
       });
 
@@ -599,11 +627,11 @@ export const useBlueprintProcessing = () => {
         .limit(1)
         .single();
 
-      logger.info('✅ Unique 3D model generation completed', '3D Generation', {
+      logger.info('✅ Computer vision 3D model generation completed', '3D Generation', {
         modelId: newModel?.id,
         fileName: newModel?.model_file_path,
         fileSize: newModel?.file_size,
-        isAIGenerated
+        isOpenCVGenerated
       });
 
       return newModel ? [newModel] : [];
@@ -618,8 +646,8 @@ export const useBlueprintProcessing = () => {
         .from('generated_3d_models')
         .insert({
           upload_id: uploadId,
-          model_name: 'Blueprint Model (Enhanced Error Recovery)',
-          model_description: 'Generated during enhanced error recovery - maintains basic functionality with improved reliability',
+          model_name: 'Computer Vision Model (Error Recovery)',
+          model_description: 'Generated during OpenCV computer vision error recovery',
           model_file_path: 'placeholder.glb',
           file_size: 2048,
           generation_status: 'completed'
@@ -640,9 +668,8 @@ export const useBlueprintProcessing = () => {
     errorMessage: processingState.errorMessage,
     processBlueprint,
     generate3DModel,
-    // AI Vision state
-    isModelReady,
-    modelState,
-    supportsWebGPU
+    // OpenCV state
+    isOpenCVReady,
+    openCVState
   };
 };

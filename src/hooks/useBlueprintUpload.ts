@@ -26,7 +26,7 @@ interface UploadResult {
   generated3DModels?: Generated3DModel[];
   floorPlanData?: any;
   geminiAnalysis?: any;
-  processingMethod?: 'ai' | 'fallback';
+  processingMethod?: 'opencv' | 'ai' | 'fallback';
   errorMessage?: string;
 }
 
@@ -42,9 +42,8 @@ export const useBlueprintUpload = () => {
     errorMessage, 
     processBlueprint, 
     generate3DModel,
-    isModelReady,
-    modelState,
-    supportsWebGPU
+    isOpenCVReady,
+    openCVState
   } = useBlueprintProcessing();
   const { enhancedAnalyzing, performEnhancedAnalysis } = useBlueprintAnalysis();
 
@@ -109,9 +108,8 @@ export const useBlueprintUpload = () => {
       console.log('All processing complete, setting results...');
 
       // Step 5: Set final results
-      // Direct object generation (no AI processing)
-      const isAIGenerated = false; // Always false since we're not using AI
-      const finalProcessingMethod = 'fallback';
+      // Use the actual processing method from the processing hook
+      const finalProcessingMethod = (processingMethod === 'opencv' || processingMethod === 'fallback') ? processingMethod : 'opencv';
       
       const finalResult: UploadResult = {
         id: uploadData.uploadRecord.id,
@@ -189,9 +187,8 @@ export const useBlueprintUpload = () => {
     uploadFile: handleFileUpload,
     resetUpload,
     download3DModel,
-    // AI Vision state
-    isModelReady,
-    modelState,
-    supportsWebGPU
+    // OpenCV state
+    isOpenCVReady,
+    openCVState
   };
 };

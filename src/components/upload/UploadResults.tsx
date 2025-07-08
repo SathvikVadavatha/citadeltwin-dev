@@ -42,7 +42,7 @@ interface UploadResult {
   generated3DModels?: Generated3DModel[];
   floorPlanData?: any;
   geminiAnalysis?: any;
-  processingMethod?: 'ai' | 'fallback';
+  processingMethod?: 'opencv' | 'ai' | 'fallback';
   errorMessage?: string;
 }
 
