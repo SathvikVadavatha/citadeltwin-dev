@@ -329,6 +329,7 @@ export const useBlueprintProcessing = () => {
       let processingError: string | undefined;
       
       // Step 3: Try Plan2Scene as primary processing method
+      let plan2SceneSuccess = false;
       try {
         logger.info('🚀 Step 3: Starting Plan2Scene AI processing (Primary)', 'Blueprint Processing');
         
@@ -369,16 +370,24 @@ export const useBlueprintProcessing = () => {
             objectsDetected: detectedObjects.length,
             isAIGenerated: true
           });
+          
+          // Plan2Scene succeeded - mark success and skip fallback processing
+          logger.info('🎯 Plan2Scene succeeded, skipping Gemini AI fallback', 'Blueprint Processing');
+          plan2SceneSuccess = true;
+          
         } else {
           throw new Error('Plan2Scene returned no objects');
         }
         
       } catch (plan2sceneError) {
-        logger.warn('Plan2Scene processing failed, trying Gemini AI', 'Blueprint Processing', {
+        logger.warn('Plan2Scene processing failed, trying Gemini AI fallback', 'Blueprint Processing', {
           error: plan2sceneError instanceof Error ? plan2sceneError.message : 'Unknown error'
         });
+        plan2SceneSuccess = false;
+      }
 
-        // Step 4: Fallback to Gemini AI processing
+      // Only run Gemini AI fallback if Plan2Scene failed
+      if (!plan2SceneSuccess) {
         try {
           logger.info('🚀 Step 4: Fallback to Gemini AI processing', 'Blueprint Processing');
         
