@@ -42,11 +42,7 @@ const DefaultScene = () => {
         <meshStandardMaterial color="#e8f4fd" roughness={0.7} metalness={0.1} />
       </mesh>
       
-      {/* Roof */}
-      <mesh position={[0, 2.25, 0]} castShadow>
-        <coneGeometry args={[3.8, 1.5, 4]} />
-        <meshStandardMaterial color="#8b4513" roughness={0.9} metalness={0.0} />
-      </mesh>
+      {/* Roof removed for open floor plan view */}
       
       {/* Front Door */}
       <mesh position={[2.6, -0.5, 0]} castShadow>
@@ -121,16 +117,50 @@ const Model3D = ({ url }: { url: string }) => {
     return <DefaultScene />;
   }
 
+  // Test model URL accessibility before attempting to load
+  useEffect(() => {
+    const testModelAccess = async () => {
+      try {
+        console.log('🔍 Testing model URL accessibility:', url);
+        const response = await fetch(url, { method: 'HEAD' });
+        console.log('📊 Model URL response:', {
+          status: response.status,
+          headers: Object.fromEntries(response.headers.entries()),
+          url
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Model file not accessible: ${response.status} ${response.statusText}`);
+        }
+      } catch (err) {
+        console.error('❌ Model URL accessibility test failed:', err);
+        setLoadingState('error');
+        setErrorMessage(`Model file not accessible: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        setHasError(true);
+        return;
+      }
+    };
+
+    if (url && isValidUrl) {
+      testModelAccess();
+    }
+  }, [url, isValidUrl]);
+
   let gltf;
   try {
     console.log('📥 useGLTF: Loading model...');
     gltf = useGLTF(url);
-    console.log('✅ useGLTF: Model loaded successfully');
+    console.log('✅ useGLTF: Model loaded successfully', gltf);
     
     // Set success state when model loads
     if (loadingState !== 'success' && gltf?.scene) {
       setLoadingState('success');
       setHasError(false);
+      console.log('🎯 Model scene available:', {
+        children: gltf.scene.children.length,
+        type: gltf.scene.type,
+        userData: gltf.scene.userData
+      });
     }
   } catch (err) {
     console.error('❌ useGLTF: Error loading 3D model:', err);
