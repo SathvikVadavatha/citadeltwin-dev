@@ -418,9 +418,17 @@ export const useBlueprintProcessing = () => {
       logger.info('🚀 Pre-initializing OpenCV for better performance', 'Blueprint Processing');
       await loadOpenCV();
       logger.info('✅ OpenCV pre-initialization complete', 'Blueprint Processing');
+      
+      // Test OpenCV functionality
+      if ((window as any).cv && (window as any).cv.Mat) {
+        logger.info('✅ OpenCV fully functional and ready', 'Blueprint Processing');
+      } else {
+        throw new Error('OpenCV loaded but not functional');
+      }
     } catch (error) {
       logger.warn('⚠️ OpenCV pre-initialization failed (will retry during processing)', 'Blueprint Processing', { 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        willRetryDuringProcessing: true
       });
     }
   }, [loadOpenCV]);
@@ -433,7 +441,9 @@ export const useBlueprintProcessing = () => {
   const processBlueprint = useCallback(async (uploadId: string, imageUrl: string) => {
     logger.info('🚀 Starting OpenCV computer vision blueprint processing', 'Blueprint Processing', {
       uploadId,
-      imageUrl: imageUrl.substring(0, 100) + '...'
+      imageUrl: imageUrl.substring(0, 100) + '...',
+      openCVReady: isOpenCVReady,
+      openCVStatus: openCVState.status
     });
     
     updateProcessingState({ 
@@ -450,17 +460,35 @@ export const useBlueprintProcessing = () => {
         logger.warn('Status update failed but continuing processing', 'Blueprint Processing');
       }
 
-      // Step 2: Enhanced image analysis
+      // Step 2: Enhanced image analysis with validation
       logger.info('📊 Step 2: Enhanced image analysis starting', 'Blueprint Processing');
       const imageCharacteristics = await analyzeImageCharacteristics(imageUrl);
       logger.info('Image analysis completed', 'Blueprint Processing', imageCharacteristics);
+
+      // Validate image URL accessibility
+      try {
+        const response = await fetch(imageUrl, { method: 'HEAD' });
+        if (!response.ok) {
+          throw new Error(`Image not accessible: ${response.status} ${response.statusText}`);
+        }
+        logger.info('✅ Image URL validated and accessible', 'Blueprint Processing');
+      } catch (urlError) {
+        logger.error('❌ Image URL validation failed', 'Blueprint Processing', { 
+          error: urlError instanceof Error ? urlError.message : 'Unknown error',
+          imageUrl: imageUrl.substring(0, 100) + '...'
+        });
+        throw new Error(`Cannot access uploaded image: ${urlError instanceof Error ? urlError.message : 'Unknown error'}`);
+      }
 
       let detectedObjects: DetectedObject[] = [];
       let isOpenCVGenerated = false;
       let processingError: string | undefined;
       
       // Step 3: Use OpenCV computer vision for floor plan analysis
-      logger.info('🔍 Step 3: Starting OpenCV computer vision analysis', 'Blueprint Processing');
+      logger.info('🔍 Step 3: Starting OpenCV computer vision analysis', 'Blueprint Processing', {
+        openCVReady: isOpenCVReady,
+        openCVState: openCVState
+      });
       
       try {
         updateProcessingState({ processingMethod: 'opencv' });

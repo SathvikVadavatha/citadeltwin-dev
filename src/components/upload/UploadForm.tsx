@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Upload, Loader2, Zap, Brain, Box, CheckCircle, AlertCircle, Cpu, Search } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { ProcessingStatusPanel } from "./ProcessingStatusPanel";
+import { OpenCVStatusIndicator } from "./OpenCVStatusIndicator";
 
 interface UploadFormProps {
   uploading: boolean;
@@ -229,6 +230,13 @@ export const UploadForm: React.FC<UploadFormProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* OpenCV Status Indicator */}
+      <OpenCVStatusIndicator
+        isReady={isOpenCVReady || false}
+        loadingState={openCVState || { isLoading: false, progress: 0, status: 'initializing' }}
+        onRetry={onRetry}
+      />
+      
       <Card className="border-2 hover:border-primary/20 transition-colors">
         <CardContent className="pt-6">
         <div
