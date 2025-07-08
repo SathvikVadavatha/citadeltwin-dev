@@ -21,7 +21,10 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onNavigate }) => {
     uploadResult,
     uploadFile,
     resetUpload,
-    download3DModel
+    download3DModel,
+    isModelReady,
+    modelState,
+    supportsWebGPU
   } = useBlueprintUpload();
 
   // Show results if we have them
@@ -75,6 +78,9 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onNavigate }) => {
           errorMessage={uploadResult?.errorMessage}
           onFileUpload={uploadFile}
           onRetry={resetUpload}
+          isModelReady={isModelReady}
+          modelState={modelState}
+          supportsWebGPU={supportsWebGPU}
         />
         
         {/* Preview/Results Placeholder */}

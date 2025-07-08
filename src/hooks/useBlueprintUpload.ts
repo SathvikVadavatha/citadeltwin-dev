@@ -35,7 +35,17 @@ export const useBlueprintUpload = () => {
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   
   const { uploading, uploadProgress, uploadFile } = useBlueprintFileUpload();
-  const { processing, generating3D, processingMethod, errorMessage, processBlueprint, generate3DModel } = useBlueprintProcessing();
+  const { 
+    processing, 
+    generating3D, 
+    processingMethod, 
+    errorMessage, 
+    processBlueprint, 
+    generate3DModel,
+    isModelReady,
+    modelState,
+    supportsWebGPU
+  } = useBlueprintProcessing();
   const { enhancedAnalyzing, performEnhancedAnalysis } = useBlueprintAnalysis();
 
   const handleFileUpload = useCallback(async (file: File) => {
@@ -178,6 +188,10 @@ export const useBlueprintUpload = () => {
     uploadResult,
     uploadFile: handleFileUpload,
     resetUpload,
-    download3DModel
+    download3DModel,
+    // AI Vision state
+    isModelReady,
+    modelState,
+    supportsWebGPU
   };
 };

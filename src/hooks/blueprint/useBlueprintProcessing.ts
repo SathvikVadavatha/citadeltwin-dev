@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from 'react';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { updateUploadStatus, storeDetectionResults, storeProcessingMetadata } from './utils/databaseOperations';
 import { analyzeImageCharacteristics } from './utils/imageProcessing';
@@ -12,6 +12,9 @@ import { useProcessingState } from './utils/processingStateManager';
 
 // Import text extraction utility for basic analysis
 import { extractTextFromBlueprint } from './utils/textExtraction';
+
+// Import AI vision processing
+import { useFloorPlanVision } from './useFloorPlanVision';
 
 // No AI processors needed for direct object generation
 
@@ -368,6 +371,14 @@ const getRoomHeight = (roomType: string): number => {
 export const useBlueprintProcessing = () => {
   const { processingState, updateProcessingState } = useProcessingState();
   const { toast } = useToast();
+  
+  // Initialize AI vision processing
+  const { 
+    analyzeFloorPlan, 
+    isModelReady, 
+    modelState, 
+    supportsWebGPU 
+  } = useFloorPlanVision();
 
   const processBlueprint = useCallback(async (uploadId: string, imageUrl: string) => {
     logger.info('🚀 Starting enhanced Gemini AI blueprint processing pipeline', 'Blueprint Processing', {
@@ -398,49 +409,65 @@ export const useBlueprintProcessing = () => {
       let isAIGenerated = false;
       let processingError: string | undefined;
       
-      // Step 3: Direct Object Generation (No AI Processing)
-      logger.info('🏗️ Step 3: Starting direct object generation', 'Blueprint Processing');
+      // Step 3: AI Vision Processing or Fallback
+      logger.info('🏗️ Step 3: Starting AI vision analysis', 'Blueprint Processing');
       
-      updateProcessingState({ processingMethod: 'fallback' });
-      
-      toast({
-        title: "🔧 Processing Blueprint",
-        description: "Analyzing architectural structure and generating elements...",
-        variant: "default",
-      });
-      
-      // Generate objects directly based on image characteristics
+      // Try AI vision first if available
       try {
-        // Extract basic text data for structure analysis
-        const extractedTextData = await extractTextFromBlueprint(imageUrl);
-        detectedObjects = generateObjectsFromTextData(extractedTextData, uploadId);
+        if (supportsWebGPU) {
+          updateProcessingState({ processingMethod: 'ai' });
+          
+          toast({
+            title: "🤖 AI Vision Analysis",
+            description: `Processing with AI model on ${modelState.deviceType?.toUpperCase()}...`,
+            variant: "default",
+          });
+          
+          detectedObjects = await analyzeFloorPlan(imageUrl);
+          isAIGenerated = true;
+          
+          logger.info('✅ AI vision analysis completed', 'Blueprint Processing', {
+            objectsDetected: detectedObjects.length,
+            method: 'ai_vision',
+            device: modelState.deviceType
+          });
+          
+        } else {
+          throw new Error('AI vision not available, using fallback');
+        }
         
-        logger.info('✅ Direct object generation completed', 'Blueprint Processing', {
-          objectsDetected: detectedObjects.length,
-          method: 'direct_generation'
+      } catch (visionError) {
+        // Fallback to direct generation
+        logger.info('📐 AI vision failed, using fallback generation', 'Blueprint Processing', {
+          error: visionError instanceof Error ? visionError.message : 'Unknown error'
         });
         
+        updateProcessingState({ processingMethod: 'fallback' });
+        
         toast({
-          title: "✅ Blueprint Analysis Complete",
-          description: `Generated ${detectedObjects.length} architectural elements from blueprint structure.`,
+          title: "🔧 Processing Blueprint",
+          description: "Using fallback analysis method...",
           variant: "default",
         });
         
-      } catch (textError) {
-        // If text extraction fails, generate minimal objects based on image characteristics
-        logger.info('📐 Using image-based object generation', 'Blueprint Processing');
+        try {
+          // Extract basic text data for structure analysis
+          const extractedTextData = await extractTextFromBlueprint(imageUrl);
+          detectedObjects = generateObjectsFromTextData(extractedTextData, uploadId);
+          
+        } catch (textError) {
+          // If text extraction fails, generate minimal objects based on image characteristics
+          detectedObjects = generateMinimalObjectsFromImage(uploadId, imageCharacteristics);
+        }
         
-        detectedObjects = generateMinimalObjectsFromImage(uploadId, imageCharacteristics);
+        isAIGenerated = false;
         
         toast({
-          title: "📋 Basic Analysis Complete",
-          description: `Generated ${detectedObjects.length} basic architectural elements.`,
+          title: "✅ Analysis Complete",
+          description: `Generated ${detectedObjects.length} architectural elements using fallback method.`,
           variant: "default",
         });
       }
-      
-      isAIGenerated = false;
-      updateProcessingState({ processingMethod: 'fallback' });
 
       // Step 4: Enhanced result storage with metadata
       logger.info('💾 Storing enhanced detection results', 'Blueprint Processing', {
@@ -612,6 +639,10 @@ export const useBlueprintProcessing = () => {
     processingMethod: processingState.processingMethod,
     errorMessage: processingState.errorMessage,
     processBlueprint,
-    generate3DModel
+    generate3DModel,
+    // AI Vision state
+    isModelReady,
+    modelState,
+    supportsWebGPU
   };
 };

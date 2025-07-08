@@ -17,6 +17,10 @@ interface UploadFormProps {
   errorMessage?: string;
   onFileUpload: (file: File) => void;
   onRetry?: () => void;
+  // AI Vision props
+  isModelReady?: boolean;
+  modelState?: any;
+  supportsWebGPU?: boolean;
 }
 
 export const UploadForm: React.FC<UploadFormProps> = ({
@@ -28,7 +32,10 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   processingMethod,
   errorMessage,
   onFileUpload,
-  onRetry
+  onRetry,
+  isModelReady,
+  modelState,
+  supportsWebGPU
 }) => {
   const { toast } = useToast();
 
