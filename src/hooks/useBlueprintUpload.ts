@@ -50,7 +50,7 @@ export const useBlueprintUpload = () => {
 
       console.log('File uploaded, starting processing...');
       
-      // Step 2: Process blueprint with Plan2Scene
+      // Step 2: Process blueprint (direct object generation)
       let detectedObjects;
       try {
         detectedObjects = await processBlueprint(uploadData.uploadRecord.id, uploadData.publicUrl);
@@ -99,9 +99,9 @@ export const useBlueprintUpload = () => {
       console.log('All processing complete, setting results...');
 
       // Step 5: Set final results
-      // Determine if AI was used based on Plan2Scene success (detectedObjects length > 0 indicates Plan2Scene worked)
-      const isAIGenerated = detectedObjects && detectedObjects.length > 0;
-      const finalProcessingMethod = isAIGenerated ? 'ai' : 'fallback';
+      // Direct object generation (no AI processing)
+      const isAIGenerated = false; // Always false since we're not using AI
+      const finalProcessingMethod = 'fallback';
       
       const finalResult: UploadResult = {
         id: uploadData.uploadRecord.id,
@@ -118,10 +118,9 @@ export const useBlueprintUpload = () => {
 
       setUploadResult(finalResult);
 
-      const processingMethodText = finalProcessingMethod === 'ai' ? 'Plan2Scene AI' : 'Fallback Analysis';
       toast({
         title: "Upload Complete",
-        description: `Successfully processed ${file.name} using ${processingMethodText} with ${detectedObjects.length} elements detected.`,
+        description: `Successfully processed ${file.name} with ${detectedObjects.length} architectural elements detected.`,
       });
 
     } catch (error) {
