@@ -184,6 +184,46 @@ export const MaterialsManager = () => {
                     </div>
                   </div>
 
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="thermal_conductivity">Thermal Conductivity (W/m·K)</Label>
+                      <Input
+                        id="thermal_conductivity"
+                        type="number"
+                        step="0.01"
+                        value={formData.properties?.thermal_conductivity || ''}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          properties: { 
+                            ...prev.properties, 
+                            thermal_conductivity: parseFloat(e.target.value) || 0 
+                          } 
+                        }))}
+                        className="cyber-button"
+                        placeholder="e.g., 0.17 for concrete"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="density">Density (kg/m³)</Label>
+                      <Input
+                        id="density"
+                        type="number"
+                        step="0.01"
+                        value={formData.properties?.density || ''}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          properties: { 
+                            ...prev.properties, 
+                            density: parseFloat(e.target.value) || 0 
+                          } 
+                        }))}
+                        className="cyber-button"
+                        placeholder="e.g., 2400 for concrete"
+                      />
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="cost">Cost per Unit</Label>

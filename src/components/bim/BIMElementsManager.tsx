@@ -11,6 +11,7 @@ import { CreateBIMElementModal } from './CreateBIMElementModal';
 import { MaterialsManager } from './MaterialsManager';
 import { ElementConstraintsPanel } from './ElementConstraintsPanel';
 import { IFCModelsManager } from '@/components/ifc/IFCModelsManager';
+import { BIMElementsTable } from './BIMElementsTable';
 import { toast } from 'sonner';
 
 interface BIMElementsManagerProps {
@@ -113,98 +114,13 @@ export const BIMElementsManager = ({ uploadId, projectId }: BIMElementsManagerPr
         </TabsList>
 
         <TabsContent value="elements" className="space-y-4">
-          {elements.length === 0 ? (
-            <Card className="gradient-border">
-              <CardContent className="p-8 text-center">
-                <Layers className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No BIM Elements</h3>
-                <p className="text-muted-foreground mb-4">
-                  Create your first parametric building element to get started.
-                </p>
-                <Button onClick={() => setShowCreateModal(true)} className="cyber-button">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Element
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {elements.map((element) => (
-                <Card key={element.id} className="gradient-border glow-cyan">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <Badge className={getElementTypeColor(element.element_type)}>
-                          {element.element_type}
-                        </Badge>
-                        <div>
-                          <CardTitle className="text-lg">{element.name}</CardTitle>
-                          {element.description && (
-                            <p className="text-sm text-muted-foreground">{element.description}</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDuplicate(element.id)}
-                          className="cyber-button"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setSelectedElementId(element.id)}
-                          className="cyber-button"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDelete(element.id)}
-                          disabled={deleting}
-                          className="cyber-button hover:bg-destructive/20"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Material:</span>
-                        <p className="font-medium">
-                          {element.materials?.name || 'None'}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Parent:</span>
-                        <p className="font-medium">
-                          {element.parent_element?.name || 'None'}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Parameters:</span>
-                        <p className="font-medium">
-                          {Object.keys(element.parameters || {}).length} props
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Created:</span>
-                        <p className="font-medium">
-                          {new Date(element.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+          <BIMElementsTable
+            elements={elements}
+            onEdit={(elementId) => setSelectedElementId(elementId)}
+            onDelete={handleDelete}
+            onDuplicate={handleDuplicate}
+            loading={loading}
+          />
         </TabsContent>
 
         <TabsContent value="ifc" className="space-y-4">

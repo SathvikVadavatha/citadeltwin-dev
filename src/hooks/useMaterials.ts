@@ -10,7 +10,15 @@ type Material = Database['public']['Tables']['materials']['Row'];
 export interface CreateMaterialData {
   name: string;
   material_type: Database['public']['Enums']['material_type'];
-  properties?: any;
+  properties?: {
+    thermal_conductivity?: number;
+    density?: number;
+    compressive_strength?: number;
+    tensile_strength?: number;
+    youngs_modulus?: number;
+    poisson_ratio?: number;
+    [key: string]: any;
+  };
   cost_per_unit?: number;
   unit?: string;
   supplier?: string;
@@ -110,6 +118,30 @@ export const useMaterials = () => {
     if (user) {
       fetchMaterials().finally(() => setLoading(false));
     }
+  }, [user]);
+
+  // Real-time syncing
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('materials-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'materials'
+        },
+        () => {
+          fetchMaterials();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   // Reset loading states after operations
