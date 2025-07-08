@@ -22,6 +22,9 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onNavigate }) => {
     uploadFile,
     resetUpload,
     download3DModel,
+    cancelProcessing,
+    canCancel,
+    retryOpenCV,
     isOpenCVReady,
     openCVState
   } = useBlueprintUpload();
@@ -76,7 +79,9 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onNavigate }) => {
           processingMethod={uploadResult?.processingMethod}
           errorMessage={uploadResult?.errorMessage}
           onFileUpload={uploadFile}
-          onRetry={resetUpload}
+          onRetry={retryOpenCV}
+          onCancel={cancelProcessing}
+          canCancel={canCancel}
           isOpenCVReady={isOpenCVReady}
           openCVState={openCVState}
         />

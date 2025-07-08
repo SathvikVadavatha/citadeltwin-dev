@@ -3,7 +3,7 @@ import React from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Upload, Loader2, Zap, Brain, Box, CheckCircle, AlertCircle, Cpu, Search } from "lucide-react";
+import { Upload, Loader2, Zap, Brain, Box, CheckCircle, AlertCircle, Cpu, Search, X } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { ProcessingStatusPanel } from "./ProcessingStatusPanel";
 import { OpenCVStatusIndicator } from "./OpenCVStatusIndicator";
@@ -18,6 +18,8 @@ interface UploadFormProps {
   errorMessage?: string;
   onFileUpload: (file: File) => void;
   onRetry?: () => void;
+  onCancel?: () => void;
+  canCancel?: boolean;
   // OpenCV props
   isOpenCVReady?: boolean;
   openCVState?: any;
@@ -33,6 +35,8 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   errorMessage,
   onFileUpload,
   onRetry,
+  onCancel,
+  canCancel,
   isOpenCVReady,
   openCVState
 }) => {
@@ -264,8 +268,17 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                     value={getOverallProgress()} 
                     className="mt-2 h-3"
                   />
-                  <div className="text-sm text-muted-foreground">
-                    {Math.round(getOverallProgress())}% complete
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>{Math.round(getOverallProgress())}% complete</span>
+                    {canCancel && onCancel && (
+                      <button
+                        onClick={onCancel}
+                        className="flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                        Cancel
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="flex justify-center space-x-6 text-sm">
