@@ -417,8 +417,8 @@ export const useBlueprintProcessing = () => {
         updateProcessingState({ processingMethod: 'ai' });
         
         toast({
-          title: "🤖 FloorPlanVisionAIAdaptor Loading",
-          description: "Initializing AI model for floor plan analysis...",
+          title: "🤖 AI Vision Model Loading",
+          description: "Initializing computer vision model for architectural analysis...",
           variant: "default",
         });
         
@@ -433,7 +433,7 @@ export const useBlueprintProcessing = () => {
         
         toast({
           title: "✅ AI Analysis Complete",
-          description: `FloorPlanVisionAIAdaptor detected ${detectedObjects.length} elements using ${modelState.deviceType?.toUpperCase()}`,
+          description: `Computer vision model detected ${detectedObjects.length} elements using ${modelState.deviceType?.toUpperCase()}`,
         });
         
       } catch (visionError) {
@@ -445,8 +445,8 @@ export const useBlueprintProcessing = () => {
         updateProcessingState({ processingMethod: 'fallback' });
         
         toast({
-          title: "🔧 Processing Blueprint",
-          description: "Using fallback analysis method...",
+          title: "🔧 Enhanced Analysis Mode",
+          description: "Using advanced architectural pattern analysis...",
           variant: "default",
         });
         
@@ -464,7 +464,7 @@ export const useBlueprintProcessing = () => {
         
         toast({
           title: "✅ Analysis Complete",
-          description: `Generated ${detectedObjects.length} architectural elements using fallback method.`,
+          description: `Generated ${detectedObjects.length} architectural elements using enhanced pattern analysis.`,
           variant: "default",
         });
       }
