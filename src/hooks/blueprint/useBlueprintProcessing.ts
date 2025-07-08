@@ -18,6 +18,9 @@ import { debugGeminiPipeline } from './utils/debugUtils';
 import { extractTextFromBlueprint } from './utils/textExtraction';
 import { processWithTextBasedGemini } from './utils/textBasedGeminiProcessor';
 
+// Import Plan2Scene processor
+import { processWithPlan2Scene } from './utils/plan2sceneProcessor';
+
 // Helper function to generate objects from text data
 // Phase 4: Generate unique objects from text data using blueprint characteristics
 const generateObjectsFromTextData = (extractedData: any, uploadId: string): DetectedObject[] => {
@@ -325,14 +328,56 @@ export const useBlueprintProcessing = () => {
       let isAIGenerated = false;
       let processingError: string | undefined;
       
-      // Step 3: Phase 2 Enhanced Hybrid Gemini AI processing
+      // Step 3: Try Plan2Scene as primary processing method
       try {
-        logger.info('🚀 Step 3: Starting Phase 2 Hybrid Gemini AI processing', 'Blueprint Processing');
+        logger.info('🚀 Step 3: Starting Plan2Scene AI processing (Primary)', 'Blueprint Processing');
         
-        // Test Gemini AI connection
-        logger.info('🔧 Testing Gemini AI connection before processing', 'Blueprint Processing');
-        const { testGeminiConnection } = await import('./utils/geminiConnectionTest');
-        const connectionTest = await testGeminiConnection();
+        // Get image data for Plan2Scene processing
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const reader = new FileReader();
+        const imageBase64 = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        
+        logger.info('✅ Image data prepared for Plan2Scene processing', 'Blueprint Processing');
+        logger.info('🏗️ Processing with Plan2Scene AI', 'Blueprint Processing');
+        
+        detectedObjects = await processWithPlan2Scene(imageBase64, uploadId);
+        
+        if (detectedObjects.length > 0) {
+          isAIGenerated = true;
+          updateProcessingState({ processingMethod: 'ai' });
+          
+          toast({
+            title: "🎯 Plan2Scene AI Success!",
+            description: `Detected ${detectedObjects.length} architectural elements using Plan2Scene open-source AI processing.`,
+            variant: "default",
+          });
+          
+          logger.info('✅ Plan2Scene processing completed successfully', 'Blueprint Processing', {
+            objectsDetected: detectedObjects.length,
+            isAIGenerated: true
+          });
+        } else {
+          throw new Error('Plan2Scene returned no objects');
+        }
+        
+      } catch (plan2sceneError) {
+        logger.warn('Plan2Scene processing failed, trying Gemini AI', 'Blueprint Processing', {
+          error: plan2sceneError instanceof Error ? plan2sceneError.message : 'Unknown error'
+        });
+
+        // Step 4: Fallback to Gemini AI processing
+        try {
+          logger.info('🚀 Step 4: Fallback to Gemini AI processing', 'Blueprint Processing');
+        
+          // Test Gemini AI connection
+          logger.info('🔧 Testing Gemini AI connection before processing', 'Blueprint Processing');
+          const { testGeminiConnection } = await import('./utils/geminiConnectionTest');
+          const connectionTest = await testGeminiConnection();
         
         logger.info('🔍 Connection test result', 'Blueprint Processing', {
           success: connectionTest.success,
@@ -436,32 +481,33 @@ export const useBlueprintProcessing = () => {
           });
         }
         
-      } catch (aiError) {
-        logger.warn('Gemini AI processing failed, using fallback', 'Blueprint Processing', {
-          error: aiError instanceof Error ? aiError.message : 'Unknown error',
-          stack: aiError instanceof Error ? aiError.stack?.split('\n').slice(0, 3) : undefined
-        });
+        } catch (aiError) {
+          logger.warn('Gemini AI processing failed, using fallback', 'Blueprint Processing', {
+            error: aiError instanceof Error ? aiError.message : 'Unknown error',
+            stack: aiError instanceof Error ? aiError.stack?.split('\n').slice(0, 3) : undefined
+          });
 
-        const errorResult = handleProcessingError(
-          createProcessingError('general_error', aiError instanceof Error ? aiError.message : 'Gemini AI processing failed', aiError instanceof Error ? aiError : undefined),
-          uploadId,
-          imageCharacteristics
-        );
+          const errorResult = handleProcessingError(
+            createProcessingError('general_error', aiError instanceof Error ? aiError.message : 'Gemini AI processing failed', aiError instanceof Error ? aiError : undefined),
+            uploadId,
+            imageCharacteristics
+          );
 
-        detectedObjects = errorResult.detectedObjects;
-        processingError = errorResult.errorMessage;
-        isAIGenerated = errorResult.isAIGenerated;
-        
-        updateProcessingState({ 
-          processingMethod: 'fallback',
-          errorMessage: processingError
-        });
-        
-        toast({
-          title: "⚠️ Using Enhanced Fallback",
-          description: `AI processing failed. Generated ${detectedObjects.length} architectural elements using fallback analysis.`,
-          variant: "destructive",
-        });
+          detectedObjects = errorResult.detectedObjects;
+          processingError = errorResult.errorMessage;
+          isAIGenerated = errorResult.isAIGenerated;
+          
+          updateProcessingState({ 
+            processingMethod: 'fallback',
+            errorMessage: processingError
+          });
+          
+          toast({
+            title: "⚠️ Using Enhanced Fallback",
+            description: `AI processing failed. Generated ${detectedObjects.length} architectural elements using fallback analysis.`,
+            variant: "destructive",
+          });
+        }
       }
 
       // Step 4: Enhanced result storage with metadata
