@@ -381,7 +381,7 @@ export const useBlueprintProcessing = () => {
   } = useFloorPlanVision();
 
   const processBlueprint = useCallback(async (uploadId: string, imageUrl: string) => {
-    logger.info('🚀 Starting enhanced Gemini AI blueprint processing pipeline', 'Blueprint Processing', {
+    logger.info('🚀 Starting FloorPlanVisionAIAdaptor blueprint processing', 'Blueprint Processing', {
       uploadId,
       imageUrl: imageUrl.substring(0, 100) + '...'
     });
@@ -409,32 +409,32 @@ export const useBlueprintProcessing = () => {
       let isAIGenerated = false;
       let processingError: string | undefined;
       
-      // Step 3: AI Vision Processing or Fallback
-      logger.info('🏗️ Step 3: Starting AI vision analysis', 'Blueprint Processing');
+      // Step 3: Always try FloorPlanVisionAIAdaptor first
+      logger.info('🤖 Step 3: Starting FloorPlanVisionAIAdaptor analysis', 'Blueprint Processing');
       
-      // Try AI vision first if available
+      // Always attempt AI vision analysis first
       try {
-        if (supportsWebGPU) {
-          updateProcessingState({ processingMethod: 'ai' });
-          
-          toast({
-            title: "🤖 AI Vision Analysis",
-            description: `Processing with AI model on ${modelState.deviceType?.toUpperCase()}...`,
-            variant: "default",
-          });
-          
-          detectedObjects = await analyzeFloorPlan(imageUrl);
-          isAIGenerated = true;
-          
-          logger.info('✅ AI vision analysis completed', 'Blueprint Processing', {
-            objectsDetected: detectedObjects.length,
-            method: 'ai_vision',
-            device: modelState.deviceType
-          });
-          
-        } else {
-          throw new Error('AI vision not available, using fallback');
-        }
+        updateProcessingState({ processingMethod: 'ai' });
+        
+        toast({
+          title: "🤖 FloorPlanVisionAIAdaptor Loading",
+          description: "Initializing AI model for floor plan analysis...",
+          variant: "default",
+        });
+        
+        detectedObjects = await analyzeFloorPlan(imageUrl);
+        isAIGenerated = true;
+        
+        logger.info('✅ FloorPlanVisionAIAdaptor analysis completed', 'Blueprint Processing', {
+          objectsDetected: detectedObjects.length,
+          method: 'ai_vision',
+          device: modelState.deviceType
+        });
+        
+        toast({
+          title: "✅ AI Analysis Complete",
+          description: `FloorPlanVisionAIAdaptor detected ${detectedObjects.length} elements using ${modelState.deviceType?.toUpperCase()}`,
+        });
         
       } catch (visionError) {
         // Fallback to direct generation
@@ -501,7 +501,7 @@ export const useBlueprintProcessing = () => {
       }
 
       logger.info('✅ Enhanced blueprint processing completed successfully!', 'Blueprint Processing', {
-        method: isAIGenerated ? 'Gemini AI' : 'Enhanced Fallback',
+        method: isAIGenerated ? 'FloorPlanVisionAIAdaptor' : 'Enhanced Fallback',
         objectsFound: detectedObjects.length,
         hasError: !!processingError,
         finalStatus

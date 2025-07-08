@@ -108,7 +108,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   // Enhanced step descriptions
   const getCurrentStep = () => {
     if (uploading) return "Uploading blueprint to secure cloud storage...";
-    if (processing) return "🤖 Analyzing blueprint with Gemini AI vision...";
+    if (processing) return "🤖 Analyzing blueprint with FloorPlanVisionAIAdaptor...";
     if (enhancedAnalyzing) return "🔍 Performing enhanced architectural analysis...";
     if (generating3D) return "🏗️ Generating detailed 3D model...";
     return "";
@@ -117,7 +117,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   // Enhanced step details
   const getCurrentStepDetails = () => {
     if (uploading) return "Securing your blueprint data with enterprise-grade encryption";
-    if (processing) return "AI is detecting rooms, walls, doors, windows, and fixtures";
+    if (processing) return "FloorPlanVisionAIAdaptor detecting rooms, walls, doors, windows, and fixtures";
     if (enhancedAnalyzing) return "Deep learning models analyzing structural elements";
     if (generating3D) return "Creating parametric 3D model with architectural details";
     return "";
@@ -306,7 +306,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                 <p>📏 Size limit: 10MB maximum</p>
                 <div className="flex items-center justify-center gap-2 text-primary font-semibold mt-4 p-3 bg-primary/5 rounded-lg">
                   <Brain className="h-5 w-5" />
-                  <span>Enhanced with Gemini AI for architectural analysis!</span>
+                  <span>Enhanced with FloorPlanVisionAIAdaptor for architectural analysis!</span>
                 </div>
               </div>
             </div>
