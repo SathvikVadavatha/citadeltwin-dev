@@ -16,11 +16,13 @@ interface ViewportInfo extends ViewportSize {
 
 export const useViewport = (): ViewportInfo => {
   const [viewport, setViewport] = useState<ViewportSize>({
-    width: window.innerWidth,
-    height: window.innerHeight,
+    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+    height: typeof window !== 'undefined' ? window.innerHeight : 768,
   });
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const handleResize = () => {
       setViewport({
         width: window.innerWidth,
@@ -41,7 +43,7 @@ export const useViewport = (): ViewportInfo => {
   const isTablet = viewport.width >= 768 && viewport.width < 1024;
   const isDesktop = viewport.width >= 1024;
   const orientation = viewport.width > viewport.height ? 'landscape' : 'portrait';
-  const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
 
   return {
     ...viewport,
