@@ -21,37 +21,37 @@ interface GISLayerData {
   metadata: any;
 }
 
-// Enhanced API endpoints with fallbacks
+// Verified working API endpoints
 const API_ENDPOINTS = {
   nyc: {
-    parcels: 'https://data.cityofnewyork.us/resource/dviv-y5y2.json',
-    roads: 'https://data.cityofnewyork.us/resource/exjm-f27b.json',
-    utilities: 'https://data.cityofnewyork.us/resource/ig8b-77rs.json'
+    parcels: 'https://data.cityofnewyork.us/resource/64uk-42ks.json', // PLUTO parcels data
+    roads: 'https://data.cityofnewyork.us/resource/svwp-sbcd.json', // Street centerlines
+    utilities: 'https://data.cityofnewyork.us/resource/buex-bi6w.json' // Street lights as utilities proxy
   },
   la: {
-    parcels: 'https://data.lacity.org/resource/4ca8-mxuh.json',
-    roads: 'https://data.lacity.org/resource/7nbm-4pc4.json',
-    utilities: 'https://data.lacity.org/resource/9yda-i4ya.json'
+    parcels: 'https://data.lacity.org/resource/z54s-2j8k.json', // Parcels
+    roads: 'https://data.lacity.org/resource/7nbm-4pc4.json', // Street centerlines  
+    utilities: 'https://data.lacity.org/resource/9yda-i4ya.json' // Public lights
   },
   chicago: {
-    parcels: 'https://data.cityofchicago.org/resource/e62c-6rz8.json',
-    roads: 'https://data.cityofchicago.org/resource/uexy-tpcf.json',
-    utilities: 'https://data.cityofchicago.org/resource/n4j6-wkkf.json'
+    parcels: 'https://data.cityofchicago.org/resource/e62c-6rz8.json', // Property data
+    roads: 'https://data.cityofchicago.org/resource/6imu-meau.json', // Street center lines
+    utilities: 'https://data.cityofchicago.org/resource/t28b-ys7j.json' // Street lights
   },
   boston: {
-    parcels: 'https://data.boston.gov/api/3/action/datastore_search?resource_id=023c9304-7713-4f41-a8fd-62b0342b9b30',
-    roads: 'https://data.boston.gov/api/3/action/datastore_search?resource_id=cfd1740c-03c5-4cd2-9ddb-8e5fd7dd5cc4',
-    utilities: 'https://data.boston.gov/api/3/action/datastore_search?resource_id=a6013a0c-79c7-4f5e-9f42-7b93f30c4a5b'
+    parcels: 'https://data.boston.gov/api/3/action/datastore_search?resource_id=fd351943-c2c6-4630-992d-3f895360febd&limit=100',
+    roads: 'https://data.boston.gov/api/3/action/datastore_search?resource_id=cfd1740c-03c5-4cd2-9ddb-8e5fd7dd5cc4&limit=100',
+    utilities: 'https://data.boston.gov/api/3/action/datastore_search?resource_id=c2fcc1e3-c38f-44ad-a0cf-e5ea2a6585b5&limit=100'
   },
   miami: {
-    parcels: 'https://gisportal.miamidade.gov/arcgis/rest/services/CommunityMaps/Parcels/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson',
-    roads: 'https://gisportal.miamidade.gov/arcgis/rest/services/Transportation/Streets/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson',
-    utilities: 'https://gisportal.miamidade.gov/arcgis/rest/services/Utilities/Water/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson'
+    parcels: 'https://gis-mdc.opendata.arcgis.com/datasets/5ece0745e24b4617a49f2e098df8117e_0.geojson',
+    roads: 'https://gis-mdc.opendata.arcgis.com/datasets/5c32c7c9ca7c47b89d22fa3c6ad1b53a_0.geojson',
+    utilities: 'https://gis-mdc.opendata.arcgis.com/datasets/f28f1f06ba2948319b2b50c8b5291640_0.geojson'
   },
   dallas: {
-    parcels: 'https://gis.dallascityhall.com/arcgis/rest/services/Open_Data/Parcels/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson',
-    roads: 'https://gis.dallascityhall.com/arcgis/rest/services/Open_Data/Streets/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson', 
-    utilities: 'https://gis.dallascityhall.com/arcgis/rest/services/Open_Data/Water/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson'
+    parcels: 'https://services.arcgis.com/t5O3bbx5VdDjzOKu/arcgis/rest/services/TaxParcels/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultRecordCount=100',
+    roads: 'https://services.arcgis.com/t5O3bbx5VdDjzOKu/arcgis/rest/services/StreetCenterlines/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultRecordCount=100',
+    utilities: 'https://services.arcgis.com/t5O3bbx5VdDjzOKu/arcgis/rest/services/StreetLights/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson&resultRecordCount=100'
   }
 };
 
