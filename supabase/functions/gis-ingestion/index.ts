@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 
@@ -39,30 +38,20 @@ const API_ENDPOINTS = {
     roads: 'https://data.cityofchicago.org/resource/uexy-tpcf.json',
     utilities: 'https://data.cityofchicago.org/resource/n4j6-wkkf.json'
   },
-  houston: {
-    parcels: 'https://cohgis-mycity.opendata.arcgis.com/datasets/parcels.geojson',
-    roads: 'https://cohgis-mycity.opendata.arcgis.com/datasets/streets.geojson',
-    utilities: 'https://cohgis-mycity.opendata.arcgis.com/datasets/utilities.geojson'
+  boston: {
+    parcels: 'https://data.boston.gov/api/3/action/datastore_search?resource_id=023c9304-7713-4f41-a8fd-62b0342b9b30',
+    roads: 'https://data.boston.gov/api/3/action/datastore_search?resource_id=cfd1740c-03c5-4cd2-9ddb-8e5fd7dd5cc4',
+    utilities: 'https://data.boston.gov/api/3/action/datastore_search?resource_id=a6013a0c-79c7-4f5e-9f42-7b93f30c4a5b'
   },
-  phoenix: {
-    parcels: 'https://www.phoenixopendata.com/dataset/parcels.json',
-    roads: 'https://www.phoenixopendata.com/dataset/streets.json',
-    utilities: 'https://www.phoenixopendata.com/dataset/utilities.json'
+  miami: {
+    parcels: 'https://gisportal.miamidade.gov/arcgis/rest/services/CommunityMaps/Parcels/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson',
+    roads: 'https://gisportal.miamidade.gov/arcgis/rest/services/Transportation/Streets/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson',
+    utilities: 'https://gisportal.miamidade.gov/arcgis/rest/services/Utilities/Water/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson'
   },
-  cuyahoga: {
-    parcels: 'https://opendata.arcgis.com/datasets/cuyahogacounty::parcels.geojson',
-    roads: 'https://opendata.arcgis.com/datasets/cuyahogacounty::centerline.geojson',
-    utilities: 'https://opendata.arcgis.com/datasets/cuyahogacounty::utilities.geojson'
-  },
-  'orange-fl': {
-    parcels: 'https://services1.arcgis.com/NkWDB5HNHlGOz4FW/arcgis/rest/services/Parcels/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson',
-    roads: 'https://services1.arcgis.com/NkWDB5HNHlGOz4FW/arcgis/rest/services/Roads/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson',
-    utilities: 'https://services1.arcgis.com/NkWDB5HNHlGOz4FW/arcgis/rest/services/Utilities/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson'
-  },
-  'hillsborough-fl': {
-    parcels: 'https://gis-hillsboroughcounty.opendata.arcgis.com/datasets/hillsboroughcounty::parcels.geojson',
-    roads: 'https://gis-hillsboroughcounty.opendata.arcgis.com/datasets/hillsboroughcounty::centerline.geojson',
-    utilities: 'https://gis-hillsboroughcounty.opendata.arcgis.com/datasets/hillsboroughcounty::utilities.geojson'
+  dallas: {
+    parcels: 'https://gis.dallascityhall.com/arcgis/rest/services/Open_Data/Parcels/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson',
+    roads: 'https://gis.dallascityhall.com/arcgis/rest/services/Open_Data/Streets/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson', 
+    utilities: 'https://gis.dallascityhall.com/arcgis/rest/services/Open_Data/Water/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson'
   }
 };
 
@@ -70,11 +59,9 @@ const LOCATION_INFO = {
   nyc: { name: 'New York City', state: 'NY' },
   la: { name: 'Los Angeles', state: 'CA' },
   chicago: { name: 'Chicago', state: 'IL' },
-  houston: { name: 'Houston', state: 'TX' },
-  phoenix: { name: 'Phoenix', state: 'AZ' },
-  cuyahoga: { name: 'Cuyahoga County', state: 'OH' },
-  'orange-fl': { name: 'Orange County', state: 'FL' },
-  'hillsborough-fl': { name: 'Hillsborough County', state: 'FL' }
+  boston: { name: 'Boston', state: 'MA' },
+  miami: { name: 'Miami', state: 'FL' },
+  dallas: { name: 'Dallas', state: 'TX' }
 };
 
 // Enhanced data fetching with retry logic and validation
@@ -329,7 +316,6 @@ serve(async (req) => {
             geometry_data: processedData,
             feature_count: processedData.features.length,
             data_size: dataSize,
-            last_updated: new Date().toISOString(),
             status: 'active',
             metadata: {
               ...layer.metadata,
@@ -388,4 +374,4 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
-});
+})
