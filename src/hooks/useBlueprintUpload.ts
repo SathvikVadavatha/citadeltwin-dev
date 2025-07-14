@@ -1,11 +1,9 @@
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useBlueprintFileUpload } from './blueprint/useBlueprintFileUpload';
-import { useNonBlockingProcessing } from './blueprint/useNonBlockingProcessing';
 import { useBlueprintAnalysis } from './blueprint/useBlueprintAnalysis';
-import { useState } from 'react';
 
 interface Generated3DModel {
   id: string;
@@ -33,149 +31,93 @@ interface UploadResult {
 export const useBlueprintUpload = () => {
   const { toast } = useToast();
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const [generating3D, setGenerating3D] = useState(false);
   
   const { uploading, uploadProgress, uploadFile } = useBlueprintFileUpload();
-  const { 
-    processing, 
-    generating3D, 
-    processingMethod, 
-    errorMessage, 
-    processBlueprint,
-    cancelProcessing,
-    canCancel,
-    isOpenCVReady,
-    openCVState,
-    retryOpenCV
-  } = useNonBlockingProcessing();
-  const { enhancedAnalyzing, performEnhancedAnalysis } = useBlueprintAnalysis();
+  const { analyzing, analysisResult, analyzeBlueprint, clearAnalysis } = useBlueprintAnalysis();
+  
+  // Alias for backward compatibility
+  const enhancedAnalyzing = analyzing;
 
   const handleFileUpload = useCallback(async (file: File) => {
     try {
-      console.log('🚀 Starting enhanced upload workflow for:', file.name, {
-        size: `${(file.size / 1024).toFixed(1)} KB`,
-        type: file.type,
-        openCVReady: isOpenCVReady,
-        openCVStatus: openCVState?.status
-      });
+      console.log('🚀 Starting blueprint analysis workflow for:', file.name);
       
-      // Step 1: Upload file with enhanced error handling
-      console.log('📤 Step 1: Uploading file to secure storage...');
+      // Step 1: Upload file to storage
+      setProcessing(true);
       const uploadData = await uploadFile(file);
       if (!uploadData) {
-        throw new Error('File upload to storage failed - please check your internet connection and try again');
+        throw new Error('File upload failed');
       }
 
-      console.log('✅ File uploaded successfully, starting processing...', {
-        uploadId: uploadData.uploadRecord.id,
-        publicUrl: uploadData.publicUrl.substring(0, 100) + '...'
-      });
+      console.log('✅ File uploaded successfully, starting analysis...');
       
-      // Step 2: Process blueprint with enhanced error handling
-      console.log('🔍 Step 2: Starting computer vision processing...');
-      let detectedObjects;
-      try {
-        detectedObjects = await processBlueprint(uploadData.uploadRecord.id, uploadData.publicUrl);
-        console.log('✅ Processing complete, objects detected:', detectedObjects?.length || 0, {
-          processingMethod: processingMethod || 'unknown'
-        });
-      } catch (processingError) {
-        const errorMessage = processingError instanceof Error ? processingError.message : 'Unknown processing error';
-        console.error('❌ Blueprint processing failed:', processingError);
-        
-        // Provide more specific error messages
-        if (errorMessage.includes('OpenCV')) {
-          throw new Error(`Computer vision processing failed: ${errorMessage}. Your blueprint will be processed using geometric analysis instead.`);
-        } else if (errorMessage.includes('network') || errorMessage.includes('timeout')) {
-          throw new Error(`Network error during processing: ${errorMessage}. Please check your internet connection and try again.`);
-        } else {
-          throw new Error(`Blueprint processing failed: ${errorMessage}`);
-        }
-      }
+      // Step 2: Analyze blueprint with Gemini AI
+      console.log('🔍 Starting Gemini AI blueprint analysis...');
+      const structuredData = await analyzeBlueprint(file);
       
-      if (!detectedObjects || detectedObjects.length === 0) {
-        throw new Error('No architectural elements could be detected from the blueprint. Please ensure your image shows a clear floor plan with visible walls, rooms, or architectural elements.');
+      if (!structuredData) {
+        throw new Error('Blueprint analysis failed');
       }
 
-      console.log('Starting enhanced analysis...');
+      console.log('✅ Analysis complete, generating 3D model...');
       
-      // Step 3: Enhanced analysis (optional, continues on failure)
-      let analysisData;
-      try {
-        analysisData = await performEnhancedAnalysis(
-          uploadData.publicUrl,
-          uploadData.uploadRecord.id,
-          detectedObjects
-        );
-        console.log('Enhanced analysis complete');
-      } catch (analysisError) {
-        console.error('Enhanced analysis failed:', analysisError);
-        analysisData = null;
-      }
-
-      console.log('Generating 3D model...');
-
-      // Step 4: Generate basic 3D model data (simplified for now)
+      // Step 3: Generate 3D model data
+      setGenerating3D(true);
       const generated3DModels = [{
         id: uploadData.uploadRecord.id + '_model',
         model_name: `Model for ${file.name}`,
-        model_description: 'Generated 3D model from blueprint analysis',
+        model_description: 'Generated 3D model from Gemini AI analysis',
         model_file_path: 'placeholder.glb',
         file_size: 2048,
         generation_status: 'completed',
         processing_time_ms: 3000
       }];
 
-      console.log('All processing complete, setting results...');
-
-      // Step 5: Set final results
-      const finalProcessingMethod = processingMethod || 'opencv';
-      
+      // Step 4: Set final results with structured data
       const finalResult: UploadResult = {
         id: uploadData.uploadRecord.id,
         filename: file.name,
-        detectedObjects,
+        detectedObjects: structuredData.elements,
         imageUrl: uploadData.publicUrl,
-        processingTime: 5000,
-        generated3DModels: generated3DModels || [],
-        floorPlanData: analysisData?.floorPlanData,
-        geminiAnalysis: analysisData?.geminiAnalysis,
-        processingMethod: finalProcessingMethod,
-        errorMessage
+        processingTime: structuredData.qualityMetrics.processingTime,
+        generated3DModels,
+        floorPlanData: {
+          rooms: structuredData.rooms,
+          scale: structuredData.scale,
+          metadata: structuredData.metadata
+        },
+        geminiAnalysis: structuredData,
+        processingMethod: 'ai'
       };
 
       setUploadResult(finalResult);
 
       toast({
-        title: "Upload Complete",
-        description: `Successfully processed ${file.name} with ${detectedObjects.length} architectural elements detected.`,
+        title: "Analysis Complete",
+        description: `Successfully analyzed ${file.name} with ${structuredData.elements.length} elements and ${structuredData.rooms.length} rooms detected.`,
       });
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred during processing.";
+      const errorMessage = error instanceof Error ? error.message : "Analysis failed";
       
-      // Skip error handling if user cancelled
-      if (errorMessage.includes('cancelled')) {
-        return;
-      }
-      
-      console.error('💥 Upload workflow error:', error, {
-        fileName: file.name,
-        fileSize: file.size,
-        processingMethod: processingMethod || 'unknown',
-        openCVReady: isOpenCVReady,
-        openCVStatus: openCVState?.status
-      });
+      console.error('💥 Blueprint analysis error:', error);
       
       toast({
-        title: "Processing Failed",
+        title: "Analysis Failed",
         description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setProcessing(false);
+      setGenerating3D(false);
     }
-  }, [uploadFile, processBlueprint, performEnhancedAnalysis, toast, processingMethod, errorMessage]);
+  }, [uploadFile, analyzeBlueprint, toast]);
 
   const resetUpload = () => {
     setUploadResult(null);
+    clearAnalysis();
   };
 
   const download3DModel = async (model: Generated3DModel) => {
@@ -219,12 +161,6 @@ export const useBlueprintUpload = () => {
     uploadResult,
     uploadFile: handleFileUpload,
     resetUpload,
-    download3DModel,
-    cancelProcessing,
-    canCancel,
-    retryOpenCV,
-    // OpenCV state
-    isOpenCVReady,
-    openCVState
+    download3DModel
   };
 };
