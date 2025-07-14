@@ -4,6 +4,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useBlueprintFileUpload } from './blueprint/useBlueprintFileUpload';
 import { useBlueprintAnalysis } from './blueprint/useBlueprintAnalysis';
+import { useIfcGeneration } from './useIfcGeneration';
 
 interface Generated3DModel {
   id: string;
@@ -36,6 +37,7 @@ export const useBlueprintUpload = () => {
   
   const { uploading, uploadProgress, uploadFile } = useBlueprintFileUpload();
   const { analyzing, analysisResult, analyzeBlueprint, clearAnalysis } = useBlueprintAnalysis();
+  const { generating: generatingIfc, generateIfc, downloadIfc, currentJob } = useIfcGeneration();
   
   // Alias for backward compatibility
   const enhancedAnalyzing = analyzing;
@@ -152,15 +154,36 @@ export const useBlueprintUpload = () => {
     }
   };
 
+  const generateIfcModel = useCallback(async (options = {}) => {
+    if (!uploadResult?.geminiAnalysis || !uploadResult?.id) {
+      toast({
+        title: "Cannot Generate IFC",
+        description: "No blueprint analysis data available",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    return await generateIfc(
+      uploadResult.id,
+      uploadResult.geminiAnalysis,
+      options
+    );
+  }, [uploadResult, generateIfc, toast]);
+
   return {
     uploading,
     processing,
     enhancedAnalyzing,
     generating3D,
+    generatingIfc,
     uploadProgress,
     uploadResult,
     uploadFile: handleFileUpload,
     resetUpload,
-    download3DModel
+    download3DModel,
+    generateIfcModel,
+    downloadIfc,
+    currentIfcJob: currentJob
   };
 };
