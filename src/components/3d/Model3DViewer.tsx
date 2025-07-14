@@ -42,7 +42,11 @@ const DefaultScene = () => {
         <meshStandardMaterial color="#e8f4fd" roughness={0.7} metalness={0.1} />
       </mesh>
       
-      {/* Roof removed for open floor plan view */}
+      {/* Roof */}
+      <mesh position={[0, 2.25, 0]} castShadow>
+        <coneGeometry args={[3.8, 1.5, 4]} />
+        <meshStandardMaterial color="#8b4513" roughness={0.9} metalness={0.0} />
+      </mesh>
       
       {/* Front Door */}
       <mesh position={[2.6, -0.5, 0]} castShadow>
@@ -101,170 +105,52 @@ const DefaultScene = () => {
 const Model3D = ({ url }: { url: string }) => {
   const meshRef = useRef<THREE.Group>(null);
   const [hasError, setHasError] = useState(false);
-  const [loadingState, setLoadingState] = useState<'loading' | 'success' | 'error'>('loading');
-  const [errorMessage, setErrorMessage] = useState<string>('');
-
-  console.log('🏗️ Model3D: Attempting to load model from URL:', url);
-
-  // Validate URL format first
-  const isValidUrl = url && (url.startsWith('http') || url.startsWith('https'));
-  if (!isValidUrl) {
-    console.error('❌ Invalid model URL:', url);
-    if (loadingState !== 'error') {
-      setLoadingState('error');
-      setErrorMessage('Invalid model URL format');
-    }
-    return <DefaultScene />;
-  }
-
-  // Test model URL accessibility before attempting to load
-  useEffect(() => {
-    const testModelAccess = async () => {
-      try {
-        console.log('🔍 Testing model URL accessibility:', url);
-        const response = await fetch(url, { method: 'HEAD' });
-        console.log('📊 Model URL response:', {
-          status: response.status,
-          headers: Object.fromEntries(response.headers.entries()),
-          url
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Model file not accessible: ${response.status} ${response.statusText}`);
-        }
-      } catch (err) {
-        console.error('❌ Model URL accessibility test failed:', err);
-        setLoadingState('error');
-        setErrorMessage(`Model file not accessible: ${err instanceof Error ? err.message : 'Unknown error'}`);
-        setHasError(true);
-        return;
-      }
-    };
-
-    if (url && isValidUrl) {
-      testModelAccess();
-    }
-  }, [url, isValidUrl]);
-
+  
   let gltf;
+  let loadError = false;
+  
   try {
-    console.log('📥 useGLTF: Loading model...');
     gltf = useGLTF(url);
-    console.log('✅ useGLTF: Model loaded successfully', gltf);
-    
-    // Set success state when model loads
-    if (loadingState !== 'success' && gltf?.scene) {
-      setLoadingState('success');
-      setHasError(false);
-      console.log('🎯 Model scene available:', {
-        children: gltf.scene.children.length,
-        type: gltf.scene.type,
-        userData: gltf.scene.userData
-      });
-    }
   } catch (err) {
-    console.error('❌ useGLTF: Error loading 3D model:', err);
-    console.error('❌ Error details:', {
-      message: err instanceof Error ? err.message : 'Unknown error',
-      url,
-      stack: err instanceof Error ? err.stack : undefined
-    });
-    
-    if (loadingState !== 'error') {
-      setLoadingState('error');
-      setErrorMessage(err instanceof Error ? err.message : 'Failed to load 3D model');
-      setHasError(true);
-    }
+    console.error('Error loading 3D model:', err);
+    loadError = true;
   }
 
   useFrame(() => {
-    if (meshRef.current && !hasError && gltf?.scene) {
+    if (meshRef.current && !hasError && !loadError) {
       meshRef.current.rotation.y += 0.005;
     }
   });
 
   useEffect(() => {
-    if (hasError || loadingState === 'error') {
-      console.log('🔄 Model3D: Using fallback scene due to error');
+    if (loadError) {
+      setHasError(true);
       return;
     }
 
-    if (gltf?.scene && loadingState === 'success') {
+    if (gltf?.scene) {
       try {
-        console.log('🎯 Model3D: Processing loaded 3D model scene');
-        
-        // Clone the scene to avoid modifying the original
-        const clonedScene = gltf.scene.clone();
-        
-        const box = new THREE.Box3().setFromObject(clonedScene);
+        const box = new THREE.Box3().setFromObject(gltf.scene);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
-        
-        console.log('📐 Model dimensions:', {
-          size: { x: size.x.toFixed(2), y: size.y.toFixed(2), z: size.z.toFixed(2) },
-          center: { x: center.x.toFixed(2), y: center.y.toFixed(2), z: center.z.toFixed(2) }
-        });
         
         const maxDim = Math.max(size.x, size.y, size.z);
         const scale = maxDim > 0 ? 3 / maxDim : 1;
         
-        console.log('🔧 Applying scale factor:', scale.toFixed(2));
-        
-        clonedScene.scale.setScalar(scale);
-        clonedScene.position.sub(center.multiplyScalar(scale));
-        clonedScene.position.y = 0; // Ensure model sits on ground
-        
-        console.log('✅ Model3D: Scene processed successfully');
+        gltf.scene.scale.setScalar(scale);
+        gltf.scene.position.sub(center.multiplyScalar(scale));
       } catch (err) {
-        console.error('❌ Error processing 3D model scene:', err);
+        console.error('Error processing 3D model:', err);
         setHasError(true);
-        setLoadingState('error');
-        setErrorMessage('Failed to process 3D model geometry');
       }
     }
-  }, [gltf, hasError, loadingState]);
+  }, [gltf, loadError]);
 
-  // Show error state with useful information
-  if (hasError || loadingState === 'error') {
-    console.log('🎭 Showing fallback scene. Error:', errorMessage);
-    return (
-      <>
-        <DefaultScene />
-        <Html center>
-          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 max-w-sm">
-            <p className="text-destructive text-sm font-medium mb-1">3D Model Load Failed</p>
-            <p className="text-destructive/80 text-xs mb-2">{errorMessage}</p>
-            <p className="text-muted-foreground text-xs">Using fallback architectural model</p>
-          </div>
-        </Html>
-      </>
-    );
+  if (hasError || loadError) {
+    return <DefaultScene />;
   }
 
-  // Show loading state
-  if (loadingState === 'loading' || !gltf?.scene) {
-    return (
-      <>
-        <DefaultScene />
-        <Html center>
-          <div className="bg-primary/10 border border-primary/20 rounded-lg p-3">
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <span className="text-primary text-sm">Loading 3D model...</span>
-            </div>
-          </div>
-        </Html>
-      </>
-    );
-  }
-
-  // Render the loaded model
-  console.log('🎨 Rendering loaded 3D model');
-  return gltf?.scene ? (
-    <primitive ref={meshRef} object={gltf.scene.clone()} />
-  ) : (
-    <DefaultScene />
-  );
+  return gltf?.scene ? <primitive ref={meshRef} object={gltf.scene} /> : <DefaultScene />;
 };
 
 const LoadingFallback = () => (

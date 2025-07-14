@@ -3,10 +3,9 @@ import React from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Upload, Loader2, Zap, Brain, Box, CheckCircle, AlertCircle, Cpu, Search, X } from "lucide-react";
+import { Upload, Loader2, Zap, Brain, Box, CheckCircle, AlertCircle, Cpu, Search } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { ProcessingStatusPanel } from "./ProcessingStatusPanel";
-import { OpenCVStatusIndicator } from "./OpenCVStatusIndicator";
 
 interface UploadFormProps {
   uploading: boolean;
@@ -14,15 +13,10 @@ interface UploadFormProps {
   enhancedAnalyzing: boolean;
   generating3D: boolean;
   uploadProgress: number;
-  processingMethod?: 'opencv' | 'ai' | 'fallback' | null;
+  processingMethod?: 'ai' | 'fallback' | null;
   errorMessage?: string;
   onFileUpload: (file: File) => void;
   onRetry?: () => void;
-  onCancel?: () => void;
-  canCancel?: boolean;
-  // OpenCV props
-  isOpenCVReady?: boolean;
-  openCVState?: any;
 }
 
 export const UploadForm: React.FC<UploadFormProps> = ({
@@ -34,11 +28,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   processingMethod,
   errorMessage,
   onFileUpload,
-  onRetry,
-  onCancel,
-  canCancel,
-  isOpenCVReady,
-  openCVState
+  onRetry
 }) => {
   const { toast } = useToast();
 
@@ -111,7 +101,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   // Enhanced step descriptions
   const getCurrentStep = () => {
     if (uploading) return "Uploading blueprint to secure cloud storage...";
-    if (processing) return "🔍 Analyzing blueprint with OpenCV computer vision...";
+    if (processing) return "🤖 Analyzing blueprint with Gemini AI vision...";
     if (enhancedAnalyzing) return "🔍 Performing enhanced architectural analysis...";
     if (generating3D) return "🏗️ Generating detailed 3D model...";
     return "";
@@ -120,8 +110,8 @@ export const UploadForm: React.FC<UploadFormProps> = ({
   // Enhanced step details
   const getCurrentStepDetails = () => {
     if (uploading) return "Securing your blueprint data with enterprise-grade encryption";
-    if (processing) return "OpenCV detecting rooms, walls, doors, windows, and fixtures";
-    if (enhancedAnalyzing) return "Computer vision algorithms analyzing structural elements";
+    if (processing) return "AI is detecting rooms, walls, doors, windows, and fixtures";
+    if (enhancedAnalyzing) return "Deep learning models analyzing structural elements";
     if (generating3D) return "Creating parametric 3D model with architectural details";
     return "";
   };
@@ -234,13 +224,6 @@ export const UploadForm: React.FC<UploadFormProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* OpenCV Status Indicator */}
-      <OpenCVStatusIndicator
-        isReady={isOpenCVReady || false}
-        loadingState={openCVState || { isLoading: false, progress: 0, status: 'initializing' }}
-        onRetry={onRetry}
-      />
-      
       <Card className="border-2 hover:border-primary/20 transition-colors">
         <CardContent className="pt-6">
         <div
@@ -268,17 +251,8 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                     value={getOverallProgress()} 
                     className="mt-2 h-3"
                   />
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>{Math.round(getOverallProgress())}% complete</span>
-                    {canCancel && onCancel && (
-                      <button
-                        onClick={onCancel}
-                        className="flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors"
-                      >
-                        <X className="h-3 w-3" />
-                        Cancel
-                      </button>
-                    )}
+                  <div className="text-sm text-muted-foreground">
+                    {Math.round(getOverallProgress())}% complete
                   </div>
                 </div>
                 <div className="flex justify-center space-x-6 text-sm">
@@ -291,7 +265,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                   <div className={getStepStatus('process').style}>
                     <div className={getStepStatus('process').color}>
                       {getStepStatus('process').icon}
-                      <span>CV Process</span>
+                      <span>AI Process</span>
                     </div>
                   </div>
                   <div className={getStepStatus('analyze').style}>
@@ -325,7 +299,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                 <p>📏 Size limit: 10MB maximum</p>
                 <div className="flex items-center justify-center gap-2 text-primary font-semibold mt-4 p-3 bg-primary/5 rounded-lg">
                   <Brain className="h-5 w-5" />
-                  <span>Enhanced with OpenCV Computer Vision for architectural analysis!</span>
+                  <span>Enhanced with Gemini AI for architectural analysis!</span>
                 </div>
               </div>
             </div>

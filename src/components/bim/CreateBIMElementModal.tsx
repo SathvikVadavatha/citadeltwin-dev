@@ -260,7 +260,7 @@ export const CreateBIMElementModal = ({
                         <Input
                           type="number"
                           step="0.01"
-                          placeholder="Length (m)"
+                          placeholder="Length"
                           value={geometryParams.length}
                           onChange={(e) => setGeometryParams(prev => ({ ...prev, length: parseFloat(e.target.value) || 0 }))}
                           className="cyber-button"
@@ -268,7 +268,7 @@ export const CreateBIMElementModal = ({
                         <Input
                           type="number"
                           step="0.01"
-                          placeholder="Width (m)"
+                          placeholder="Width"
                           value={geometryParams.width}
                           onChange={(e) => setGeometryParams(prev => ({ ...prev, width: parseFloat(e.target.value) || 0 }))}
                           className="cyber-button"
@@ -276,7 +276,7 @@ export const CreateBIMElementModal = ({
                         <Input
                           type="number"
                           step="0.01"
-                          placeholder="Height (m)"
+                          placeholder="Height"
                           value={geometryParams.height}
                           onChange={(e) => setGeometryParams(prev => ({ ...prev, height: parseFloat(e.target.value) || 0 }))}
                           className="cyber-button"

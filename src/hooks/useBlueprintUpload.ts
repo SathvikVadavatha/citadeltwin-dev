@@ -1,10 +1,11 @@
 
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useBlueprintFileUpload } from './blueprint/useBlueprintFileUpload';
+import { useBlueprintProcessing } from './blueprint/useBlueprintProcessing';
 import { useBlueprintAnalysis } from './blueprint/useBlueprintAnalysis';
-import { useIfcGeneration } from './useIfcGeneration';
+import { useState } from 'react';
 
 interface Generated3DModel {
   id: string;
@@ -25,101 +26,114 @@ interface UploadResult {
   generated3DModels?: Generated3DModel[];
   floorPlanData?: any;
   geminiAnalysis?: any;
-  processingMethod?: 'opencv' | 'ai' | 'fallback';
+  processingMethod?: 'ai' | 'fallback';
   errorMessage?: string;
 }
 
 export const useBlueprintUpload = () => {
   const { toast } = useToast();
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
-  const [processing, setProcessing] = useState(false);
-  const [generating3D, setGenerating3D] = useState(false);
   
   const { uploading, uploadProgress, uploadFile } = useBlueprintFileUpload();
-  const { analyzing, analysisResult, analyzeBlueprint, clearAnalysis } = useBlueprintAnalysis();
-  const { generating: generatingIfc, generateIfc, downloadIfc, currentJob } = useIfcGeneration();
-  
-  // Alias for backward compatibility
-  const enhancedAnalyzing = analyzing;
+  const { processing, generating3D, processingMethod, errorMessage, processBlueprint, generate3DModel } = useBlueprintProcessing();
+  const { enhancedAnalyzing, performEnhancedAnalysis } = useBlueprintAnalysis();
 
   const handleFileUpload = useCallback(async (file: File) => {
     try {
-      console.log('🚀 Starting blueprint analysis workflow for:', file.name);
+      console.log('Starting upload workflow for:', file.name);
       
-      // Step 1: Upload file to storage
-      setProcessing(true);
+      // Step 1: Upload file
       const uploadData = await uploadFile(file);
       if (!uploadData) {
         throw new Error('File upload failed');
       }
 
-      console.log('✅ File uploaded successfully, starting analysis...');
+      console.log('File uploaded, starting processing...');
       
-      // Step 2: Analyze blueprint with Gemini AI
-      console.log('🔍 Starting Gemini AI blueprint analysis...');
-      const structuredData = await analyzeBlueprint(file);
+      // Step 2: Process blueprint with Plan2Scene
+      let detectedObjects;
+      try {
+        detectedObjects = await processBlueprint(uploadData.uploadRecord.id, uploadData.publicUrl);
+        console.log('Processing complete, objects detected:', detectedObjects?.length || 0);
+      } catch (processingError) {
+        console.error('Processing failed:', processingError);
+        throw new Error(`Blueprint processing failed: ${processingError instanceof Error ? processingError.message : 'Unknown error'}`);
+      }
       
-      if (!structuredData) {
-        throw new Error('Blueprint analysis failed');
+      if (!detectedObjects) {
+        throw new Error('No objects detected from blueprint');
       }
 
-      console.log('✅ Analysis complete, generating 3D model...');
+      console.log('Starting enhanced analysis...');
       
-      // Step 3: Generate 3D model data
-      setGenerating3D(true);
-      const generated3DModels = [{
-        id: uploadData.uploadRecord.id + '_model',
-        model_name: `Model for ${file.name}`,
-        model_description: 'Generated 3D model from Gemini AI analysis',
-        model_file_path: 'placeholder.glb',
-        file_size: 2048,
-        generation_status: 'completed',
-        processing_time_ms: 3000
-      }];
+      // Step 3: Enhanced analysis (optional, continues on failure)
+      let analysisData;
+      try {
+        analysisData = await performEnhancedAnalysis(
+          uploadData.publicUrl,
+          uploadData.uploadRecord.id,
+          detectedObjects
+        );
+        console.log('Enhanced analysis complete');
+      } catch (analysisError) {
+        console.error('Enhanced analysis failed:', analysisError);
+        analysisData = null;
+      }
 
-      // Step 4: Set final results with structured data
+      console.log('Generating 3D model...');
+
+      // Step 4: Generate 3D model (optional, continues on failure)
+      let generated3DModels;
+      try {
+        generated3DModels = await generate3DModel(
+          uploadData.uploadRecord.id,
+          detectedObjects,
+          uploadData.publicUrl
+        );
+        console.log('3D model generation complete, models:', generated3DModels?.length || 0);
+      } catch (modelError) {
+        console.error('3D model generation failed:', modelError);
+        generated3DModels = [];
+      }
+
+      console.log('All processing complete, setting results...');
+
+      // Step 5: Set final results
+      const normalizedProcessingMethod = processingMethod === 'text-ai' || processingMethod === 'text-fallback' ? 'ai' : processingMethod;
+      
       const finalResult: UploadResult = {
         id: uploadData.uploadRecord.id,
         filename: file.name,
-        detectedObjects: structuredData.elements,
+        detectedObjects,
         imageUrl: uploadData.publicUrl,
-        processingTime: structuredData.qualityMetrics.processingTime,
-        generated3DModels,
-        floorPlanData: {
-          rooms: structuredData.rooms,
-          scale: structuredData.scale,
-          metadata: structuredData.metadata
-        },
-        geminiAnalysis: structuredData,
-        processingMethod: 'ai'
+        processingTime: 8000,
+        generated3DModels: generated3DModels || [],
+        floorPlanData: analysisData?.floorPlanData,
+        geminiAnalysis: analysisData?.geminiAnalysis,
+        processingMethod: normalizedProcessingMethod,
+        errorMessage
       };
 
       setUploadResult(finalResult);
 
+      const processingMethodText = processingMethod === 'ai' ? 'Gemini AI' : 'Enhanced Sample Data';
       toast({
-        title: "Analysis Complete",
-        description: `Successfully analyzed ${file.name} with ${structuredData.elements.length} elements and ${structuredData.rooms.length} rooms detected.`,
+        title: "Upload Complete",
+        description: `Successfully processed ${file.name} using ${processingMethodText} with ${detectedObjects.length} elements detected.`,
       });
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Analysis failed";
-      
-      console.error('💥 Blueprint analysis error:', error);
-      
+      console.error('Upload workflow error:', error);
       toast({
-        title: "Analysis Failed",
-        description: errorMessage,
+        title: "Processing Failed",
+        description: error instanceof Error ? error.message : "An error occurred during processing.",
         variant: "destructive",
       });
-    } finally {
-      setProcessing(false);
-      setGenerating3D(false);
     }
-  }, [uploadFile, analyzeBlueprint, toast]);
+  }, [uploadFile, processBlueprint, performEnhancedAnalysis, generate3DModel, toast, processingMethod, errorMessage]);
 
   const resetUpload = () => {
     setUploadResult(null);
-    clearAnalysis();
   };
 
   const download3DModel = async (model: Generated3DModel) => {
@@ -154,36 +168,15 @@ export const useBlueprintUpload = () => {
     }
   };
 
-  const generateIfcModel = useCallback(async (options = {}) => {
-    if (!uploadResult?.geminiAnalysis || !uploadResult?.id) {
-      toast({
-        title: "Cannot Generate IFC",
-        description: "No blueprint analysis data available",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    return await generateIfc(
-      uploadResult.id,
-      uploadResult.geminiAnalysis,
-      options
-    );
-  }, [uploadResult, generateIfc, toast]);
-
   return {
     uploading,
     processing,
     enhancedAnalyzing,
     generating3D,
-    generatingIfc,
     uploadProgress,
     uploadResult,
     uploadFile: handleFileUpload,
     resetUpload,
-    download3DModel,
-    generateIfcModel,
-    downloadIfc,
-    currentIfcJob: currentJob
+    download3DModel
   };
 };

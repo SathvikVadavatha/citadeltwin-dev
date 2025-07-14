@@ -1,1 +1,0 @@
-IMPORTANT: src/hooks/blueprint/useBlueprintProcessing.ts is getting quite long at 693 lines. After this fix, you should consider asking me to refactor it into smaller, more focused modules for better maintainability.

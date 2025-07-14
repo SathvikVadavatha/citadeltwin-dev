@@ -240,30 +240,6 @@ export const useBIMElements = (projectIdOrUploadId?: string, filterType: 'projec
     }
   }, [user, projectIdOrUploadId, filterType]);
 
-  // Real-time syncing
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel('bim-elements-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'bim_elements'
-        },
-        () => {
-          fetchElements();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, projectIdOrUploadId, filterType]);
-
   return {
     elements,
     loading,

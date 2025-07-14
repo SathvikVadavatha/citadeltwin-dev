@@ -6,8 +6,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Model3DViewer } from "@/components/3d/Model3DViewer";
 import { SceneGenerator } from "@/components/3d/SceneGenerator";
-import { IFCGenerationPanel } from "@/components/ifc/IFCGenerationPanel";
-import { useIfcGeneration } from "@/hooks/useIfcGeneration";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Upload, 
@@ -44,7 +42,7 @@ interface UploadResult {
   generated3DModels?: Generated3DModel[];
   floorPlanData?: any;
   geminiAnalysis?: any;
-  processingMethod?: 'opencv' | 'ai' | 'fallback';
+  processingMethod?: 'ai' | 'fallback';
   errorMessage?: string;
 }
 
@@ -59,11 +57,8 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
   onReset,
   onDownload3DModel
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'blueprint' | 'analysis' | '3d-view' | 'ifc-generation'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'blueprint' | 'analysis' | '3d-view'>('overview');
   const [imageError, setImageError] = useState(false);
-  
-  // IFC Generation hook
-  const { generating: generatingIfc, generateIfc, downloadIfc, currentJob } = useIfcGeneration();
 
   console.log('UploadResults received:', uploadResult);
 
@@ -84,33 +79,9 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
     console.log('Image loaded successfully:', uploadResult.imageUrl);
   };
 
-  // Handle IFC generation
-  const handleGenerateIfc = async (options = {}) => {
-    if (!uploadResult?.geminiAnalysis || !uploadResult?.id) {
-      console.error('No blueprint analysis data available for IFC generation');
-      return;
-    }
-
-    return await generateIfc(
-      uploadResult.id,
-      uploadResult.geminiAnalysis,
-      options
-    );
-  };
-
-  // Get model URL for 3D viewer with enhanced debug logging
+  // Get model URL for 3D viewer
   const get3DModelUrl = (model: Generated3DModel) => {
-    console.log('🔍 get3DModelUrl Debug:', {
-      model: model ? {
-        id: model.id,
-        name: model.model_name,
-        filePath: model.model_file_path,
-        status: model.generation_status
-      } : null
-    });
-    
     if (!model || model.model_file_path === 'placeholder.glb') {
-      console.log('❌ No valid model or placeholder file');
       return null;
     }
     
@@ -119,35 +90,18 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
       .from('3d-models')
       .getPublicUrl(model.model_file_path);
     
-    console.log('🔗 Generated 3D model URL:', {
-      filePath: model.model_file_path,
-      publicUrl: data.publicUrl,
-      isValid: !!data.publicUrl && data.publicUrl.length > 0
-    });
-    
     return data.publicUrl;
   };
 
   const primary3DModel = uploadResult.generated3DModels?.[0];
   const modelUrl = primary3DModel ? get3DModelUrl(primary3DModel) : null;
   
-  console.log('🎯 3D Model Debug Summary:', {
-    totalModels: uploadResult.generated3DModels?.length || 0,
-    modelDetails: uploadResult.generated3DModels?.map(m => ({
-      name: m.model_name,
-      status: m.generation_status,
-      filePath: m.model_file_path
-    })),
-    primary3DModel: primary3DModel ? {
-      name: primary3DModel.model_name,
-      status: primary3DModel.generation_status,
-      filePath: primary3DModel.model_file_path
-    } : null,
+  console.log('3D Model Debug:', {
+    primary3DModel,
     modelUrl,
     uploadId: uploadResult.id,
     has3DModels,
-    hasFloorPlanData: !!uploadResult.floorPlanData,
-    processingMethod: uploadResult.processingMethod
+    hasFloorPlanData: !!uploadResult.floorPlanData
   });
 
   return (
@@ -173,9 +127,9 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
         <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/50">
           <Brain className="h-4 w-4 text-green-600 dark:text-green-400" />
           <AlertDescription className="text-green-800 dark:text-green-200">
-            <strong>Plan2Scene AI Processing Complete:</strong> Your blueprint was successfully processed using Plan2Scene open-source AI for comprehensive architectural element detection and professional-grade 3D model generation.
+            <strong>Phase 2 Gemini AI Analysis Complete:</strong> Your blueprint was successfully processed using our enhanced AI system with hybrid image and text analysis for comprehensive architectural element detection and professional-grade 3D model generation.
             <div className="mt-2 text-sm opacity-75">
-              Advanced architectural analysis with realistic room layouts, structural elements, and construction-ready specifications.
+              Advanced architectural analysis with building code compliance, realistic materials, and construction-ready specifications.
             </div>
           </AlertDescription>
         </Alert>
@@ -192,7 +146,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                 {isAIGenerated ? (
                   <Badge variant="default" className="bg-gradient-to-r from-green-600 to-blue-600 text-white">
                     <Brain className="h-3 w-3 mr-1" />
-                    Plan2Scene AI
+                    Phase 2 AI Enhanced
                   </Badge>
                 ) : (
                   <Badge variant="secondary" className="bg-gradient-to-r from-orange-100 to-yellow-100 text-orange-800 border-orange-200">
@@ -201,9 +155,9 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                   </Badge>
                 )}
               </CardTitle>
-               <p className="text-muted-foreground mt-1">
+              <p className="text-muted-foreground mt-1">
                 {isAIGenerated 
-                  ? `Plan2Scene AI analysis of ${uploadResult.filename} with architectural element detection`
+                  ? `Phase 2 enhanced AI analysis of ${uploadResult.filename} with hybrid processing`
                   : `Enhanced architectural analysis for ${uploadResult.filename} using intelligent fallback with extracted blueprint data`
                 }
               </p>
@@ -280,15 +234,6 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
           <Box className="h-4 w-4 mr-2" />
           3D View
         </Button>
-        <Button
-          variant={activeTab === 'ifc-generation' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => setActiveTab('ifc-generation')}
-          className="flex-1"
-        >
-          <Building2 className="h-4 w-4 mr-2" />
-          IFC Models
-        </Button>
       </div>
 
       {/* Tab Content */}
@@ -339,10 +284,10 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                   <span>Processing Engine:</span>
                   <Badge variant={isAIGenerated ? "default" : "secondary"} 
                          className={isAIGenerated ? "bg-gradient-to-r from-green-600 to-blue-600" : "bg-gradient-to-r from-orange-100 to-yellow-100"}>
-                     {isAIGenerated ? (
+                    {isAIGenerated ? (
                       <>
                         <Brain className="h-3 w-3 mr-1" />
-                        Plan2Scene AI
+                        Phase 2 Hybrid AI
                       </>
                     ) : (
                       <>
@@ -479,11 +424,11 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                   Enhanced Fallback
                 </Badge>
               )}
-               {isAIGenerated && (
+              {isAIGenerated && (
                 <Badge variant="outline" className="ml-2 text-green-600 border-green-300 bg-green-50">
-                  Plan2Scene AI
+                  Phase 2 Hybrid AI
                 </Badge>
-               )}
+              )}
             </CardTitle>
             </CardHeader>
             <CardContent>
@@ -640,17 +585,6 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
             </Card>
           )}
         </div>
-      )}
-
-      {activeTab === 'ifc-generation' && (
-        <IFCGenerationPanel
-          uploadResult={uploadResult}
-          generatingIfc={generatingIfc}
-          currentIfcJob={currentJob}
-          onGenerateIfc={handleGenerateIfc}
-          onDownloadIfc={downloadIfc}
-          geminiAnalysis={uploadResult.geminiAnalysis}
-        />
       )}
     </div>
   );

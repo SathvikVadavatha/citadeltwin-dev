@@ -1483,53 +1483,6 @@ export type Database = {
         }
         Relationships: []
       }
-      ifc_generation_jobs: {
-        Row: {
-          completed_at: string | null
-          created_at: string
-          error_message: string | null
-          id: string
-          input_data: Json
-          output_file_path: string | null
-          processing_time_ms: number | null
-          status: string
-          upload_id: string
-          user_id: string
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string
-          error_message?: string | null
-          id?: string
-          input_data: Json
-          output_file_path?: string | null
-          processing_time_ms?: number | null
-          status?: string
-          upload_id: string
-          user_id: string
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string
-          error_message?: string | null
-          id?: string
-          input_data?: Json
-          output_file_path?: string | null
-          processing_time_ms?: number | null
-          status?: string
-          upload_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ifc_generation_jobs_upload_id_fkey"
-            columns: ["upload_id"]
-            isOneToOne: false
-            referencedRelation: "blueprint_uploads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ifc_models: {
         Row: {
           created_at: string

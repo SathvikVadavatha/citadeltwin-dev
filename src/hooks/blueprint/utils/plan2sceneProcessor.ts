@@ -12,13 +12,6 @@ interface DetectedObject {
   };
 }
 
-interface Plan2SceneResult {
-  objects: DetectedObject[];
-  isAIGenerated: boolean;
-  resultType: 'full_data' | 'minimal_data' | 'failed';
-  message: string;
-}
-
 interface Plan2SceneRoom {
   type: string;
   bounds: {
@@ -35,13 +28,12 @@ interface Plan2SceneRoom {
   }>;
 }
 
-export const processWithPlan2Scene = async (imageBase64: string, uploadId: string): Promise<Plan2SceneResult> => {
+export const processWithPlan2Scene = async (imageBase64: string, uploadId: string): Promise<DetectedObject[]> => {
   try {
-    console.log('🏗️ Starting Plan2Scene open-source processing for uploadId:', uploadId);
+    console.log('🏗️ Starting Plan2Scene open-source processing...');
     
     // Validate base64 image data
     if (!imageBase64 || imageBase64.length < 100) {
-      console.error('❌ Invalid image data - length:', imageBase64?.length || 0);
       throw new Error('Invalid or empty image data');
     }
 
@@ -49,10 +41,9 @@ export const processWithPlan2Scene = async (imageBase64: string, uploadId: strin
     let cleanImageData = imageBase64;
     if (imageBase64.startsWith('data:image/')) {
       cleanImageData = imageBase64.split(',')[1];
-      console.log('🧹 Cleaned base64 data URL prefix');
     }
 
-    console.log('📤 Calling Plan2Scene processing edge function with data length:', cleanImageData.length);
+    console.log('📤 Calling Plan2Scene processing edge function...');
 
     const { data: plan2sceneResult, error: plan2sceneError } = await supabase.functions.invoke('plan2scene-processor', {
       body: {
@@ -61,62 +52,28 @@ export const processWithPlan2Scene = async (imageBase64: string, uploadId: strin
       }
     });
 
-    console.log('📥 Plan2Scene Edge Function Response Details:', { 
+    console.log('📥 Plan2Scene response received:', { 
       hasData: !!plan2sceneResult, 
-      hasError: !!plan2sceneError,
-      dataKeys: plan2sceneResult ? Object.keys(plan2sceneResult) : [],
-      errorDetails: plan2sceneError
+      hasError: !!plan2sceneError 
     });
 
-    // Add detailed response content logging
-    if (plan2sceneResult) {
-      console.log('📊 Plan2Scene Response Content:', {
-        success: plan2sceneResult.success,
-        hasRooms: !!plan2sceneResult.rooms,
-        roomsCount: plan2sceneResult.rooms?.length || 0,
-        hasWalls: !!plan2sceneResult.walls,
-        wallsCount: plan2sceneResult.walls?.length || 0,
-        message: plan2sceneResult.message,
-        fullResponse: plan2sceneResult
-      });
-    }
-
     if (plan2sceneError) {
-      console.error('❌ Plan2Scene Edge Function Error:', plan2sceneError);
+      console.error('❌ Plan2Scene error:', plan2sceneError);
       throw new Error(`Plan2Scene processing failed: ${plan2sceneError.message || 'Unknown error'}`);
     }
 
-    if (!plan2sceneResult) {
-      console.error('❌ Plan2Scene returned null/undefined result');
-      throw new Error('Plan2Scene returned no data');
+    if (!plan2sceneResult || !plan2sceneResult.success) {
+      console.error('❌ No successful result from Plan2Scene:', plan2sceneResult);
+      throw new Error('Plan2Scene returned no successful results');
     }
 
-    // More flexible success checking - check for any meaningful data
-    const hasRooms = plan2sceneResult.rooms && Array.isArray(plan2sceneResult.rooms) && plan2sceneResult.rooms.length > 0;
-    const hasWalls = plan2sceneResult.walls && Array.isArray(plan2sceneResult.walls) && plan2sceneResult.walls.length > 0;
-    const hasElements = plan2sceneResult.elements && Array.isArray(plan2sceneResult.elements) && plan2sceneResult.elements.length > 0;
+    console.log('✅ Plan2Scene processing successful, converting to detection objects...');
     
-    console.log('📋 Plan2Scene Data Analysis:', {
-      officialSuccess: plan2sceneResult.success,
-      hasRooms,
-      hasWalls, 
-      hasElements,
-      dataAvailable: hasRooms || hasWalls || hasElements
-    });
-
     // Convert Plan2Scene rooms to our DetectedObject format
     const detectedObjects: DetectedObject[] = [];
     
     if (plan2sceneResult.rooms && Array.isArray(plan2sceneResult.rooms)) {
-      console.log(`🏠 Processing ${plan2sceneResult.rooms.length} rooms from Plan2Scene`);
       plan2sceneResult.rooms.forEach((room: Plan2SceneRoom, index: number) => {
-        console.log(`📋 Room ${index + 1}:`, {
-          type: room.type,
-          bounds: room.bounds,
-          confidence: room.confidence,
-          elementsCount: room.elements?.length || 0
-        });
-        
         // Add room as detected object
         detectedObjects.push({
           label: mapRoomTypeToLabel(room.type),
@@ -131,8 +88,7 @@ export const processWithPlan2Scene = async (imageBase64: string, uploadId: strin
 
         // Add room elements (doors, windows, fixtures)
         if (room.elements && Array.isArray(room.elements)) {
-          room.elements.forEach((element, elemIndex) => {
-            console.log(`  🔧 Element ${elemIndex + 1}:`, element);
+          room.elements.forEach((element) => {
             detectedObjects.push({
               label: mapElementTypeToLabel(element.type),
               confidence: room.confidence * 0.9, // Slightly lower confidence for elements
@@ -150,9 +106,7 @@ export const processWithPlan2Scene = async (imageBase64: string, uploadId: strin
 
     // Add structural elements if detected
     if (plan2sceneResult.walls && Array.isArray(plan2sceneResult.walls)) {
-      console.log(`🧱 Processing ${plan2sceneResult.walls.length} walls from Plan2Scene`);
-      plan2sceneResult.walls.forEach((wall: any, wallIndex: number) => {
-        console.log(`  🧱 Wall ${wallIndex + 1}:`, wall);
+      plan2sceneResult.walls.forEach((wall: any) => {
         detectedObjects.push({
           label: "wall",
           confidence: wall.confidence || 0.85,
@@ -166,51 +120,8 @@ export const processWithPlan2Scene = async (imageBase64: string, uploadId: strin
       });
     }
 
-    // Add any direct elements if present
-    if (plan2sceneResult.elements && Array.isArray(plan2sceneResult.elements)) {
-      console.log(`⚙️ Processing ${plan2sceneResult.elements.length} direct elements from Plan2Scene`);
-      plan2sceneResult.elements.forEach((element: any, elemIndex: number) => {
-        console.log(`  ⚙️ Direct Element ${elemIndex + 1}:`, element);
-        detectedObjects.push({
-          label: mapElementTypeToLabel(element.type || 'fixture'),
-          confidence: element.confidence || 0.8,
-          bbox: {
-            x: element.position?.x || element.x || 10,
-            y: element.position?.y || element.y || 10,
-            width: element.size?.width || element.width || 5,
-            height: element.size?.height || element.height || 5
-          }
-        });
-      });
-    }
-
-    // Determine result type and return appropriate response
-    if (detectedObjects.length > 0) {
-      console.log(`✅ Plan2Scene Success! Generated ${detectedObjects.length} detected objects from Plan2Scene results`);
-      console.log('📊 Final Objects Summary:', detectedObjects.map(obj => ({
-        label: obj.label,
-        confidence: obj.confidence.toFixed(2),
-        area: (obj.bbox.width * obj.bbox.height).toFixed(1)
-      })));
-      
-      return {
-        objects: detectedObjects,
-        isAIGenerated: true,
-        resultType: 'full_data',
-        message: `Plan2Scene AI successfully detected ${detectedObjects.length} architectural elements`
-      };
-    } else {
-      // Plan2Scene ran but found no usable data - generate minimal objects but still mark as AI
-      console.warn('⚠️ Plan2Scene completed but found no usable architectural data - generating minimal objects');
-      const minimalObjects = generateMinimalFallbackObjects(uploadId);
-      
-      return {
-        objects: minimalObjects,
-        isAIGenerated: true,
-        resultType: 'minimal_data',
-        message: `Plan2Scene AI completed analysis but found minimal data - generated ${minimalObjects.length} basic architectural elements`
-      };
-    }
+    console.log(`✅ Generated ${detectedObjects.length} detected objects from Plan2Scene results`);
+    return detectedObjects;
 
   } catch (error) {
     console.error('💥 Plan2Scene processing error:', error);
@@ -265,31 +176,4 @@ function mapElementTypeToLabel(elementType: string): string {
   };
   
   return mapping[elementType.toLowerCase()] || 'fixture';
-}
-
-// Generate minimal fallback objects when Plan2Scene returns no usable data
-function generateMinimalFallbackObjects(uploadId: string): DetectedObject[] {
-  console.log('🔄 Generating minimal fallback objects for Plan2Scene');
-  
-  // Create a minimal set of objects to indicate Plan2Scene was attempted
-  const fallbackObjects: DetectedObject[] = [
-    {
-      label: 'room',
-      confidence: 0.75,
-      bbox: { x: 10, y: 10, width: 30, height: 25 }
-    },
-    {
-      label: 'wall',
-      confidence: 0.80,
-      bbox: { x: 5, y: 5, width: 40, height: 3 }
-    },
-    {
-      label: 'door',
-      confidence: 0.70,
-      bbox: { x: 25, y: 8, width: 6, height: 10 }
-    }
-  ];
-  
-  console.log(`📦 Generated ${fallbackObjects.length} minimal Plan2Scene fallback objects`);
-  return fallbackObjects;
 }

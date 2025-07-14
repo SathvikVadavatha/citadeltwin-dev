@@ -166,30 +166,6 @@ export const useIFCModels = (projectId?: string) => {
     }
   }, [user, projectId]);
 
-  // Real-time syncing
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel('ifc-models-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'ifc_models'
-        },
-        () => {
-          fetchModels();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, projectId]);
-
   return {
     models,
     loading,

@@ -4,10 +4,9 @@ import { DetectedObject } from '../types/processingTypes';
 import { generateMockDetectionResults } from './mockDataGenerator';
 
 export interface ProcessingError {
-  type: 'opencv_failure' | 'browser_compatibility' | 'network_timeout' | 'image_processing' | 'conversion_failure' | 'general_error';
+  type: 'plan2scene_failure' | 'conversion_failure' | 'general_error';
   message: string;
   originalError?: Error;
-  category?: string;
 }
 
 export const createProcessingError = (type: ProcessingError['type'], message: string, originalError?: Error): ProcessingError => {
@@ -27,19 +26,17 @@ export const handleProcessingError = (
     createProcessingError('general_error', error.message, error) : 
     error;
 
-  logger.error('❌ Computer vision processing failed, using geometric pattern analysis', 'Error Handler', {
+  logger.error('❌ Processing failed, using enhanced fallback', 'Error Handler', {
     errorType: processingError.type,
     error: processingError.message,
-    category: (processingError as any).category || 'unknown',
     stack: processingError.originalError?.stack?.split('\n').slice(0, 3),
     hasImageCharacteristics: !!imageCharacteristics
   });
   
-  // Generate fallback data using geometric analysis
-  logger.info('🔄 Generating geometric pattern analysis data', 'Error Handler', {
+  // Enhanced fallback generation
+  logger.info('🔄 Generating enhanced fallback data', 'Error Handler', {
     reason: processingError.message.substring(0, 100),
-    imageComplexity: imageCharacteristics?.complexity || 'unknown',
-    fallbackMethod: 'geometric_analysis'
+    imageComplexity: imageCharacteristics?.complexity || 'unknown'
   });
   
   let detectedObjects = generateMockDetectionResults(uploadId);
@@ -58,27 +55,16 @@ export const handleProcessingError = (
     detectedObjects = generateMockDetectionResults(uploadId);
   }
   
-  logger.info('📝 Geometric pattern analysis data generated', 'Error Handler', {
+  logger.info('📝 Enhanced fallback data generated', 'Error Handler', {
     objectsCount: detectedObjects.length,
     reason: processingError.message.substring(0, 100),
     complexity: imageCharacteristics?.complexity || 'unknown',
-    errorType: processingError.type,
-    method: 'geometric_analysis'
+    errorType: processingError.type
   });
-
-  // Create user-friendly error message
-  let userErrorMessage = processingError.message;
-  if (processingError.type === 'opencv_failure') {
-    userErrorMessage = 'Computer vision analysis unavailable - using geometric pattern analysis instead';
-  } else if ((processingError as any).category === 'browser_compatibility') {
-    userErrorMessage = 'Browser compatibility issue - using geometric analysis instead';
-  } else if ((processingError as any).category === 'network_timeout') {
-    userErrorMessage = 'Network timeout - using geometric analysis instead';
-  }
 
   return {
     detectedObjects,
-    errorMessage: userErrorMessage,
+    errorMessage: processingError.message,
     isAIGenerated: false
   };
 };

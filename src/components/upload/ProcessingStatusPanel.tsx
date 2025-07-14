@@ -19,7 +19,7 @@ interface ProcessingStatusPanelProps {
   processing: boolean;
   enhancedAnalyzing: boolean;
   generating3D: boolean;
-  processingMethod?: 'opencv' | 'ai' | 'fallback' | null;
+  processingMethod?: 'ai' | 'fallback' | null;
   errorMessage?: string;
   onRetry?: () => void;
 }
@@ -57,16 +57,16 @@ export const ProcessingStatusPanel: React.FC<ProcessingStatusPanelProps> = ({
           <Bug className="h-5 w-5" />
           Processing Pipeline Status
           {processingMethod && (
-            <Badge variant={processingMethod === 'opencv' ? 'default' : 'secondary'}>
-              {processingMethod === 'opencv' ? (
+            <Badge variant={processingMethod === 'ai' ? 'default' : 'secondary'}>
+              {processingMethod === 'ai' ? (
                 <>
                   <Brain className="h-3 w-3 mr-1" />
-                  OpenCV Computer Vision
+                  Gemini AI
                 </>
               ) : (
                 <>
                   <TestTube className="h-3 w-3 mr-1" />
-                  Geometric Analysis
+                  Enhanced Sample
                 </>
               )}
             </Badge>
@@ -91,14 +91,14 @@ export const ProcessingStatusPanel: React.FC<ProcessingStatusPanelProps> = ({
           <div className={`flex items-center gap-3 p-3 rounded-lg ${processStatus.bgColor}`}>
             <processStatus.icon className={`h-5 w-5 ${processStatus.color}`} />
             <div className="flex-1">
-              <h4 className="font-medium">Computer Vision Analysis</h4>
+              <h4 className="font-medium">AI Blueprint Analysis</h4>
               <p className="text-sm text-muted-foreground">
                 {processing 
-                  ? 'Analyzing blueprint with OpenCV computer vision...' 
-                  : processingMethod === 'opencv'
-                    ? 'OpenCV computer vision analysis completed successfully'
+                  ? 'Analyzing blueprint with Gemini AI vision...' 
+                  : processingMethod === 'ai'
+                    ? 'Gemini AI analysis completed successfully'
                     : processingMethod === 'fallback'
-                      ? 'Using geometric pattern analysis'
+                      ? 'Using enhanced sample data (Gemini AI unavailable)'
                       : 'Waiting for upload completion'
                 }
               </p>
@@ -149,8 +149,8 @@ export const ProcessingStatusPanel: React.FC<ProcessingStatusPanelProps> = ({
               <div className="space-y-2">
                 <p><strong>Processing Note:</strong> {errorMessage}</p>
                 <p className="text-sm">
-                  The system automatically switched to geometric pattern analysis to continue processing your blueprint. 
-                  This method uses mathematical algorithms to detect architectural patterns and elements.
+                  The system automatically switched to enhanced sample data mode to continue processing your blueprint. 
+                  This provides realistic architectural elements for demonstration purposes.
                 </p>
                 {onRetry && (
                   <Button 
@@ -160,7 +160,7 @@ export const ProcessingStatusPanel: React.FC<ProcessingStatusPanelProps> = ({
                     className="mt-2"
                   >
                     <RefreshCw className="h-3 w-3 mr-1" />
-                    Retry Computer Vision
+                    Retry with Gemini AI
                   </Button>
                 )}
               </div>
@@ -173,7 +173,7 @@ export const ProcessingStatusPanel: React.FC<ProcessingStatusPanelProps> = ({
           <Alert className="border-green-200 bg-green-50">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800">
-              <strong>Processing Complete!</strong> Your blueprint has been successfully analyzed and a unique 3D model has been generated using {processingMethod === 'opencv' ? 'OpenCV Computer Vision' : 'geometric pattern analysis'}.
+              <strong>Processing Complete!</strong> Your blueprint has been successfully analyzed and a unique 3D model has been generated using {processingMethod === 'ai' ? 'Gemini AI' : 'enhanced sample data'}.
             </AlertDescription>
           </Alert>
         )}
