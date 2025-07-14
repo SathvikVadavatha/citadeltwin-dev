@@ -6,6 +6,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Model3DViewer } from "@/components/3d/Model3DViewer";
 import { SceneGenerator } from "@/components/3d/SceneGenerator";
+import { IFCGenerationPanel } from "@/components/ifc/IFCGenerationPanel";
+import { useIfcGeneration } from "@/hooks/useIfcGeneration";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Upload, 
@@ -57,8 +59,11 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
   onReset,
   onDownload3DModel
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'blueprint' | 'analysis' | '3d-view'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'blueprint' | 'analysis' | '3d-view' | 'ifc-generation'>('overview');
   const [imageError, setImageError] = useState(false);
+  
+  // IFC Generation hook
+  const { generating: generatingIfc, generateIfc, downloadIfc, currentJob } = useIfcGeneration();
 
   console.log('UploadResults received:', uploadResult);
 
@@ -77,6 +82,20 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
   const handleImageLoad = () => {
     setImageError(false);
     console.log('Image loaded successfully:', uploadResult.imageUrl);
+  };
+
+  // Handle IFC generation
+  const handleGenerateIfc = async (options = {}) => {
+    if (!uploadResult?.geminiAnalysis || !uploadResult?.id) {
+      console.error('No blueprint analysis data available for IFC generation');
+      return;
+    }
+
+    return await generateIfc(
+      uploadResult.id,
+      uploadResult.geminiAnalysis,
+      options
+    );
   };
 
   // Get model URL for 3D viewer with enhanced debug logging
@@ -260,6 +279,15 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
         >
           <Box className="h-4 w-4 mr-2" />
           3D View
+        </Button>
+        <Button
+          variant={activeTab === 'ifc-generation' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setActiveTab('ifc-generation')}
+          className="flex-1"
+        >
+          <Building2 className="h-4 w-4 mr-2" />
+          IFC Models
         </Button>
       </div>
 
@@ -612,6 +640,17 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
             </Card>
           )}
         </div>
+      )}
+
+      {activeTab === 'ifc-generation' && (
+        <IFCGenerationPanel
+          uploadResult={uploadResult}
+          generatingIfc={generatingIfc}
+          currentIfcJob={currentJob}
+          onGenerateIfc={handleGenerateIfc}
+          onDownloadIfc={downloadIfc}
+          geminiAnalysis={uploadResult.geminiAnalysis}
+        />
       )}
     </div>
   );
