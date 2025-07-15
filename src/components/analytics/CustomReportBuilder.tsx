@@ -50,7 +50,7 @@ export const CustomReportBuilder: React.FC = () => {
             <FileText className="h-5 w-5 text-cyan-400" />
           </div>
           <div>
-            <CardTitle className="text-lg font-semibold">Custom Report Builder</CardTitle>
+            <CardTitle className="text-xl font-semibold">Custom Report Builder</CardTitle>
             <CardDescription>
               Generate custom reports with specific parameters and data ranges
             </CardDescription>
@@ -103,19 +103,21 @@ export const CustomReportBuilder: React.FC = () => {
                     !dateRange && "text-muted-foreground"
                   )}
                 >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange?.from ? (
-                    dateRange.to ? (
-                      <>
-                        {format(dateRange.from, "LLL dd, y")} -{" "}
-                        {format(dateRange.to, "LLL dd, y")}
-                      </>
+                  <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "MMM dd")} -{" "}
+                          {format(dateRange.to, "MMM dd, yyyy")}
+                        </>
+                      ) : (
+                        format(dateRange.from, "MMM dd, yyyy")
+                      )
                     ) : (
-                      format(dateRange.from, "LLL dd, y")
-                    )
-                  ) : (
-                    <span>Pick a date range</span>
-                  )}
+                      "Pick a date range"
+                    )}
+                  </span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
