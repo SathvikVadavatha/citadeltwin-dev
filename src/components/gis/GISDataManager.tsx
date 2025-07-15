@@ -26,6 +26,7 @@ import { EnvironmentalDataPanel } from "./EnvironmentalDataPanel";
 import { PropertyBoundaryViewer } from "./PropertyBoundaryViewer";
 import { ZoningAnalysisPanel } from "./ZoningAnalysisPanel";
 import { SpatialAnalysisPanel } from "./SpatialAnalysisPanel";
+import { GISTestTrigger } from "@/components/test/GISTestTrigger";
 
 export const GISDataManager = () => {
   const [selectedLocation, setSelectedLocation] = useState<string>("");
@@ -197,6 +198,16 @@ export const GISDataManager = () => {
                   )}
                 </div>
               )}
+
+              <Separator className="my-6 bg-gray-700" />
+              
+              <div className="space-y-4">
+                <h3 className="text-cyan-300 font-medium flex items-center gap-2">
+                  <Zap className="w-4 h-4" />
+                  Test Data Ingestion
+                </h3>
+                <GISTestTrigger />
+              </div>
             </TabsContent>
 
             <TabsContent value="environmental">
