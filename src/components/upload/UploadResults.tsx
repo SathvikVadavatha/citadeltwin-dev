@@ -23,25 +23,12 @@ import {
   RefreshCw
 } from "lucide-react";
 
-interface Generated3DModel {
-  id: string;
-  model_name: string;
-  model_description: string;
-  model_file_path: string;
-  file_size: number;  
-  generation_status: string;
-  processing_time_ms?: number;
-}
-
 interface UploadResult {
   id: string;
   filename: string;
   detectedObjects: any[];
   imageUrl: string;
   processingTime?: number;
-  generated3DModels?: Generated3DModel[];
-  floorPlanData?: any;
-  geminiAnalysis?: any;
   processingMethod?: 'ai' | 'fallback';
   errorMessage?: string;
 }
@@ -49,13 +36,11 @@ interface UploadResult {
 interface UploadResultsProps {
   uploadResult: UploadResult;
   onReset: () => void;
-  onDownload3DModel: (model: Generated3DModel) => void;
 }
 
 export const UploadResults: React.FC<UploadResultsProps> = ({
   uploadResult,
-  onReset,
-  onDownload3DModel
+  onReset
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'blueprint' | 'analysis' | '3d-view'>('overview');
   const [imageError, setImageError] = useState(false);
@@ -63,11 +48,8 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
   console.log('UploadResults received:', uploadResult);
 
   const totalDetectedObjects = uploadResult.detectedObjects?.length || 0;
-  const totalRooms = uploadResult.floorPlanData?.rooms?.length || 0;
-  const totalArea = uploadResult.floorPlanData?.rooms?.reduce((sum: number, room: any) => sum + (room.area || 0), 0) || 0;
   const isAIGenerated = uploadResult.processingMethod === 'ai';
   const isFallback = uploadResult.processingMethod === 'fallback';
-  const has3DModels = uploadResult.generated3DModels && uploadResult.generated3DModels.length > 0;
 
   const handleImageError = () => {
     setImageError(true);
@@ -79,30 +61,6 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
     console.log('Image loaded successfully:', uploadResult.imageUrl);
   };
 
-  // Get model URL for 3D viewer
-  const get3DModelUrl = (model: Generated3DModel) => {
-    if (!model || model.model_file_path === 'placeholder.glb') {
-      return null;
-    }
-    
-    // Get public URL from Supabase storage
-    const { data } = supabase.storage
-      .from('3d-models')
-      .getPublicUrl(model.model_file_path);
-    
-    return data.publicUrl;
-  };
-
-  const primary3DModel = uploadResult.generated3DModels?.[0];
-  const modelUrl = primary3DModel ? get3DModelUrl(primary3DModel) : null;
-  
-  console.log('3D Model Debug:', {
-    primary3DModel,
-    modelUrl,
-    uploadId: uploadResult.id,
-    has3DModels,
-    hasFloorPlanData: !!uploadResult.floorPlanData
-  });
 
   return (
     <div className="space-y-6">
@@ -177,20 +135,14 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
               </div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{totalRooms}</div>
+              <div className="text-2xl font-bold text-green-600">{isAIGenerated ? 'AI' : 'Enhanced'}</div>
               <div className="text-sm text-muted-foreground">
-                {isAIGenerated ? 'Rooms Analyzed' : 'Generated Rooms'}
+                Processing Method
               </div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{Math.round(totalArea)}</div>
-              <div className="text-sm text-muted-foreground">Total Area (ft²)</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">
-                {uploadResult.generated3DModels?.length || 0}
-              </div>
-              <div className="text-sm text-muted-foreground">3D Models</div>
+              <div className="text-2xl font-bold text-purple-600">{uploadResult.processingTime ? (uploadResult.processingTime / 1000).toFixed(1) + 's' : 'N/A'}</div>
+              <div className="text-sm text-muted-foreground">Processing Time</div>
             </div>
           </div>
         </CardContent>
@@ -224,15 +176,6 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
         >
           <Home className="h-4 w-4 mr-2" />
           Analysis
-        </Button>
-        <Button
-          variant={activeTab === '3d-view' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => setActiveTab('3d-view')}
-          className="flex-1"
-        >
-          <Box className="h-4 w-4 mr-2" />
-          3D View
         </Button>
       </div>
 
@@ -301,18 +244,6 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
                   <span>Elements Found:</span>
                   <Badge variant="secondary">{totalDetectedObjects}</Badge>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span>Rooms Detected:</span>
-                  <Badge variant="secondary">{totalRooms}</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>Total Area:</span>
-                  <Badge variant="secondary">{Math.round(totalArea)} ft²</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>3D Models:</span>
-                  <Badge variant="secondary">{uploadResult.generated3DModels?.length || 0}</Badge>
-                </div>
                 {uploadResult.processingTime && (
                   <div className="flex justify-between items-center">
                     <span>Processing Time:</span>
@@ -365,51 +296,6 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
         </Card>
       )}
 
-      {activeTab === '3d-view' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Box className="h-5 w-5" />
-              3D Model Viewer
-              {(has3DModels || uploadResult.floorPlanData) && (
-                <Badge variant="outline" className="ml-2">
-                  Interactive
-                </Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="text-sm text-muted-foreground">
-                <p>Interactive 3D visualization of your blueprint analysis.</p>
-              </div>
-              <div className="h-96 border rounded-lg overflow-hidden">
-                {modelUrl ? (
-                  <Model3DViewer 
-                    modelUrl={modelUrl}
-                    modelName={primary3DModel?.model_name}
-                    uploadId={uploadResult.id}
-                    projectId={uploadResult.id}
-                    onDownload={() => primary3DModel && onDownload3DModel(primary3DModel)}
-                  />
-                ) : uploadResult.floorPlanData?.rooms?.length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="text-sm text-muted-foreground">
-                      <p>Floor plan visualization generated from detected elements.</p>
-                    </div>
-                    <SceneGenerator floorPlanData={uploadResult.floorPlanData} />
-                  </div>
-                ) : (
-                  <Model3DViewer 
-                    uploadId={uploadResult.id}
-                    projectId={uploadResult.id}
-                  />
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {activeTab === 'analysis' && (
         <div className="space-y-6">

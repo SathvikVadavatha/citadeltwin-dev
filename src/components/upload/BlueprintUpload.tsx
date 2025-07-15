@@ -12,13 +12,10 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComple
   const {
     uploading,
     processing,
-    enhancedAnalyzing,
-    generating3D,
     uploadProgress,
     uploadResult,
     uploadFile,
-    resetUpload,
-    download3DModel
+    resetUpload
   } = useBlueprintUpload();
 
   // Call onUploadComplete when upload is finished
@@ -33,7 +30,6 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComple
       <UploadResults
         uploadResult={uploadResult}
         onReset={resetUpload}
-        onDownload3DModel={download3DModel}
       />
     );
   }
@@ -50,8 +46,6 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComple
       <UploadForm
         uploading={uploading}
         processing={processing}
-        enhancedAnalyzing={enhancedAnalyzing}
-        generating3D={generating3D}
         uploadProgress={uploadProgress}
         onFileUpload={uploadFile}
       />

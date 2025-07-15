@@ -15,13 +15,10 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onNavigate }) => {
   const {
     uploading,
     processing,
-    enhancedAnalyzing,
-    generating3D,
     uploadProgress,
     uploadResult,
     uploadFile,
-    resetUpload,
-    download3DModel
+    resetUpload
   } = useBlueprintUpload();
 
   // Show results if we have them
@@ -46,7 +43,6 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onNavigate }) => {
         <UploadResults
           uploadResult={uploadResult}
           onReset={resetUpload}
-          onDownload3DModel={download3DModel}
         />
       </div>
     );
@@ -68,8 +64,6 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onNavigate }) => {
         <UploadForm
           uploading={uploading}
           processing={processing}
-          enhancedAnalyzing={enhancedAnalyzing}
-          generating3D={generating3D}
           uploadProgress={uploadProgress}
           processingMethod={uploadResult?.processingMethod}
           errorMessage={uploadResult?.errorMessage}

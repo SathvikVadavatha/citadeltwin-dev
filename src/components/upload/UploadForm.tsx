@@ -10,8 +10,6 @@ import { ProcessingStatusPanel } from "./ProcessingStatusPanel";
 interface UploadFormProps {
   uploading: boolean;
   processing: boolean;
-  enhancedAnalyzing: boolean;
-  generating3D: boolean;
   uploadProgress: number;
   processingMethod?: 'ai' | 'fallback' | null;
   errorMessage?: string;
@@ -22,8 +20,6 @@ interface UploadFormProps {
 export const UploadForm: React.FC<UploadFormProps> = ({
   uploading,
   processing,
-  enhancedAnalyzing,
-  generating3D,
   uploadProgress,
   processingMethod,
   errorMessage,
@@ -84,35 +80,29 @@ export const UploadForm: React.FC<UploadFormProps> = ({
       'application/pdf': ['.pdf']
     },
     multiple: false,
-    disabled: uploading || processing || enhancedAnalyzing || generating3D
+    disabled: uploading || processing
   });
 
-  const isProcessing = uploading || processing || enhancedAnalyzing || generating3D;
+  const isProcessing = uploading || processing;
 
   // Enhanced progress calculation
   const getOverallProgress = () => {
-    if (uploading) return Math.min(uploadProgress * 0.15, 15); // 0-15% for upload
-    if (processing) return 15 + 45; // 15-60% for AI processing
-    if (enhancedAnalyzing) return 60 + 25; // 60-85% for enhanced analysis
-    if (generating3D) return 85 + 12; // 85-97% for 3D generation
+    if (uploading) return Math.min(uploadProgress * 0.25, 25); // 0-25% for upload
+    if (processing) return 25 + 70; // 25-95% for AI processing
     return 0;
   };
 
   // Enhanced step descriptions
   const getCurrentStep = () => {
     if (uploading) return "Uploading blueprint to secure cloud storage...";
-    if (processing) return "🤖 Analyzing blueprint with Gemini AI vision...";
-    if (enhancedAnalyzing) return "🔍 Performing enhanced architectural analysis...";
-    if (generating3D) return "🏗️ Generating detailed 3D model...";
+    if (processing) return "🤖 Analyzing blueprint with OCR text extraction and object detection...";
     return "";
   };
 
   // Enhanced step details
   const getCurrentStepDetails = () => {
     if (uploading) return "Securing your blueprint data with enterprise-grade encryption";
-    if (processing) return "AI is detecting rooms, walls, doors, windows, and fixtures";
-    if (enhancedAnalyzing) return "Deep learning models analyzing structural elements";
-    if (generating3D) return "Creating parametric 3D model with architectural details";
+    if (processing) return "Extracting text and detecting architectural elements (walls, doors, windows, rooms)";
     return "";
   };
 
@@ -121,17 +111,10 @@ export const UploadForm: React.FC<UploadFormProps> = ({
     if (uploading) return <Upload className="h-8 w-8 mx-auto animate-pulse text-blue-500" />;
     if (processing) return (
       <div className="relative">
-        <Brain className="h-8 w-8 mx-auto text-purple-500" />
+        <Search className="h-8 w-8 mx-auto text-purple-500" />
         <Cpu className="h-4 w-4 absolute -top-1 -right-1 animate-spin text-purple-400" />
       </div>
     );
-    if (enhancedAnalyzing) return (
-      <div className="relative">
-        <Search className="h-8 w-8 mx-auto text-yellow-500" />
-        <Zap className="h-4 w-4 absolute -top-1 -right-1 animate-bounce text-yellow-400" />
-      </div>
-    );
-    if (generating3D) return <Box className="h-8 w-8 mx-auto animate-pulse text-green-500" />;
     return <Loader2 className="h-8 w-8 mx-auto animate-spin text-primary" />;
   };
 
@@ -146,7 +129,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           color: 'text-blue-600 font-medium',
           style: baseStyle + ' scale-105'
         };
-        if (processing || enhancedAnalyzing || generating3D) return { 
+        if (processing) return { 
           icon: <CheckCircle className="h-4 w-4" />, 
           color: 'text-green-600',
           style: baseStyle
@@ -163,49 +146,10 @@ export const UploadForm: React.FC<UploadFormProps> = ({
           color: 'text-purple-600 font-medium',
           style: baseStyle + ' scale-105'
         };
-        if (enhancedAnalyzing || generating3D) return { 
-          icon: <CheckCircle className="h-4 w-4" />, 
-          color: 'text-green-600',
-          style: baseStyle
-        };
         if (uploading) return { 
           icon: <div className="h-4 w-4 rounded-full border-2 border-current" />, 
           color: 'text-gray-400',
           style: baseStyle
-        };
-        return { 
-          icon: <div className="h-4 w-4 rounded-full border-2 border-current" />, 
-          color: 'text-gray-400',
-          style: baseStyle
-        };
-      
-      case 'analyze':
-        if (enhancedAnalyzing) return { 
-          icon: <Loader2 className="h-4 w-4 animate-spin" />, 
-          color: 'text-yellow-600 font-medium',
-          style: baseStyle + ' scale-105'
-        };
-        if (generating3D) return { 
-          icon: <CheckCircle className="h-4 w-4" />, 
-          color: 'text-green-600',
-          style: baseStyle
-        };
-        if (uploading || processing) return { 
-          icon: <div className="h-4 w-4 rounded-full border-2 border-current" />, 
-          color: 'text-gray-400',
-          style: baseStyle
-        };
-        return { 
-          icon: <div className="h-4 w-4 rounded-full border-2 border-current" />, 
-          color: 'text-gray-400',
-          style: baseStyle
-        };
-      
-      case 'generate':
-        if (generating3D) return { 
-          icon: <Loader2 className="h-4 w-4 animate-spin" />, 
-          color: 'text-green-600 font-medium',
-          style: baseStyle + ' scale-105'
         };
         return { 
           icon: <div className="h-4 w-4 rounded-full border-2 border-current" />, 
@@ -265,19 +209,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
                   <div className={getStepStatus('process').style}>
                     <div className={getStepStatus('process').color}>
                       {getStepStatus('process').icon}
-                      <span>AI Process</span>
-                    </div>
-                  </div>
-                  <div className={getStepStatus('analyze').style}>
-                    <div className={getStepStatus('analyze').color}>
-                      {getStepStatus('analyze').icon}
-                      <span>Analyze</span>
-                    </div>
-                  </div>
-                  <div className={getStepStatus('generate').style}>
-                    <div className={getStepStatus('generate').color}>
-                      {getStepStatus('generate').icon}
-                      <span>Generate 3D</span>
+                      <span>Process & Analyze</span>
                     </div>
                   </div>
                 </div>
@@ -313,8 +245,6 @@ export const UploadForm: React.FC<UploadFormProps> = ({
       <ProcessingStatusPanel
         uploading={uploading}
         processing={processing}
-        enhancedAnalyzing={enhancedAnalyzing}
-        generating3D={generating3D}
         processingMethod={processingMethod}
         errorMessage={errorMessage}
         onRetry={onRetry}

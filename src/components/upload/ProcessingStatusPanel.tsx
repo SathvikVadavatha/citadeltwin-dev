@@ -17,8 +17,6 @@ import {
 interface ProcessingStatusPanelProps {
   uploading: boolean;
   processing: boolean;
-  enhancedAnalyzing: boolean;
-  generating3D: boolean;
   processingMethod?: 'ai' | 'fallback' | null;
   errorMessage?: string;
   onRetry?: () => void;
@@ -27,8 +25,6 @@ interface ProcessingStatusPanelProps {
 export const ProcessingStatusPanel: React.FC<ProcessingStatusPanelProps> = ({
   uploading,
   processing,
-  enhancedAnalyzing,
-  generating3D,
   processingMethod,
   errorMessage,
   onRetry
@@ -40,15 +36,11 @@ export const ProcessingStatusPanel: React.FC<ProcessingStatusPanelProps> = ({
     return { icon: Clock, color: 'text-gray-400', bgColor: 'bg-gray-50' };
   };
 
-  const uploadCompleted = !uploading && (processing || enhancedAnalyzing || generating3D || !!processingMethod);
-  const processingCompleted = !processing && (enhancedAnalyzing || generating3D || !!processingMethod);
-  const analysisCompleted = !enhancedAnalyzing && (generating3D || !!processingMethod);
-  const generationCompleted = !generating3D && !!processingMethod;
+  const uploadCompleted = !uploading && (processing || !!processingMethod);
+  const processingCompleted = !processing && !!processingMethod;
 
   const uploadStatus = getStepStatus(uploading, uploadCompleted);
   const processStatus = getStepStatus(processing, processingCompleted, !!errorMessage && processingMethod === 'fallback');
-  const analysisStatus = getStepStatus(enhancedAnalyzing, analysisCompleted);
-  const generationStatus = getStepStatus(generating3D, generationCompleted);
 
   return (
     <Card className="w-full">
@@ -87,18 +79,18 @@ export const ProcessingStatusPanel: React.FC<ProcessingStatusPanelProps> = ({
             </div>
           </div>
 
-          {/* Step 2: AI Processing */}
+          {/* Step 2: Blueprint Processing */}
           <div className={`flex items-center gap-3 p-3 rounded-lg ${processStatus.bgColor}`}>
             <processStatus.icon className={`h-5 w-5 ${processStatus.color}`} />
             <div className="flex-1">
-              <h4 className="font-medium">AI Blueprint Analysis</h4>
+              <h4 className="font-medium">Blueprint Analysis</h4>
               <p className="text-sm text-muted-foreground">
                 {processing 
-                  ? 'Analyzing blueprint with Gemini AI vision...' 
+                  ? 'Extracting text and detecting architectural elements...' 
                   : processingMethod === 'ai'
-                    ? 'Gemini AI analysis completed successfully'
+                    ? 'AI analysis completed successfully'
                     : processingMethod === 'fallback'
-                      ? 'Using enhanced sample data (Gemini AI unavailable)'
+                      ? 'Using enhanced fallback processing'
                       : 'Waiting for upload completion'
                 }
               </p>
@@ -106,38 +98,6 @@ export const ProcessingStatusPanel: React.FC<ProcessingStatusPanelProps> = ({
             {errorMessage && processingMethod === 'fallback' && (
               <AlertTriangle className="h-4 w-4 text-yellow-500" />
             )}
-          </div>
-
-          {/* Step 3: Enhanced Analysis */}
-          <div className={`flex items-center gap-3 p-3 rounded-lg ${analysisStatus.bgColor}`}>
-            <analysisStatus.icon className={`h-5 w-5 ${analysisStatus.color}`} />
-            <div className="flex-1">
-              <h4 className="font-medium">Enhanced Analysis</h4>
-              <p className="text-sm text-muted-foreground">
-                {enhancedAnalyzing 
-                  ? 'Performing deep structural analysis...' 
-                  : analysisCompleted
-                    ? 'Enhanced analysis completed'
-                    : 'Waiting for AI processing'
-                }
-              </p>
-            </div>
-          </div>
-
-          {/* Step 4: 3D Generation */}
-          <div className={`flex items-center gap-3 p-3 rounded-lg ${generationStatus.bgColor}`}>
-            <generationStatus.icon className={`h-5 w-5 ${generationStatus.color}`} />
-            <div className="flex-1">
-              <h4 className="font-medium">3D Model Generation</h4>
-              <p className="text-sm text-muted-foreground">
-                {generating3D 
-                  ? 'Creating unique 3D architectural model...' 
-                  : generationCompleted
-                    ? 'Unique 3D model generated successfully'
-                    : 'Waiting for analysis completion'
-                }
-              </p>
-            </div>
           </div>
         </div>
 
@@ -169,11 +129,11 @@ export const ProcessingStatusPanel: React.FC<ProcessingStatusPanelProps> = ({
         )}
 
         {/* Success Summary */}
-        {processingMethod && !uploading && !processing && !enhancedAnalyzing && !generating3D && (
+        {processingMethod && !uploading && !processing && (
           <Alert className="border-green-200 bg-green-50">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800">
-              <strong>Processing Complete!</strong> Your blueprint has been successfully analyzed and a unique 3D model has been generated using {processingMethod === 'ai' ? 'Gemini AI' : 'enhanced sample data'}.
+              <strong>Processing Complete!</strong> Your blueprint has been successfully analyzed using {processingMethod === 'ai' ? 'AI processing' : 'enhanced fallback processing'}.
             </AlertDescription>
           </Alert>
         )}

@@ -30,15 +30,9 @@ import { CustomReportBuilder } from '@/components/analytics/CustomReportBuilder'
 export const MainDashboard = () => {
   const [activeTab, setActiveTab] = useState('upload');
   const { uploads } = useUploads();
-  const { uploadResult, resetUpload, download3DModel } = useBlueprintUpload();
+  const { uploadResult, resetUpload } = useBlueprintUpload();
 
   const recentUpload = uploads?.[0];
-
-  // Get the first available 3D model URL from upload result
-  const first3DModel = uploadResult?.generated3DModels?.[0];
-  const model3DUrl = first3DModel?.model_file_path ? 
-    `https://fjybggorcizszcpedjbb.supabase.co/storage/v1/object/public/3d-models/${first3DModel.model_file_path}` : 
-    undefined;
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -112,7 +106,6 @@ export const MainDashboard = () => {
                   <UploadResults 
                     uploadResult={uploadResult}
                     onReset={resetUpload}
-                    onDownload3DModel={download3DModel}
                   />
                 ) : (
                   <Card className="cyber-tool-palette">
@@ -125,12 +118,11 @@ export const MainDashboard = () => {
             </TabsContent>
 
             <TabsContent value="3d-viewer" className="space-y-6">
-              <Model3DViewer 
-                modelUrl={model3DUrl || (recentUpload?.id ? "/placeholder-model.glb" : undefined)} 
-                modelName={first3DModel?.model_name || "Demo Model"}
-                uploadId={uploadResult?.id || recentUpload?.id}
-                onDownload={first3DModel ? () => download3DModel(first3DModel) : undefined}
-              />
+              <Card className="cyber-tool-palette">
+                <CardContent className="p-6 text-center">
+                  <p className="text-gray-400">3D viewing functionality has been removed</p>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="bim" className="space-y-6">

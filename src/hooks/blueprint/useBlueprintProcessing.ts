@@ -630,10 +630,8 @@ export const useBlueprintProcessing = () => {
 
   return {
     processing: processingState.processing,
-    generating3D: processingState.generating3D,
     processingMethod: processingState.processingMethod,
     errorMessage: processingState.errorMessage,
-    processBlueprint,
-    generate3DModel
+    processBlueprint
   };
 };
