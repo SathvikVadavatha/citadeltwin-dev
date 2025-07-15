@@ -3,6 +3,21 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export const testGeminiConnection = async (): Promise<{success: boolean, message: string, details?: any}> => {
+  // TEMPORARILY DISABLED - Always return false to force fallback processing
+  console.log('🚫 Gemini AI temporarily disabled - using fallback processing');
+  
+  return {
+    success: false,
+    message: 'Gemini AI temporarily disabled - using enhanced fallback processing',
+    details: { 
+      reason: 'Temporarily disabled for testing',
+      fallbackMode: true,
+      suggestion: 'System will use text extraction and deterministic object detection'
+    }
+  };
+
+  // Original code commented out - uncomment to re-enable Gemini AI
+  /*
   try {
     console.log('🔌 Testing Gemini AI connection...');
     
@@ -137,6 +152,7 @@ export const testGeminiConnection = async (): Promise<{success: boolean, message
       }
     };
   }
+  */
 };
 
 export const testGeminiVision = async (): Promise<{success: boolean, message: string}> => {
