@@ -59,109 +59,115 @@ export const CustomReportBuilder: React.FC = () => {
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {/* Report Type Selection */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">Report Type</label>
-          <Select value={reportType} onValueChange={setReportType}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select report type">
-                {selectedReportType && (
-                  <div className="flex items-center gap-2">
-                    <ReportIcon className="h-4 w-4" />
-                    <span>{selectedReportType.label}</span>
-                  </div>
-                )}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent className="max-h-60">
-              {reportTypes.map((type) => {
-                const Icon = type.icon;
-                return (
-                  <SelectItem key={type.value} value={type.value}>
+        {/* First Row: Report Type and Date Range */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Report Type Selection */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Report Type</label>
+            <Select value={reportType} onValueChange={setReportType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select report type">
+                  {selectedReportType && (
                     <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4" />
-                      <span>{type.label}</span>
+                      <ReportIcon className="h-4 w-4" />
+                      <span>{selectedReportType.label}</span>
                     </div>
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-        </div>
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {reportTypes.map((type) => {
+                  const Icon = type.icon;
+                  return (
+                    <SelectItem key={type.value} value={type.value}>
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4" />
+                        <span>{type.label}</span>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Date Range Selection */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">Date Range</label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !dateRange && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange?.from ? (
-                  dateRange.to ? (
-                    <>
-                      {format(dateRange.from, "LLL dd, y")} -{" "}
-                      {format(dateRange.to, "LLL dd, y")}
-                    </>
+          {/* Date Range Selection */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Date Range</label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !dateRange && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "LLL dd, y")} -{" "}
+                        {format(dateRange.to, "LLL dd, y")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "LLL dd, y")
+                    )
                   ) : (
-                    format(dateRange.from, "LLL dd, y")
-                  )
-                ) : (
-                  <span>Pick a date range</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={dateRange?.from}
-                selected={dateRange}
-                onSelect={setDateRange}
-                numberOfMonths={2}
-                className="pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
+                    <span>Pick a date range</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                  className="pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
 
-        {/* Project Scope Selection */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">Project Scope</label>
-          <Select value={projectScope} onValueChange={setProjectScope}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select project scope" />
-            </SelectTrigger>
-            <SelectContent className="max-h-60">
-              {projectScopes.map((scope) => (
-                <SelectItem key={scope.value} value={scope.value}>
-                  {scope.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Second Row: Project Scope and Output Format */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Project Scope Selection */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Project Scope</label>
+            <Select value={projectScope} onValueChange={setProjectScope}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select project scope" />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {projectScopes.map((scope) => (
+                  <SelectItem key={scope.value} value={scope.value}>
+                    {scope.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Format Selection */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">Output Format</label>
-          <Select value={outputFormat} onValueChange={setOutputFormat}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select output format" />
-            </SelectTrigger>
-            <SelectContent className="max-h-60">
-              {formatOptions.map((formatOption) => (
-                <SelectItem key={formatOption.value} value={formatOption.value}>
-                  {formatOption.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Format Selection */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Output Format</label>
+            <Select value={outputFormat} onValueChange={setOutputFormat}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select output format" />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {formatOptions.map((formatOption) => (
+                  <SelectItem key={formatOption.value} value={formatOption.value}>
+                    {formatOption.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Report Summary */}
