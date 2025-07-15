@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,6 +25,7 @@ import { DocumentGenerator } from '@/components/documents/DocumentGenerator';
 import { DocumentTemplateManager } from '@/components/documents/DocumentTemplateManager';
 import { useUploads } from '@/hooks/useUploads';
 import { useBlueprintUpload } from '@/hooks/useBlueprintUpload';
+import { CustomReportBuilder } from '@/components/analytics/CustomReportBuilder';
 
 export const MainDashboard = () => {
   const [activeTab, setActiveTab] = useState('upload');
@@ -157,20 +157,23 @@ export const MainDashboard = () => {
             </TabsContent>
 
             <TabsContent value="analytics" className="space-y-6">
-              <Card className="cyber-tool-palette">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <BarChart3 className="w-5 h-5 text-cyan-400" />
-                    <span>Analytics Dashboard</span>
-                  </CardTitle>
-                  <CardDescription>
-                    Project analytics and insights coming soon
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-400">Advanced analytics and reporting features will be available in the next update.</p>
-                </CardContent>
-              </Card>
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <CustomReportBuilder />
+                <Card className="cyber-tool-palette">
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <BarChart3 className="w-5 h-5 text-cyan-400" />
+                      <span>Analytics Dashboard</span>
+                    </CardTitle>
+                    <CardDescription>
+                      Project analytics and insights coming soon
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-400">Advanced analytics and reporting features will be available in the next update.</p>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           </div>
         </Tabs>
