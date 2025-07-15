@@ -7,7 +7,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { CalendarIcon, Download, FileText, BarChart3, Shield, Activity } from 'lucide-react';
-import { format } from 'date-fns';
+import { format } from "date-fns";
 import { cn } from '@/lib/utils';
 import { DateRange } from 'react-day-picker';
 
@@ -35,12 +35,12 @@ export const CustomReportBuilder: React.FC = () => {
   const [reportType, setReportType] = useState<string>('');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [projectScope, setProjectScope] = useState<string>('');
-  const [format, setFormat] = useState<string>('');
+  const [outputFormat, setOutputFormat] = useState<string>('');
 
   const selectedReportType = reportTypes.find(type => type.value === reportType);
   const ReportIcon = selectedReportType?.icon || FileText;
 
-  const isFormComplete = reportType && dateRange?.from && dateRange?.to && projectScope && format;
+  const isFormComplete = reportType && dateRange?.from && dateRange?.to && projectScope && outputFormat;
 
   return (
     <Card className="cyber-tool-palette">
@@ -150,7 +150,7 @@ export const CustomReportBuilder: React.FC = () => {
         {/* Format Selection */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-foreground">Output Format</label>
-          <Select value={format} onValueChange={setFormat}>
+          <Select value={outputFormat} onValueChange={setOutputFormat}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select output format" />
             </SelectTrigger>
@@ -176,7 +176,7 @@ export const CustomReportBuilder: React.FC = () => {
                 {projectScopes.find(s => s.value === projectScope)?.label}
               </Badge>
               <Badge variant="secondary" className="text-xs">
-                {formatOptions.find(f => f.value === format)?.label}
+                {formatOptions.find(f => f.value === outputFormat)?.label}
               </Badge>
               {dateRange?.from && dateRange?.to && (
                 <Badge variant="secondary" className="text-xs">
