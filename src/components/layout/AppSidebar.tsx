@@ -12,7 +12,8 @@ import {
   Settings,
   TestTube,
   Zap,
-  Share2
+  Share2,
+  Map
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +21,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Upload Blueprints', href: '/blueprints/upload', icon: Upload },
   { name: 'View Blueprints', href: '/blueprints/view', icon: FileText },
+  { name: 'GIS Analysis', href: '/gis', icon: Map },
   { name: 'Compliance', href: '/compliance', icon: Shield },
   { name: 'FEA Analysis', href: '/fea-analysis', icon: Zap },
   { name: 'Testing & QA', href: '/testing', icon: TestTube },

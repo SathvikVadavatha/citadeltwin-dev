@@ -20,6 +20,7 @@ import { Testing } from './pages/Testing';
 import { DocumentManagementDashboard } from '@/components/documents/DocumentManagementDashboard';
 import Security from './pages/Security';
 import WorkflowAutomation from './pages/WorkflowAutomation';
+import { GIS } from './pages/GIS';
 import { AuthPage } from './pages/AuthPage';
 
 function App() {
@@ -96,6 +97,16 @@ function App() {
                   <RouteErrorBoundary routeName="Compliance">
                     <EnhancedResponsiveLayout>
                       <Compliance />
+                    </EnhancedResponsiveLayout>
+                  </RouteErrorBoundary>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/gis" element={
+                <ProtectedRoute>
+                  <RouteErrorBoundary routeName="GIS Analysis">
+                    <EnhancedResponsiveLayout>
+                      <GIS />
                     </EnhancedResponsiveLayout>
                   </RouteErrorBoundary>
                 </ProtectedRoute>
