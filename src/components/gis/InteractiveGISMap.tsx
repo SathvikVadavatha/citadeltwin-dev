@@ -111,38 +111,59 @@ export const InteractiveGISMap: React.FC = () => {
       if (!mapRef.current) return;
 
       try {
-        const loader = new Loader({
-          apiKey: 'YOUR_GOOGLE_MAPS_API_KEY', // This will be configured in Supabase secrets
-          version: 'weekly',
-          libraries: ['drawing', 'geometry']
-        });
-
-        await loader.load();
+        // Skip Google Maps API for now to eliminate latency
+        // Use a mock map implementation instead
+        console.log('Mock map initializing for region:', selectedRegion);
         
-        const regionConfig = regionBounds[selectedRegion];
-        
-        const map = new google.maps.Map(mapRef.current, {
-          center: regionConfig.center,
-          zoom: regionConfig.zoom,
-          mapTypeId: google.maps.MapTypeId.SATELLITE,
-          mapTypeControl: true,
-          mapTypeControlOptions: {
-            style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-            position: google.maps.ControlPosition.TOP_CENTER,
-          },
-          zoomControl: true,
-          streetViewControl: false,
-          fullscreenControl: true,
-        });
+        // Simulate map loading
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Add click listener for spatial analysis
-        map.addListener('click', (event: google.maps.MapMouseEvent) => {
-          if (event.latLng) {
-            performSpatialAnalysis(event.latLng.lat(), event.latLng.lng());
-          }
-        });
-
-        mapInstanceRef.current = map;
+        // Create mock map container with background image
+        if (mapRef.current) {
+          mapRef.current.style.backgroundImage = selectedRegion === 'central-florida' 
+            ? 'url("data:image/svg+xml;base64,' + btoa(`
+              <svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+                <rect width="800" height="600" fill="#1a365d"/>
+                <text x="400" y="280" text-anchor="middle" fill="#4299e1" font-size="24" font-family="Arial">
+                  Central Florida GIS Map
+                </text>
+                <text x="400" y="320" text-anchor="middle" fill="#90cdf4" font-size="16" font-family="Arial">
+                  Click anywhere to analyze spatial features
+                </text>
+                <circle cx="400" cy="350" r="5" fill="#f56565"/>
+              </svg>
+            `) + '")'
+            : 'url("data:image/svg+xml;base64,' + btoa(`
+              <svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+                <rect width="800" height="600" fill="#2d3748"/>
+                <text x="400" y="280" text-anchor="middle" fill="#4299e1" font-size="24" font-family="Arial">
+                  Northeast Ohio GIS Map
+                </text>
+                <text x="400" y="320" text-anchor="middle" fill="#90cdf4" font-size="16" font-family="Arial">
+                  Click anywhere to analyze spatial features
+                </text>
+                <circle cx="400" cy="350" r="5" fill="#f56565"/>
+              </svg>
+            `) + '")';
+          
+          mapRef.current.style.backgroundSize = 'cover';
+          mapRef.current.style.backgroundPosition = 'center';
+          mapRef.current.style.cursor = 'crosshair';
+          
+          // Add click handler
+          mapRef.current.onclick = (event) => {
+            const rect = mapRef.current!.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            // Convert to mock coordinates
+            const regionConfig = regionBounds[selectedRegion];
+            const lat = regionConfig.center.lat + (0.5 - y / rect.height) * 0.4;
+            const lng = regionConfig.center.lng + (x / rect.width - 0.5) * 0.4;
+            
+            performSpatialAnalysis(lat, lng);
+          };
+        }
         setIsMapLoaded(true);
         setIsLoading(false);
 
