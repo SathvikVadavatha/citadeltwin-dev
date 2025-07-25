@@ -12,7 +12,10 @@ import {
   Shield,
   Zap,
   Building2,
-  Settings
+  Settings,
+  Loader2,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { BlueprintUpload } from '@/components/upload/BlueprintUpload';
 import { UploadResults } from '@/components/upload/UploadResults';
@@ -25,14 +28,26 @@ import { DocumentGenerator } from '@/components/documents/DocumentGenerator';
 import { DocumentTemplateManager } from '@/components/documents/DocumentTemplateManager';
 import { useUploads } from '@/hooks/useUploads';
 import { useBlueprintUpload } from '@/hooks/useBlueprintUpload';
+import { use3DModelViewer } from '@/hooks/use3DModelViewer';
 import { CustomReportBuilder } from '@/components/analytics/CustomReportBuilder';
 
 export const MainDashboard = () => {
   const [activeTab, setActiveTab] = useState('upload');
   const { uploads } = useUploads();
   const { uploadResult, resetUpload } = useBlueprintUpload();
-
+  
   const recentUpload = uploads?.[0];
+  const targetUploadId = uploadResult?.id || recentUpload?.id;
+  
+  // Use the 3D model viewer hook to fetch latest models
+  const { 
+    model3DUrl, 
+    modelMetadata, 
+    loading: modelLoading, 
+    error: modelError, 
+    refreshModel,
+    hasModel 
+  } = use3DModelViewer(targetUploadId);
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -118,13 +133,76 @@ export const MainDashboard = () => {
             </TabsContent>
 
             <TabsContent value="3d-viewer" className="space-y-6">
-              {uploadResult?.model3DUrl || recentUpload ? (
-                <Model3DViewer
-                  modelUrl={uploadResult?.model3DUrl}
-                  modelName={uploadResult?.filename || 'Generated 3D Model'}
-                  uploadId={uploadResult?.id || recentUpload?.id}
-                  projectId={recentUpload?.project_id}
-                />
+              {modelLoading ? (
+                <Card className="cyber-tool-palette">
+                  <CardContent className="p-6 text-center space-y-4">
+                    <Loader2 className="w-12 h-12 text-cyan-400 mx-auto animate-spin" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-300 mb-2">Loading 3D Model</h3>
+                      <p className="text-gray-400">Fetching the latest generated 3D model...</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : modelError ? (
+                <Card className="cyber-tool-palette">
+                  <CardContent className="p-6 text-center space-y-4">
+                    <AlertCircle className="w-12 h-12 text-red-400 mx-auto" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-300 mb-2">3D Model Error</h3>
+                      <p className="text-gray-400 mb-4">{modelError}</p>
+                      <div className="flex justify-center space-x-3">
+                        <button 
+                          onClick={refreshModel}
+                          className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md transition-colors flex items-center space-x-2"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                          <span>Retry</span>
+                        </button>
+                        <button 
+                          onClick={() => setActiveTab('upload')}
+                          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors"
+                        >
+                          Upload New Blueprint
+                        </button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : hasModel || uploadResult?.model3DUrl ? (
+                <div className="space-y-4">
+                  {modelMetadata && (
+                    <Card className="cyber-tool-palette">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-lg text-gray-200">{modelMetadata.model_name}</CardTitle>
+                            {modelMetadata.model_description && (
+                              <CardDescription className="text-gray-400">{modelMetadata.model_description}</CardDescription>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="outline" className="border-green-400 text-green-400">
+                              {(modelMetadata.file_size / 1024 / 1024).toFixed(2)} MB
+                            </Badge>
+                            <button 
+                              onClick={refreshModel}
+                              className="p-2 text-gray-400 hover:text-cyan-400 transition-colors"
+                              title="Refresh model"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  )}
+                  <Model3DViewer
+                    modelUrl={model3DUrl || uploadResult?.model3DUrl}
+                    modelName={modelMetadata?.model_name || uploadResult?.filename || 'Generated 3D Model'}
+                    uploadId={targetUploadId}
+                    projectId={recentUpload?.project_id}
+                  />
+                </div>
               ) : (
                 <Card className="cyber-tool-palette">
                   <CardContent className="p-6 text-center space-y-4">
