@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useWallDetection } from "@/hooks/useWallDetection";
+import { Model3DViewer } from "@/components/3d/Model3DViewer";
 import { 
   Upload, 
   RotateCw,
@@ -14,7 +15,9 @@ import {
   AlertCircle,
   TestTube,
   RefreshCw,
-  Activity
+  Activity,
+  Box,
+  Loader2
 } from "lucide-react";
 
 interface UploadResult {
@@ -25,6 +28,9 @@ interface UploadResult {
   processingTime?: number;
   processingMethod?: 'ai' | 'fallback';
   errorMessage?: string;
+  model3DUrl?: string;
+  model3DGenerated?: boolean;
+  generating3D?: boolean;
 }
 
 interface UploadResultsProps {
@@ -36,7 +42,7 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
   uploadResult,
   onReset
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'blueprint' | 'analysis'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'blueprint' | 'analysis' | '3d-model'>('overview');
   const [imageError, setImageError] = useState(false);
   const { isLoading: isDetectingWalls, detectWallsFromUrl } = useWallDetection();
 
@@ -119,9 +125,22 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">
-                {uploadResult.processingTime ? (uploadResult.processingTime / 1000).toFixed(1) + 's' : 'N/A'}
+                {uploadResult.model3DGenerated ? 
+                  <Badge variant="default" className="bg-green-600">
+                    <Box className="h-3 w-3 mr-1" />
+                    Generated
+                  </Badge> : 
+                  uploadResult.generating3D ? 
+                    <Badge variant="secondary">
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Generating...
+                    </Badge> : 
+                    <Badge variant="outline">
+                      No 3D Model
+                    </Badge>
+                }
               </div>
-              <div className="text-sm text-muted-foreground">Processing Time</div>
+              <div className="text-sm text-muted-foreground">3D Model Status</div>
             </div>
           </div>
         </CardContent>
@@ -155,6 +174,17 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
         >
           <Home className="h-4 w-4 mr-2" />
           Analysis
+        </Button>
+        <Button
+          variant={activeTab === '3d-model' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setActiveTab('3d-model')}
+          className="flex-1"
+          disabled={!uploadResult.model3DGenerated && !uploadResult.generating3D}
+        >
+          <Box className="h-4 w-4 mr-2" />
+          3D Model
+          {uploadResult.generating3D && <Loader2 className="h-3 w-3 ml-1 animate-spin" />}
         </Button>
       </div>
 
@@ -349,6 +379,60 @@ export const UploadResults: React.FC<UploadResultsProps> = ({
             </Card>
           )}
         </div>
+      )}
+
+      {activeTab === '3d-model' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Box className="h-5 w-5" />
+              3D Model Viewer
+              {uploadResult.generating3D && (
+                <Badge variant="secondary" className="ml-2">
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  Generating...
+                </Badge>
+              )}
+              {uploadResult.model3DGenerated && (
+                <Badge variant="default" className="ml-2 bg-green-600">
+                  <Box className="h-3 w-3 mr-1" />
+                  Ready
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {uploadResult.generating3D ? (
+              <div className="flex items-center justify-center h-96 text-muted-foreground">
+                <div className="text-center">
+                  <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin" />
+                  <h3 className="text-lg font-medium mb-2">Generating 3D Model</h3>
+                  <p className="text-sm">Please wait while Gemini AI creates your 3D model...</p>
+                </div>
+              </div>
+            ) : uploadResult.model3DGenerated && uploadResult.model3DUrl ? (
+              <div className="h-96">
+                <Model3DViewer
+                  modelUrl={uploadResult.model3DUrl}
+                  modelName={`3D Model - ${uploadResult.filename}`}
+                  uploadId={uploadResult.id}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-96 text-muted-foreground">
+                <div className="text-center">
+                  <Box className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <h3 className="text-lg font-medium mb-2">3D Model Not Available</h3>
+                  <p className="text-sm">3D model generation failed or was not completed</p>
+                  <Button variant="outline" size="sm" className="mt-2" onClick={onReset}>
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Try Again
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

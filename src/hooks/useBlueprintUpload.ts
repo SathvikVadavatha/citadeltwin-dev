@@ -4,6 +4,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useBlueprintFileUpload } from './blueprint/useBlueprintFileUpload';
 import { useBlueprintProcessing } from './blueprint/useBlueprintProcessing';
+import { useGeminiBlueprint3D } from './blueprint/useGeminiBlueprint3D';
 
 import { useState } from 'react';
 
@@ -15,6 +16,9 @@ interface UploadResult {
   processingTime?: number;
   processingMethod?: 'ai' | 'fallback';
   errorMessage?: string;
+  model3DUrl?: string;
+  model3DGenerated?: boolean;
+  generating3D?: boolean;
 }
 
 export const useBlueprintUpload = () => {
@@ -23,6 +27,7 @@ export const useBlueprintUpload = () => {
   
   const { uploading, uploadProgress, uploadFile } = useBlueprintFileUpload();
   const { processing, processingMethod, errorMessage, processBlueprint } = useBlueprintProcessing();
+  const { analyzing, generating3D, analyzeBlueprint, generate3DModel } = useGeminiBlueprint3D();
 
   const handleFileUpload = useCallback(async (file: File) => {
     try {
@@ -50,11 +55,56 @@ export const useBlueprintUpload = () => {
         throw new Error('No objects detected from blueprint');
       }
 
-      console.log('All processing complete, setting results...');
+      console.log('Processing complete, starting 3D model generation...');
 
-      // Step 3: Set final results
+      // Step 3: Generate 3D model
       const normalizedProcessingMethod = processingMethod === 'text-ai' || processingMethod === 'text-fallback' ? 'ai' : processingMethod;
       
+      // Set initial result with 3D generation in progress
+      const initialResult: UploadResult = {
+        id: uploadData.uploadRecord.id,
+        filename: file.name,
+        detectedObjects,
+        imageUrl: uploadData.publicUrl,
+        processingTime: 8000,
+        processingMethod: normalizedProcessingMethod,
+        errorMessage,
+        generating3D: true,
+        model3DGenerated: false
+      };
+
+      setUploadResult(initialResult);
+
+      // Generate 3D model
+      let model3DUrl = '';
+      try {
+        const blueprintAnalysis = await analyzeBlueprint(uploadData.publicUrl, uploadData.uploadRecord.id);
+        if (blueprintAnalysis) {
+          await generate3DModel(blueprintAnalysis, uploadData.uploadRecord.id);
+          
+          // Get the generated 3D model URL
+          const { data: model3DData } = await supabase
+            .from('generated_3d_models')
+            .select('model_file_path')
+            .eq('upload_id', uploadData.uploadRecord.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (model3DData?.model_file_path) {
+            const { data: urlData } = await supabase.storage
+              .from('3d-models')
+              .createSignedUrl(model3DData.model_file_path, 60 * 60); // 1 hour expiry
+            
+            model3DUrl = urlData?.signedUrl || '';
+          }
+        }
+      } catch (model3DError) {
+        console.error('3D model generation failed:', model3DError);
+        // Continue without 3D model - not critical for main workflow
+      }
+
+      // Step 4: Set final results
       const finalResult: UploadResult = {
         id: uploadData.uploadRecord.id,
         filename: file.name,
@@ -62,15 +112,19 @@ export const useBlueprintUpload = () => {
         imageUrl: uploadData.publicUrl,
         processingTime: 8000,
         processingMethod: normalizedProcessingMethod,
-        errorMessage
+        errorMessage,
+        model3DUrl,
+        model3DGenerated: !!model3DUrl,
+        generating3D: false
       };
 
       setUploadResult(finalResult);
 
       const processingMethodText = processingMethod === 'ai' ? 'Gemini AI' : 'Enhanced Sample Data';
+      const model3DText = model3DUrl ? ' with 3D model generated' : '';
       toast({
         title: "Upload Complete",
-        description: `Successfully processed ${file.name} using ${processingMethodText} with ${detectedObjects.length} elements detected.`,
+        description: `Successfully processed ${file.name} using ${processingMethodText} with ${detectedObjects.length} elements detected${model3DText}.`,
       });
 
     } catch (error) {
@@ -89,7 +143,7 @@ export const useBlueprintUpload = () => {
 
   return {
     uploading,
-    processing,
+    processing: processing || analyzing || generating3D,
     uploadProgress,
     uploadResult,
     uploadFile: handleFileUpload,
