@@ -75,9 +75,10 @@ export const useBlueprintUpload = () => {
 
       setUploadResult(initialResult);
 
-      // Generate 3D model
+      // Generate 3D model with enhanced fallback
       let model3DUrl = '';
       try {
+        console.log('Attempting Gemini AI-based 3D generation...');
         const blueprintAnalysis = await analyzeBlueprint(uploadData.publicUrl, uploadData.uploadRecord.id);
         if (blueprintAnalysis) {
           await generate3DModel(blueprintAnalysis, uploadData.uploadRecord.id);
@@ -97,11 +98,50 @@ export const useBlueprintUpload = () => {
               .createSignedUrl(model3DData.model_file_path, 60 * 60); // 1 hour expiry
             
             model3DUrl = urlData?.signedUrl || '';
+            console.log('Gemini AI 3D generation successful');
           }
         }
       } catch (model3DError) {
-        console.error('3D model generation failed:', model3DError);
-        // Continue without 3D model - not critical for main workflow
+        console.error('Gemini AI 3D generation failed, trying fallback method:', model3DError);
+        
+        // Fallback: Use direct 3D model generation with detected objects
+        try {
+          console.log('Starting fallback 3D generation with detected objects...');
+          const { data: fallbackResult, error: fallbackError } = await supabase.functions.invoke('generate-3d-model', {
+            body: {
+              uploadId: uploadData.uploadRecord.id,
+              detectedObjects,
+              imageUrl: uploadData.publicUrl,
+              uniqueFileName: `model_${uploadData.uploadRecord.id}_fallback.glb`,
+              isAIGenerated: false
+            }
+          });
+
+          if (fallbackError) throw fallbackError;
+
+          if (fallbackResult?.success) {
+            // Get the fallback generated 3D model URL
+            const { data: fallbackModel3DData } = await supabase
+              .from('generated_3d_models')
+              .select('model_file_path')
+              .eq('upload_id', uploadData.uploadRecord.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .single();
+
+            if (fallbackModel3DData?.model_file_path) {
+              const { data: fallbackUrlData } = await supabase.storage
+                .from('3d-models')
+                .createSignedUrl(fallbackModel3DData.model_file_path, 60 * 60);
+              
+              model3DUrl = fallbackUrlData?.signedUrl || '';
+              console.log('Fallback 3D generation successful');
+            }
+          }
+        } catch (fallbackError) {
+          console.error('Fallback 3D generation also failed:', fallbackError);
+          // Continue without 3D model - not critical for main workflow
+        }
       }
 
       // Step 4: Set final results
