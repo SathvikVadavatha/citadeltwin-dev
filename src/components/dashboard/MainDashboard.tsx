@@ -118,11 +118,30 @@ export const MainDashboard = () => {
             </TabsContent>
 
             <TabsContent value="3d-viewer" className="space-y-6">
-              <Card className="cyber-tool-palette">
-                <CardContent className="p-6 text-center">
-                  <p className="text-gray-400">3D viewing functionality has been removed</p>
-                </CardContent>
-              </Card>
+              {uploadResult?.model3DUrl || recentUpload ? (
+                <Model3DViewer
+                  modelUrl={uploadResult?.model3DUrl}
+                  modelName={uploadResult?.filename || 'Generated 3D Model'}
+                  uploadId={uploadResult?.id || recentUpload?.id}
+                  projectId={recentUpload?.project_id}
+                />
+              ) : (
+                <Card className="cyber-tool-palette">
+                  <CardContent className="p-6 text-center space-y-4">
+                    <Eye className="w-12 h-12 text-gray-400 mx-auto" />
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-300 mb-2">No 3D Model Available</h3>
+                      <p className="text-gray-400 mb-4">Upload a blueprint to generate and view a 3D model</p>
+                      <button 
+                        onClick={() => setActiveTab('upload')}
+                        className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md transition-colors"
+                      >
+                        Go to Upload
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="bim" className="space-y-6">
