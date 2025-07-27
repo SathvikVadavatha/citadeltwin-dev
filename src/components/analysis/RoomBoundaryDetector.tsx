@@ -5,21 +5,27 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
 import { useRoomBoundaryDetection } from '@/hooks/useRoomBoundaryDetection';
 import { RoomDetectionOptions } from '@/utils/roomBoundaryDetection';
-import { Upload, Download, Trash2, Eye, Settings } from 'lucide-react';
+import { Upload, Download, Trash2, Eye, Settings, AlertCircle, RefreshCw, CheckCircle2, Loader2 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 export function RoomBoundaryDetector() {
   const {
     isLoading,
+    isOpenCVLoading,
+    openCVLoaded,
     result,
+    error,
     canvasRef,
     detectRoomsFromFile,
     exportAsJSON,
     downloadJSON,
     clearResults,
+    retryOpenCVLoad,
   } = useRoomBoundaryDetection();
 
   const [options, setOptions] = useState<RoomDetectionOptions>({
@@ -31,16 +37,21 @@ export function RoomBoundaryDetector() {
   });
 
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Debug logging
   useEffect(() => {
     console.log('RoomBoundaryDetector component mounted');
-  }, []);
+    console.log('OpenCV loaded:', openCVLoaded);
+  }, [openCVLoaded]);
 
   const onDrop = React.useCallback(
     (acceptedFiles: File[]) => {
-      if (acceptedFiles.length > 0) {
-        detectRoomsFromFile(acceptedFiles[0], options);
+      const file = acceptedFiles[0];
+      if (file) {
+        console.log('File uploaded:', file.name, file.size, file.type);
+        setSelectedFile(file);
+        detectRoomsFromFile(file, options);
       }
     },
     [detectRoomsFromFile, options]
@@ -49,9 +60,11 @@ export function RoomBoundaryDetector() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.bmp'],
+      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.bmp']
     },
     multiple: false,
+    disabled: isLoading || isOpenCVLoading,
+    maxSize: 10 * 1024 * 1024, // 10MB
   });
 
   const handleOptionChange = (key: keyof RoomDetectionOptions, value: number) => {
@@ -60,6 +73,59 @@ export function RoomBoundaryDetector() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h2 className="text-2xl font-bold text-foreground">Room Boundary Detection</h2>
+        <p className="text-muted-foreground">
+          Upload a floor plan image to automatically detect room boundaries using computer vision
+        </p>
+      </div>
+
+      {/* OpenCV Status */}
+      {!openCVLoaded && (
+        <Card className="border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center space-x-3">
+              {isOpenCVLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin text-orange-600" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-orange-600" />
+              )}
+              <div className="flex-1">
+                <h3 className="font-medium text-orange-800 dark:text-orange-200">
+                  {isOpenCVLoading ? 'Loading Computer Vision Library...' : 'Computer Vision Library Required'}
+                </h3>
+                <p className="text-sm text-orange-600 dark:text-orange-300">
+                  {isOpenCVLoading 
+                    ? 'Please wait while we load the OpenCV.js library for image processing.' 
+                    : 'The OpenCV.js library needs to be loaded before you can upload images.'
+                  }
+                </p>
+              </div>
+              {!isOpenCVLoading && (
+                <Button
+                  onClick={retryOpenCVLoad}
+                  variant="outline"
+                  size="sm"
+                  className="border-orange-300 text-orange-700 hover:bg-orange-100 dark:border-orange-700 dark:text-orange-300 dark:hover:bg-orange-900"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Load OpenCV
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Error Display */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -76,22 +142,50 @@ export function RoomBoundaryDetector() {
             {...getRootProps()}
             className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
               isDragActive
-                ? 'border-primary bg-primary/10'
+                ? 'border-primary bg-primary/5'
+                : isLoading || isOpenCVLoading || !openCVLoaded
+                ? 'border-muted-foreground/25 bg-muted/20 cursor-not-allowed'
                 : 'border-muted-foreground/25 hover:border-primary/50'
             }`}
           >
             <input {...getInputProps()} />
-            <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            {isDragActive ? (
-              <p>Drop the floor plan image here...</p>
-            ) : (
-              <div>
-                <p className="text-lg font-medium">Upload Floor Plan Image</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Drag & drop or click to select (PNG, JPG, GIF, BMP)
-                </p>
-              </div>
-            )}
+            <div className="flex flex-col items-center">
+              {isLoading || isOpenCVLoading ? (
+                <Loader2 className="mx-auto h-12 w-12 text-muted-foreground mb-4 animate-spin" />
+              ) : (
+                <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              )}
+              
+              <p className="text-lg font-medium text-foreground">
+                {isLoading || isOpenCVLoading 
+                  ? 'Processing...'
+                  : isDragActive 
+                  ? 'Drop the image here' 
+                  : !openCVLoaded
+                  ? 'Load OpenCV first to upload images'
+                  : 'Drag & drop an image, or click to select'
+                }
+              </p>
+              
+              <p className="text-sm text-muted-foreground mt-2">
+                {!openCVLoaded 
+                  ? 'Computer vision library required for image processing'
+                  : 'Supports PNG, JPG, GIF, and BMP files (max 10MB)'
+                }
+              </p>
+
+              {selectedFile && (
+                <div className="mt-4 p-3 bg-muted/50 rounded-md">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-medium">{selectedFile.name}</span>
+                    <Badge variant="secondary" className="text-xs">
+                      {(selectedFile.size / 1024 / 1024).toFixed(1)}MB
+                    </Badge>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Advanced Options */}
@@ -179,8 +273,11 @@ export function RoomBoundaryDetector() {
               Download JSON
             </Button>
             <Button
-              onClick={clearResults}
-              disabled={!result || isLoading}
+              onClick={() => {
+                clearResults();
+                setSelectedFile(null);
+              }}
+              disabled={!result && !selectedFile}
               variant="outline"
             >
               <Trash2 className="h-4 w-4 mr-2" />
@@ -188,11 +285,28 @@ export function RoomBoundaryDetector() {
             </Button>
           </div>
 
-          {isLoading && (
-            <div className="text-center py-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              <p className="mt-2 text-sm text-muted-foreground">Processing floor plan...</p>
-            </div>
+          {/* Processing Indicator */}
+          {(isLoading || isOpenCVLoading) && (
+            <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/20">
+              <CardContent className="pt-6">
+                <div className="text-center py-4">
+                  <Loader2 className="animate-spin h-8 w-8 text-blue-600 mx-auto mb-4" />
+                  <p className="text-blue-800 dark:text-blue-200 font-medium">
+                    {isOpenCVLoading ? 'Loading Computer Vision Library...' : 'Processing Image...'}
+                  </p>
+                  <p className="text-sm text-blue-600 dark:text-blue-300 mt-1">
+                    {isOpenCVLoading 
+                      ? 'This may take a few moments on first load'
+                      : 'Analyzing floor plan and detecting room boundaries'
+                    }
+                  </p>
+                  <Progress 
+                    value={isOpenCVLoading ? 50 : 75} 
+                    className="w-full max-w-xs mx-auto mt-3" 
+                  />
+                </div>
+              </CardContent>
+            </Card>
           )}
         </CardContent>
       </Card>
