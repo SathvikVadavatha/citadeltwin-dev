@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,11 @@ export function RoomBoundaryDetector() {
   });
 
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('RoomBoundaryDetector component mounted');
+  }, []);
 
   const onDrop = React.useCallback(
     (acceptedFiles: File[]) => {

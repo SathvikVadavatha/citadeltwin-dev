@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { loadOpenCV, imageToMat } from '@/utils/wallDetection';
 import { visualizeRoomBoundaries, exportRoomBoundariesAsJSON } from '@/utils/roomBoundaryDetection';
 import { RoomDetectionResult, RoomDetectionOptions } from '@/utils/roomBoundaryDetection';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface UseRoomBoundaryDetectionReturn {
   isLoading: boolean;
