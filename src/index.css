@@ -5,54 +5,54 @@
 
 @layer base {
   :root {
-    /* Futuristic Digital Theme - Cyberpunk Inspired */
-    --background: 8 8 14; /* #08080E - Deep space black */
-    --foreground: 224 231 255; /* #E0E7FF - Cool bright white */
+    /* Futuristic Digital Theme - Cyberpunk Inspired - All HSL values */
+    --background: 240 20% 4%; /* Deep space black */
+    --foreground: 224 71% 85%; /* Cool bright white */
 
-    --card: 8 8 14; /* #08080E - Pure black cards to match background */
-    --card-foreground: 224 231 255; /* #E0E7FF - Light text on cards */
+    --card: 240 20% 4%; /* Pure black cards to match background */
+    --card-foreground: 224 71% 85%; /* Light text on cards */
 
-    --popover: 8 8 14; /* #08080E - Pure black popover background */
-    --popover-foreground: 224 231 255; /* #E0E7FF - Light text on popovers */
+    --popover: 240 20% 4%; /* Pure black popover background */
+    --popover-foreground: 224 71% 85%; /* Light text on popovers */
 
-    --primary: 0 255 255; /* #00FFFF - Electric cyan */
-    --primary-foreground: 8 8 14; /* #08080E - Dark text on primary */
+    --primary: 180 100% 50%; /* Electric cyan */
+    --primary-foreground: 240 20% 4%; /* Dark text on primary */
 
-    --secondary: 8 8 14; /* #08080E - Pure black secondary */
-    --secondary-foreground: 0 255 255; /* #00FFFF - Cyan text on secondary */
+    --secondary: 240 20% 4%; /* Pure black secondary */
+    --secondary-foreground: 180 100% 50%; /* Cyan text on secondary */
 
-    --muted: 8 8 14; /* #08080E - Pure black muted background */
-    --muted-foreground: 224 231 255; /* #E0E7FF - White muted text */
+    --muted: 240 20% 4%; /* Pure black muted background */
+    --muted-foreground: 224 71% 85%; /* White muted text */
 
-    --accent: 255 0 255; /* #FF00FF - Electric magenta accent */
-    --accent-foreground: 8 8 14; /* #08080E - Dark text on accent */
+    --accent: 300 100% 50%; /* Electric magenta accent */
+    --accent-foreground: 240 20% 4%; /* Dark text on accent */
 
-    --destructive: 255 50 80; /* #FF3250 - Neon red for errors */
-    --destructive-foreground: 255 255 255;
+    --destructive: 350 100% 60%; /* Neon red for errors */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 0 255 255; /* #00FFFF - Cyan borders */
-    --input: 8 8 14; /* #08080E - Pure black input backgrounds */
-    --ring: 0 255 255; /* #00FFFF - Cyan focus rings */
+    --border: 180 100% 50%; /* Cyan borders */
+    --input: 240 20% 4%; /* Pure black input backgrounds */
+    --ring: 180 100% 50%; /* Cyan focus rings */
 
     --radius: 0.375rem; /* Slightly rounded for modern feel */
 
-    --sidebar-background: 8 8 14; /* #08080E - Pure black sidebar */
-    --sidebar-foreground: 224 231 255; /* #E0E7FF - Light text in sidebar */
-    --sidebar-primary: 0 255 255;
-    --sidebar-primary-foreground: 8 8 14;
-    --sidebar-accent: 8 8 14;
-    --sidebar-accent-foreground: 0 255 255;
-    --sidebar-border: 0 255 255;
-    --sidebar-ring: 0 255 255;
+    --sidebar-background: 240 20% 4%; /* Pure black sidebar */
+    --sidebar-foreground: 224 71% 85%; /* Light text in sidebar */
+    --sidebar-primary: 180 100% 50%;
+    --sidebar-primary-foreground: 240 20% 4%;
+    --sidebar-accent: 240 20% 4%;
+    --sidebar-accent-foreground: 180 100% 50%;
+    --sidebar-border: 180 100% 50%;
+    --sidebar-ring: 180 100% 50%;
 
     /* Futuristic specific colors */
-    --cyber-canvas: 8 8 14; /* #08080E - Pure black canvas */
-    --cyber-grid: 0 255 255; /* #00FFFF - Cyan grid */
-    --cyber-ribbon: 8 8 14; /* #08080E - Pure black ribbon background */
-    --cyber-command: 8 8 14; /* #08080E - Command line background */
-    --cyber-glow: 0 255 255; /* #00FFFF - Glow effect */
-    --cyber-warning: 255 255 0; /* #FFFF00 - Yellow warning */
-    --cyber-success: 0 255 255; /* #00FFFF - Cyan success */
+    --cyber-canvas: 240 20% 4%; /* Pure black canvas */
+    --cyber-grid: 180 100% 50%; /* Cyan grid */
+    --cyber-ribbon: 240 20% 4%; /* Pure black ribbon background */
+    --cyber-command: 240 20% 4%; /* Command line background */
+    --cyber-glow: 180 100% 50%; /* Glow effect */
+    --cyber-warning: 60 100% 50%; /* Yellow warning */
+    --cyber-success: 180 100% 50%; /* Cyan success */
   }
 }
 
@@ -66,65 +66,65 @@
     font-feature-settings: "rlig" 1, "calt" 1;
     font-family: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', monospace;
     background: 
-      radial-gradient(circle at 20% 80%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 80% 20%, rgba(255, 0, 255, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 40% 40%, rgba(255, 255, 0, 0.05) 0%, transparent 50%),
-      rgb(var(--background));
+      radial-gradient(circle at 20% 80%, hsla(180, 100%, 50%, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, hsla(300, 100%, 50%, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 40% 40%, hsla(60, 100%, 50%, 0.05) 0%, transparent 50%),
+      hsl(var(--background));
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-medium tracking-tight text-foreground;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+    text-shadow: 0 0 10px hsla(180, 100%, 50%, 0.3);
   }
 
   /* Futuristic components */
   .cyber-ribbon {
-    @apply bg-[rgb(var(--cyber-ribbon))] border-b shadow-lg;
-    border-color: rgb(var(--cyber-glow));
-    box-shadow: 0 4px 20px rgba(0, 255, 255, 0.2);
+    @apply bg-[hsl(var(--cyber-ribbon))] border-b shadow-lg;
+    border-color: hsl(var(--cyber-glow));
+    box-shadow: 0 4px 20px hsla(180, 100%, 50%, 0.2);
   }
 
   .cyber-canvas {
-    @apply bg-[rgb(var(--cyber-canvas))] relative overflow-hidden;
+    @apply bg-[hsl(var(--cyber-canvas))] relative overflow-hidden;
     background-image: 
-      linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+      linear-gradient(hsla(180, 100%, 50%, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, hsla(180, 100%, 50%, 0.1) 1px, transparent 1px);
     background-size: 20px 20px;
   }
 
   .cyber-tool-palette {
     @apply bg-card border shadow-lg;
-    border-color: rgb(var(--cyber-glow));
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+    border-color: hsl(var(--cyber-glow));
+    box-shadow: 0 0 20px hsla(180, 100%, 50%, 0.1);
   }
 
   .cyber-command-line {
-    @apply bg-[rgb(var(--cyber-command))] border-t text-foreground;
-    border-color: rgb(var(--cyber-glow));
-    box-shadow: 0 -4px 20px rgba(0, 255, 255, 0.1);
+    @apply bg-[hsl(var(--cyber-command))] border-t text-foreground;
+    border-color: hsl(var(--cyber-glow));
+    box-shadow: 0 -4px 20px hsla(180, 100%, 50%, 0.1);
   }
 
   .cyber-button {
     @apply bg-secondary hover:bg-secondary/80 text-secondary-foreground border transition-all duration-200;
-    border-color: rgb(var(--cyber-glow));
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.1);
+    border-color: hsl(var(--cyber-glow));
+    box-shadow: 0 0 10px hsla(180, 100%, 50%, 0.1);
   }
 
   .cyber-button:hover {
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 20px hsla(180, 100%, 50%, 0.3);
     transform: translateY(-1px);
   }
 
   .cyber-button.active {
     @apply bg-primary text-primary-foreground;
-    box-shadow: 0 0 25px rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 25px hsla(180, 100%, 50%, 0.5);
   }
 
   /* Grid pattern for canvas */
   .cyber-grid {
     background-image: 
-      linear-gradient(rgba(0, 255, 255, 0.2) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 255, 255, 0.2) 1px, transparent 1px);
+      linear-gradient(hsla(180, 100%, 50%, 0.2) 1px, transparent 1px),
+      linear-gradient(90deg, hsla(180, 100%, 50%, 0.2) 1px, transparent 1px);
     background-size: 20px 20px;
     opacity: 0.4;
   }
@@ -135,36 +135,36 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: rgb(8, 8, 14);
+    background: hsl(240, 20%, 4%);
   }
 
   ::-webkit-scrollbar-thumb {
-    background: linear-gradient(45deg, rgb(0, 255, 255), rgb(255, 0, 255));
+    background: linear-gradient(45deg, hsl(180, 100%, 50%), hsl(300, 100%, 50%));
     border-radius: 4px;
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 10px hsla(180, 100%, 50%, 0.5);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+    box-shadow: 0 0 20px hsla(180, 100%, 50%, 0.8);
   }
 
   /* Futuristic glow effects */
   .glow-cyan {
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 20px hsla(180, 100%, 50%, 0.3);
   }
 
   .glow-magenta {
-    box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+    box-shadow: 0 0 20px hsla(300, 100%, 50%, 0.3);
   }
 
   .glow-yellow {
-    box-shadow: 0 0 20px rgba(255, 255, 0, 0.3);
+    box-shadow: 0 0 20px hsla(60, 100%, 50%, 0.3);
   }
 
   /* Animated gradient borders */
   .gradient-border {
     position: relative;
-    background: linear-gradient(45deg, transparent, rgba(0, 255, 255, 0.1), transparent);
+    background: linear-gradient(45deg, transparent, hsla(180, 100%, 50%, 0.1), transparent);
     border: 1px solid transparent;
   }
 
@@ -177,7 +177,7 @@
     bottom: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(45deg, rgb(0, 255, 255), rgb(255, 0, 255), rgb(255, 255, 0));
+    background: linear-gradient(45deg, hsl(180, 100%, 50%), hsl(300, 100%, 50%), hsl(60, 100%, 50%));
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
     z-index: -1;
@@ -186,25 +186,25 @@
   /* Update warm gradients to use proper cyberpunk colors */
   .warm-gradient {
     background: linear-gradient(135deg, 
-      rgb(8, 8, 14) 0%, 
-      rgba(0, 255, 255, 0.2) 50%, 
-      rgba(255, 0, 255, 0.2) 100%
+      hsl(240, 20%, 4%) 0%, 
+      hsla(180, 100%, 50%, 0.2) 50%, 
+      hsla(300, 100%, 50%, 0.2) 100%
     );
   }
 
   .warm-gradient-subtle {
     background: linear-gradient(135deg, 
-      rgb(8, 8, 14) 0%, 
-      rgba(0, 255, 255, 0.1) 50%, 
-      rgba(255, 0, 255, 0.1) 100%
+      hsl(240, 20%, 4%) 0%, 
+      hsla(180, 100%, 50%, 0.1) 50%, 
+      hsla(300, 100%, 50%, 0.1) 100%
     );
   }
 
   /* Glass effect for cards */
   .glass-effect {
-    background: rgba(8, 8, 14, 0.8);
+    background: hsla(240, 20%, 4%, 0.8);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(0, 255, 255, 0.2);
+    border: 1px solid hsla(180, 100%, 50%, 0.2);
   }
 
   /* Hover lift effect */
@@ -214,11 +214,11 @@
 
   .hover-lift:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 255, 255, 0.15);
+    box-shadow: 0 8px 25px hsla(180, 100%, 50%, 0.15);
   }
 
   /* Section divider */
   .section-divider {
-    border-color: rgba(0, 255, 255, 0.2);
+    border-color: hsla(180, 100%, 50%, 0.2);
   }
 }
