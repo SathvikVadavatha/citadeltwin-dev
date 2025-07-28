@@ -17,7 +17,7 @@ import {
   AlertCircle,
   RefreshCw
 } from 'lucide-react';
-import { BlueprintUpload } from '@/components/upload/BlueprintUpload';
+import { SimplifiedUploadForm } from '@/components/upload/SimplifiedUploadForm';
 import { UploadResults } from '@/components/upload/UploadResults';
 import { Model3DViewer } from '@/components/3d/Model3DViewer';
 import { BIMElementsManager } from '@/components/bim/BIMElementsManager';
@@ -116,7 +116,7 @@ export const MainDashboard = () => {
           <div className="mt-6">
             <TabsContent value="upload" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <BlueprintUpload onUploadComplete={() => {}} />
+                <SimplifiedUploadForm onUploadComplete={() => {}} />
                 {uploadResult ? (
                   <UploadResults 
                     uploadResult={uploadResult}
