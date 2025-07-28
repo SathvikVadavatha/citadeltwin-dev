@@ -24,6 +24,8 @@ import { GIS } from './pages/GIS';
 import { AuthPage } from './pages/AuthPage';
 
 function App() {
+  console.log('App component rendering...');
+  
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
