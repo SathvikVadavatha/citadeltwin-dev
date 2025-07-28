@@ -1,5 +1,5 @@
 import React from 'react';
-import { InteractiveGISMap } from '@/components/gis/InteractiveGISMap';
+import { GoogleMapsGIS } from '@/components/gis/GoogleMapsGIS';
 
 export const GIS: React.FC = () => {
   return (
@@ -10,7 +10,7 @@ export const GIS: React.FC = () => {
           Interactive spatial analysis for Central Florida and Northeast Ohio regions
         </p>
       </div>
-      <InteractiveGISMap />
+      <GoogleMapsGIS />
     </div>
   );
 };

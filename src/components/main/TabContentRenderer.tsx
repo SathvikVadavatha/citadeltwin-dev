@@ -7,7 +7,7 @@ import { ProjectsPage } from '@/components/projects/ProjectsPage';
 import { UploadPage } from '@/components/upload/UploadPage';
 import { CollaborationPanel } from '@/components/collaboration/CollaborationPanel';
 import { AIToolsContent } from './AIToolsContent';
-import { InteractiveGISMap } from '@/components/gis/InteractiveGISMap';
+import { GoogleMapsGIS } from '@/components/gis/GoogleMapsGIS';
 import { useViewport } from '@/hooks/useViewport';
 
 interface TabContentRendererProps {
@@ -44,7 +44,7 @@ export const TabContentRenderer: React.FC<TabContentRendererProps> = ({ onNaviga
     },
     {
       value: "gis",
-      content: <InteractiveGISMap />
+      content: <GoogleMapsGIS />
     }
   ];
 
