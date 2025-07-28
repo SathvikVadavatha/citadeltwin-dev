@@ -26,6 +26,44 @@ import { AuthPage } from './pages/AuthPage';
 function App() {
   console.log('App component rendering...');
   
+  // Emergency fallback UI in case everything fails
+  const [showFallback, setShowFallback] = React.useState(false);
+  
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!document.querySelector('[data-app-loaded]')) {
+        console.warn('App failed to load properly, showing fallback');
+        setShowFallback(true);
+      }
+    }, 15000); // 15 second timeout
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
+  if (showFallback) {
+    return (
+      <div 
+        className="min-h-screen flex items-center justify-center"
+        style={{ 
+          backgroundColor: 'hsl(240, 20%, 4%)', 
+          color: 'hsl(224, 71%, 85%)'
+        }}
+      >
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">CitadelTwin</h1>
+          <p>Loading application...</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 rounded"
+            style={{ backgroundColor: 'hsl(197, 80%, 50%)', color: 'white' }}
+          >
+            Reload
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -43,12 +81,13 @@ function App() {
   });
 
   return (
-    <ErrorBoundary
-      onError={(error, errorInfo) => {
-        console.error('Application-level error:', error, errorInfo);
-        // Here you could send to error tracking service
-      }}
-    >
+    <div data-app-loaded="true">
+      <ErrorBoundary
+        onError={(error, errorInfo) => {
+          console.error('Application-level error:', error, errorInfo);
+          // Here you could send to error tracking service
+        }}
+      >
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <Router>
@@ -210,6 +249,7 @@ function App() {
         </AuthProvider>
       </QueryClientProvider>
     </ErrorBoundary>
+    </div>
   );
 }
 

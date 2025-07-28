@@ -11,10 +11,18 @@ interface MobileHeaderProps {
 }
 
 export const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuToggle }) => {
+  console.log('MobileHeader rendering...');
   const { user } = useAuth();
 
   return (
-    <header className="bg-background border-b border-border sticky top-0 z-40">
+    <header 
+      className="border-b sticky top-0 z-40"
+      style={{ 
+        backgroundColor: 'hsl(240, 20%, 8%)', 
+        borderColor: 'hsl(240, 20%, 15%)',
+        color: 'hsl(224, 71%, 85%)'
+      }}
+    >
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
           <Button

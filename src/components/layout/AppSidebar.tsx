@@ -33,10 +33,18 @@ const navigation = [
 ];
 
 export const AppSidebar: React.FC = () => {
+  console.log('AppSidebar rendering...');
   const location = useLocation();
 
   return (
-    <div className="flex h-full w-64 flex-col bg-background border-r">
+    <div 
+      className="flex h-full w-64 flex-col border-r"
+      style={{ 
+        backgroundColor: 'hsl(240, 20%, 8%)', 
+        borderColor: 'hsl(240, 20%, 15%)',
+        color: 'hsl(224, 71%, 85%)'
+      }}
+    >
       <div className="flex h-16 items-center px-6 border-b">
         <Link to="/dashboard" className="flex items-center space-x-2">
           <Building2 className="h-8 w-8 text-primary" />

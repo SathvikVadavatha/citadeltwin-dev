@@ -32,6 +32,7 @@ import { use3DModelViewer } from '@/hooks/use3DModelViewer';
 import { CustomReportBuilder } from '@/components/analytics/CustomReportBuilder';
 
 export const MainDashboard = () => {
+  console.log('MainDashboard rendering...');
   const [activeTab, setActiveTab] = useState('upload');
   const { uploads } = useUploads();
   const { uploadResult, resetUpload } = useBlueprintUpload();
@@ -49,8 +50,17 @@ export const MainDashboard = () => {
     hasModel 
   } = use3DModelViewer(targetUploadId);
 
+  console.log('MainDashboard state:', { activeTab, uploadsCount: uploads?.length, targetUploadId });
+
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div 
+      className="min-h-screen p-6"
+      style={{ 
+        backgroundColor: 'hsl(240, 20%, 4%)', 
+        color: 'hsl(224, 71%, 85%)',
+        minHeight: '100vh'
+      }}
+    >
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <Card className="cyber-ribbon border-cyan-400/20">
