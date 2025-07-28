@@ -74,20 +74,25 @@ export const LoginPage = ({ onNavigateToSignup, onNavigateToForgotPassword }: Lo
       <form onSubmit={handleLogin} className="space-y-6">
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-foreground">Email</Label>
+            <Label htmlFor="email" style={{ color: 'hsl(210 40% 98%)' }}>Email</Label>
             <Input
               id="email"
               type="email"
               placeholder="engineer@company.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-background border-border text-foreground"
+              style={{ 
+                backgroundColor: 'hsl(222.2 84% 4.9%)',
+                border: '1px solid hsl(217.2 32.6% 17.5%)',
+                color: 'hsl(210 40% 98%)'
+              }}
+              className="focus:ring-2 focus:ring-cyan-500"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-foreground">Password</Label>
+            <Label htmlFor="password" style={{ color: 'hsl(210 40% 98%)' }}>Password</Label>
             <div className="relative">
               <Input
                 id="password"
@@ -95,7 +100,12 @@ export const LoginPage = ({ onNavigateToSignup, onNavigateToForgotPassword }: Lo
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="bg-background border-border text-foreground pr-10"
+                style={{ 
+                  backgroundColor: 'hsl(222.2 84% 4.9%)',
+                  border: '1px solid hsl(217.2 32.6% 17.5%)',
+                  color: 'hsl(210 40% 98%)'
+                }}
+                className="pr-10 focus:ring-2 focus:ring-cyan-500"
                 required
               />
               <Button
@@ -106,9 +116,9 @@ export const LoginPage = ({ onNavigateToSignup, onNavigateToForgotPassword }: Lo
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? (
-                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  <EyeOff className="h-4 w-4" style={{ color: 'hsl(215.4 16.3% 46.9%)' }} />
                 ) : (
-                  <Eye className="h-4 w-4 text-muted-foreground" />
+                  <Eye className="h-4 w-4" style={{ color: 'hsl(215.4 16.3% 46.9%)' }} />
                 )}
               </Button>
             </div>
@@ -138,7 +148,11 @@ export const LoginPage = ({ onNavigateToSignup, onNavigateToForgotPassword }: Lo
 
         <Button 
           type="submit" 
-          className="w-full bg-primary hover:bg-primary/90"
+          className="w-full"
+          style={{ 
+            backgroundColor: 'hsl(194.4 95.3% 60.4%)',
+            color: 'hsl(222.2 84% 4.9%)'
+          }}
           disabled={loading}
         >
           {loading ? "Signing in..." : "Sign In"}

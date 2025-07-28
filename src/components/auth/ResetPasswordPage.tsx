@@ -78,7 +78,7 @@ export const ResetPasswordPage = ({ onNavigateToLogin }: ResetPasswordPageProps)
     >
       <form onSubmit={handleUpdatePassword} className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-foreground">New Password</Label>
+          <Label htmlFor="password" style={{ color: 'hsl(210 40% 98%)' }}>New Password</Label>
           <div className="relative">
             <Input
               id="password"
@@ -86,7 +86,12 @@ export const ResetPasswordPage = ({ onNavigateToLogin }: ResetPasswordPageProps)
               placeholder="Enter your new password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-background border-border text-foreground pr-10"
+              style={{ 
+                backgroundColor: 'hsl(222.2 84% 4.9%)',
+                border: '1px solid hsl(217.2 32.6% 17.5%)',
+                color: 'hsl(210 40% 98%)'
+              }}
+              className="pr-10 focus:ring-2 focus:ring-cyan-500"
               required
               minLength={6}
             />
@@ -98,9 +103,9 @@ export const ResetPasswordPage = ({ onNavigateToLogin }: ResetPasswordPageProps)
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? (
-                <EyeOff className="h-4 w-4" />
+                <EyeOff className="h-4 w-4" style={{ color: 'hsl(215.4 16.3% 46.9%)' }} />
               ) : (
-                <Eye className="h-4 w-4" />
+                <Eye className="h-4 w-4" style={{ color: 'hsl(215.4 16.3% 46.9%)' }} />
               )}
             </Button>
           </div>

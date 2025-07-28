@@ -103,24 +103,34 @@ export const SignupPage = ({ onNavigateToLogin }: SignupPageProps) => {
       <form onSubmit={handleSignup} className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="firstName" className="text-foreground">First Name</Label>
+            <Label htmlFor="firstName" style={{ color: 'hsl(210 40% 98%)' }}>First Name</Label>
             <Input
               id="firstName"
               placeholder="John"
               value={formData.firstName}
               onChange={(e) => updateFormData("firstName", e.target.value)}
-              className="bg-background border-border text-foreground"
+              style={{ 
+                backgroundColor: 'hsl(222.2 84% 4.9%)',
+                border: '1px solid hsl(217.2 32.6% 17.5%)',
+                color: 'hsl(210 40% 98%)'
+              }}
+              className="focus:ring-2 focus:ring-cyan-500"
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastName" className="text-foreground">Last Name</Label>
+            <Label htmlFor="lastName" style={{ color: 'hsl(210 40% 98%)' }}>Last Name</Label>
             <Input
               id="lastName"
               placeholder="Doe"
               value={formData.lastName}
               onChange={(e) => updateFormData("lastName", e.target.value)}
-              className="bg-background border-border text-foreground"
+              style={{ 
+                backgroundColor: 'hsl(222.2 84% 4.9%)',
+                border: '1px solid hsl(217.2 32.6% 17.5%)',
+                color: 'hsl(210 40% 98%)'
+              }}
+              className="focus:ring-2 focus:ring-cyan-500"
               required
             />
           </div>
@@ -210,7 +220,11 @@ export const SignupPage = ({ onNavigateToLogin }: SignupPageProps) => {
 
         <Button 
           type="submit" 
-          className="w-full bg-primary hover:bg-primary/90"
+          className="w-full"
+          style={{ 
+            backgroundColor: 'hsl(194.4 95.3% 60.4%)',
+            color: 'hsl(222.2 84% 4.9%)'
+          }}
           disabled={loading}
         >
           {loading ? "Creating account..." : "Create Account"}
