@@ -1,183 +1,311 @@
+import jsPDF from 'jspdf';
 import { ReportData, ComplianceReportData, ActivityReportData, FEAAnalysisReportData } from '@/types/reports';
 
 export class PDFFormatter {
   static async formatToPDF(data: ReportData, reportType: string): Promise<Blob> {
-    const htmlContent = this.generateHTML(data, reportType);
+    const pdf = new jsPDF();
     
-    // Create a simple PDF-like content (in a real implementation, you'd use a library like jsPDF or html2pdf)
-    const pdfContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <title>${reportType.toUpperCase()} Report</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
-            h1 { color: #2563eb; border-bottom: 2px solid #2563eb; }
-            h2 { color: #1e40af; margin-top: 30px; }
-            .status-yes { color: #059669; font-weight: bold; }
-            .status-no { color: #dc2626; font-weight: bold; }
-            .status-partial { color: #d97706; font-weight: bold; }
-            .status-passed { color: #059669; font-weight: bold; }
-            .status-near-limit { color: #d97706; font-weight: bold; }
-            .status-failed { color: #dc2626; font-weight: bold; }
-            table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f3f4f6; }
-            ul { margin: 10px 0; padding-left: 20px; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .date { color: #6b7280; font-style: italic; }
-          </style>
-        </head>
-        <body>
-          ${htmlContent}
-        </body>
-      </html>
-    `;
-
-    return new Blob([pdfContent], { type: 'text/html' });
-  }
-
-  private static generateHTML(data: ReportData, reportType: string): string {
+    // Set font
+    pdf.setFont('helvetica');
+    
     switch (reportType) {
       case 'compliance':
-        return this.generateComplianceHTML(data as ComplianceReportData);
+        this.generateCompliancePDF(pdf, data as ComplianceReportData);
+        break;
       case 'activity':
-        return this.generateActivityHTML(data as ActivityReportData);
+        this.generateActivityPDF(pdf, data as ActivityReportData);
+        break;
       case 'fea_analysis':
-        return this.generateFEAHTML(data as FEAAnalysisReportData);
+        this.generateFEAPDF(pdf, data as FEAAnalysisReportData);
+        break;
       default:
-        return '<h1>Unknown Report Type</h1>';
+        pdf.text('Unknown Report Type', 20, 20);
     }
+    
+    return pdf.output('blob');
   }
 
-  private static generateComplianceHTML(data: ComplianceReportData): string {
-    return `
-      <div class="header">
-        <h1>Compliance Report – ${data.projectName}</h1>
-        <p class="date">Date Generated: ${data.dateGenerated}</p>
-      </div>
-
-      <h2>Building Details</h2>
-      <ul>
-        <li><strong>Project Name:</strong> ${data.projectName}</li>
-        <li><strong>Address:</strong> ${data.address}</li>
-        <li><strong>Building Type:</strong> ${data.buildingType}</li>
-        <li><strong>Model Version:</strong> ${data.modelVersion}</li>
-        <li><strong>Jurisdiction:</strong> ${data.jurisdiction}</li>
-      </ul>
-
-      <h2>Compliance Summary</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Category</th>
-            <th>Standard</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${data.complianceSummary.map(item => `
-            <tr>
-              <td>${item.category}</td>
-              <td>${item.standard}</td>
-              <td class="status-${item.status.toLowerCase()}">${item.status}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-
-      <h2>Action Items</h2>
-      <ul>
-        ${data.actionItems.map(item => `<li>${item}</li>`).join('')}
-      </ul>
-
-      <h2>Version History</h2>
-      <ul>
-        ${data.versionHistory.map(item => `
-          <li><strong>${item.version}</strong> – ${item.description} (${item.date})</li>
-        `).join('')}
-      </ul>
-    `;
+  private static generateCompliancePDF(pdf: jsPDF, data: ComplianceReportData): void {
+    let yPosition = 20;
+    
+    // Title
+    pdf.setFontSize(20);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`Compliance Report – ${data.projectName}`, 20, yPosition);
+    yPosition += 15;
+    
+    // Date
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'italic');
+    pdf.text(`Date Generated: ${data.dateGenerated}`, 20, yPosition);
+    yPosition += 20;
+    
+    // Building Details
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Building Details', 20, yPosition);
+    yPosition += 10;
+    
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    const buildingDetails = [
+      `Project Name: ${data.projectName}`,
+      `Address: ${data.address}`,
+      `Building Type: ${data.buildingType}`,
+      `Model Version: ${data.modelVersion}`,
+      `Jurisdiction: ${data.jurisdiction}`
+    ];
+    
+    buildingDetails.forEach(detail => {
+      pdf.text(detail, 25, yPosition);
+      yPosition += 8;
+    });
+    yPosition += 10;
+    
+    // Compliance Summary
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Compliance Summary', 20, yPosition);
+    yPosition += 15;
+    
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    data.complianceSummary.forEach(item => {
+      const statusColor = item.status === 'Yes' ? [0, 150, 0] : 
+                         item.status === 'No' ? [200, 0, 0] : [200, 150, 0];
+      
+      pdf.text(`• ${item.category}`, 25, yPosition);
+      if (item.standard) {
+        pdf.text(`(${item.standard})`, 25, yPosition + 6);
+      }
+      pdf.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+      pdf.text(`${item.status}`, 150, yPosition);
+      pdf.setTextColor(0, 0, 0);
+      yPosition += item.standard ? 18 : 12;
+    });
+    yPosition += 10;
+    
+    // Action Items
+    if (yPosition > 250) {
+      pdf.addPage();
+      yPosition = 20;
+    }
+    
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Action Items', 20, yPosition);
+    yPosition += 15;
+    
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    data.actionItems.forEach((item, index) => {
+      const lines = pdf.splitTextToSize(`${index + 1}. ${item}`, 170);
+      lines.forEach((line: string) => {
+        pdf.text(line, 25, yPosition);
+        yPosition += 8;
+      });
+      yPosition += 5;
+    });
+    yPosition += 10;
+    
+    // Version History
+    if (yPosition > 250) {
+      pdf.addPage();
+      yPosition = 20;
+    }
+    
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Version History', 20, yPosition);
+    yPosition += 15;
+    
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    data.versionHistory.forEach(item => {
+      pdf.text(`• ${item.version} – ${item.description} (${item.date})`, 25, yPosition);
+      yPosition += 12;
+    });
   }
 
-  private static generateActivityHTML(data: ActivityReportData): string {
-    return `
-      <div class="header">
-        <h1>Activity Report – ${data.projectName}</h1>
-        <p class="date">Date Generated: ${data.dateGenerated}</p>
-      </div>
-
-      <h2>Team Activity Summary</h2>
-      <ul>
-        ${data.teamActivity.map(member => `
-          <li><strong>${member.name} (${member.role}):</strong> ${member.tasksCompleted} tasks completed – ${member.description}</li>
-        `).join('')}
-      </ul>
-
-      <h2>System Activity</h2>
-      <ul>
-        <li>${data.systemActivity.blueprintUploads} blueprint uploads</li>
-        <li>${data.systemActivity.modelsGenerated} 3D models generated (${data.systemActivity.modelsApproved} approved, ${data.systemActivity.modelsInReview} in review)</li>
-        <li>${data.systemActivity.complianceReports} compliance reports run</li>
-        <li><strong>GIS Layers:</strong> ${data.systemActivity.gisLayers.join(', ')}</li>
-      </ul>
-
-      <h2>Notifications</h2>
-      <ul>
-        ${data.notifications.map(notification => `<li>${notification}</li>`).join('')}
-      </ul>
-
-      <h2>Next Milestones</h2>
-      <ul>
-        ${data.nextMilestones.map(milestone => `
-          <li><strong>${milestone.task}</strong> – ETA: ${milestone.eta}</li>
-        `).join('')}
-      </ul>
-    `;
+  private static generateActivityPDF(pdf: jsPDF, data: ActivityReportData): void {
+    let yPosition = 20;
+    
+    // Title
+    pdf.setFontSize(20);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`Activity Report – ${data.projectName}`, 20, yPosition);
+    yPosition += 15;
+    
+    // Date
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'italic');
+    pdf.text(`Date Generated: ${data.dateGenerated}`, 20, yPosition);
+    yPosition += 20;
+    
+    // Team Activity Summary
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Team Activity Summary', 20, yPosition);
+    yPosition += 15;
+    
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    data.teamActivity.forEach(member => {
+      const memberText = `• ${member.name} (${member.role}): ${member.tasksCompleted} tasks completed – ${member.description}`;
+      const lines = pdf.splitTextToSize(memberText, 170);
+      lines.forEach((line: string) => {
+        pdf.text(line, 25, yPosition);
+        yPosition += 8;
+      });
+      yPosition += 5;
+    });
+    yPosition += 10;
+    
+    // System Activity
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('System Activity', 20, yPosition);
+    yPosition += 15;
+    
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    const systemStats = [
+      `• ${data.systemActivity.blueprintUploads} blueprint uploads`,
+      `• ${data.systemActivity.modelsGenerated} 3D models generated (${data.systemActivity.modelsApproved} approved, ${data.systemActivity.modelsInReview} in review)`,
+      `• ${data.systemActivity.complianceReports} compliance reports run`,
+      `• GIS Layers: ${data.systemActivity.gisLayers.join(', ')}`
+    ];
+    
+    systemStats.forEach(stat => {
+      const lines = pdf.splitTextToSize(stat, 170);
+      lines.forEach((line: string) => {
+        pdf.text(line, 25, yPosition);
+        yPosition += 8;
+      });
+      yPosition += 3;
+    });
+    yPosition += 10;
+    
+    // Check if we need a new page
+    if (yPosition > 220) {
+      pdf.addPage();
+      yPosition = 20;
+    }
+    
+    // Notifications
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Notifications', 20, yPosition);
+    yPosition += 15;
+    
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    data.notifications.forEach((notification, index) => {
+      const notificationText = `${index + 1}. ${notification}`;
+      const lines = pdf.splitTextToSize(notificationText, 170);
+      lines.forEach((line: string) => {
+        pdf.text(line, 25, yPosition);
+        yPosition += 8;
+      });
+      yPosition += 5;
+    });
+    yPosition += 10;
+    
+    // Next Milestones
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Next Milestones', 20, yPosition);
+    yPosition += 15;
+    
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    data.nextMilestones.forEach(milestone => {
+      pdf.text(`• ${milestone.task} – ETA: ${milestone.eta}`, 25, yPosition);
+      yPosition += 12;
+    });
   }
 
-  private static generateFEAHTML(data: FEAAnalysisReportData): string {
-    return `
-      <div class="header">
-        <h1>Analysis Report – ${data.projectName}</h1>
-        <p class="date">Date Generated: ${data.dateGenerated}</p>
-      </div>
-
-      <h2>Overview</h2>
-      <ul>
-        <li><strong>Objective:</strong> ${data.objective}</li>
-        <li><strong>Model:</strong> ${data.model}</li>
-        <li><strong>Mesh Resolution:</strong> ${data.meshResolution}</li>
-        <li><strong>Boundary Conditions:</strong> ${data.boundaryConditions}</li>
-      </ul>
-
-      <h2>Key Load Cases</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Load Type</th>
-            <th>Displacement</th>
-            <th>Stress</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${data.loadCases.map(loadCase => `
-            <tr>
-              <td>${loadCase.type}</td>
-              <td>${loadCase.displacement}</td>
-              <td>${loadCase.stress}</td>
-              <td class="status-${loadCase.status.toLowerCase().replace(' ', '-')}">${loadCase.status}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-
-      <h2>Recommendations</h2>
-      <ul>
-        ${data.recommendations.map(rec => `<li>${rec}</li>`).join('')}
-      </ul>
-    `;
+  private static generateFEAPDF(pdf: jsPDF, data: FEAAnalysisReportData): void {
+    let yPosition = 20;
+    
+    // Title
+    pdf.setFontSize(20);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`Analysis Report – ${data.projectName}`, 20, yPosition);
+    yPosition += 15;
+    
+    // Date
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'italic');
+    pdf.text(`Date Generated: ${data.dateGenerated}`, 20, yPosition);
+    yPosition += 20;
+    
+    // Overview
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Overview', 20, yPosition);
+    yPosition += 15;
+    
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    const overviewItems = [
+      `Objective: ${data.objective}`,
+      `Model: ${data.model}`,
+      `Mesh Resolution: ${data.meshResolution}`,
+      `Boundary Conditions: ${data.boundaryConditions}`
+    ];
+    
+    overviewItems.forEach(item => {
+      const lines = pdf.splitTextToSize(`• ${item}`, 170);
+      lines.forEach((line: string) => {
+        pdf.text(line, 25, yPosition);
+        yPosition += 8;
+      });
+      yPosition += 3;
+    });
+    yPosition += 15;
+    
+    // Key Load Cases
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Key Load Cases', 20, yPosition);
+    yPosition += 15;
+    
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    data.loadCases.forEach(loadCase => {
+      const statusColor = loadCase.status === 'Passed' ? [0, 150, 0] : 
+                         loadCase.status === 'Failed' ? [200, 0, 0] : [200, 150, 0];
+      
+      pdf.text(`• ${loadCase.type}: ${loadCase.displacement} displacement, ${loadCase.stress} stress`, 25, yPosition);
+      pdf.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+      pdf.text(`${loadCase.status}`, 150, yPosition);
+      pdf.setTextColor(0, 0, 0);
+      yPosition += 12;
+    });
+    yPosition += 15;
+    
+    // Recommendations
+    if (yPosition > 220) {
+      pdf.addPage();
+      yPosition = 20;
+    }
+    
+    pdf.setFontSize(16);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Recommendations', 20, yPosition);
+    yPosition += 15;
+    
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    data.recommendations.forEach((rec, index) => {
+      const recText = `${index + 1}. ${rec}`;
+      const lines = pdf.splitTextToSize(recText, 170);
+      lines.forEach((line: string) => {
+        pdf.text(line, 25, yPosition);
+        yPosition += 8;
+      });
+      yPosition += 5;
+    });
   }
 }

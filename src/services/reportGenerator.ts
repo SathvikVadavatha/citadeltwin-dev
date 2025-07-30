@@ -96,7 +96,7 @@ export class ReportGenerator {
     switch (outputFormat) {
       case 'pdf':
         const pdfBlob = await PDFFormatter.formatToPDF(data, reportType);
-        return { content: pdfBlob, mimeType: 'text/html' };
+        return { content: pdfBlob, mimeType: 'application/pdf' };
       
       case 'csv':
         const csvContent = CSVFormatter.formatToCSV(data, reportType);
