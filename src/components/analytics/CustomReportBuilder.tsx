@@ -162,6 +162,7 @@ export const CustomReportBuilder: React.FC = () => {
                   selected={dateRange}
                   onSelect={setDateRange}
                   numberOfMonths={2}
+                  disabled={(date) => date > new Date()}
                   className="pointer-events-auto"
                 />
               </PopoverContent>
