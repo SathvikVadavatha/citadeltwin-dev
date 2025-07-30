@@ -9,6 +9,7 @@ import { Upload, MapPin, Layers, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSpatialAnalysis } from '@/hooks/useSpatialAnalysis';
 import { useAdvancedGIS } from '@/hooks/useAdvancedGIS';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LayerToggle {
   id: string;
@@ -35,7 +36,7 @@ export const GoogleMapsGIS: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRegion, setSelectedRegion] = useState<'central-florida' | 'northeast-ohio'>('central-florida');
   const [analysisResults, setAnalysisResults] = useState<SpatialAnalysisResult[]>([]);
-  const [apiKeyError, setApiKeyError] = useState(false);
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
 
   const { runIntersectionAnalysis, runBufferAnalysis, fetchRealGISData } = useSpatialAnalysis();
   const { fetchEnvironmentalData, performZoningAnalysis } = useAdvancedGIS();
@@ -54,20 +55,21 @@ export const GoogleMapsGIS: React.FC = () => {
 
     try {
       setIsLoading(true);
-      setApiKeyError(false);
+      setApiKeyError(null);
 
-      // For now, use a placeholder API key message
-      // In production, this would come from Supabase Edge Function
-      const GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY';
-
-      if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY === 'YOUR_GOOGLE_MAPS_API_KEY') {
-        setApiKeyError(true);
+      // Fetch Google Maps API key from Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('get-google-maps-key');
+      
+      if (error || !data?.apiKey) {
+        const errorMessage = error?.message || data?.error || 'Failed to retrieve Google Maps API key';
+        console.error('Error fetching Google Maps API key:', errorMessage);
+        setApiKeyError(errorMessage);
         setIsLoading(false);
         return;
       }
 
       const loader = new Loader({
-        apiKey: GOOGLE_MAPS_API_KEY,
+        apiKey: data.apiKey,
         version: 'weekly',
         libraries: ['geometry', 'drawing', 'places']
       });
@@ -111,7 +113,7 @@ export const GoogleMapsGIS: React.FC = () => {
       setIsLoading(false);
     } catch (error) {
       console.error('Error initializing Google Maps:', error);
-      setApiKeyError(true);
+      setApiKeyError('Failed to initialize Google Maps. Please check the console for details.');
       setIsLoading(false);
       toast.error('Failed to load Google Maps. Please check your API key.');
     }
@@ -184,11 +186,12 @@ export const GoogleMapsGIS: React.FC = () => {
       <div className="space-y-6">
         <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)', color: 'hsl(0 0% 98%)' }}>
           <CardHeader>
-            <CardTitle style={{ color: 'hsl(0 0% 98%)' }}>Google Maps API Key Required</CardTitle>
+            <CardTitle style={{ color: 'hsl(0 0% 98%)' }}>Google Maps API Configuration Error</CardTitle>
           </CardHeader>
           <CardContent>
-            <p style={{ color: 'hsl(240 5% 64.9%)' }}>
-              To enable Google Maps integration, please configure your Google Maps API key in the Supabase Edge Function secrets.
+            <p style={{ color: 'hsl(240 5% 64.9%)' }} className="mb-4">{apiKeyError}</p>
+            <p style={{ color: 'hsl(240 5% 64.9%)' }} className="text-sm">
+              Please ensure the GOOGLE_MAPS_API_KEY is properly configured in your Supabase secrets.
             </p>
             <div className="mt-4">
               <Button 
