@@ -6,14 +6,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, Download, FileText, BarChart3, Shield, Activity } from 'lucide-react';
+import { CalendarIcon, Download, FileText, BarChart3, Shield, Activity, Loader2 } from 'lucide-react';
 import { format } from "date-fns";
 import { cn } from '@/lib/utils';
 import { DateRange } from 'react-day-picker';
+import { ReportGenerator } from '@/services/reportGenerator';
+import { ReportType, OutputFormat } from '@/types/reports';
+import { toast } from '@/hooks/use-toast';
 
 const reportTypes = [
   { value: 'compliance', label: 'Compliance Report', icon: Shield },
-  { value: 'fea', label: 'FEA Analysis Report', icon: BarChart3 },
+  { value: 'fea_analysis', label: 'FEA Analysis Report', icon: BarChart3 },
   { value: 'activity', label: 'Activity Report', icon: Activity },
   { value: 'performance', label: 'Performance Report', icon: FileText },
 ];
@@ -36,11 +39,42 @@ export const CustomReportBuilder: React.FC = () => {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [projectScope, setProjectScope] = useState<string>('');
   const [outputFormat, setOutputFormat] = useState<string>('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const selectedReportType = reportTypes.find(type => type.value === reportType);
   const ReportIcon = selectedReportType?.icon || FileText;
 
   const isFormComplete = reportType && dateRange?.from && dateRange?.to && projectScope && outputFormat;
+
+  const handleGenerateReport = async () => {
+    if (!isFormComplete || !dateRange?.from || !dateRange?.to) return;
+
+    setIsGenerating(true);
+    try {
+      const report = await ReportGenerator.generateReport(
+        reportType as ReportType,
+        { from: dateRange.from, to: dateRange.to },
+        outputFormat as OutputFormat
+      );
+
+      // Download the file
+      ReportGenerator.downloadFile(report.content, report.filename, report.mimeType);
+      
+      toast({
+        title: "Report Generated Successfully",
+        description: `Your ${selectedReportType?.label} has been downloaded as ${outputFormat.toUpperCase()}.`,
+      });
+    } catch (error) {
+      console.error('Report generation failed:', error);
+      toast({
+        title: "Report Generation Failed",
+        description: "There was an error generating your report. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <Card className="cyber-tool-palette">
@@ -198,10 +232,20 @@ export const CustomReportBuilder: React.FC = () => {
         {/* Generate Report Button */}
         <Button 
           className="w-full"
-          disabled={!isFormComplete}
+          disabled={!isFormComplete || isGenerating}
+          onClick={handleGenerateReport}
         >
-          <Download className="mr-2 h-4 w-4" />
-          Generate Report
+          {isGenerating ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating Report...
+            </>
+          ) : (
+            <>
+              <Download className="mr-2 h-4 w-4" />
+              Generate Report
+            </>
+          )}
         </Button>
 
         {/* Past Reports Section */}
