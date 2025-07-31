@@ -32,35 +32,53 @@ import { use3DModelViewer } from '@/hooks/use3DModelViewer';
 import { CustomReportBuilder } from '@/components/analytics/CustomReportBuilder';
 
 export const MainDashboard = () => {
-  console.log('MainDashboard rendering...');
-  const [activeTab, setActiveTab] = useState('upload');
-  const { uploads } = useUploads();
-  const { uploadResult, resetUpload } = useBlueprintUpload();
+  console.log('MainDashboard: Starting render...');
   
-  const recentUpload = uploads?.[0];
-  const targetUploadId = uploadResult?.id || recentUpload?.id;
-  
-  // Use the 3D model viewer hook to fetch latest models
-  const { 
-    model3DUrl, 
-    modelMetadata, 
-    loading: modelLoading, 
-    error: modelError, 
-    refreshModel,
-    hasModel 
-  } = use3DModelViewer(targetUploadId);
+  try {
+    const [activeTab, setActiveTab] = useState('upload');
+    console.log('MainDashboard: useState initialized');
+    
+    const { uploads } = useUploads();
+    console.log('MainDashboard: useUploads hook called, uploads:', uploads?.length);
+    
+    const { uploadResult, resetUpload } = useBlueprintUpload();
+    console.log('MainDashboard: useBlueprintUpload hook called, uploadResult:', !!uploadResult);
+    
+    const recentUpload = uploads?.[0];
+    const targetUploadId = uploadResult?.id || recentUpload?.id;
+    console.log('MainDashboard: Target upload ID:', targetUploadId);
+    
+    // Use the 3D model viewer hook to fetch latest models
+    const { 
+      model3DUrl, 
+      modelMetadata, 
+      loading: modelLoading, 
+      error: modelError, 
+      refreshModel,
+      hasModel 
+    } = use3DModelViewer(targetUploadId);
+    
+    console.log('MainDashboard: use3DModelViewer hook called');
+    console.log('MainDashboard state:', { 
+      activeTab, 
+      uploadsCount: uploads?.length, 
+      targetUploadId,
+      modelLoading,
+      modelError,
+      hasModel
+    });
 
-  console.log('MainDashboard state:', { activeTab, uploadsCount: uploads?.length, targetUploadId });
-
-  return (
-    <div 
-      className="min-h-screen p-6"
-      style={{ 
-        backgroundColor: 'hsl(240, 20%, 4%)', 
-        color: 'hsl(224, 71%, 85%)',
-        minHeight: '100vh'
-      }}
-    >
+    console.log('MainDashboard: About to render JSX...');
+    
+    return (
+      <div 
+        className="min-h-screen p-6"
+        style={{ 
+          backgroundColor: 'hsl(240, 20%, 4%)', 
+          color: 'hsl(224, 71%, 85%)',
+          minHeight: '100vh'
+        }}
+      >
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <Card className="cyber-ribbon border-cyan-400/20">
@@ -279,4 +297,43 @@ export const MainDashboard = () => {
       </div>
     </div>
   );
+  
+  } catch (error) {
+    console.error('MainDashboard: Error in component:', error);
+    return (
+      <div 
+        style={{ 
+          backgroundColor: 'hsl(240, 20%, 4%)', 
+          color: 'hsl(224, 71%, 85%)',
+          minHeight: '100vh',
+          padding: '2rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <div style={{ textAlign: 'center' }}>
+          <h1 style={{ color: 'hsl(0, 100%, 60%)', marginBottom: '1rem' }}>
+            Dashboard Error
+          </h1>
+          <p style={{ marginBottom: '1rem' }}>
+            {error instanceof Error ? error.message : 'Unknown error occurred'}
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{ 
+              backgroundColor: 'hsl(180, 100%, 50%)', 
+              color: 'hsl(240, 20%, 4%)',
+              padding: '0.5rem 1rem',
+              border: 'none',
+              borderRadius: '0.25rem',
+              cursor: 'pointer'
+            }}
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 };
