@@ -44,7 +44,7 @@ export const TabContentRenderer: React.FC<TabContentRendererProps> = ({ onNaviga
     },
     {
       value: "gis",
-      content: <div className="p-6"><h2 className="text-2xl font-bold">GIS Coming Soon</h2><p>GIS functionality temporarily disabled</p></div>
+      content: <GoogleMapsGIS />
     }
   ];
 
