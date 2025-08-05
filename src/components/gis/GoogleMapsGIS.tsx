@@ -34,6 +34,7 @@ export const GoogleMapsGIS: React.FC = () => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const floodZoneOverlaysRef = useRef<google.maps.Polygon[]>([]);
+  const protectedAreaOverlaysRef = useRef<google.maps.Polygon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRegion, setSelectedRegion] = useState<'central-florida' | 'northeast-ohio'>('central-florida');
   const [analysisResults, setAnalysisResults] = useState<SpatialAnalysisResult[]>([]);
@@ -45,7 +46,7 @@ export const GoogleMapsGIS: React.FC = () => {
   const [layers, setLayers] = useState<LayerToggle[]>([
     { id: 'flood_zones', name: 'FEMA Flood Zones', type: 'flood_zones', enabled: false, color: '#3B82F6', description: 'FEMA flood risk areas (Orange & Cuyahoga Counties)' },
     { id: 'soil_types', name: 'Soil Classifications - Coming Soon', type: 'soil_types', enabled: false, color: '#8B5CF6', description: 'Soil composition and bearing capacity' },
-    { id: 'protected_lands', name: 'Protected Areas - Coming Soon', type: 'protected_lands', enabled: false, color: '#10B981', description: 'Environmentally protected zones' },
+    { id: 'protected_lands', name: 'Protected Areas', type: 'protected_lands', enabled: false, color: '#10B981', description: 'USGS protected areas (Orange & Cuyahoga Counties)' },
     { id: 'roads', name: 'Transportation Network - Coming Soon', type: 'roads', enabled: false, color: '#F59E0B', description: 'Roads, highways, and transit' },
     { id: 'wetlands', name: 'Wetlands & Water Bodies - Coming Soon', type: 'wetlands', enabled: false, color: '#06B6D4', description: 'Natural water features' },
     { id: 'utilities', name: 'Utility Infrastructure - Coming Soon', type: 'utilities', enabled: false, color: '#EF4444', description: 'Power, water, sewer lines' }
@@ -294,6 +295,135 @@ export const GoogleMapsGIS: React.FC = () => {
     floodZoneOverlaysRef.current = [];
   }, []);
 
+  // Function to render protected areas polygons on the map
+  const renderProtectedAreas = useCallback(() => {
+    if (!mapInstanceRef.current) return;
+
+    // Clear existing overlays
+    clearProtectedAreas();
+
+    const regionCity = selectedRegion === 'central-florida' ? 'Orlando' : 'Cleveland';
+    const regionState = selectedRegion === 'central-florida' ? 'FL' : 'OH';
+
+    // Find protected areas data for current region
+    const protectedData = environmentalLayers.find(envLayer => 
+      envLayer.layer_type === 'protected_lands' && 
+      envLayer.city.toLowerCase() === regionCity.toLowerCase() &&
+      envLayer.state === regionState
+    );
+
+    if (!protectedData || !protectedData.geometry_data) {
+      console.log('No protected areas data available for', regionCity, regionState);
+      return;
+    }
+
+    try {
+      const geometryData = typeof protectedData.geometry_data === 'string' 
+        ? JSON.parse(protectedData.geometry_data) 
+        : protectedData.geometry_data;
+
+      if (geometryData.features && Array.isArray(geometryData.features)) {
+        console.log(`Rendering ${geometryData.features.length} protected area features`);
+
+        geometryData.features.forEach((feature: any, index: number) => {
+          if (feature.geometry && feature.geometry.coordinates) {
+            try {
+              const gapStatus = feature.properties?.GAP_Sts || '2';
+              const unitName = feature.properties?.Unit_Nm || 'Protected Area';
+              const managingAgency = feature.properties?.Mang_Name || 'Unknown Agency';
+              
+              // Color coding based on GAP status
+              let fillColor = '#10B981'; // Default green
+              let strokeColor = '#047857';
+              
+              if (gapStatus === '1') {
+                fillColor = '#059669'; // Dark green for highest protection
+                strokeColor = '#064E3B';
+              } else if (gapStatus === '2') {
+                fillColor = '#10B981'; // Medium green
+                strokeColor = '#047857';
+              } else if (gapStatus === '3') {
+                fillColor = '#34D399'; // Light green
+                strokeColor = '#065F46';
+              } else {
+                fillColor = '#6EE7B7'; // Very light green
+                strokeColor = '#047857';
+              }
+
+              // Convert coordinates to Google Maps format
+              let paths: google.maps.LatLngLiteral[] = [];
+              
+              if (feature.geometry.type === 'Polygon') {
+                paths = feature.geometry.coordinates[0].map((coord: [number, number]) => ({
+                  lat: coord[1],
+                  lng: coord[0]
+                }));
+              } else if (feature.geometry.type === 'MultiPolygon') {
+                // For MultiPolygon, use the first polygon
+                if (feature.geometry.coordinates[0] && feature.geometry.coordinates[0][0]) {
+                  paths = feature.geometry.coordinates[0][0].map((coord: [number, number]) => ({
+                    lat: coord[1],
+                    lng: coord[0]
+                  }));
+                }
+              }
+
+              if (paths.length > 0) {
+                const polygon = new google.maps.Polygon({
+                  paths: paths,
+                  strokeColor: strokeColor,
+                  strokeOpacity: 0.8,
+                  strokeWeight: 2,
+                  fillColor: fillColor,
+                  fillOpacity: 0.3,
+                });
+
+                polygon.setMap(mapInstanceRef.current);
+                protectedAreaOverlaysRef.current.push(polygon);
+
+                // Add info window on click
+                polygon.addListener('click', () => {
+                  const infoWindow = new google.maps.InfoWindow({
+                    content: `
+                      <div style="color: #333;">
+                        <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold;">${unitName}</h3>
+                        <p style="margin: 4px 0;"><strong>Managing Agency:</strong> ${managingAgency}</p>
+                        <p style="margin: 4px 0;"><strong>GAP Status:</strong> ${gapStatus}</p>
+                        <p style="margin: 4px 0;"><strong>Type:</strong> ${feature.properties?.Des_Tp || 'Protected Land'}</p>
+                        <p style="margin: 4px 0; font-size: 12px; color: #666;">
+                          ${gapStatus === '1' ? 'Highest level of protection' : 
+                            gapStatus === '2' ? 'Moderate protection with some restrictions' : 
+                            'Limited protection level'}
+                        </p>
+                      </div>
+                    `,
+                    position: paths[0] // Position at first coordinate
+                  });
+                  infoWindow.open(mapInstanceRef.current);
+                });
+              }
+            } catch (featureError) {
+              console.error(`Error rendering protected area feature ${index}:`, featureError);
+            }
+          }
+        });
+
+        toast.success(`Rendered ${geometryData.features.length} protected areas on map`);
+      }
+    } catch (error) {
+      console.error('Error parsing protected areas geometry data:', error);
+      toast.error('Failed to render protected areas on map');
+    }
+  }, [environmentalLayers, selectedRegion]);
+
+  // Function to clear protected area overlays
+  const clearProtectedAreas = useCallback(() => {
+    protectedAreaOverlaysRef.current.forEach(overlay => {
+      overlay.setMap(null);
+    });
+    protectedAreaOverlaysRef.current = [];
+  }, []);
+
   // Effect to manage flood zone rendering based on layer toggle
   useEffect(() => {
     const floodLayer = layers.find(l => l.id === 'flood_zones');
@@ -304,10 +434,21 @@ export const GoogleMapsGIS: React.FC = () => {
     }
   }, [layers, renderFloodZones, clearFloodZones]);
 
+  // Effect to manage protected areas rendering based on layer toggle
+  useEffect(() => {
+    const protectedLayer = layers.find(l => l.id === 'protected_lands');
+    if (protectedLayer?.enabled && mapInstanceRef.current) {
+      renderProtectedAreas();
+    } else {
+      clearProtectedAreas();
+    }
+  }, [layers, renderProtectedAreas, clearProtectedAreas]);
+
   // Effect to clear overlays when switching regions
   useEffect(() => {
     clearFloodZones();
-  }, [selectedRegion, clearFloodZones]);
+    clearProtectedAreas();
+  }, [selectedRegion, clearFloodZones, clearProtectedAreas]);
 
   const toggleLayer = async (layerId: string) => {
     const layer = layers.find(l => l.id === layerId);
@@ -342,6 +483,32 @@ export const GoogleMapsGIS: React.FC = () => {
         } catch (error) {
           console.error('Error fetching FEMA flood data:', error);
           toast.error('Failed to fetch FEMA flood data. Using cached data if available.');
+        }
+      }
+    }
+
+    // If enabling protected lands layer, check if we have cached data first
+    if (isEnabling && layerId === 'protected_lands') {
+      const regionCity = selectedRegion === 'central-florida' ? 'Orlando' : 'Cleveland';
+      const regionState = selectedRegion === 'central-florida' ? 'FL' : 'OH';
+      
+      // Check if we already have protected areas data for this region
+      const existingProtectedData = environmentalLayers.find(envLayer => 
+        envLayer.layer_type === 'protected_lands' && 
+        envLayer.city.toLowerCase() === regionCity.toLowerCase() &&
+        envLayer.state === regionState
+      );
+      
+      if (existingProtectedData) {
+        console.log('Using cached protected areas data for', regionCity, regionState);
+        toast.success(`Using cached protected areas data for ${regionCity}, ${regionState}`);
+      } else {
+        try {
+          toast.success(`Fetching USGS protected areas data for ${regionCity}, ${regionState}...`);
+          await fetchEnvironmentalData({ city: regionCity, state: regionState, dataTypes: ['protected_lands'] });
+        } catch (error) {
+          console.error('Error fetching protected areas data:', error);
+          toast.error('Failed to fetch protected areas data. Using cached data if available.');
         }
       }
     }

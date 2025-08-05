@@ -27,7 +27,7 @@ export interface PropertyBoundary {
 export interface EnvironmentalLayer {
   id: string;
   layer_name: string;
-  layer_type: 'flood_zones' | 'soil_conditions' | 'environmental' | 'zoning';
+  layer_type: 'flood_zones' | 'soil_conditions' | 'environmental' | 'zoning' | 'protected_lands';
   environmental_type: string | null;
   city: string;
   state: string;
@@ -59,7 +59,7 @@ export const useAdvancedGIS = () => {
       const { data, error } = await supabase
         .from('gis_layers')
         .select('*')
-        .in('layer_type', ['flood_zones', 'soil_conditions', 'environmental', 'zoning'])
+        .in('layer_type', ['flood_zones', 'soil_conditions', 'environmental', 'zoning', 'protected_lands'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
