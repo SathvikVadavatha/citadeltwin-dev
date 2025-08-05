@@ -33,14 +33,15 @@ interface GISRequest {
 // FEMA Flood Zone API Configuration
 const FEMA_NFHL_API = 'https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer';
 
-// Target counties for FEMA flood data integration
+// Target counties for FEMA flood data integration with improved city mapping
 const TARGET_COUNTIES = {
   'central-florida': {
     'orange-county': {
       name: 'Orange County, FL',
       state: 'FL',
       fips: '12095',
-      center: { lat: 28.5383, lng: -81.3792 }
+      center: { lat: 28.5383, lng: -81.3792 },
+      cities: ['Orlando', 'Winter Park', 'Kissimmee', 'Apopka', 'Ocoee']
     }
   },
   'northeast-ohio': {
@@ -48,7 +49,8 @@ const TARGET_COUNTIES = {
       name: 'Cuyahoga County, OH', 
       state: 'OH',
       fips: '39035',
-      center: { lat: 41.4993, lng: -81.6944 }
+      center: { lat: 41.4993, lng: -81.6944 },
+      cities: ['Cleveland', 'Parma', 'Lakewood', 'Euclid', 'Strongsville']
     }
   }
 };
@@ -477,17 +479,21 @@ async function handleFEMAFloodDataFetch(request: GISRequest) {
 async function fetchFEMAFloodDataForLocation(city: string, state: string) {
   console.log(`Fetching FEMA data for ${city}, ${state}`);
   
-  // Find matching county configuration
+  // Find matching county configuration with improved matching logic
   let countyConfig = null;
   let regionKey = null;
   
   for (const [region, counties] of Object.entries(TARGET_COUNTIES)) {
     for (const [countyKey, config] of Object.entries(counties)) {
+      console.log(`Checking county config: ${config.name} for cities:`, config.cities);
+      
+      // Check if state matches and city is in the list of cities for this county
       if (config.state === state && 
-          (config.name.toLowerCase().includes(city.toLowerCase()) || 
-           city.toLowerCase().includes(config.name.toLowerCase().split(' ')[0]))) {
+          config.cities && 
+          config.cities.some(cityName => cityName.toLowerCase() === city.toLowerCase())) {
         countyConfig = config;
         regionKey = region;
+        console.log(`Found matching county: ${config.name} for ${city}, ${state}`);
         break;
       }
     }
@@ -496,6 +502,8 @@ async function fetchFEMAFloodDataForLocation(city: string, state: string) {
   
   if (!countyConfig) {
     console.log(`No county configuration found for ${city}, ${state}`);
+    console.log('Available counties:', Object.entries(TARGET_COUNTIES).map(([region, counties]) => 
+      Object.entries(counties).map(([key, config]) => `${config.name} (cities: ${config.cities?.join(', ')})`)));
     return null;
   }
   

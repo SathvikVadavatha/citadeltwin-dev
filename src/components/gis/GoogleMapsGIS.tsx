@@ -180,18 +180,29 @@ export const GoogleMapsGIS: React.FC = () => {
         : layer
     ));
     
-    // If enabling flood zones layer, fetch real FEMA data
+    // If enabling flood zones layer, check if we have cached data first
     if (isEnabling && layerId === 'flood_zones') {
-      try {
-        const regionCity = selectedRegion === 'central-florida' ? 'Orlando' : 'Cleveland';
-        const regionState = selectedRegion === 'central-florida' ? 'FL' : 'OH';
-        
-        toast.success(`Fetching real FEMA flood data for ${regionCity}, ${regionState}...`);
-        
-        await fetchFEMAFloodData({ city: regionCity, state: regionState });
-      } catch (error) {
-        console.error('Error fetching FEMA flood data:', error);
-        toast.error('Failed to fetch FEMA flood data. Using cached data if available.');
+      const regionCity = selectedRegion === 'central-florida' ? 'Orlando' : 'Cleveland';
+      const regionState = selectedRegion === 'central-florida' ? 'FL' : 'OH';
+      
+      // Check if we already have flood data for this region
+      const existingFloodData = environmentalLayers.find(envLayer => 
+        envLayer.layer_type === 'flood_zones' && 
+        envLayer.city.toLowerCase() === regionCity.toLowerCase() &&
+        envLayer.state === regionState
+      );
+      
+      if (existingFloodData) {
+        console.log('Using cached FEMA flood data for', regionCity, regionState);
+        toast.success(`Using cached FEMA flood data for ${regionCity}, ${regionState}`);
+      } else {
+        try {
+          toast.success(`Fetching real FEMA flood data for ${regionCity}, ${regionState}...`);
+          await fetchFEMAFloodData({ city: regionCity, state: regionState });
+        } catch (error) {
+          console.error('Error fetching FEMA flood data:', error);
+          toast.error('Failed to fetch FEMA flood data. Using cached data if available.');
+        }
       }
     }
   };
