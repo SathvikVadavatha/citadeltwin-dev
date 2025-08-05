@@ -133,7 +133,7 @@ async function handleEnvironmentalDataFetch(request: GISRequest) {
       geometry_data: generateMockGeometry(dataType),
       feature_count: Math.floor(Math.random() * 1000) + 100,
       real_time_enabled: dataType === 'flood_zones',
-      data_freshness_hours: dataType === 'flood_zones' ? 24 : 168,
+      data_freshness_hours: dataType === 'flood_zones' ? 336 : 168, // 2 weeks for FEMA data
       metadata: {
         source: dataType === 'flood_zones' ? 'FEMA NFHL' : `Municipal API - ${city}`,
         last_updated: new Date().toISOString(),
@@ -479,6 +479,31 @@ async function handleFEMAFloodDataFetch(request: GISRequest) {
 async function fetchFEMAFloodDataForLocation(city: string, state: string) {
   console.log(`Fetching FEMA data for ${city}, ${state}`);
   
+  // Check if we already have recent FEMA data for this location
+  const { data: existingLayer, error: existingError } = await supabase
+    .from('gis_layers')
+    .select('*')
+    .eq('layer_type', 'flood_zones')
+    .eq('city', city)
+    .eq('state', state)
+    .eq('environmental_type', 'flood_zones')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+  
+  if (!existingError && existingLayer) {
+    const lastUpdated = new Date(existingLayer.created_at);
+    const hoursAgo = (Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60);
+    const refreshThreshold = 336; // 2 weeks in hours
+    
+    if (hoursAgo < refreshThreshold) {
+      console.log(`Using existing FEMA data for ${city}, ${state} (${Math.round(hoursAgo)} hours old)`);
+      return existingLayer;
+    } else {
+      console.log(`FEMA data for ${city}, ${state} is stale (${Math.round(hoursAgo)} hours old), refreshing...`);
+    }
+  }
+  
   // Find matching county configuration with improved matching logic
   let countyConfig = null;
   let regionKey = null;
@@ -525,7 +550,7 @@ async function fetchFEMAFloodDataForLocation(city: string, state: string) {
       geometry_data: floodZoneData,
       feature_count: floodZoneData?.features?.length || 0,
       real_time_enabled: true,
-      data_freshness_hours: 24,
+      data_freshness_hours: 336, // 2 weeks for FEMA data
       coordinate_system: 'EPSG:4326',
       processing_status: 'ready',
       metadata: {

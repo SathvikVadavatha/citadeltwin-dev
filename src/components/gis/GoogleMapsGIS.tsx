@@ -43,12 +43,12 @@ export const GoogleMapsGIS: React.FC = () => {
   const { fetchEnvironmentalData, fetchFEMAFloodData, performZoningAnalysis, environmentalLayers, isFetching } = useAdvancedGIS();
 
   const [layers, setLayers] = useState<LayerToggle[]>([
-    { id: 'flood_zones', name: 'FEMA Flood Zones', type: 'flood_zones', enabled: false, color: '#3B82F6', description: 'Real FEMA flood risk areas (Orange & Cuyahoga Counties)' },
-    { id: 'soil_types', name: 'Soil Classifications', type: 'soil_types', enabled: false, color: '#8B5CF6', description: 'Soil composition and bearing capacity' },
-    { id: 'protected_lands', name: 'Protected Areas', type: 'protected_lands', enabled: false, color: '#10B981', description: 'Environmentally protected zones' },
-    { id: 'roads', name: 'Transportation Network', type: 'roads', enabled: true, color: '#F59E0B', description: 'Roads, highways, and transit' },
-    { id: 'wetlands', name: 'Wetlands & Water Bodies', type: 'wetlands', enabled: false, color: '#06B6D4', description: 'Natural water features' },
-    { id: 'utilities', name: 'Utility Infrastructure', type: 'utilities', enabled: false, color: '#EF4444', description: 'Power, water, sewer lines' }
+    { id: 'flood_zones', name: 'FEMA Flood Zones', type: 'flood_zones', enabled: false, color: '#3B82F6', description: 'FEMA flood risk areas (Orange & Cuyahoga Counties)' },
+    { id: 'soil_types', name: 'Soil Classifications - Coming Soon', type: 'soil_types', enabled: false, color: '#8B5CF6', description: 'Soil composition and bearing capacity' },
+    { id: 'protected_lands', name: 'Protected Areas - Coming Soon', type: 'protected_lands', enabled: false, color: '#10B981', description: 'Environmentally protected zones' },
+    { id: 'roads', name: 'Transportation Network - Coming Soon', type: 'roads', enabled: false, color: '#F59E0B', description: 'Roads, highways, and transit' },
+    { id: 'wetlands', name: 'Wetlands & Water Bodies - Coming Soon', type: 'wetlands', enabled: false, color: '#06B6D4', description: 'Natural water features' },
+    { id: 'utilities', name: 'Utility Infrastructure - Coming Soon', type: 'utilities', enabled: false, color: '#EF4444', description: 'Power, water, sewer lines' }
   ]);
 
   const initializeMap = useCallback(async () => {
@@ -499,10 +499,9 @@ export const GoogleMapsGIS: React.FC = () => {
                     </div>
                     <p className="text-xs" style={{ color: 'hsl(240 5% 64.9%)' }}>
                       {layer.description}
-                      {layerData && (
+                      {layerData && layerData.metadata?.last_updated && (
                         <span className="block mt-1">
-                          Last updated: {new Date(layerData.last_updated).toLocaleDateString()}
-                          {layerData.real_time_enabled && ' • Real-time enabled'}
+                          Last updated: {new Date(layerData.metadata.last_updated).toLocaleDateString()}
                         </span>
                       )}
                     </p>
