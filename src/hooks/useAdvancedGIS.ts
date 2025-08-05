@@ -96,6 +96,28 @@ export const useAdvancedGIS = () => {
       state: string; 
       dataTypes: string[] 
     }) => {
+      // Clean up any duplicate protected lands data first
+      if (dataTypes.includes('protected_lands')) {
+        try {
+          const { data: duplicates, error: duplicateError } = await supabase
+            .from('gis_layers')
+            .select('id, layer_name, created_at')
+            .eq('environmental_type', 'protected_lands')
+            .eq('city', city)
+            .eq('state', state)
+            .order('created_at', { ascending: false });
+
+          if (!duplicateError && duplicates && duplicates.length > 1) {
+            // Keep the most recent and delete others
+            const idsToDelete = duplicates.slice(1).map(d => d.id);
+            await supabase.from('gis_layers').delete().in('id', idsToDelete);
+            console.log(`Cleaned up ${idsToDelete.length} duplicate records for ${city}, ${state}`);
+          }
+        } catch (cleanupError) {
+          console.warn('Error cleaning up duplicates:', cleanupError);
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke('real-gis-integration', {
         body: {
           action: 'fetch_environmental_data',

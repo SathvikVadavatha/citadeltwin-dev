@@ -743,7 +743,8 @@ async function fetchPADUSProtectedAreasForLocation(city: string, state: string) 
     .from('gis_layers')
     .select('*')
     .eq('layer_name', layerName)
-    .eq('layer_type', 'protected_lands')
+    .eq('layer_type', 'environmental')
+    .eq('environmental_type', 'protected_lands')
     .single();
 
   if (!checkError && existingData) {
@@ -780,7 +781,12 @@ async function fetchPADUSData(city: string, state: string) {
   const protectedAreasData = generateRealisticPADUSData(county);
   const layerName = `PADUS_Protected_Areas_${city.replace(/\s+/g, '_')}_${state}`;
 
-  // Store in database
+  // Calculate data size
+  const dataSize = JSON.stringify(protectedAreasData).length;
+  
+  console.log(`PAD-US data for ${county.county_name}: ${protectedAreasData.features?.length || 0} features, ${dataSize} bytes`);
+
+  // Store in database with conflict resolution
   const { data, error } = await supabase
     .from('gis_layers')
     .upsert({
@@ -792,7 +798,7 @@ async function fetchPADUSData(city: string, state: string) {
       state: state,
       geometry_data: protectedAreasData,
       feature_count: protectedAreasData.features?.length || 0,
-      data_size: 0,
+      data_size: dataSize,
       status: 'active',
       metadata: {
         source: 'USGS PAD-US',
@@ -810,7 +816,11 @@ async function fetchPADUSData(city: string, state: string) {
       update_frequency: 'static',
       real_time_enabled: true,
       data_freshness_hours: 336 // 2 weeks
-    });
+    }, { 
+      onConflict: 'layer_name'
+    })
+    .select()
+    .single();
 
   if (error) {
     console.error('Error storing PAD-US data:', error);
