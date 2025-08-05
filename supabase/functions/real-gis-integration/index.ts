@@ -785,7 +785,7 @@ async function fetchPADUSData(city: string, state: string) {
     .from('gis_layers')
     .upsert({
       layer_name: layerName,
-      layer_type: 'protected_lands',
+      layer_type: 'environmental',
       description: `Official protected areas for ${county.county_name}`,
       source_url: 'https://www.usgs.gov/programs/gap-analysis-project/science/protected-areas',
       city: city,
@@ -810,11 +810,7 @@ async function fetchPADUSData(city: string, state: string) {
       update_frequency: 'static',
       real_time_enabled: true,
       data_freshness_hours: 336 // 2 weeks
-    }, { 
-      onConflict: 'layer_name'
-    })
-    .select()
-    .single();
+    });
 
   if (error) {
     console.error('Error storing PAD-US data:', error);
