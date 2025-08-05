@@ -36,6 +36,13 @@ export interface EnvironmentalLayer {
   real_time_enabled: boolean;
   data_freshness_hours: number;
   last_updated: string;
+  metadata?: any;
+  description?: string;
+  source_url?: string;
+  coordinate_system?: string;
+  processing_status?: string;
+  status?: string;
+  created_at?: string;
 }
 
 export const useAdvancedGIS = () => {
@@ -195,6 +202,30 @@ export const useAdvancedGIS = () => {
     },
   });
 
+  // Fetch FEMA flood data specifically
+  const fetchFEMAFloodDataMutation = useMutation({
+    mutationFn: async ({ city, state }: { city: string; state: string }) => {
+      const { data, error } = await supabase.functions.invoke('real-gis-integration', {
+        body: {
+          action: 'fetch_fema_flood_data',
+          city,
+          state
+        }
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['environmental-layers'] });
+      toast.success('FEMA flood data fetched successfully');
+    },
+    onError: (error: any) => {
+      console.error('FEMA flood data fetch error:', error);
+      toast.error(`Failed to fetch FEMA flood data: ${error.message}`);
+    },
+  });
+
   // Advanced spatial analysis with environmental factors
   const advancedSpatialAnalysisMutation = useMutation({
     mutationFn: async ({
@@ -237,11 +268,13 @@ export const useAdvancedGIS = () => {
     propertyBoundaries,
     isLoading: isLoadingEnvironmental || isLoadingBoundaries,
     fetchEnvironmentalData: fetchEnvironmentalDataMutation.mutateAsync,
+    fetchFEMAFloodData: fetchFEMAFloodDataMutation.mutateAsync,
     performZoningAnalysis: zoningAnalysisMutation.mutateAsync,
     enableRealTimeUpdates: enableRealTimeUpdatesMutation.mutateAsync,
     fetchPropertyBoundaries: fetchPropertyBoundariesMutation.mutateAsync,
     performAdvancedSpatialAnalysis: advancedSpatialAnalysisMutation.mutateAsync,
     isFetching: fetchEnvironmentalDataMutation.isPending || 
+                fetchFEMAFloodDataMutation.isPending ||
                 zoningAnalysisMutation.isPending || 
                 enableRealTimeUpdatesMutation.isPending ||
                 fetchPropertyBoundariesMutation.isPending ||
