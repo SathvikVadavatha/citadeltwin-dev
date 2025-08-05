@@ -33,6 +33,7 @@ interface SpatialAnalysisResult {
 export const GoogleMapsGIS: React.FC = () => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const floodZoneOverlaysRef = useRef<google.maps.Polygon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRegion, setSelectedRegion] = useState<'central-florida' | 'northeast-ohio'>('central-florida');
   const [analysisResults, setAnalysisResults] = useState<SpatialAnalysisResult[]>([]);
@@ -168,6 +169,145 @@ export const GoogleMapsGIS: React.FC = () => {
       toast.error('Analysis failed');
     }
   };
+
+  // Function to render flood zone polygons on the map
+  const renderFloodZones = useCallback(() => {
+    if (!mapInstanceRef.current) return;
+
+    // Clear existing overlays
+    clearFloodZones();
+
+    const regionCity = selectedRegion === 'central-florida' ? 'Orlando' : 'Cleveland';
+    const regionState = selectedRegion === 'central-florida' ? 'FL' : 'OH';
+
+    // Find flood data for current region
+    const floodData = environmentalLayers.find(envLayer => 
+      envLayer.layer_type === 'flood_zones' && 
+      envLayer.city.toLowerCase() === regionCity.toLowerCase() &&
+      envLayer.state === regionState
+    );
+
+    if (!floodData || !floodData.geometry_data) {
+      console.log('No flood data available for', regionCity, regionState);
+      return;
+    }
+
+    try {
+      const geometryData = typeof floodData.geometry_data === 'string' 
+        ? JSON.parse(floodData.geometry_data) 
+        : floodData.geometry_data;
+
+      if (geometryData.features && Array.isArray(geometryData.features)) {
+        console.log(`Rendering ${geometryData.features.length} flood zone features`);
+
+        geometryData.features.forEach((feature: any, index: number) => {
+          if (feature.geometry && feature.geometry.coordinates) {
+            try {
+              const floodZone = feature.properties?.FLD_ZONE || feature.properties?.flood_zone || 'Unknown';
+              const riskLevel = feature.properties?.risk_level || 'moderate';
+              
+              // Color coding based on flood risk
+              let fillColor = '#3B82F6'; // Default blue
+              let strokeColor = '#1E40AF';
+              
+              if (riskLevel === 'high' || floodZone.includes('AE') || floodZone.includes('VE')) {
+                fillColor = '#EF4444'; // Red for high risk
+                strokeColor = '#DC2626';
+              } else if (riskLevel === 'moderate' || floodZone.includes('A')) {
+                fillColor = '#F59E0B'; // Orange for moderate risk
+                strokeColor = '#D97706';
+              } else {
+                fillColor = '#3B82F6'; // Blue for low risk
+                strokeColor = '#1E40AF';
+              }
+
+              // Convert coordinates to Google Maps format
+              let paths: google.maps.LatLngLiteral[] = [];
+              
+              if (feature.geometry.type === 'Polygon') {
+                paths = feature.geometry.coordinates[0].map((coord: [number, number]) => ({
+                  lat: coord[1],
+                  lng: coord[0]
+                }));
+              } else if (feature.geometry.type === 'MultiPolygon') {
+                // For MultiPolygon, use the first polygon
+                if (feature.geometry.coordinates[0] && feature.geometry.coordinates[0][0]) {
+                  paths = feature.geometry.coordinates[0][0].map((coord: [number, number]) => ({
+                    lat: coord[1],
+                    lng: coord[0]
+                  }));
+                }
+              }
+
+              if (paths.length > 0) {
+                const polygon = new google.maps.Polygon({
+                  paths: paths,
+                  strokeColor: strokeColor,
+                  strokeOpacity: 0.8,
+                  strokeWeight: 2,
+                  fillColor: fillColor,
+                  fillOpacity: 0.35,
+                });
+
+                polygon.setMap(mapInstanceRef.current);
+                floodZoneOverlaysRef.current.push(polygon);
+
+                // Add info window on click
+                polygon.addListener('click', () => {
+                  const infoWindow = new google.maps.InfoWindow({
+                    content: `
+                      <div style="color: #333;">
+                        <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold;">FEMA Flood Zone</h3>
+                        <p style="margin: 4px 0;"><strong>Zone:</strong> ${floodZone}</p>
+                        <p style="margin: 4px 0;"><strong>Risk Level:</strong> ${riskLevel}</p>
+                        <p style="margin: 4px 0; font-size: 12px; color: #666;">
+                          ${riskLevel === 'high' ? 'Flood insurance required' : 
+                            riskLevel === 'moderate' ? 'Flood insurance recommended' : 
+                            'Minimal flood risk'}
+                        </p>
+                      </div>
+                    `,
+                    position: paths[0] // Position at first coordinate
+                  });
+                  infoWindow.open(mapInstanceRef.current);
+                });
+              }
+            } catch (featureError) {
+              console.error(`Error rendering flood zone feature ${index}:`, featureError);
+            }
+          }
+        });
+
+        toast.success(`Rendered ${geometryData.features.length} flood zones on map`);
+      }
+    } catch (error) {
+      console.error('Error parsing flood zone geometry data:', error);
+      toast.error('Failed to render flood zones on map');
+    }
+  }, [environmentalLayers, selectedRegion]);
+
+  // Function to clear flood zone overlays
+  const clearFloodZones = useCallback(() => {
+    floodZoneOverlaysRef.current.forEach(overlay => {
+      overlay.setMap(null);
+    });
+    floodZoneOverlaysRef.current = [];
+  }, []);
+
+  // Effect to manage flood zone rendering based on layer toggle
+  useEffect(() => {
+    const floodLayer = layers.find(l => l.id === 'flood_zones');
+    if (floodLayer?.enabled && mapInstanceRef.current) {
+      renderFloodZones();
+    } else {
+      clearFloodZones();
+    }
+  }, [layers, renderFloodZones, clearFloodZones]);
+
+  // Effect to clear overlays when switching regions
+  useEffect(() => {
+    clearFloodZones();
+  }, [selectedRegion, clearFloodZones]);
 
   const toggleLayer = async (layerId: string) => {
     const layer = layers.find(l => l.id === layerId);
