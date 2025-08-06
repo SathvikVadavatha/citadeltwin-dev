@@ -44,12 +44,22 @@ export const GoogleMapsGIS: React.FC = () => {
   const { fetchEnvironmentalData, fetchFEMAFloodData, performZoningAnalysis, environmentalLayers, isFetching } = useAdvancedGIS();
 
   const [layers, setLayers] = useState<LayerToggle[]>([
-    { id: 'flood_zones', name: 'FEMA Flood Zones', type: 'flood_zones', enabled: false, color: '#3B82F6', description: 'FEMA flood risk areas (Orange & Cuyahoga Counties)' },
-    { id: 'soil_types', name: 'Soil Classifications - Coming Soon', type: 'soil_types', enabled: false, color: '#8B5CF6', description: 'Soil composition and bearing capacity' },
-    { id: 'protected_lands', name: 'Protected Areas', type: 'protected_lands', enabled: false, color: '#10B981', description: 'USGS protected areas (Orange & Cuyahoga Counties)' },
-    { id: 'roads', name: 'Transportation Network - Coming Soon', type: 'roads', enabled: false, color: '#F59E0B', description: 'Roads, highways, and transit' },
-    { id: 'wetlands', name: 'Wetlands & Water Bodies - Coming Soon', type: 'wetlands', enabled: false, color: '#06B6D4', description: 'Natural water features' },
-    { id: 'utilities', name: 'Utility Infrastructure - Coming Soon', type: 'utilities', enabled: false, color: '#EF4444', description: 'Power, water, sewer lines' }
+    { 
+      id: 'flood_zones', 
+      name: 'FEMA Flood Zones', 
+      type: 'flood_zones',
+      enabled: false, 
+      color: '#3B82F6',
+      description: 'Federal Emergency Management Agency flood risk areas'
+    },
+    { 
+      id: 'protected_lands', 
+      name: 'Protected Areas', 
+      type: 'protected_lands',
+      enabled: false, 
+      color: '#10B981',
+      description: 'National parks, wildlife refuges, and conservation areas'
+    }
   ]);
 
   const initializeMap = useCallback(async () => {
@@ -444,11 +454,24 @@ export const GoogleMapsGIS: React.FC = () => {
     }
   }, [layers, renderProtectedAreas, clearProtectedAreas]);
 
-  // Effect to clear overlays when switching regions
+  // Effect to clear overlays when switching regions and re-render enabled layers
   useEffect(() => {
     clearFloodZones();
     clearProtectedAreas();
-  }, [selectedRegion, clearFloodZones, clearProtectedAreas]);
+    
+    // Re-render enabled layers for the new region
+    setTimeout(() => {
+      const floodLayer = layers.find(l => l.id === 'flood_zones');
+      const protectedLayer = layers.find(l => l.id === 'protected_lands');
+      
+      if (floodLayer?.enabled && mapInstanceRef.current) {
+        renderFloodZones();
+      }
+      if (protectedLayer?.enabled && mapInstanceRef.current) {
+        renderProtectedAreas();
+      }
+    }, 500); // Small delay to ensure map is properly centered
+  }, [selectedRegion, clearFloodZones, clearProtectedAreas, layers, renderFloodZones, renderProtectedAreas]);
 
   const toggleLayer = async (layerId: string) => {
     const layer = layers.find(l => l.id === layerId);
@@ -487,29 +510,20 @@ export const GoogleMapsGIS: React.FC = () => {
       }
     }
 
-    // If enabling protected lands layer, check if we have cached data first
+    // If enabling protected lands layer, always fetch from database
     if (isEnabling && layerId === 'protected_lands') {
       const regionCity = selectedRegion === 'central-florida' ? 'Orlando' : 'Cleveland';
       const regionState = selectedRegion === 'central-florida' ? 'FL' : 'OH';
       
-      // Check if we already have protected areas data for this region
-      const existingProtectedData = environmentalLayers.find(envLayer => 
-        envLayer.layer_type === 'protected_lands' && 
-        envLayer.city.toLowerCase() === regionCity.toLowerCase() &&
-        envLayer.state === regionState
-      );
+      console.log(`Fetching protected areas data for ${regionCity}, ${regionState}`);
+      toast.success(`Loading protected areas for ${regionCity}, ${regionState}...`);
       
-      if (existingProtectedData) {
-        console.log('Using cached protected areas data for', regionCity, regionState);
-        toast.success(`Using cached protected areas data for ${regionCity}, ${regionState}`);
-      } else {
-        try {
-          toast.success(`Fetching USGS protected areas data for ${regionCity}, ${regionState}...`);
-          await fetchEnvironmentalData({ city: regionCity, state: regionState, dataTypes: ['protected_lands'] });
-        } catch (error) {
-          console.error('Error fetching protected areas data:', error);
-          toast.error('Failed to fetch protected areas data. Using cached data if available.');
-        }
+      // Always fetch fresh data from database
+      try {
+        await fetchEnvironmentalData({ city: regionCity, state: regionState, dataTypes: ['protected_lands'] });
+      } catch (error) {
+        console.error('Error fetching protected areas data:', error);
+        toast.error('Failed to load protected areas data');
       }
     }
   };

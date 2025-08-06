@@ -83,6 +83,48 @@ serve(async (req) => {
     const requestData: GISRequest = await req.json();
     console.log('Real GIS integration request:', requestData);
 
+    // Handle scheduled refresh action
+    if (requestData.action === 'scheduled_refresh') {
+      console.log('Scheduled refresh triggered for protected lands data');
+      
+      // Check if we need to refresh (every 2 weeks)
+      const { data: recentLayers } = await supabase
+        .from('gis_layers')
+        .select('created_at')
+        .eq('environmental_type', 'protected_lands')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      const shouldRefresh = !recentLayers?.length || 
+        new Date().getTime() - new Date(recentLayers[0].created_at).getTime() > (14 * 24 * 60 * 60 * 1000); // 2 weeks
+      
+      if (shouldRefresh) {
+        console.log('Refreshing protected lands data...');
+        // Refresh for both regions
+        await fetchPADUSProtectedAreas('Orlando', 'FL');
+        await fetchPADUSProtectedAreas('Cleveland', 'OH');
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'Protected lands data refreshed',
+            timestamp: new Date().toISOString()
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        console.log('Data is still fresh, skipping refresh');
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'Data is still fresh',
+            timestamp: new Date().toISOString()
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     switch (requestData.action) {
       case 'fetch_environmental_data':
         return await handleEnvironmentalDataFetch(requestData);
