@@ -993,3 +993,9 @@ function generateRealisticPADUSData(county: any) {
     }
   };
 }
+
+// Standalone function to refresh protected areas data that can be called manually
+async function fetchPADUSProtectedAreas(city: string, state: string) {
+  console.log(`Refreshing PAD-US data for ${city}, ${state}`);
+  return await fetchPADUSData(city, state);
+}
