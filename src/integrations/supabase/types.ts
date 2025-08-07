@@ -2569,6 +2569,10 @@ export type Database = {
         }
         Returns: string
       }
+      refresh_protected_areas_data: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       analysis_status:
