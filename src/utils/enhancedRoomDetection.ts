@@ -79,15 +79,15 @@ export function detectRoomsWithDimensions(
 
   // Adaptive parameters based on image characteristics
   const {
-    targetSize = Math.min(512, Math.max(256, Math.sqrt(imageArea) * 0.8)),
-    thresholdValue = Math.max(100, Math.min(180, 127 + (imageArea % 100) - 50)),
-    minRoomArea = Math.max(500, Math.min(2000, 1000 + (imageArea % 1000))),
-    morphKernelSize = imageArea > 500000 ? 5 : 3,
-    polygonApproxFactor = imageAspectRatio > 1.5 ? 0.015 : 0.025,
-    defaultScale = { pixelsPerUnit: 20, unit: 'feet' as const }
+    targetSize = Math.min(800, Math.max(400, Math.sqrt(imageArea) * 1.2)), // Larger target size for better detail
+    thresholdValue = 180, // Higher threshold for clean floor plans
+    minRoomArea = Math.max(200, Math.min(800, 400 + (imageArea % 400))), // Lower minimum area to catch smaller rooms
+    morphKernelSize = 2, // Smaller kernel to preserve detail
+    polygonApproxFactor = 0.01, // More precise polygon approximation
+    defaultScale = { pixelsPerUnit: 15, unit: 'feet' as const } // Adjusted scale for typical floor plans
   } = options;
 
-  console.log(`Adaptive parameters: targetSize=${targetSize}, threshold=${thresholdValue}, minArea=${minRoomArea}, kernelSize=${morphKernelSize}`);
+  console.log(`Adaptive parameters: targetSize=${targetSize}, threshold=${thresholdValue}, minArea=${minRoomArea}, kernelSize=${morphKernelSize}, approxFactor=${polygonApproxFactor}`);
 
   // Detect scale from OCR text or use default
   const scale = detectScale(ocrText, defaultScale);
@@ -108,29 +108,24 @@ export function detectRoomsWithDimensions(
   cv.resize(grayMat, resizedMat, dsize, 0, 0, cv.INTER_AREA);
 
   // Step 2: Enhanced preprocessing for better room detection
-  const enhancedMat = enhanceImageForRoomDetection(resizedMat, cv, imageAspectRatio);
+  const enhancedMat = enhanceImageForFloorPlan(resizedMat, cv);
 
-  // Step 3: Adaptive binary conversion
+  // Step 3: Multiple threshold approaches for better room detection
   const binaryMat = new cv.Mat();
   
-  // Use adaptive threshold for better edge detection on different image types
-  if (imageAspectRatio > 1.2 || imageArea > 400000) {
-    cv.adaptiveThreshold(enhancedMat, binaryMat, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2);
-  } else {
-    cv.threshold(enhancedMat, binaryMat, thresholdValue, 255, cv.THRESH_BINARY);
-  }
-  
-  console.log(`Applied ${imageAspectRatio > 1.2 ? 'adaptive' : 'standard'} threshold`);
+  // For floor plans, use Otsu's method which automatically finds optimal threshold
+  cv.threshold(enhancedMat, binaryMat, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
+  console.log('Applied Otsu threshold for optimal floor plan processing');
 
-  // Step 4: Morphological operations
+  // Step 4: Minimal morphological operations to preserve room boundaries
   const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(morphKernelSize, morphKernelSize));
-  const openedMat = new cv.Mat();
-  cv.morphologyEx(binaryMat, openedMat, cv.MORPH_OPEN, kernel);
-
-  // Step 5: Detect contours
+  const cleanedMat = new cv.Mat();
+  cv.morphologyEx(binaryMat, cleanedMat, cv.MORPH_CLOSE, kernel); // Close small gaps
+  
+  // Step 5: Detect contours with internal contours for room detection
   const contours = new cv.MatVector();
   const hierarchy = new cv.Mat();
-  cv.findContours(openedMat, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+  cv.findContours(cleanedMat, contours, hierarchy, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE);
 
   // Step 6: Process contours into rooms with dimensions
   const rooms: RoomWithDimensions[] = [];
@@ -215,10 +210,12 @@ export function detectRoomsWithDimensions(
   resizedMat.delete();
   enhancedMat.delete();
   binaryMat.delete();
-  openedMat.delete();
+  cleanedMat.delete();
   kernel.delete();
   contours.delete();
   hierarchy.delete();
+
+  console.log(`Detected ${rooms.length} valid rooms from ${totalContours} contours`);
 
   // Generate summary
   const summary = generateRoomSummary(rooms);
@@ -232,6 +229,26 @@ export function detectRoomsWithDimensions(
     imageSize: { width: targetSize, height: targetSize },
     processingTime: Math.round(processingTime)
   };
+}
+
+/**
+ * Enhanced image preprocessing specifically for floor plans
+ */
+function enhanceImageForFloorPlan(mat: any, cv: any): any {
+  // For floor plans, we want to preserve crisp lines and text
+  // Apply gentle noise reduction without losing detail
+  const filteredMat = new cv.Mat();
+  cv.medianBlur(mat, filteredMat, 3); // Gentle noise reduction
+  
+  // Enhance contrast for better wall/room detection
+  const enhancedMat = new cv.Mat();
+  cv.convertScaleAbs(filteredMat, enhancedMat, 1.2, 10); // Slight contrast boost
+  
+  console.log('Applied floor plan specific preprocessing');
+  
+  filteredMat.delete();
+  
+  return enhancedMat;
 }
 
 /**
