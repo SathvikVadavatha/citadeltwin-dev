@@ -17,6 +17,7 @@ interface UploadResult {
   imageUrl: string;
   uploadRecord: any;
   detectedObjects?: any[];
+  enhancedRoomData?: any;
 }
 
 export const useSimplifiedUpload = () => {
@@ -114,6 +115,7 @@ export const useSimplifiedUpload = () => {
       }));
 
       let detectedObjects = [];
+      let enhancedRoomData = null;
       
       const uploadResult: UploadResult = {
         id: uploadRecord.id,
@@ -124,10 +126,13 @@ export const useSimplifiedUpload = () => {
 
       // Start basic processing in background (non-blocking)
       try {
-        detectedObjects = await processBlueprint(uploadRecord.id, urlData.publicUrl);
+        const processingResult = await processBlueprint(uploadRecord.id, urlData.publicUrl);
+        detectedObjects = processingResult.detectedObjects;
+        enhancedRoomData = processingResult.enhancedRoomData;
         
-        // Update result with detected objects
+        // Update result with detected objects and enhanced room data
         uploadResult.detectedObjects = detectedObjects;
+        uploadResult.enhancedRoomData = enhancedRoomData;
         
         setState(prev => ({ 
           ...prev, 
@@ -174,7 +179,7 @@ export const useSimplifiedUpload = () => {
     }
   }, [user, toast]);
 
-  const processBlueprint = async (uploadId: string, imageUrl: string) => {
+  const processBlueprint = async (uploadId: string, imageUrl: string): Promise<{ detectedObjects: any[], enhancedRoomData: any }> => {
     console.log(`Starting blueprint processing for upload ${uploadId} with image ${imageUrl}`);
     
     try {
@@ -267,7 +272,7 @@ export const useSimplifiedUpload = () => {
         .eq('id', uploadId);
       
       console.log(`Enhanced blueprint processing completed for upload ${uploadId}`);
-      return detectedObjects;
+      return { detectedObjects, enhancedRoomData: analysisResult };
     } catch (error) {
       console.error('Enhanced processing failed:', error);
       console.log('Attempting fallback to basic analysis...');

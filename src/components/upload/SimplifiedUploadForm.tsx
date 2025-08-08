@@ -14,6 +14,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useSimplifiedUpload } from '@/hooks/useSimplifiedUpload';
+import { UploadResultsTabs } from './UploadResultsTabs';
 
 interface SimplifiedUploadFormProps {
   onUploadComplete?: (result: any) => void;
@@ -127,29 +128,17 @@ export const SimplifiedUploadForm: React.FC<SimplifiedUploadFormProps> = ({
 
   if (result) {
     return (
-      <Card className="cyber-tool-palette">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <CheckCircle2 className="w-5 h-5 text-green-500" />
-            <span>Upload Complete</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-sm text-gray-400">
-            <p><strong>File:</strong> {result.filename}</p>
-            <p><strong>ID:</strong> {result.id}</p>
-          </div>
-          <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              onClick={reset}
-              className="flex-1"
-            >
-              Upload Another
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <UploadResultsTabs 
+        uploadResult={{
+          id: result.id,
+          filename: result.filename,
+          detectedObjects: result.detectedObjects || [],
+          imageUrl: result.imageUrl,
+          processingMethod: 'ai',
+          enhancedRoomData: result.enhancedRoomData
+        }}
+        onReset={reset}
+      />
     );
   }
 
