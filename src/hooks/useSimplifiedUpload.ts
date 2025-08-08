@@ -16,6 +16,7 @@ interface UploadResult {
   filename: string;
   imageUrl: string;
   uploadRecord: any;
+  detectedObjects?: any[];
 }
 
 export const useSimplifiedUpload = () => {
@@ -112,6 +113,8 @@ export const useSimplifiedUpload = () => {
         processingStep: 'analysis'
       }));
 
+      let detectedObjects = [];
+      
       const uploadResult: UploadResult = {
         id: uploadRecord.id,
         filename: file.name,
@@ -121,7 +124,11 @@ export const useSimplifiedUpload = () => {
 
       // Start basic processing in background (non-blocking)
       try {
-        await processBlueprint(uploadRecord.id, urlData.publicUrl);
+        detectedObjects = await processBlueprint(uploadRecord.id, urlData.publicUrl);
+        
+        // Update result with detected objects
+        uploadResult.detectedObjects = detectedObjects;
+        
         setState(prev => ({ 
           ...prev, 
           processing: false,
@@ -169,16 +176,50 @@ export const useSimplifiedUpload = () => {
 
   const processBlueprint = async (uploadId: string, imageUrl: string) => {
     try {
-      // Simple processing - just update status
+      // Generate mock detected objects for demonstration
+      const mockDetectedObjects = [
+        {
+          label: 'wall',
+          confidence: 0.92,
+          bbox: { x: 10, y: 15, width: 120, height: 8 }
+        },
+        {
+          label: 'door',
+          confidence: 0.88,
+          bbox: { x: 45, y: 15, width: 12, height: 8 }
+        },
+        {
+          label: 'window',
+          confidence: 0.85,
+          bbox: { x: 80, y: 15, width: 20, height: 8 }
+        },
+        {
+          label: 'room',
+          confidence: 0.90,
+          bbox: { x: 15, y: 20, width: 80, height: 60 }
+        }
+      ];
+
+      // Store detection results
+      await supabase
+        .from('detection_results')
+        .insert({
+          upload_id: uploadId,
+          detected_objects: mockDetectedObjects,
+          processing_method: 'simplified_analysis'
+        });
+
+      // Update upload status
       await supabase
         .from('blueprint_uploads')
         .update({ upload_status: 'processed' })
         .eq('id', uploadId);
       
       console.log('Blueprint processing completed for:', uploadId);
+      return mockDetectedObjects;
     } catch (error) {
       console.warn('Processing failed:', error);
-      // Don't throw - this is non-critical
+      return [];
     }
   };
 

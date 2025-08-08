@@ -31,7 +31,7 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComple
         uploadResult={{
           id: uploadResult.id,
           filename: uploadResult.filename,
-          detectedObjects: [],
+          detectedObjects: uploadResult.detectedObjects || [],
           imageUrl: uploadResult.imageUrl,
           processingMethod: 'fallback'
         }}
