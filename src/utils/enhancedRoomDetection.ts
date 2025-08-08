@@ -7,7 +7,7 @@ declare global {
 export interface RoomWithDimensions {
   id: number;
   name: string;
-  type: 'bedroom' | 'bathroom' | 'kitchen' | 'living_room' | 'dining_room' | 'office' | 'closet' | 'hallway' | 'utility' | 'garage' | 'toilet' | 'unknown';
+  type: 'bedroom' | 'bathroom' | 'kitchen' | 'living_room' | 'dining_room' | 'office' | 'closet' | 'hallway' | 'utility' | 'garage' | 'toilet' | 'unknown' | 'room';
   dimensions: {
     width: number;
     length: number;
@@ -132,6 +132,8 @@ export function detectRoomsWithDimensions(
   const totalContours = contours.size();
   console.log(`Found ${totalContours} total contours, filtering by minArea=${minRoomArea}`);
   
+  let roomNumber = 0; // Track valid room count for naming
+  
   for (let i = 0; i < contours.size(); i++) {
     const contour = contours.get(i);
     const area = cv.contourArea(contour);
@@ -169,13 +171,13 @@ export function detectRoomsWithDimensions(
     const realLength = pixelLength / scale.pixelsPerUnit;
     const realArea = pixelArea / (scale.pixelsPerUnit * scale.pixelsPerUnit);
 
-    // Classify room type based on size and shape
-    const roomType = classifyRoomType(realWidth, realLength, realArea, ocrText, boundingRect);
+    // Simple sequential room numbering instead of classification
+    roomNumber++;
 
     const room: RoomWithDimensions = {
       id: i,
-      name: generateRoomName(roomType, i),
-      type: roomType,
+      name: `Room ${roomNumber}`,
+      type: 'room',
       dimensions: {
         width: pixelWidth,
         length: pixelLength,
