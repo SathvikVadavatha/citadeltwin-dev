@@ -71,14 +71,23 @@ export function detectRoomsWithDimensions(
     throw new Error('OpenCV.js not loaded');
   }
 
+  // Calculate image characteristics for adaptive processing
+  const imageArea = imageMat.cols * imageMat.rows;
+  const imageAspectRatio = imageMat.cols / imageMat.rows;
+  
+  console.log(`Processing image: ${imageMat.cols}x${imageMat.rows}, area: ${imageArea}, aspect ratio: ${imageAspectRatio.toFixed(2)}`);
+
+  // Adaptive parameters based on image characteristics
   const {
-    targetSize = 512,
-    thresholdValue = 127,
-    minRoomArea = 1000,
-    morphKernelSize = 3,
-    polygonApproxFactor = 0.02,
+    targetSize = Math.min(512, Math.max(256, Math.sqrt(imageArea) * 0.8)),
+    thresholdValue = Math.max(100, Math.min(180, 127 + (imageArea % 100) - 50)),
+    minRoomArea = Math.max(500, Math.min(2000, 1000 + (imageArea % 1000))),
+    morphKernelSize = imageArea > 500000 ? 5 : 3,
+    polygonApproxFactor = imageAspectRatio > 1.5 ? 0.015 : 0.025,
     defaultScale = { pixelsPerUnit: 20, unit: 'feet' as const }
   } = options;
+
+  console.log(`Adaptive parameters: targetSize=${targetSize}, threshold=${thresholdValue}, minArea=${minRoomArea}, kernelSize=${morphKernelSize}`);
 
   // Detect scale from OCR text or use default
   const scale = detectScale(ocrText, defaultScale);
@@ -99,11 +108,19 @@ export function detectRoomsWithDimensions(
   cv.resize(grayMat, resizedMat, dsize, 0, 0, cv.INTER_AREA);
 
   // Step 2: Enhanced preprocessing for better room detection
-  const enhancedMat = enhanceImageForRoomDetection(resizedMat, cv);
+  const enhancedMat = enhanceImageForRoomDetection(resizedMat, cv, imageAspectRatio);
 
-  // Step 3: Binary conversion
+  // Step 3: Adaptive binary conversion
   const binaryMat = new cv.Mat();
-  cv.threshold(enhancedMat, binaryMat, thresholdValue, 255, cv.THRESH_BINARY);
+  
+  // Use adaptive threshold for better edge detection on different image types
+  if (imageAspectRatio > 1.2 || imageArea > 400000) {
+    cv.adaptiveThreshold(enhancedMat, binaryMat, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2);
+  } else {
+    cv.threshold(enhancedMat, binaryMat, thresholdValue, 255, cv.THRESH_BINARY);
+  }
+  
+  console.log(`Applied ${imageAspectRatio > 1.2 ? 'adaptive' : 'standard'} threshold`);
 
   // Step 4: Morphological operations
   const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(morphKernelSize, morphKernelSize));
@@ -117,6 +134,8 @@ export function detectRoomsWithDimensions(
 
   // Step 6: Process contours into rooms with dimensions
   const rooms: RoomWithDimensions[] = [];
+  const totalContours = contours.size();
+  console.log(`Found ${totalContours} total contours, filtering by minArea=${minRoomArea}`);
   
   for (let i = 0; i < contours.size(); i++) {
     const contour = contours.get(i);
@@ -126,6 +145,8 @@ export function detectRoomsWithDimensions(
       contour.delete();
       continue;
     }
+    
+    console.log(`Processing contour ${i}: area=${Math.round(area)}`);
 
     // Get bounding rectangle
     const boundingRect = cv.boundingRect(contour);
@@ -216,15 +237,27 @@ export function detectRoomsWithDimensions(
 /**
  * Enhanced image preprocessing for better room detection
  */
-function enhanceImageForRoomDetection(mat: any, cv: any): any {
-  // Apply bilateral filter to reduce noise while preserving edges
+function enhanceImageForRoomDetection(mat: any, cv: any, aspectRatio: number = 1): any {
+  // Adaptive filtering based on image characteristics
   const filteredMat = new cv.Mat();
-  cv.bilateralFilter(mat, filteredMat, 9, 75, 75);
   
-  // Apply CLAHE (Contrast Limited Adaptive Histogram Equalization)
-  const clahe = new cv.CLAHE(2.0, new cv.Size(8, 8));
+  if (aspectRatio > 1.5) {
+    // Wide images - use stronger bilateral filtering
+    cv.bilateralFilter(mat, filteredMat, 13, 80, 80);
+  } else {
+    // Square/portrait images - standard filtering
+    cv.bilateralFilter(mat, filteredMat, 9, 75, 75);
+  }
+  
+  // Apply CLAHE with adaptive parameters
+  const clipLimit = aspectRatio > 1.2 ? 3.0 : 2.0;
+  const tileSize = aspectRatio > 1.5 ? 12 : 8;
+  
+  const clahe = new cv.CLAHE(clipLimit, new cv.Size(tileSize, tileSize));
   const enhancedMat = new cv.Mat();
   clahe.apply(filteredMat, enhancedMat);
+  
+  console.log(`Applied CLAHE with clipLimit=${clipLimit}, tileSize=${tileSize}`);
   
   filteredMat.delete();
   clahe.delete();

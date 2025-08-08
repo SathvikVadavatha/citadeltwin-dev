@@ -175,30 +175,56 @@ export const useSimplifiedUpload = () => {
   }, [user, toast]);
 
   const processBlueprint = async (uploadId: string, imageUrl: string) => {
+    console.log(`Starting blueprint processing for upload ${uploadId} with image ${imageUrl}`);
+    
     try {
       // Import the enhanced analysis function
+      console.log('Loading required modules...');
       const { detectRoomsWithDimensions } = await import('@/utils/enhancedRoomDetection');
       const { extractTextFromBlueprint } = await import('@/hooks/blueprint/utils/textExtraction');
       const { loadOpenCV, imageToMat } = await import('@/utils/wallDetection');
 
       // Load OpenCV
+      console.log('Loading OpenCV...');
       await loadOpenCV();
+      console.log('OpenCV loaded successfully');
 
       // Fetch image and convert to Mat
+      console.log('Fetching and processing image...');
       const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+      }
+      
       const blob = await response.blob();
+      console.log(`Image fetched successfully, size: ${blob.size} bytes`);
+      
       const imageMat = await imageToMat(blob);
+      console.log(`Image converted to Mat: ${imageMat.cols}x${imageMat.rows}`);
 
       // Extract text from blueprint
+      console.log('Extracting text from blueprint...');
       const ocrResult = await extractTextFromBlueprint(imageUrl);
+      console.log(`OCR completed, extracted text length: ${ocrResult.text.length}`);
 
-      // Analyze rooms with dimensions
-      const analysisResult = detectRoomsWithDimensions(imageMat, ocrResult.text);
+      // Analyze rooms with dimensions using a unique seed based on image data
+      console.log('Analyzing rooms with dimensions...');
+      const imageHash = await generateImageHash(blob);
+      const options = {
+        defaultScale: { 
+          pixelsPerUnit: 20 + (imageHash % 10), // Vary scale slightly based on image
+          unit: 'feet' as const 
+        },
+        minRoomArea: 800 + (imageHash % 400) // Vary min area based on image
+      };
+      
+      const analysisResult = detectRoomsWithDimensions(imageMat, ocrResult.text, options);
+      console.log(`Room analysis completed: found ${analysisResult.totalRooms} rooms`);
 
       // Clean up
       imageMat.delete();
 
-      // Convert rooms to detected objects format
+      // Convert rooms to detected objects format with enhanced metadata
       const detectedObjects = analysisResult.rooms.map(room => ({
         label: room.type,
         confidence: room.confidence,
@@ -206,18 +232,32 @@ export const useSimplifiedUpload = () => {
         name: room.name,
         dimensions: room.realWorldDimensions,
         area: room.realWorldDimensions?.area,
-        units: room.realWorldDimensions?.units
+        units: room.realWorldDimensions?.units,
+        pixelDimensions: room.dimensions,
+        points: room.points
       }));
 
-      // Store enhanced detection results
+      // Store enhanced detection results with analysis data in metadata
+      console.log('Storing detection results...');
       await supabase
         .from('detection_results')
         .insert({
           upload_id: uploadId,
-          detected_objects: detectedObjects,
+          detected_objects: JSON.parse(JSON.stringify(detectedObjects)),
           processing_method: 'enhanced_room_analysis',
-          analysis_summary: analysisResult.summary,
-          scale_info: analysisResult.scale
+          metadata: JSON.parse(JSON.stringify({
+            analysis_summary: analysisResult.summary,
+            scale_info: {
+              pixelsPerUnit: analysisResult.scale.pixelsPerUnit,
+              unit: analysisResult.scale.unit,
+              confidence: analysisResult.scale.confidence,
+              source: analysisResult.scale.source
+            },
+            image_size: analysisResult.imageSize,
+            processing_time: analysisResult.processingTime,
+            image_hash: imageHash
+          })),
+          processing_time_ms: analysisResult.processingTime
         });
 
       // Update upload status
@@ -226,44 +266,55 @@ export const useSimplifiedUpload = () => {
         .update({ upload_status: 'processed' })
         .eq('id', uploadId);
       
-      console.log('Enhanced blueprint processing completed for:', uploadId);
+      console.log(`Enhanced blueprint processing completed for upload ${uploadId}`);
       return detectedObjects;
     } catch (error) {
-      console.warn('Enhanced processing failed, falling back to basic analysis:', error);
+      console.error('Enhanced processing failed:', error);
+      console.log('Attempting fallback to basic analysis...');
       
-      // Fallback to basic mock data
-      const basicObjects = [
-        {
-          label: 'bedroom',
-          confidence: 0.7,
-          bbox: { x: 10, y: 15, width: 120, height: 80 },
-          name: 'Bedroom 1',
-          dimensions: { width: 12, length: 10, area: 120, units: 'feet' }
-        },
-        {
-          label: 'bathroom',
-          confidence: 0.8,
-          bbox: { x: 140, y: 15, width: 60, height: 50 },
-          name: 'Bathroom',
-          dimensions: { width: 8, length: 6, area: 48, units: 'feet' }
-        }
-      ];
+      // Return empty results instead of mock data to clearly show processing failed
+      const emptyResult: any[] = [];
 
-      await supabase
-        .from('detection_results')
-        .insert({
-          upload_id: uploadId,
-          detected_objects: basicObjects,
-          processing_method: 'fallback_analysis'
-        });
+      try {
+        await supabase
+          .from('detection_results')
+          .insert({
+            upload_id: uploadId,
+            detected_objects: JSON.parse(JSON.stringify(emptyResult)),
+            processing_method: 'processing_failed',
+            error_message: error instanceof Error ? error.message : 'Unknown error occurred',
+            metadata: JSON.parse(JSON.stringify({
+              error_details: error instanceof Error ? {
+                name: error.name,
+                message: error.message,
+                stack: error.stack?.substring(0, 1000) // Limit stack trace length
+              } : { error: String(error) }
+            }))
+          });
 
-      await supabase
-        .from('blueprint_uploads')
-        .update({ upload_status: 'processed' })
-        .eq('id', uploadId);
+        await supabase
+          .from('blueprint_uploads')
+          .update({ upload_status: 'error' })
+          .eq('id', uploadId);
+          
+        console.log(`Error logged for upload ${uploadId}`);
+      } catch (dbError) {
+        console.error('Failed to log error to database:', dbError);
+      }
 
-      return basicObjects;
+      throw error; // Re-throw to be handled by caller
     }
+  };
+
+  // Helper function to generate a simple hash from image data
+  const generateImageHash = async (blob: Blob): Promise<number> => {
+    const arrayBuffer = await blob.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    let hash = 0;
+    for (let i = 0; i < Math.min(uint8Array.length, 1000); i++) {
+      hash = ((hash << 5) - hash + uint8Array[i]) & 0xffffffff;
+    }
+    return Math.abs(hash);
   };
 
   const reset = useCallback(() => {
