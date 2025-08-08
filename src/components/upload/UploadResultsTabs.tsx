@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,20 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
   uploadResult,
   onReset
 }) => {
+  // Debug logging for 3D data
+  useEffect(() => {
+    console.log('3D Preview - enhancedRoomData:', uploadResult.enhancedRoomData);
+    if (uploadResult.enhancedRoomData && Array.isArray(uploadResult.enhancedRoomData)) {
+      console.log('Room data for 3D:', uploadResult.enhancedRoomData.length, 'rooms');
+      uploadResult.enhancedRoomData.forEach((room, i) => {
+        console.log(`Room ${i}:`, { 
+          type: room.type, 
+          points: room.points?.length,
+          dimensions: room.realWorldDimensions 
+        });
+      });
+    }
+  }, [uploadResult.enhancedRoomData]);
   const handleDownload = () => {
     if (uploadResult.imageUrl) {
       const link = document.createElement('a');
@@ -261,7 +275,7 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
         </TabsContent>
 
         <TabsContent value="3d-preview" className="space-y-4">
-          {uploadResult.enhancedRoomData && uploadResult.enhancedRoomData.length > 0 ? (
+          {uploadResult.enhancedRoomData && Array.isArray(uploadResult.enhancedRoomData) && uploadResult.enhancedRoomData.length > 0 ? (
             <RealTime3DGenerator
               rooms={uploadResult.enhancedRoomData}
               title="Real-Time 3D Preview"

@@ -272,7 +272,12 @@ export const useSimplifiedUpload = () => {
         .eq('id', uploadId);
       
       console.log(`Enhanced blueprint processing completed for upload ${uploadId}`);
-      return { detectedObjects, enhancedRoomData: analysisResult };
+      console.log('Analysis result structure:', {
+        totalRooms: analysisResult.totalRooms,
+        roomsArray: analysisResult.rooms?.length,
+        firstRoom: analysisResult.rooms?.[0]
+      });
+      return { detectedObjects, enhancedRoomData: analysisResult.rooms };
     } catch (error) {
       console.error('Enhanced processing failed:', error);
       console.log('Attempting fallback to basic analysis...');
