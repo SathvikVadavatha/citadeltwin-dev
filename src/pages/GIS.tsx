@@ -1,8 +1,6 @@
 import React from 'react';
 import { GISDataManager } from '@/components/gis/GISDataManager';
-import { InteractiveGISMapCore } from '@/components/gis/InteractiveGISMapCore';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Map } from 'lucide-react';
+import { GoogleMapsGIS } from '@/components/gis/GoogleMapsGIS';
 
 export const GIS: React.FC = () => {
   return (
@@ -17,21 +15,8 @@ export const GIS: React.FC = () => {
       {/* GIS Data Management Section */}
       <GISDataManager />
       
-      {/* Interactive Map Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Map className="w-5 h-5" />
-            Interactive GIS Map
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Explore spatial data with interactive layers, zoom controls, and detailed feature information
-          </p>
-        </CardHeader>
-        <CardContent className="p-0">
-          <InteractiveGISMapCore />
-        </CardContent>
-      </Card>
+      {/* Google Maps GIS Section */}
+      <GoogleMapsGIS />
     </div>
   );
 };
