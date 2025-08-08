@@ -119,10 +119,10 @@ export const InteractiveGISMapCore: React.FC = () => {
 
       const google = await loader.load();
 
-      // Default to Central Florida as requested
+      // Center on Orlando as requested
       const map = new google.maps.Map(mapRef.current, {
-        center: { lat: 28.5383, lng: -81.3792 }, // Central Florida
-        zoom: 10,
+        center: { lat: 28.5384, lng: -81.3792 }, // Orlando, FL
+        zoom: 12,
         mapTypeId: google.maps.MapTypeId.HYBRID,
         mapTypeControl: true,
         streetViewControl: true,
@@ -144,6 +144,24 @@ export const InteractiveGISMapCore: React.FC = () => {
       });
 
       mapInstanceRef.current = map;
+
+      // Add test polygon to verify rendering works
+      const testPolygon = new google.maps.Polygon({
+        paths: [
+          { lat: 28.5384, lng: -81.3792 },
+          { lat: 28.5404, lng: -81.3792 },
+          { lat: 28.5404, lng: -81.3772 },
+          { lat: 28.5384, lng: -81.3772 }
+        ],
+        strokeColor: '#FF0000',
+        strokeOpacity: 0.8,
+        strokeWeight: 2,
+        fillColor: '#FF0000',
+        fillOpacity: 0.35,
+      });
+      
+      testPolygon.setMap(map);
+      console.log('Test polygon added to verify map rendering');
 
       // Add click listener for feature information
       map.addListener('click', (event: google.maps.MapMouseEvent) => {
@@ -210,15 +228,25 @@ export const InteractiveGISMapCore: React.FC = () => {
       return;
     }
 
-    // Find matching environmental layer data
+    // Find matching environmental layer data by environmental_type
+    console.log('Looking for layer data for:', layerConfig.type);
+    console.log('Available environmental layers:', environmentalLayers.map(l => ({ 
+      id: l.id, 
+      layer_type: l.layer_type, 
+      environmental_type: l.environmental_type,
+      layer_name: l.layer_name 
+    })));
+    
     const layerData = environmentalLayers.find(envLayer => 
-      envLayer.layer_type === layerConfig.type
+      envLayer.environmental_type === layerConfig.type || envLayer.layer_type === layerConfig.type
     );
 
     if (!layerData || !layerData.geometry_data) {
-      console.log('No data available for layer:', layerConfig.name);
+      console.log('No data available for layer:', layerConfig.name, 'looking for type:', layerConfig.type);
       return;
     }
+
+    console.log('Found layer data for:', layerConfig.name, layerData);
 
     try {
       const geometryData = typeof layerData.geometry_data === 'string' 
@@ -307,13 +335,24 @@ export const InteractiveGISMapCore: React.FC = () => {
 
   const handleFetchGISData = async (location: string) => {
     try {
-      await fetchEnvironmentalData({
+      console.log('Fetching GIS data for Orlando...');
+      const result = await fetchEnvironmentalData({
         city: 'Orlando',
         state: 'FL',
-        dataTypes: ['flood_zones', 'protected_lands']
+        dataTypes: ['flood_zones', 'protected_lands', 'wetlands']
       });
+      console.log('Fetch result:', result);
+      
+      // Enable layers after fetching data
+      setLayers(prev => prev.map(layer => 
+        ['flood_zones', 'protected_lands', 'wetlands'].includes(layer.type)
+          ? { ...layer, enabled: true }
+          : layer
+      ));
+      
       toast.success('GIS data fetched successfully');
     } catch (error) {
+      console.error('Error fetching GIS data:', error);
       toast.error('Failed to fetch GIS data');
     }
   };
