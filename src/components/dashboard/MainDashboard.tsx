@@ -17,7 +17,7 @@ import {
   AlertCircle,
   RefreshCw
 } from 'lucide-react';
-import { SimplifiedUploadForm } from '@/components/upload/SimplifiedUploadForm';
+import { BlueprintUpload } from '@/components/upload/BlueprintUpload';
 import { UploadResults } from '@/components/upload/UploadResults';
 import { Model3DViewer } from '@/components/3d/Model3DViewer';
 import { BIMElementsManager } from '@/components/bim/BIMElementsManager';
@@ -27,14 +27,14 @@ import { ComplianceEngine } from '@/components/compliance/ComplianceEngine';
 import { DocumentGenerator } from '@/components/documents/DocumentGenerator';
 import { DocumentTemplateManager } from '@/components/documents/DocumentTemplateManager';
 import { useUploads } from '@/hooks/useUploads';
-import { useBlueprintUpload } from '@/hooks/useBlueprintUpload';
+import { useSimplifiedUpload } from '@/hooks/useSimplifiedUpload';
 import { use3DModelViewer } from '@/hooks/use3DModelViewer';
 import { CustomReportBuilder } from '@/components/analytics/CustomReportBuilder';
 
 export const MainDashboard = () => {
   const [activeTab, setActiveTab] = useState('upload');
   const { uploads } = useUploads();
-  const { uploadResult, resetUpload } = useBlueprintUpload();
+  const { result: uploadResult, reset: resetUpload } = useSimplifiedUpload();
   
   const recentUpload = uploads?.[0];
   const targetUploadId = uploadResult?.id || recentUpload?.id;
@@ -123,19 +123,7 @@ export const MainDashboard = () => {
           <div className="mt-6">
             <TabsContent value="upload" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <SimplifiedUploadForm onUploadComplete={() => {}} />
-                {uploadResult ? (
-                  <UploadResults 
-                    uploadResult={uploadResult}
-                    onReset={resetUpload}
-                  />
-                ) : (
-                  <Card className="cyber-tool-palette">
-                    <CardContent className="p-6 text-center">
-                      <p className="text-gray-400">Upload a blueprint to see analysis results</p>
-                    </CardContent>
-                  </Card>
-                )}
+                <BlueprintUpload onUploadComplete={() => {}} />
               </div>
             </TabsContent>
 
@@ -175,7 +163,7 @@ export const MainDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-              ) : hasModel || uploadResult?.model3DUrl ? (
+              ) : hasModel ? (
                 <div className="space-y-4">
                   {modelMetadata && (
                     <Card className="cyber-tool-palette">
@@ -204,7 +192,7 @@ export const MainDashboard = () => {
                     </Card>
                   )}
                   <Model3DViewer
-                    modelUrl={model3DUrl || uploadResult?.model3DUrl}
+                    modelUrl={model3DUrl}
                     modelName={modelMetadata?.model_name || uploadResult?.filename || 'Generated 3D Model'}
                     uploadId={targetUploadId}
                     projectId={recentUpload?.project_id}
