@@ -1,12 +1,11 @@
 
 import React from 'react';
-import { UploadPage } from '@/components/upload/UploadPage';
+import { BlueprintUpload } from '@/components/upload/BlueprintUpload';
 
 export const UploadBlueprint: React.FC = () => {
-  const handleNavigate = (view: string) => {
-    // Navigation handled by React Router, this is just a placeholder
-    console.log('Navigate to:', view);
-  };
-
-  return <UploadPage onNavigate={handleNavigate} />;
+  return (
+    <div className="container mx-auto p-6">
+      <BlueprintUpload />
+    </div>
+  );
 };

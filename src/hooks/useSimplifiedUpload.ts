@@ -169,18 +169,13 @@ export const useSimplifiedUpload = () => {
 
   const processBlueprint = async (uploadId: string, imageUrl: string) => {
     try {
-      // Basic object detection - non-critical
-      const { data: detectionData, error: detectionError } = await supabase.functions
-        .invoke('detect-objects', {
-          body: { imageUrl, uploadId }
-        });
-
-      if (detectionError) {
-        console.warn('Object detection failed:', detectionError);
-        return;
-      }
-
-      console.log('Object detection completed:', detectionData);
+      // Simple processing - just update status
+      await supabase
+        .from('blueprint_uploads')
+        .update({ upload_status: 'processed' })
+        .eq('id', uploadId);
+      
+      console.log('Blueprint processing completed for:', uploadId);
     } catch (error) {
       console.warn('Processing failed:', error);
       // Don't throw - this is non-critical

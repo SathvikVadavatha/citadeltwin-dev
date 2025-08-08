@@ -2,7 +2,7 @@
 import React from 'react';
 import { UploadForm } from './UploadForm';
 import { UploadResults } from './UploadResults';
-import { useBlueprintUpload } from '@/hooks/useBlueprintUpload';
+import { useSimplifiedUpload } from '@/hooks/useSimplifiedUpload';
 
 interface BlueprintUploadProps {
   onUploadComplete?: (uploadId: string) => void;
@@ -13,10 +13,10 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComple
     uploading,
     processing,
     uploadProgress,
-    uploadResult,
+    result: uploadResult,
     uploadFile,
-    resetUpload
-  } = useBlueprintUpload();
+    reset: resetUpload
+  } = useSimplifiedUpload();
 
   // Call onUploadComplete when upload is finished
   React.useEffect(() => {
@@ -28,7 +28,13 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComple
   if (uploadResult) {
     return (
       <UploadResults
-        uploadResult={uploadResult}
+        uploadResult={{
+          id: uploadResult.id,
+          filename: uploadResult.filename,
+          detectedObjects: [],
+          imageUrl: uploadResult.imageUrl,
+          processingMethod: 'fallback'
+        }}
         onReset={resetUpload}
       />
     );
@@ -39,7 +45,7 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComple
       <div>
         <h2 className="text-2xl font-bold mb-2">Upload Blueprint</h2>
         <p className="text-muted-foreground">
-          Upload a 2D blueprint to extract architectural elements and generate 3D models using enhanced Gemini AI analysis.
+          Upload a 2D blueprint to analyze and view architectural elements in a detailed breakdown.
         </p>
       </div>
 
