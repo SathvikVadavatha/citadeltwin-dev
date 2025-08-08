@@ -19,6 +19,7 @@ interface UploadResult {
   model3DUrl?: string;
   model3DGenerated?: boolean;
   generating3D?: boolean;
+  enhancedRoomData?: any[];
 }
 
 export const useBlueprintUpload = () => {
@@ -77,7 +78,8 @@ export const useBlueprintUpload = () => {
         processingMethod: normalizedProcessingMethod,
         errorMessage,
         generating3D: true,
-        model3DGenerated: false
+        model3DGenerated: false,
+        enhancedRoomData: processingResult?.enhancedRoomData?.rooms || detectedObjects
       };
 
       setUploadResult(initialResult);
@@ -163,7 +165,8 @@ export const useBlueprintUpload = () => {
         errorMessage,
         model3DUrl,
         model3DGenerated: !!model3DUrl,
-        generating3D: false
+        generating3D: false,
+        enhancedRoomData: processingResult?.enhancedRoomData?.rooms || detectedObjects
       };
 
       setUploadResult(finalResult);

@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Download, RefreshCw, Image, Layers, Box } from "lucide-react";
+import { RealTime3DGenerator } from "@/components/3d/RealTime3DGenerator";
 
 interface UploadResult {
   id: string;
@@ -16,6 +17,7 @@ interface UploadResult {
   model3DUrl?: string;
   model3DGenerated?: boolean;
   generating3D?: boolean;
+  enhancedRoomData?: any[];
 }
 
 interface UploadResultsTabsProps {
@@ -67,7 +69,7 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="image">Image</TabsTrigger>
           <TabsTrigger value="analysis">Analysis</TabsTrigger>
-          <TabsTrigger value="3d-model">3D Model</TabsTrigger>
+          <TabsTrigger value="3d-preview">3D Preview</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -258,44 +260,33 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
           </Card>
         </TabsContent>
 
-        <TabsContent value="3d-model" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>3D Model</CardTitle>
-              <CardDescription>
-                Generated 3D representation of the blueprint
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {uploadResult.model3DGenerated && uploadResult.model3DUrl ? (
-                <div className="space-y-4">
-                  <div className="flex justify-center">
-                    <div className="w-full h-64 bg-muted rounded-lg flex items-center justify-center">
-                      <p className="text-muted-foreground">3D Model Viewer</p>
-                    </div>
-                  </div>
-                  <div className="flex justify-center">
-                    <Button asChild>
-                      <a href={uploadResult.model3DUrl} target="_blank" rel="noopener noreferrer">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download 3D Model
-                      </a>
-                    </Button>
-                  </div>
-                </div>
-              ) : uploadResult.generating3D ? (
-                <div className="text-center py-8">
-                  <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin" />
-                  <p className="text-muted-foreground">Generating 3D model...</p>
-                </div>
-              ) : (
+        <TabsContent value="3d-preview" className="space-y-4">
+          {uploadResult.enhancedRoomData && uploadResult.enhancedRoomData.length > 0 ? (
+            <RealTime3DGenerator
+              rooms={uploadResult.enhancedRoomData}
+              title="Real-Time 3D Preview"
+              onDownload={() => {
+                // TODO: Implement GLB export functionality
+                console.log('Export 3D model');
+              }}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>3D Preview</CardTitle>
+                <CardDescription>
+                  Real-time 3D visualization from room analysis
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
                 <div className="text-center py-8 text-muted-foreground">
                   <Box className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>3D model not available for this blueprint</p>
+                  <p>No room data available for 3D preview</p>
+                  <p className="text-sm mt-2">Upload a blueprint with detectable rooms to see 3D visualization</p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
