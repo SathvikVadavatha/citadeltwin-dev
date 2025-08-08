@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Eye, Grid3X3, Home, Maximize } from "lucide-react";
+import { Download, Eye, Grid3X3, Home, Maximize, Zap } from "lucide-react";
 import { RoomWithDimensions } from '@/utils/enhancedRoomDetection';
+import { PolygonRoom3D } from './PolygonRoom3D';
 import * as THREE from 'three';
 
 interface RealTime3DGeneratorProps {
@@ -15,127 +16,26 @@ interface RealTime3DGeneratorProps {
   onDownload?: () => void;
 }
 
-interface Room3DProps {
-  room: RoomWithDimensions;
-  position: [number, number, number];
-  scale: number;
-  color: string;
-}
+const Scene: React.FC<{ rooms: RoomWithDimensions[]; showWireframe?: boolean }> = ({ 
+  rooms, 
+  showWireframe = false 
+}) => {
+  const [hoveredRoom, setHoveredRoom] = useState<RoomWithDimensions | null>(null);
 
-const Room3D: React.FC<Room3DProps> = ({ room, position, scale, color }) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const [hovered, setHovered] = useState(false);
-
-  useFrame(() => {
-    if (meshRef.current) {
-      meshRef.current.scale.setScalar(hovered ? 1.02 : 1);
-    }
-  });
-
-  // Convert room dimensions to 3D units (scale down for better viewing)
-  const width = (room.realWorldDimensions?.width || room.dimensions.width / 10) * scale;
-  const length = (room.realWorldDimensions?.length || room.dimensions.length / 10) * scale;
-  const height = 2.5 * scale; // Standard room height
-
-  return (
-    <group position={position}>
-      {/* Room Floor */}
-      <mesh
-        ref={meshRef}
-        position={[0, -height/2, 0]}
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
-      >
-        <boxGeometry args={[width, 0.1, length]} />
-        <meshLambertMaterial color={color} transparent opacity={0.8} />
-      </mesh>
-
-      {/* Room Walls */}
-      <group>
-        {/* Front wall */}
-        <mesh position={[0, 0, length/2]}>
-          <boxGeometry args={[width, height, 0.1]} />
-          <meshLambertMaterial color={color} transparent opacity={0.6} />
-        </mesh>
-        
-        {/* Back wall */}
-        <mesh position={[0, 0, -length/2]}>
-          <boxGeometry args={[width, height, 0.1]} />
-          <meshLambertMaterial color={color} transparent opacity={0.6} />
-        </mesh>
-        
-        {/* Left wall */}
-        <mesh position={[-width/2, 0, 0]}>
-          <boxGeometry args={[0.1, height, length]} />
-          <meshLambertMaterial color={color} transparent opacity={0.6} />
-        </mesh>
-        
-        {/* Right wall */}
-        <mesh position={[width/2, 0, 0]}>
-          <boxGeometry args={[0.1, height, length]} />
-          <meshLambertMaterial color={color} transparent opacity={0.6} />
-        </mesh>
-      </group>
-
-      {/* Room Label */}
-      <Html position={[0, height/2 + 0.5, 0]} center>
-        <div className="bg-background border rounded px-2 py-1 text-xs font-medium shadow-lg">
-          {room.name}
-          <div className="text-xs text-muted-foreground">
-            {room.realWorldDimensions ? 
-              `${room.realWorldDimensions.width}' × ${room.realWorldDimensions.length}'` :
-              `${Math.round(room.dimensions.width)}px × ${Math.round(room.dimensions.length)}px`
-            }
-          </div>
-        </div>
-      </Html>
-
-      {/* Add basic furniture based on room type */}
-      {room.type === 'bedroom' && (
-        <mesh position={[width/4, -height/2 + 0.3, 0]}>
-          <boxGeometry args={[1.5, 0.6, 2]} />
-          <meshLambertMaterial color="#8B4513" />
-        </mesh>
-      )}
-
-      {room.type === 'bathroom' && (
-        <group>
-          <mesh position={[-width/3, -height/2 + 0.4, length/3]}>
-            <cylinderGeometry args={[0.3, 0.3, 0.8]} />
-            <meshLambertMaterial color="#FFFFFF" />
-          </mesh>
-        </group>
-      )}
-
-      {room.type === 'kitchen' && (
-        <mesh position={[width/3, -height/2 + 0.5, -length/3]}>
-          <boxGeometry args={[0.6, 1, 2]} />
-          <meshLambertMaterial color="#654321" />
-        </mesh>
-      )}
-    </group>
-  );
-};
-
-const Scene: React.FC<{ rooms: RoomWithDimensions[] }> = ({ rooms }) => {
-  const roomColors = [
-    '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', 
-    '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1'
-  ];
-
-  // Calculate overall building bounds
+  // Calculate overall building bounds from room polygons
   const buildingBounds = useMemo(() => {
-    if (rooms.length === 0) return { width: 10, length: 10 };
+    if (rooms.length === 0) return { width: 10, length: 10, centerX: 0, centerY: 0 };
     
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
     
     rooms.forEach(room => {
-      const bounds = room.bounds;
-      minX = Math.min(minX, bounds.x);
-      maxX = Math.max(maxX, bounds.x + bounds.width);
-      minY = Math.min(minY, bounds.y);
-      maxY = Math.max(maxY, bounds.y + bounds.height);
+      room.points.forEach(point => {
+        minX = Math.min(minX, point.x);
+        maxX = Math.max(maxX, point.x);
+        minY = Math.min(minY, point.y);
+        maxY = Math.max(maxY, point.y);
+      });
     });
     
     return {
@@ -146,52 +46,75 @@ const Scene: React.FC<{ rooms: RoomWithDimensions[] }> = ({ rooms }) => {
     };
   }, [rooms]);
 
-  // Scale factor for 3D visualization
-  const scale = 0.02;
+  // Scale factor for 3D visualization (matching Python scale conversion)
+  const scale = 0.01; // Convert pixels to world units like Python (/100)
+  const extrudeHeight = 2.5; // Same as Python extrusion height
 
   return (
     <>
-      {/* Lighting */}
-      <ambientLight intensity={0.4} />
-      <directionalLight position={[10, 20, 10]} intensity={1} castShadow />
-      <directionalLight position={[-10, 10, -10]} intensity={0.5} />
+      {/* Lighting setup - optimized for interior viewing */}
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[10, 20, 10]} intensity={0.8} castShadow />
+      <directionalLight position={[-10, 10, -10]} intensity={0.4} />
+      <directionalLight position={[0, 30, 0]} intensity={0.3} />
 
       {/* Building Foundation */}
-      <mesh position={[0, -1.5, 0]}>
-        <boxGeometry args={[buildingBounds.width * scale + 2, 0.2, buildingBounds.length * scale + 2]} />
+      <mesh position={[0, -0.1, 0]}>
+        <boxGeometry args={[
+          buildingBounds.width * scale + 2, 
+          0.2, 
+          buildingBounds.length * scale + 2
+        ]} />
         <meshLambertMaterial color="#8B7355" />
       </mesh>
 
-      {/* Render Rooms */}
-      {rooms.map((room, index) => {
-        // Calculate room position relative to building center
-        const roomCenterX = (room.bounds.x + room.bounds.width / 2 - buildingBounds.centerX) * scale;
-        const roomCenterZ = (room.bounds.y + room.bounds.height / 2 - buildingBounds.centerY) * scale;
-        
-        return (
-          <Room3D
-            key={room.id}
-            room={room}
-            position={[roomCenterX, 0, roomCenterZ]}
-            scale={scale}
-            color={roomColors[index % roomColors.length]}
-          />
-        );
-      })}
+      {/* Render Polygon-based Rooms */}
+      {rooms.map((room) => (
+        <PolygonRoom3D
+          key={room.id}
+          room={room}
+          extrudeHeight={extrudeHeight}
+          scale={scale}
+          showWireframe={showWireframe}
+          onHover={setHoveredRoom}
+        />
+      ))}
 
       {/* Grid reference */}
-      <gridHelper args={[30, 30, '#444444', '#222222']} position={[0, -1.4, 0]} />
+      <gridHelper 
+        args={[
+          Math.max(20, buildingBounds.width * scale + 10), 
+          20, 
+          '#444444', 
+          '#222222'
+        ]} 
+        position={[0, -0.05, 0]} 
+      />
+
+      {/* Display hovered room info */}
+      {hoveredRoom && (
+        <Html position={[0, extrudeHeight + 2, 0]}>
+          <div className="bg-background/95 border rounded-lg p-3 shadow-lg backdrop-blur max-w-xs">
+            <h4 className="font-semibold text-sm">{hoveredRoom.name}</h4>
+            <p className="text-xs text-muted-foreground capitalize">{hoveredRoom.type}</p>
+            <p className="text-xs text-muted-foreground">
+              Confidence: {Math.round(hoveredRoom.confidence * 100)}%
+            </p>
+          </div>
+        </Html>
+      )}
     </>
   );
 };
 
 export const RealTime3DGenerator: React.FC<RealTime3DGeneratorProps> = ({
   rooms,
-  title = "3D Model Preview",
+  title = "3D Floor Plan Visualization",
   onDownload
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
+  const [showWireframe, setShowWireframe] = useState(false);
   const [activeView, setActiveView] = useState("perspective");
 
   const totalArea = rooms.reduce((sum, room) => 
@@ -205,9 +128,12 @@ export const RealTime3DGenerator: React.FC<RealTime3DGeneratorProps> = ({
 
   const viewerContent = (
     <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'h-96'}`}>
-      {/* 3D Canvas */}
+      {/* 3D Canvas - Camera positioned for interior viewing like Python */}
       <Canvas
-        camera={{ position: [15, 15, 15], fov: 50 }}
+        camera={{ 
+          position: [15, 12, 15], // Elevated view for interior viewing
+          fov: 60 
+        }}
         shadows
         className="w-full h-full"
       >
@@ -215,10 +141,11 @@ export const RealTime3DGenerator: React.FC<RealTime3DGeneratorProps> = ({
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
-          minPolarAngle={0}
-          maxPolarAngle={Math.PI / 2}
+          minPolarAngle={Math.PI / 8} // Prevent going under the floor
+          maxPolarAngle={Math.PI / 2 - 0.1} // Allow near-top-down view
+          target={[0, 0, 0]} // Focus on building center
         />
-        <Scene rooms={rooms} />
+        <Scene rooms={rooms} showWireframe={showWireframe} />
       </Canvas>
 
       {/* Controls Overlay */}
@@ -228,6 +155,7 @@ export const RealTime3DGenerator: React.FC<RealTime3DGeneratorProps> = ({
           variant="outline"
           onClick={() => setIsFullscreen(!isFullscreen)}
           className="bg-background/80 backdrop-blur"
+          title="Toggle Fullscreen"
         >
           <Maximize className="h-4 w-4" />
         </Button>
@@ -236,8 +164,18 @@ export const RealTime3DGenerator: React.FC<RealTime3DGeneratorProps> = ({
           variant="outline"
           onClick={() => setShowGrid(!showGrid)}
           className="bg-background/80 backdrop-blur"
+          title="Toggle Grid"
         >
           <Grid3X3 className="h-4 w-4" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setShowWireframe(!showWireframe)}
+          className="bg-background/80 backdrop-blur"
+          title="Toggle Wireframe"
+        >
+          <Zap className="h-4 w-4" />
         </Button>
         {onDownload && (
           <Button
@@ -245,6 +183,7 @@ export const RealTime3DGenerator: React.FC<RealTime3DGeneratorProps> = ({
             variant="outline"
             onClick={onDownload}
             className="bg-background/80 backdrop-blur"
+            title="Download Model"
           >
             <Download className="h-4 w-4" />
           </Button>
@@ -282,7 +221,7 @@ export const RealTime3DGenerator: React.FC<RealTime3DGeneratorProps> = ({
         <div>
           <h3 className="text-lg font-semibold">{title}</h3>
           <p className="text-sm text-muted-foreground">
-            Real-time 3D visualization from room analysis
+            Polygon-based 3D visualization using detected room boundaries
           </p>
         </div>
         <div className="flex gap-2">
