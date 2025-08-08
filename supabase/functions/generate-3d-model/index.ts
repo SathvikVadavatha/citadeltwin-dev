@@ -166,12 +166,31 @@ serve(async (req) => {
   }
 });
 
+// Helper types for enhanced room generation
+interface RoomData {
+  label: string;
+  confidence: number;
+  bbox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}
+
+interface Room3DGeometry {
+  vertices: number[];
+  normals: number[];
+  roomCenter: { x: number; y: number; z: number };
+  roomType: string;
+}
+
 // Phase 4: Generate unique architectural GLB using actual detected object data
 function generateArchitecturalGLB(detectedObjects: any[], uploadId: string, isAIGenerated: boolean): Uint8Array {
   const seed = hashCode(uploadId);
   const rng = new SeededRandom(seed);
   
-  console.log('🏗️ Phase 4: Generating unique architectural 3D model with seed:', seed, 'Objects:', detectedObjects?.length || 0);
+  console.log('🏗️ Phase 4: Generating enhanced room-based 3D model with seed:', seed, 'Objects:', detectedObjects?.length || 0);
   console.log('📊 Detected objects summary:', detectedObjects?.map(obj => `${obj.label}(${obj.confidence.toFixed(2)})`).join(', '));
   
   // Phase 4: Enhanced object analysis using actual bounding box data
@@ -202,18 +221,63 @@ function generateArchitecturalGLB(detectedObjects: any[], uploadId: string, isAI
   const normals = [];
   let vertexIndex = 0;
   
-  // Phase 4: Generate building structure using actual detected object positions and sizes
+  // Enhanced Phase 1: Generate room-specific geometries
+  const roomGeometries: Room3DGeometry[] = [];
+  const scale = 0.1; // Scale factor for converting blueprint coordinates to 3D
   
-  // 1. Generate foundation based on actual building footprint
-  const foundationGeometry = generateBlueprintSpecificFoundation(
-    structuralElements, buildingCharacteristics, rng
-  );
-  vertices.push(...foundationGeometry.vertices);
-  normals.push(...foundationGeometry.normals);
-  
-  const foundationIndices = generateQuadIndices(vertexIndex, foundationGeometry.vertices.length / 3);
-  indices.push(...foundationIndices);
-  vertexIndex += foundationGeometry.vertices.length / 3;
+  if (roomElements.length > 0) {
+    console.log('🏗️ Generating enhanced room geometries...');
+    
+    for (let i = 0; i < roomElements.length; i++) {
+      const room = roomElements[i] as RoomData;
+      const roomGeometry = generateEnhancedRoomGeometry(room, i, scale);
+      roomGeometries.push(roomGeometry);
+      
+      vertices.push(...roomGeometry.vertices);
+      normals.push(...roomGeometry.normals);
+      
+      // Generate indices for room geometry (6 faces * 2 triangles each = 12 triangles per room)
+      const facesPerRoom = 6;
+      const verticesPerFace = 4;
+      for (let face = 0; face < facesPerRoom; face++) {
+        const faceStart = vertexIndex + (face * verticesPerFace);
+        indices.push(
+          faceStart, faceStart + 1, faceStart + 2,
+          faceStart, faceStart + 2, faceStart + 3
+        );
+      }
+      vertexIndex += roomGeometry.vertices.length / 3;
+      
+      // Add room-specific furniture
+      const furnitureGeometry = generateBasicFurniture(roomGeometry);
+      if (furnitureGeometry.vertices.length > 0) {
+        vertices.push(...furnitureGeometry.vertices);
+        normals.push(...furnitureGeometry.normals);
+        
+        // Generate indices for furniture (simple quads)
+        const furnitureVertices = furnitureGeometry.vertices.length / 3;
+        for (let v = 0; v < furnitureVertices; v += 4) {
+          const base = vertexIndex + v;
+          indices.push(
+            base, base + 1, base + 2,
+            base, base + 2, base + 3
+          );
+        }
+        vertexIndex += furnitureVertices;
+      }
+    }
+  } else {
+    // Fallback: Generate foundation based on actual building footprint
+    const foundationGeometry = generateBlueprintSpecificFoundation(
+      structuralElements, buildingCharacteristics, rng
+    );
+    vertices.push(...foundationGeometry.vertices);
+    normals.push(...foundationGeometry.normals);
+    
+    const foundationIndices = generateQuadIndices(vertexIndex, foundationGeometry.vertices.length / 3);
+    indices.push(...foundationIndices);
+    vertexIndex += foundationGeometry.vertices.length / 3;
+  }
   
   // 2. Generate walls using actual detected wall elements and their bounding boxes
   for (let i = 0; i < wallElements.length; i++) {
@@ -276,7 +340,8 @@ function generateArchitecturalGLB(detectedObjects: any[], uploadId: string, isAI
   const roofIndices = generateRoofIndices(vertexIndex, roofGeometry.vertices.length / 3);
   indices.push(...roofIndices);
   
-  console.log('🎯 Phase 4: Generated unique architectural model:', {
+  console.log('🎯 Enhanced Phase: Generated room-based architectural model:', {
+    roomsGenerated: roomGeometries.length,
     vertices: vertices.length / 3,
     wallElements: wallElements.length,
     doorElements: doorElements.length,
@@ -429,6 +494,147 @@ function generateArchitecturalGLB(detectedObjects: any[], uploadId: string, isAI
   glbBytes.set(binaryView, offset);
 
   return new Uint8Array(glbBuffer);
+}
+
+// Enhanced room geometry generation
+function generateEnhancedRoomGeometry(room: RoomData, roomIndex: number, scale: number): Room3DGeometry {
+  const centerX = (room.bbox.x + room.bbox.width / 2) * scale;
+  const centerZ = (room.bbox.y + room.bbox.height / 2) * scale;
+  const roomWidth = room.bbox.width * scale;
+  const roomDepth = room.bbox.height * scale;
+  const roomHeight = getRoomHeight(room.label);
+  const floorLevel = 0;
+  
+  const vertices = [];
+  const normals = [];
+  
+  // Floor
+  const floorY = floorLevel - 0.1;
+  vertices.push(
+    centerX - roomWidth/2, floorY, centerZ - roomDepth/2,
+    centerX + roomWidth/2, floorY, centerZ - roomDepth/2,
+    centerX + roomWidth/2, floorY, centerZ + roomDepth/2,
+    centerX - roomWidth/2, floorY, centerZ + roomDepth/2
+  );
+  normals.push(...Array(4).fill([0, 1, 0]).flat());
+  
+  // Walls (4 walls per room)
+  // North wall
+  vertices.push(
+    centerX - roomWidth/2, floorLevel, centerZ - roomDepth/2,
+    centerX + roomWidth/2, floorLevel, centerZ - roomDepth/2,
+    centerX + roomWidth/2, floorLevel + roomHeight, centerZ - roomDepth/2,
+    centerX - roomWidth/2, floorLevel + roomHeight, centerZ - roomDepth/2
+  );
+  normals.push(...Array(4).fill([0, 0, -1]).flat());
+  
+  // South wall
+  vertices.push(
+    centerX + roomWidth/2, floorLevel, centerZ + roomDepth/2,
+    centerX - roomWidth/2, floorLevel, centerZ + roomDepth/2,
+    centerX - roomWidth/2, floorLevel + roomHeight, centerZ + roomDepth/2,
+    centerX + roomWidth/2, floorLevel + roomHeight, centerZ + roomDepth/2
+  );
+  normals.push(...Array(4).fill([0, 0, 1]).flat());
+  
+  // East wall
+  vertices.push(
+    centerX + roomWidth/2, floorLevel, centerZ - roomDepth/2,
+    centerX + roomWidth/2, floorLevel, centerZ + roomDepth/2,
+    centerX + roomWidth/2, floorLevel + roomHeight, centerZ + roomDepth/2,
+    centerX + roomWidth/2, floorLevel + roomHeight, centerZ - roomDepth/2
+  );
+  normals.push(...Array(4).fill([1, 0, 0]).flat());
+  
+  // West wall
+  vertices.push(
+    centerX - roomWidth/2, floorLevel, centerZ + roomDepth/2,
+    centerX - roomWidth/2, floorLevel, centerZ - roomDepth/2,
+    centerX - roomWidth/2, floorLevel + roomHeight, centerZ - roomDepth/2,
+    centerX - roomWidth/2, floorLevel + roomHeight, centerZ + roomDepth/2
+  );
+  normals.push(...Array(4).fill([-1, 0, 0]).flat());
+  
+  // Ceiling
+  const ceilingY = floorLevel + roomHeight;
+  vertices.push(
+    centerX - roomWidth/2, ceilingY, centerZ + roomDepth/2,
+    centerX + roomWidth/2, ceilingY, centerZ + roomDepth/2,
+    centerX + roomWidth/2, ceilingY, centerZ - roomDepth/2,
+    centerX - roomWidth/2, ceilingY, centerZ - roomDepth/2
+  );
+  normals.push(...Array(4).fill([0, -1, 0]).flat());
+  
+  return {
+    vertices,
+    normals,
+    roomCenter: { x: centerX, y: floorLevel + roomHeight/2, z: centerZ },
+    roomType: classifyRoomType(room.label)
+  };
+}
+
+// Generate basic furniture based on room type
+function generateBasicFurniture(roomGeometry: Room3DGeometry): { vertices: number[]; normals: number[] } {
+  const vertices = [];
+  const normals = [];
+  const { x, y, z } = roomGeometry.roomCenter;
+  
+  switch (roomGeometry.roomType) {
+    case 'bedroom':
+      // Add a simple bed
+      vertices.push(
+        x-0.8, y-1.0, z-1.0,  x+0.8, y-1.0, z-1.0,  x+0.8, y-0.7, z-1.0,  x-0.8, y-0.7, z-1.0,
+        x-0.8, y-1.0, z+1.0,  x+0.8, y-1.0, z+1.0,  x+0.8, y-0.7, z+1.0,  x-0.8, y-0.7, z+1.0
+      );
+      normals.push(...Array(8).fill([0, 1, 0]).flat());
+      break;
+      
+    case 'bathroom':
+      // Add toilet
+      vertices.push(
+        x-0.2, y-1.0, z-0.3,  x+0.2, y-1.0, z-0.3,  x+0.2, y-0.6, z-0.3,  x-0.2, y-0.6, z-0.3,
+        x-0.2, y-1.0, z+0.3,  x+0.2, y-1.0, z+0.3,  x+0.2, y-0.6, z+0.3,  x-0.2, y-0.6, z+0.3
+      );
+      normals.push(...Array(8).fill([0, 1, 0]).flat());
+      break;
+      
+    case 'kitchen':
+      // Add counter
+      vertices.push(
+        x-1.5, y-1.0, z-0.3,  x+1.5, y-1.0, z-0.3,  x+1.5, y-0.1, z-0.3,  x-1.5, y-0.1, z-0.3,
+        x-1.5, y-1.0, z+0.3,  x+1.5, y-1.0, z+0.3,  x+1.5, y-0.1, z+0.3,  x-1.5, y-0.1, z+0.3
+      );
+      normals.push(...Array(8).fill([0, 1, 0]).flat());
+      break;
+      
+    case 'living_room':
+      // Add sofa
+      vertices.push(
+        x-1.0, y-1.0, z-0.4,  x+1.0, y-1.0, z-0.4,  x+1.0, y-0.4, z-0.4,  x-1.0, y-0.4, z-0.4,
+        x-1.0, y-1.0, z+0.4,  x+1.0, y-1.0, z+0.4,  x+1.0, y-0.4, z+0.4,  x-1.0, y-0.4, z+0.4
+      );
+      normals.push(...Array(8).fill([0, 1, 0]).flat());
+      break;
+  }
+  
+  return { vertices, normals };
+}
+
+function getRoomHeight(roomLabel: string): number {
+  if (roomLabel.includes('bathroom')) return 2.4;
+  if (roomLabel.includes('bedroom')) return 2.7;
+  if (roomLabel.includes('kitchen')) return 2.7;
+  if (roomLabel.includes('living')) return 3.0;
+  return 2.7;
+}
+
+function classifyRoomType(roomLabel: string): string {
+  if (roomLabel.includes('bathroom')) return 'bathroom';
+  if (roomLabel.includes('bedroom')) return 'bedroom';
+  if (roomLabel.includes('kitchen')) return 'kitchen';
+  if (roomLabel.includes('living')) return 'living_room';
+  if (roomLabel.includes('dining')) return 'dining_room';
+  return 'room';
 }
 
 // Helper functions for unique model generation

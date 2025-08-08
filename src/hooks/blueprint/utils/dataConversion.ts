@@ -13,7 +13,8 @@ export const mapRoomTypeToLabel = (roomType: string): string => {
     'closet': 'closet',
     'hallway': 'hallway',
     'balcony': 'balcony',
-    'laundry': 'laundry room'
+    'laundry': 'laundry room',
+    'room': 'room'
   };
   
   return mapping[roomType?.toLowerCase()] || 'room';
