@@ -502,7 +502,12 @@ export const useBlueprintProcessing = () => {
         finalStatus
       });
 
-      return detectedObjects;
+      // Return both detected objects and enhanced room data
+      return {
+        detectedObjects,
+        enhancedRoomData: null, // Will be added later when we integrate room analysis
+        processingMethod: isAIGenerated ? 'ai' : 'fallback'
+      };
 
     } catch (error) {
       logger.error('💥 Blueprint processing pipeline failed', 'Blueprint Processing', {

@@ -36,7 +36,7 @@ serve(async (req) => {
   }
 
   try {
-    const { uploadId, detectedObjects, imageUrl, uniqueFileName, isAIGenerated } = await req.json();
+    const { uploadId, detectedObjects, enhancedRoomData, imageUrl, uniqueFileName, isAIGenerated } = await req.json();
 
     console.log('Starting enhanced 3D model generation for upload:', uploadId, {
       objectCount: detectedObjects?.length,
@@ -88,8 +88,12 @@ serve(async (req) => {
 
     console.log('Created unique 3D model record:', modelRecord.id);
 
-    // Generate architectural GLB file with real building elements based on detected objects
-    const uniqueGLBData = generateArchitecturalGLB(detectedObjects, uploadId, isAIGenerated);
+    // Generate architectural GLB file with enhanced room data
+    const uniqueGLBData = generateArchitecturalGLB(detectedObjects, {
+      uploadId,
+      isAIGenerated,
+      enhancedRoomData // Pass the rich room data
+    });
     const fileName = uniqueFileName || `${uploadId}/${modelRecord.id}_${timestamp}.glb`;
 
     console.log('Uploading unique GLB file:', fileName, 'Size:', uniqueGLBData.length);
@@ -166,28 +170,18 @@ serve(async (req) => {
   }
 });
 
-// Helper types for enhanced room generation
-interface RoomData {
-  label: string;
-  confidence: number;
-  bbox: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
-}
+// Import enhanced room geometry functions
+import { 
+  generateRoomSpecific3D, 
+  generateRoomFurniture, 
+  generateHallwayConnections,
+  type RoomData,
+  type Room3DGeometry 
+} from './enhanced-room-geometry.ts';
 
-interface Room3DGeometry {
-  vertices: number[];
-  normals: number[];
-  roomCenter: { x: number; y: number; z: number };
-  roomType: string;
-}
-
-// Phase 4: Generate unique architectural GLB using actual detected object data
-function generateArchitecturalGLB(detectedObjects: any[], uploadId: string, isAIGenerated: boolean): Uint8Array {
-  const seed = hashCode(uploadId);
+// Phase 4: Generate unique architectural GLB using enhanced room data
+function generateArchitecturalGLB(detectedObjects: any[], metadata: any = {}): Uint8Array {
+  const seed = hashCode(metadata.uploadId || 'default');
   const rng = new SeededRandom(seed);
   
   console.log('🏗️ Phase 4: Generating enhanced room-based 3D model with seed:', seed, 'Objects:', detectedObjects?.length || 0);
@@ -209,9 +203,29 @@ function generateArchitecturalGLB(detectedObjects: any[], uploadId: string, isAI
     obj.label === 'foundation' || obj.label === 'beam' || obj.label === 'column'
   ) || [];
   
+  // Use enhanced room data if available, otherwise fall back to detected objects
+  let rooms = [];
+  let enhancedRooms = [];
+  
+  if (metadata.enhancedRoomData && metadata.enhancedRoomData.rooms) {
+    // Use the rich room data with actual dimensions and positions
+    enhancedRooms = metadata.enhancedRoomData.rooms;
+    rooms = enhancedRooms.map(room => ({
+      label: room.type || room.label || 'room',
+      confidence: room.confidence || 0.8,
+      bbox: room.bounds || room.bbox || { x: 0, y: 0, width: 100, height: 100 },
+      ...room // Include all enhanced properties
+    }));
+    console.log('Using enhanced room data:', enhancedRooms.length, 'rooms');
+  } else {
+    // Fall back to detected objects
+    rooms = roomElements;
+    console.log('Using detected objects fallback:', rooms.length, 'rooms');
+  }
+
   // Phase 4: Calculate unique building dimensions from actual object data
   const buildingCharacteristics = calculateBuildingCharacteristics(
-    detectedObjects, wallElements, roomElements, isAIGenerated, rng
+    detectedObjects, wallElements, rooms, metadata.isAIGenerated, rng
   );
   
   console.log('🏢 Building characteristics:', buildingCharacteristics);
@@ -221,16 +235,18 @@ function generateArchitecturalGLB(detectedObjects: any[], uploadId: string, isAI
   const normals = [];
   let vertexIndex = 0;
   
-  // Enhanced Phase 1: Generate room-specific geometries
+  // Enhanced Phase 1: Generate room-specific geometries using enhanced data
   const roomGeometries: Room3DGeometry[] = [];
   const scale = 0.1; // Scale factor for converting blueprint coordinates to 3D
   
-  if (roomElements.length > 0) {
-    console.log('🏗️ Generating enhanced room geometries...');
+  if (rooms.length > 0) {
+    console.log('🏗️ Generating enhanced room geometries with actual dimensions...');
     
-    for (let i = 0; i < roomElements.length; i++) {
-      const room = roomElements[i] as RoomData;
-      const roomGeometry = generateEnhancedRoomGeometry(room, i, scale);
+    for (let i = 0; i < rooms.length; i++) {
+      const room = rooms[i] as RoomData;
+      
+      // Use the enhanced room geometry generation
+      const roomGeometry = generateRoomSpecific3D(room, i, scale, 0);
       roomGeometries.push(roomGeometry);
       
       vertices.push(...roomGeometry.vertices);
@@ -248,8 +264,8 @@ function generateArchitecturalGLB(detectedObjects: any[], uploadId: string, isAI
       }
       vertexIndex += roomGeometry.vertices.length / 3;
       
-      // Add room-specific furniture
-      const furnitureGeometry = generateBasicFurniture(roomGeometry);
+      // Add room-specific furniture using enhanced function
+      const furnitureGeometry = generateRoomFurniture(roomGeometry, roomGeometry.roomType);
       if (furnitureGeometry.vertices.length > 0) {
         vertices.push(...furnitureGeometry.vertices);
         normals.push(...furnitureGeometry.normals);
@@ -265,6 +281,24 @@ function generateArchitecturalGLB(detectedObjects: any[], uploadId: string, isAI
         }
         vertexIndex += furnitureVertices;
       }
+    }
+    
+    // Generate hallway connections between rooms using enhanced function
+    const { vertices: hallwayVertices, normals: hallwayNormals } = generateHallwayConnections(roomGeometries);
+    if (hallwayVertices.length > 0) {
+      vertices.push(...hallwayVertices);
+      normals.push(...hallwayNormals);
+      
+      // Generate indices for hallways
+      const hallwayVertCount = hallwayVertices.length / 3;
+      for (let v = 0; v < hallwayVertCount; v += 4) {
+        const base = vertexIndex + v;
+        indices.push(
+          base, base + 1, base + 2,
+          base, base + 2, base + 3
+        );
+      }
+      vertexIndex += hallwayVertCount;
     }
   } else {
     // Fallback: Generate foundation based on actual building footprint
@@ -346,12 +380,13 @@ function generateArchitecturalGLB(detectedObjects: any[], uploadId: string, isAI
     wallElements: wallElements.length,
     doorElements: doorElements.length,
     windowElements: windowElements.length,
-    roomElements: roomElements.length,
+    roomElements: rooms.length,
+    enhancedRoomsUsed: enhancedRooms.length,
     structuralElements: structuralElements.length,
     buildingType: buildingCharacteristics.buildingType,
     architecturalStyle: buildingCharacteristics.architecturalStyle,
     dimensions: [buildingCharacteristics.width, buildingCharacteristics.height, buildingCharacteristics.depth],
-    isAIGenerated
+    isAIGenerated: metadata.isAIGenerated
   });
 
   // Convert collected geometry to typed arrays

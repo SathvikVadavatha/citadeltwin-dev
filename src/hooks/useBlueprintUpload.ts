@@ -41,11 +41,18 @@ export const useBlueprintUpload = () => {
 
       console.log('File uploaded, starting processing...');
       
-      // Step 2: Process blueprint with Plan2Scene
-      let detectedObjects;
+      // Step 2: Process blueprint with Plan2Scene and get enhanced room data
+      let detectedObjects, processingResult;
       try {
-        detectedObjects = await processBlueprint(uploadData.uploadRecord.id, uploadData.publicUrl);
+        processingResult = await processBlueprint(uploadData.uploadRecord.id, uploadData.publicUrl);
+        // Handle both old and new return formats
+        if (processingResult && typeof processingResult === 'object' && 'detectedObjects' in processingResult) {
+          detectedObjects = processingResult.detectedObjects;
+        } else {
+          detectedObjects = processingResult; // Fallback for old format
+        }
         console.log('Processing complete, objects detected:', detectedObjects?.length || 0);
+        console.log('Enhanced room data available:', processingResult?.enhancedRoomData?.rooms?.length || 0, 'rooms');
       } catch (processingError) {
         console.error('Processing failed:', processingError);
         throw new Error(`Blueprint processing failed: ${processingError instanceof Error ? processingError.message : 'Unknown error'}`);
@@ -106,11 +113,12 @@ export const useBlueprintUpload = () => {
         
         // Fallback: Use direct 3D model generation with detected objects
         try {
-          console.log('Starting fallback 3D generation with detected objects...');
+          console.log('Starting fallback 3D generation with enhanced room data...');
           const { data: fallbackResult, error: fallbackError } = await supabase.functions.invoke('generate-3d-model', {
             body: {
               uploadId: uploadData.uploadRecord.id,
               detectedObjects,
+              enhancedRoomData: processingResult?.enhancedRoomData, // Pass the rich room data
               imageUrl: uploadData.publicUrl,
               uniqueFileName: `model_${uploadData.uploadRecord.id}_fallback.glb`,
               isAIGenerated: false

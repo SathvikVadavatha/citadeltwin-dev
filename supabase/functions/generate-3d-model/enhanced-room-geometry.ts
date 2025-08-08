@@ -11,6 +11,12 @@ export interface RoomData {
   };
   roomId?: number;
   roomType?: string;
+  // Enhanced properties from room analysis
+  area?: number;
+  dimensions?: { width: number; height: number; length?: number };
+  position?: { x: number; y: number; z?: number };
+  bounds?: { x: number; y: number; width: number; height: number };
+  type?: string;
 }
 
 export interface Room3DGeometry {
@@ -45,19 +51,24 @@ export function classifyRoomFromAnalysis(room: RoomData, allRooms: RoomData[]): 
   return 'room';
 }
 
-// Generate room-specific 3D geometry
+// Generate room-specific 3D geometry with enhanced data
 export function generateRoomSpecific3D(
   room: RoomData, 
   roomIndex: number, 
   scale: number = 0.1,
   floorLevel: number = 0
 ): Room3DGeometry {
-  const roomType = classifyRoomFromAnalysis(room, []);
-  const centerX = (room.bbox.x + room.bbox.width / 2) * scale;
-  const centerZ = (room.bbox.y + room.bbox.height / 2) * scale;
-  const roomWidth = room.bbox.width * scale;
-  const roomDepth = room.bbox.height * scale;
+  const roomType = room.type || room.roomType || classifyRoomFromAnalysis(room, []);
+  
+  // Use enhanced dimensions if available, otherwise fall back to bbox
+  const bounds = room.bounds || room.bbox;
+  const centerX = room.position?.x || (bounds.x + bounds.width / 2) * scale;
+  const centerZ = room.position?.y || (bounds.y + bounds.height / 2) * scale;
+  const roomWidth = room.dimensions?.width || bounds.width * scale;
+  const roomDepth = room.dimensions?.height || bounds.height * scale;
   const roomHeight = getRoomHeight(roomType);
+  
+  console.log(`Enhanced room ${roomIndex}: ${roomType}, size: ${roomWidth.toFixed(1)}x${roomDepth.toFixed(1)}x${roomHeight.toFixed(1)}, position: (${centerX.toFixed(1)}, ${centerZ.toFixed(1)}), area: ${room.area || 'calculated'}, confidence: ${room.confidence || 'unknown'}`);
   
   const vertices = [];
   const normals = [];
