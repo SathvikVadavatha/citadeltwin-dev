@@ -49,7 +49,7 @@ export const GoogleMapsGIS: React.FC = () => {
       name: 'FEMA Flood Zones', 
       type: 'flood_zones',
       enabled: false, 
-      color: '#3B82F6',
+      color: '#3b82f6',
       description: 'Federal Emergency Management Agency flood risk areas'
     },
     { 
@@ -57,7 +57,7 @@ export const GoogleMapsGIS: React.FC = () => {
       name: 'Protected Areas', 
       type: 'protected_lands',
       enabled: false, 
-      color: '#10B981',
+      color: '#f97316',
       description: 'National parks, wildlife refuges, and conservation areas'
     }
   ]);
@@ -217,19 +217,23 @@ export const GoogleMapsGIS: React.FC = () => {
               const floodZone = feature.properties?.FLD_ZONE || feature.properties?.flood_zone || 'Unknown';
               const riskLevel = feature.properties?.risk_level || 'moderate';
               
-              // Color coding based on flood risk
-              let fillColor = '#3B82F6'; // Default blue
-              let strokeColor = '#1E40AF';
+              // Blue color scheme with brightness indicating intensity
+              let fillColor = '#3b82f6'; // Default blue
+              let strokeColor = '#2563eb';
+              let opacity = 0.35;
               
               if (riskLevel === 'high' || floodZone.includes('AE') || floodZone.includes('VE')) {
-                fillColor = '#EF4444'; // Red for high risk
-                strokeColor = '#DC2626';
+                fillColor = '#1d4ed8'; // High risk - darker blue
+                strokeColor = '#1e40af';
+                opacity = 0.5;
               } else if (riskLevel === 'moderate' || floodZone.includes('A')) {
-                fillColor = '#F59E0B'; // Orange for moderate risk
-                strokeColor = '#D97706';
+                fillColor = '#3b82f6'; // Moderate risk - standard blue
+                strokeColor = '#2563eb';
+                opacity = 0.4;
               } else {
-                fillColor = '#3B82F6'; // Blue for low risk
-                strokeColor = '#1E40AF';
+                fillColor = '#60a5fa'; // Low risk - lighter blue
+                strokeColor = '#3b82f6';
+                opacity = 0.25;
               }
 
               // Convert coordinates to Google Maps format
@@ -257,7 +261,7 @@ export const GoogleMapsGIS: React.FC = () => {
                   strokeOpacity: 0.8,
                   strokeWeight: 2,
                   fillColor: fillColor,
-                  fillOpacity: 0.35,
+                  fillOpacity: opacity,
                 });
 
                 polygon.setMap(mapInstanceRef.current);
@@ -343,22 +347,27 @@ export const GoogleMapsGIS: React.FC = () => {
               const unitName = feature.properties?.Unit_Nm || 'Protected Area';
               const managingAgency = feature.properties?.Mang_Name || 'Unknown Agency';
               
-              // Color coding based on GAP status
-              let fillColor = '#10B981'; // Default green
-              let strokeColor = '#047857';
+              // Orange color scheme with brightness indicating protection level
+              let fillColor = '#f97316'; // Default orange
+              let strokeColor = '#ea580c';
+              let opacity = 0.3;
               
               if (gapStatus === '1') {
-                fillColor = '#059669'; // Dark green for highest protection
-                strokeColor = '#064E3B';
+                fillColor = '#c2410c'; // Highest protection - darker orange
+                strokeColor = '#9a3412';
+                opacity = 0.5;
               } else if (gapStatus === '2') {
-                fillColor = '#10B981'; // Medium green
-                strokeColor = '#047857';
+                fillColor = '#ea580c'; // High protection - medium orange
+                strokeColor = '#c2410c';
+                opacity = 0.4;
               } else if (gapStatus === '3') {
-                fillColor = '#34D399'; // Light green
-                strokeColor = '#065F46';
+                fillColor = '#f97316'; // Moderate protection - standard orange
+                strokeColor = '#ea580c';
+                opacity = 0.35;
               } else {
-                fillColor = '#6EE7B7'; // Very light green
-                strokeColor = '#047857';
+                fillColor = '#fb923c'; // Lower protection - lighter orange
+                strokeColor = '#f97316';
+                opacity = 0.25;
               }
 
               // Convert coordinates to Google Maps format
@@ -386,7 +395,7 @@ export const GoogleMapsGIS: React.FC = () => {
                   strokeOpacity: 0.8,
                   strokeWeight: 2,
                   fillColor: fillColor,
-                  fillOpacity: 0.3,
+                  fillOpacity: opacity,
                 });
 
                 polygon.setMap(mapInstanceRef.current);
