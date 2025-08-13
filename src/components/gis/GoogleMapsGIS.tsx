@@ -677,12 +677,6 @@ export const GoogleMapsGIS: React.FC = () => {
                         </Label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        {layerData && (
-                          <span className="text-xs px-2 py-1 rounded" 
-                                style={{ backgroundColor: 'hsl(142 76% 36%)', color: 'white' }}>
-                            {layerData.feature_count} features
-                          </span>
-                        )}
                         <div
                           className="w-4 h-4 rounded"
                           style={{ backgroundColor: layer.color }}
