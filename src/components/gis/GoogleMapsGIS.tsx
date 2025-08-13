@@ -548,53 +548,6 @@ export const GoogleMapsGIS: React.FC = () => {
     }
   };
 
-  const handleFetchGISData = async () => {
-    try {
-      setIsLoading(true);
-      const regionCity = selectedRegion === 'central-florida' ? 'Orlando' : 'Cleveland';
-      const regionState = selectedRegion === 'central-florida' ? 'FL' : 'OH';
-      
-      console.log(`Fetching GIS data for ${regionCity}, ${regionState}`);
-      
-      // Fetch different types of data in parallel
-      const promises = [];
-      
-      // Fetch flood zones
-      promises.push(
-        fetchFEMAFloodData({ city: regionCity, state: regionState })
-          .catch(error => console.warn('Failed to fetch FEMA flood data:', error))
-      );
-      
-      // Fetch protected areas
-      promises.push(
-        fetchEnvironmentalData({ 
-          city: regionCity, 
-          state: regionState, 
-          dataTypes: ['protected_lands'] 
-        })
-          .catch(error => {
-            console.warn('Failed to fetch protected areas:', error);
-            return null;
-          })
-      );
-      
-      const results = await Promise.all(promises);
-      
-      // Check if we got any data
-      const hasData = results.some(result => result !== null && result !== undefined);
-      
-      if (hasData) {
-        toast.success(`GIS data fetched for ${regionCity}, ${regionState}`);
-      } else {
-        toast.warning(`Some GIS data could not be fetched for ${regionCity}, ${regionState}`);
-      }
-    } catch (error) {
-      console.error('Error fetching GIS data:', error);
-      toast.error('Failed to fetch GIS data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   useEffect(() => {
     initializeMap();
@@ -799,28 +752,6 @@ export const GoogleMapsGIS: React.FC = () => {
             </Card>
           )}
 
-          {/* Fetch GIS Data Button */}
-          <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2" style={{ color: 'hsl(0 0% 98%)' }}>
-                <Download className="w-5 h-5" />
-                Fetch GIS Data
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={handleFetchGISData}
-                disabled={isFetching}
-                className="w-full"
-                style={{
-                  backgroundColor: 'hsl(210 40% 98%)',
-                  color: 'hsl(222.2 84% 4.9%)'
-                }}
-              >
-                {isFetching ? 'Fetching...' : `Fetch ${selectedRegion === 'central-florida' ? 'Orlando' : 'Cleveland'} Data`}
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
