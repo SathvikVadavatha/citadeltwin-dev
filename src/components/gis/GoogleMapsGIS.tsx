@@ -697,27 +697,6 @@ export const GoogleMapsGIS: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* File Upload */}
-          <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2" style={{ color: 'hsl(0 0% 98%)' }}>
-                <Upload className="w-5 h-5" />
-                Upload GIS Data
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <input
-                type="file"
-                accept=".kml,.kmz,.geojson,.shp"
-                onChange={handleFileUpload}
-                className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold"
-                style={{
-                  color: 'hsl(210 40% 98%)',
-                  backgroundColor: 'transparent'
-                }}
-              />
-            </CardContent>
-          </Card>
 
           {/* Analysis Results */}
           {analysisResults.length > 0 && (
