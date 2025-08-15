@@ -33,12 +33,21 @@ interface SpatialAnalysisResult {
 export const GoogleMapsGIS: React.FC = () => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const selectedPropertyMarkerRef = useRef<google.maps.Marker | null>(null);
   const floodZoneOverlaysRef = useRef<google.maps.Polygon[]>([]);
   const protectedAreaOverlaysRef = useRef<google.maps.Polygon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRegion, setSelectedRegion] = useState<'central-florida' | 'northeast-ohio'>('central-florida');
   const [analysisResults, setAnalysisResults] = useState<SpatialAnalysisResult[]>([]);
   const [apiKeyError, setApiKeyError] = useState<string | null>(null);
+  const [selectedProperty, setSelectedProperty] = useState<{
+    place: google.maps.places.PlaceResult;
+    location: google.maps.LatLng;
+  } | null>(null);
+  const [environmentalAnalysis, setEnvironmentalAnalysis] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const { runIntersectionAnalysis, runBufferAnalysis, fetchRealGISData } = useSpatialAnalysis();
   const { fetchEnvironmentalData, fetchFEMAFloodData, performZoningAnalysis, environmentalLayers, isFetching } = useAdvancedGIS();
@@ -113,6 +122,9 @@ export const GoogleMapsGIS: React.FC = () => {
 
       mapInstanceRef.current = map;
 
+      // Initialize Places Autocomplete after map is loaded
+      initializePlacesAutocomplete(google);
+
       // Add click listener for spatial analysis
       map.addListener('click', (event: google.maps.MapMouseEvent) => {
         if (event.latLng) {
@@ -130,6 +142,106 @@ export const GoogleMapsGIS: React.FC = () => {
       toast.error('Failed to load Google Maps. Please check your API key.');
     }
   }, [selectedRegion]);
+
+  const initializePlacesAutocomplete = useCallback((google: any) => {
+    if (!searchInputRef.current) return;
+
+    const autocomplete = new google.maps.places.Autocomplete(searchInputRef.current, {
+      types: ['establishment', 'geocode'],
+      fields: ['place_id', 'geometry', 'name', 'formatted_address', 'types']
+    });
+
+    // Bias results to current region
+    const regionCoords = {
+      'central-florida': { lat: 28.5383, lng: -81.3792 },
+      'northeast-ohio': { lat: 41.4993, lng: -81.6944 }
+    };
+
+    const circle = new google.maps.Circle({
+      center: regionCoords[selectedRegion],
+      radius: 50000 // 50km radius
+    });
+    autocomplete.setBounds(circle.getBounds());
+
+    autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      
+      if (!place.geometry || !place.geometry.location) {
+        toast.error('No location details available for this place');
+        return;
+      }
+
+      setSelectedProperty({
+        place: place,
+        location: place.geometry.location
+      });
+
+      // Center map on selected property
+      mapInstanceRef.current?.setCenter(place.geometry.location);
+      mapInstanceRef.current?.setZoom(16);
+
+      // Clear existing marker and add new one
+      if (selectedPropertyMarkerRef.current) {
+        selectedPropertyMarkerRef.current.setMap(null);
+      }
+
+      const marker = new google.maps.Marker({
+        position: place.geometry.location,
+        map: mapInstanceRef.current,
+        title: place.name || place.formatted_address,
+        icon: {
+          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 10C21 17 12 23 12 23S3 17 3 10C3 5.02944 7.02944 1 12 1S21 5.02944 21 10Z" 
+                    fill="#ef4444" stroke="#dc2626" stroke-width="2"/>
+              <circle cx="12" cy="10" r="3" fill="white"/>
+            </svg>
+          `),
+          scaledSize: new google.maps.Size(32, 32),
+          anchor: new google.maps.Point(16, 32)
+        }
+      });
+
+      selectedPropertyMarkerRef.current = marker;
+
+      // Trigger environmental analysis
+      analyzePropertyEnvironment(place.geometry.location.lat(), place.geometry.location.lng(), place);
+
+      toast.success(`Selected: ${place.name || place.formatted_address}`);
+    });
+
+    autocompleteRef.current = autocomplete;
+  }, [selectedRegion]);
+
+  const analyzePropertyEnvironment = async (lat: number, lng: number, place: google.maps.places.PlaceResult) => {
+    setIsAnalyzing(true);
+    setEnvironmentalAnalysis(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('environmental-analysis', {
+        body: {
+          latitude: lat,
+          longitude: lng,
+          placeName: place.name || place.formatted_address,
+          placeTypes: place.types
+        }
+      });
+
+      if (error) {
+        console.error('Environmental analysis error:', error);
+        toast.error('Failed to analyze environmental factors');
+        return;
+      }
+
+      setEnvironmentalAnalysis(data);
+      toast.success('Environmental analysis completed');
+    } catch (error) {
+      console.error('Error calling environmental analysis:', error);
+      toast.error('Failed to perform environmental analysis');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const performSpatialAnalysis = async (lat: number, lng: number) => {
     try {
@@ -642,6 +754,47 @@ export const GoogleMapsGIS: React.FC = () => {
 
         {/* Controls Panel */}
         <div className="space-y-6">
+          {/* Property Search */}
+          <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2" style={{ color: 'hsl(0 0% 98%)' }}>
+                <MapPin className="w-5 h-5" />
+                Property Search
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="property-search" style={{ color: 'hsl(210 40% 98%)' }}>
+                    Search for property, address, or landmark
+                  </Label>
+                  <input
+                    ref={searchInputRef}
+                    id="property-search"
+                    type="text"
+                    placeholder="Enter address or property name..."
+                    className="w-full mt-2 px-3 py-2 rounded-md text-sm"
+                    style={{
+                      backgroundColor: 'hsl(240 3.7% 15.9%)',
+                      border: '1px solid hsl(240 3.7% 15.9%)',
+                      color: 'hsl(0 0% 98%)'
+                    }}
+                  />
+                </div>
+                {selectedProperty && (
+                  <div className="p-3 rounded-md" style={{ backgroundColor: 'hsl(240 5% 6%)' }}>
+                    <p className="text-sm font-medium" style={{ color: 'hsl(0 0% 98%)' }}>
+                      Selected Property
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: 'hsl(210 40% 70%)' }}>
+                      {selectedProperty.place.name || selectedProperty.place.formatted_address}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Layer Controls */}
           <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
             <CardHeader>
@@ -697,6 +850,57 @@ export const GoogleMapsGIS: React.FC = () => {
             </CardContent>
           </Card>
 
+
+          {/* Environmental Analysis Results */}
+          {environmentalAnalysis && (
+            <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2" style={{ color: 'hsl(0 0% 98%)' }}>
+                  <MapPin className="w-5 h-5" />
+                  Environmental Analysis
+                  {isAnalyzing && <span className="text-xs">(Analyzing...)</span>}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {environmentalAnalysis.floodRisk && (
+                    <div className="p-3 rounded-md" style={{ 
+                      backgroundColor: environmentalAnalysis.floodRisk.severity === 'high' ? 'hsl(0 84% 15%)' : 'hsl(240 5% 6%)'
+                    }}>
+                      <p className="text-sm font-medium" style={{ color: 'hsl(0 0% 98%)' }}>
+                        Flood Risk: {environmentalAnalysis.floodRisk.level}
+                      </p>
+                      <p className="text-xs mt-1" style={{ color: 'hsl(210 40% 70%)' }}>
+                        {environmentalAnalysis.floodRisk.description}
+                      </p>
+                    </div>
+                  )}
+                  {environmentalAnalysis.protectedAreas && environmentalAnalysis.protectedAreas.length > 0 && (
+                    <div className="p-3 rounded-md" style={{ backgroundColor: 'hsl(240 5% 6%)' }}>
+                      <p className="text-sm font-medium" style={{ color: 'hsl(0 0% 98%)' }}>
+                        Protected Areas Nearby
+                      </p>
+                      {environmentalAnalysis.protectedAreas.map((area: any, index: number) => (
+                        <p key={index} className="text-xs mt-1" style={{ color: 'hsl(210 40% 70%)' }}>
+                          • {area.name} ({area.distance})
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                  {environmentalAnalysis.soilType && (
+                    <div className="p-3 rounded-md" style={{ backgroundColor: 'hsl(240 5% 6%)' }}>
+                      <p className="text-sm font-medium" style={{ color: 'hsl(0 0% 98%)' }}>
+                        Soil Information
+                      </p>
+                      <p className="text-xs mt-1" style={{ color: 'hsl(210 40% 70%)' }}>
+                        {environmentalAnalysis.soilType.description}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Analysis Results */}
           {analysisResults.length > 0 && (
