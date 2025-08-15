@@ -207,11 +207,85 @@ export const GoogleMapsGIS: React.FC = () => {
       // Trigger environmental analysis
       analyzePropertyEnvironment(place.geometry.location.lat(), place.geometry.location.lng(), place);
 
+      // Check for intersections with active layers
+      checkLayerIntersections(place.geometry.location.lat(), place.geometry.location.lng());
+
       toast.success(`Selected: ${place.name || place.formatted_address}`);
     });
 
     autocompleteRef.current = autocomplete;
   }, [selectedRegion]);
+
+  const checkLayerIntersections = (lat: number, lng: number) => {
+    if (!mapInstanceRef.current) return;
+
+    const enabledLayers = layers.filter(l => l.enabled);
+    if (enabledLayers.length === 0) return;
+
+    enabledLayers.forEach(layer => {
+      if (layer.id === 'flood_zones') {
+        highlightFloodZoneIntersection(lat, lng);
+      } else if (layer.id === 'protected_lands') {
+        highlightProtectedAreaIntersection(lat, lng);
+      }
+    });
+  };
+
+  const highlightFloodZoneIntersection = (lat: number, lng: number) => {
+    const point = new google.maps.LatLng(lat, lng);
+    
+    floodZoneOverlaysRef.current.forEach(polygon => {
+      if (google.maps.geometry.poly.containsLocation(point, polygon)) {
+        // Highlight the intersecting polygon
+        polygon.setOptions({
+          strokeColor: '#fbbf24',
+          strokeWeight: 4,
+          fillOpacity: 0.7
+        });
+        
+        // Reset after 3 seconds
+        setTimeout(() => {
+          polygon.setOptions({
+            strokeColor: polygon.get('originalStrokeColor') || '#2563eb',
+            strokeWeight: 2,
+            fillOpacity: polygon.get('originalFillOpacity') || 0.35
+          });
+        }, 3000);
+        
+        toast.info('Property intersects with flood zone!', {
+          description: 'The selected property is located within a flood risk area.'
+        });
+      }
+    });
+  };
+
+  const highlightProtectedAreaIntersection = (lat: number, lng: number) => {
+    const point = new google.maps.LatLng(lat, lng);
+    
+    protectedAreaOverlaysRef.current.forEach(polygon => {
+      if (google.maps.geometry.poly.containsLocation(point, polygon)) {
+        // Highlight the intersecting polygon
+        polygon.setOptions({
+          strokeColor: '#fbbf24',
+          strokeWeight: 4,
+          fillOpacity: 0.7
+        });
+        
+        // Reset after 3 seconds
+        setTimeout(() => {
+          polygon.setOptions({
+            strokeColor: polygon.get('originalStrokeColor') || '#ea580c',
+            strokeWeight: 2,
+            fillOpacity: polygon.get('originalFillOpacity') || 0.35
+          });
+        }, 3000);
+        
+        toast.info('Property intersects with protected area!', {
+          description: 'The selected property is located within or near a protected area.'
+        });
+      }
+    });
+  };
 
   const analyzePropertyEnvironment = async (lat: number, lng: number, place: google.maps.places.PlaceResult) => {
     setIsAnalyzing(true);
@@ -376,6 +450,10 @@ export const GoogleMapsGIS: React.FC = () => {
                   fillOpacity: opacity,
                 });
 
+                // Store original colors for intersection highlighting
+                polygon.set('originalStrokeColor', strokeColor);
+                polygon.set('originalFillOpacity', opacity);
+
                 polygon.setMap(mapInstanceRef.current);
                 floodZoneOverlaysRef.current.push(polygon);
 
@@ -509,6 +587,10 @@ export const GoogleMapsGIS: React.FC = () => {
                   fillColor: fillColor,
                   fillOpacity: opacity,
                 });
+
+                // Store original colors for intersection highlighting
+                polygon.set('originalStrokeColor', strokeColor);
+                polygon.set('originalFillOpacity', opacity);
 
                 polygon.setMap(mapInstanceRef.current);
                 protectedAreaOverlaysRef.current.push(polygon);
@@ -739,6 +821,56 @@ export const GoogleMapsGIS: React.FC = () => {
                   className="w-full h-[600px] rounded-lg"
                   style={{ backgroundColor: 'hsl(240 10% 3.9%)' }}
                 />
+                
+                {/* Search Bar Overlay - Google Maps Style */}
+                <div className="absolute top-4 left-4 right-4 z-10">
+                  <div className="bg-white shadow-lg rounded-lg border">
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      placeholder="Search for properties or addresses..."
+                      className="w-full h-12 px-4 rounded-lg border-0 bg-transparent text-sm focus:outline-none focus:ring-0 text-gray-900 placeholder-gray-500"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  
+                  {/* Selected Property Info */}
+                  {selectedProperty && (
+                    <div className="mt-2 bg-white/95 backdrop-blur-sm shadow-lg rounded-lg border p-3 max-w-sm">
+                      <p className="font-medium text-sm text-gray-900">Selected Property:</p>
+                      <p className="text-xs text-gray-600">
+                        {selectedProperty.place.name || selectedProperty.place.formatted_address}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Analysis Status */}
+                  {isAnalyzing && (
+                    <div className="mt-2 bg-blue-50/95 backdrop-blur-sm shadow-lg rounded-lg border p-3 max-w-sm">
+                      <p className="text-sm text-blue-700">Analyzing environmental factors...</p>
+                    </div>
+                  )}
+                  
+                  {/* Environmental Analysis Results */}
+                  {environmentalAnalysis && (
+                    <div className="mt-2 bg-green-50/95 backdrop-blur-sm shadow-lg rounded-lg border p-3 max-w-sm">
+                      <h4 className="font-medium text-sm mb-2 text-green-900">Environmental Analysis</h4>
+                      {environmentalAnalysis.soilType && (
+                        <div className="mb-2">
+                          <p className="text-xs font-medium text-green-800">Soil Type:</p>
+                          <p className="text-xs text-green-700">{environmentalAnalysis.soilType.description}</p>
+                        </div>
+                      )}
+                      {environmentalAnalysis.floodRisk && (
+                        <div className="mb-2">
+                          <p className="text-xs font-medium text-green-800">Flood Risk:</p>
+                          <p className="text-xs text-green-700">{environmentalAnalysis.floodRisk.zone}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 {isLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
                     <div className="text-center">
@@ -754,46 +886,6 @@ export const GoogleMapsGIS: React.FC = () => {
 
         {/* Controls Panel */}
         <div className="space-y-6">
-          {/* Property Search */}
-          <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2" style={{ color: 'hsl(0 0% 98%)' }}>
-                <MapPin className="w-5 h-5" />
-                Property Search
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="property-search" style={{ color: 'hsl(210 40% 98%)' }}>
-                    Search for property, address, or landmark
-                  </Label>
-                  <input
-                    ref={searchInputRef}
-                    id="property-search"
-                    type="text"
-                    placeholder="Enter address or property name..."
-                    className="w-full mt-2 px-3 py-2 rounded-md text-sm"
-                    style={{
-                      backgroundColor: 'hsl(240 3.7% 15.9%)',
-                      border: '1px solid hsl(240 3.7% 15.9%)',
-                      color: 'hsl(0 0% 98%)'
-                    }}
-                  />
-                </div>
-                {selectedProperty && (
-                  <div className="p-3 rounded-md" style={{ backgroundColor: 'hsl(240 5% 6%)' }}>
-                    <p className="text-sm font-medium" style={{ color: 'hsl(0 0% 98%)' }}>
-                      Selected Property
-                    </p>
-                    <p className="text-xs mt-1" style={{ color: 'hsl(210 40% 70%)' }}>
-                      {selectedProperty.place.name || selectedProperty.place.formatted_address}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Layer Controls */}
           <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
