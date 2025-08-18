@@ -279,10 +279,7 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
             <RealTime3DGenerator
               rooms={uploadResult.enhancedRoomData}
               title="Real-Time 3D Preview"
-              onDownload={() => {
-                // TODO: Implement GLB export functionality
-                console.log('Export 3D model');
-              }}
+              uploadId={uploadResult.id}
             />
           ) : (
             <Card>

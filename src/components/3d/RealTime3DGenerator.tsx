@@ -8,12 +8,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, Eye, Grid3X3, Home, Maximize, Zap } from "lucide-react";
 import { RoomWithDimensions } from '@/utils/enhancedRoomDetection';
 import { PolygonRoom3D } from './PolygonRoom3D';
+import { exportAndDownloadRooms } from '@/utils/glbExporter';
+import { useToast } from "@/components/ui/use-toast";
 import * as THREE from 'three';
 
 interface RealTime3DGeneratorProps {
   rooms: RoomWithDimensions[];
   title?: string;
   onDownload?: () => void;
+  uploadId?: string;
 }
 
 const Scene: React.FC<{ rooms: RoomWithDimensions[]; showWireframe?: boolean }> = ({ 
@@ -110,12 +113,50 @@ const Scene: React.FC<{ rooms: RoomWithDimensions[]; showWireframe?: boolean }> 
 export const RealTime3DGenerator: React.FC<RealTime3DGeneratorProps> = ({
   rooms,
   title = "3D Floor Plan Visualization",
-  onDownload
+  onDownload,
+  uploadId
 }) => {
+  const { toast } = useToast();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
   const [showWireframe, setShowWireframe] = useState(false);
   const [activeView, setActiveView] = useState("perspective");
+
+  const handleDownload = async () => {
+    if (rooms.length === 0) {
+      toast({
+        title: "No Data to Export",
+        description: "No rooms detected to create 3D model.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      toast({
+        title: "Generating 3D Model",
+        description: "Creating GLB file from room polygons..."
+      });
+
+      await exportAndDownloadRooms(rooms, uploadId || 'model', {
+        extrudeHeight: 2.5,
+        scale: 0.01,
+        includeFoundation: true
+      });
+
+      toast({
+        title: "Download Complete",
+        description: `Successfully exported ${rooms.length} rooms as GLB model.`
+      });
+    } catch (error) {
+      console.error('Failed to export 3D model:', error);
+      toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "Failed to create 3D model.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const totalArea = rooms.reduce((sum, room) => 
     sum + (room.realWorldDimensions?.area || room.dimensions.area / 100), 0
@@ -177,17 +218,16 @@ export const RealTime3DGenerator: React.FC<RealTime3DGeneratorProps> = ({
         >
           <Zap className="h-4 w-4" />
         </Button>
-        {onDownload && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={onDownload}
-            className="bg-background/80 backdrop-blur"
-            title="Download Model"
-          >
-            <Download className="h-4 w-4" />
-          </Button>
-        )}
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onDownload || handleDownload}
+          className="bg-background/80 backdrop-blur"
+          title="Download 3D Model"
+          disabled={rooms.length === 0}
+        >
+          <Download className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Room count overlay */}

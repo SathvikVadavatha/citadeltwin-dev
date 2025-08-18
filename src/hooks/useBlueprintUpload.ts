@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useBlueprintFileUpload } from './blueprint/useBlueprintFileUpload';
 import { useBlueprintProcessing } from './blueprint/useBlueprintProcessing';
 import { useGeminiBlueprint3D } from './blueprint/useGeminiBlueprint3D';
+import { useEnhancedBlueprintAnalysis } from './useEnhancedBlueprintAnalysis';
 
 import { useState } from 'react';
 
@@ -29,6 +30,7 @@ export const useBlueprintUpload = () => {
   const { uploading, uploadProgress, uploadFile } = useBlueprintFileUpload();
   const { processing, processingMethod, errorMessage, processBlueprint } = useBlueprintProcessing();
   const { analyzing, generating3D, analyzeBlueprint, generate3DModel } = useGeminiBlueprint3D();
+  const { analyzeFromUrl } = useEnhancedBlueprintAnalysis();
 
   const handleFileUpload = useCallback(async (file: File) => {
     try {
@@ -42,7 +44,17 @@ export const useBlueprintUpload = () => {
 
       console.log('File uploaded, starting processing...');
       
-      // Step 2: Process blueprint with Plan2Scene and get enhanced room data
+      // Step 2: Enhanced room analysis for accurate polygon detection
+      let enhancedRoomData;
+      try {
+        console.log('Starting enhanced room analysis...');
+        enhancedRoomData = await analyzeFromUrl(uploadData.publicUrl);
+        console.log('Enhanced analysis complete:', enhancedRoomData?.rooms?.length || 0, 'rooms detected');
+      } catch (enhancedError) {
+        console.warn('Enhanced analysis failed, continuing with basic processing:', enhancedError);
+      }
+      
+      // Step 3: Process blueprint with Plan2Scene and get basic detected objects
       let detectedObjects, processingResult;
       try {
         processingResult = await processBlueprint(uploadData.uploadRecord.id, uploadData.publicUrl);
@@ -79,7 +91,7 @@ export const useBlueprintUpload = () => {
         errorMessage,
         generating3D: true,
         model3DGenerated: false,
-        enhancedRoomData: processingResult?.enhancedRoomData?.rooms || detectedObjects
+        enhancedRoomData: enhancedRoomData?.rooms || processingResult?.enhancedRoomData?.rooms || detectedObjects
       };
 
       setUploadResult(initialResult);
@@ -166,7 +178,7 @@ export const useBlueprintUpload = () => {
         model3DUrl,
         model3DGenerated: !!model3DUrl,
         generating3D: false,
-        enhancedRoomData: processingResult?.enhancedRoomData?.rooms || detectedObjects
+        enhancedRoomData: enhancedRoomData?.rooms || processingResult?.enhancedRoomData?.rooms || detectedObjects
       };
 
       setUploadResult(finalResult);
