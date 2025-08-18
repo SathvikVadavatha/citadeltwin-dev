@@ -30,6 +30,8 @@ import { useUploads } from '@/hooks/useUploads';
 import { useSimplifiedUpload } from '@/hooks/useSimplifiedUpload';
 import { use3DModelViewer } from '@/hooks/use3DModelViewer';
 import { CustomReportBuilder } from '@/components/analytics/CustomReportBuilder';
+import { RealTime3DGenerator } from '@/components/3d/RealTime3DGenerator';
+import { useDetectionRooms } from '@/hooks/useDetectionRooms';
 
 export const MainDashboard = () => {
   const [activeTab, setActiveTab] = useState('upload');
@@ -48,6 +50,12 @@ export const MainDashboard = () => {
     refreshModel,
     hasModel 
   } = use3DModelViewer(targetUploadId);
+
+  // Fetch room data from detection results for live 3D preview
+  const { data: detectionRooms, isLoading: roomsLoading } = useDetectionRooms(targetUploadId);
+  
+  // Use rooms from uploadResult if available, otherwise from detection results
+  const availableRooms = uploadResult?.enhancedRoomData || detectionRooms || [];
 
   return (
       <div 
@@ -196,6 +204,29 @@ export const MainDashboard = () => {
                     modelName={modelMetadata?.model_name || uploadResult?.filename || 'Generated 3D Model'}
                     uploadId={targetUploadId}
                     projectId={recentUpload?.project_id}
+                  />
+                </div>
+              ) : availableRooms.length > 0 ? (
+                <div className="space-y-4">
+                  <Card className="cyber-tool-palette">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-lg text-gray-200">Live 3D Floor Plan</CardTitle>
+                          <CardDescription className="text-gray-400">
+                            Generated from {uploadResult?.enhancedRoomData ? 'latest upload' : 'detection results'}
+                          </CardDescription>
+                        </div>
+                        <Badge variant="outline" className="border-cyan-400 text-cyan-400">
+                          {availableRooms.length} Rooms
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                  <RealTime3DGenerator
+                    rooms={availableRooms}
+                    title="Live 3D Preview"
+                    uploadId={targetUploadId}
                   />
                 </div>
               ) : (
