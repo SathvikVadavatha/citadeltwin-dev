@@ -810,6 +810,67 @@ export const GoogleMapsGIS: React.FC = () => {
         </Button>
       </div>
 
+      {/* Search Bar */}
+      <div className="mb-4">
+        <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
+          <CardContent className="p-4">
+            <div className="space-y-3">
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search for properties or addresses..."
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                disabled={isLoading}
+              />
+              
+              {/* Selected Property Info */}
+              {selectedProperty && (
+                <div className="bg-card/50 rounded-md p-3 border border-border">
+                  <p className="font-medium text-sm text-foreground">Selected Property:</p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedProperty.place.name || selectedProperty.place.formatted_address}
+                  </p>
+                </div>
+              )}
+              
+              {/* Analysis Status */}
+              {isAnalyzing && (
+                <div className="bg-blue-500/10 rounded-md p-3 border border-blue-500/20">
+                  <p className="text-sm text-blue-400">Analyzing environmental factors...</p>
+                </div>
+              )}
+              
+              {/* Environmental Analysis Results */}
+              {environmentalAnalysis && (
+                <div className="bg-green-500/10 rounded-md p-3 border border-green-500/20">
+                  <h4 className="font-medium text-sm mb-2 text-green-400">Environmental Analysis</h4>
+                  {environmentalAnalysis.soilType && (
+                    <div className="mb-2">
+                      <p className="text-xs font-medium text-green-300">Soil Type:</p>
+                      <p className="text-xs text-muted-foreground">{environmentalAnalysis.soilType}</p>
+                    </div>
+                  )}
+                  {environmentalAnalysis.floodRisk && (
+                    <div className="mb-2">
+                      <p className="text-xs font-medium text-green-300">Flood Risk:</p>
+                      <p className="text-xs text-muted-foreground">{environmentalAnalysis.floodRisk}</p>
+                    </div>
+                  )}
+                  {environmentalAnalysis.protectedAreas && environmentalAnalysis.protectedAreas.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-green-300">Protected Areas:</p>
+                      {environmentalAnalysis.protectedAreas.map((area, idx) => (
+                        <p key={idx} className="text-xs text-muted-foreground">• {area}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Map Container */}
         <div className="lg:col-span-3">
@@ -821,55 +882,6 @@ export const GoogleMapsGIS: React.FC = () => {
                   className="w-full h-[600px] rounded-lg"
                   style={{ backgroundColor: 'hsl(240 10% 3.9%)' }}
                 />
-                
-                {/* Search Bar Overlay - Google Maps Style */}
-                <div className="absolute top-4 left-4 right-4 z-10">
-                  <div className="bg-white shadow-lg rounded-lg border">
-                    <input
-                      ref={searchInputRef}
-                      type="text"
-                      placeholder="Search for properties or addresses..."
-                      className="w-full h-12 px-4 rounded-lg border-0 bg-transparent text-sm focus:outline-none focus:ring-0 text-gray-900 placeholder-gray-500"
-                      disabled={isLoading}
-                    />
-                  </div>
-                  
-                  {/* Selected Property Info */}
-                  {selectedProperty && (
-                    <div className="mt-2 bg-white/95 backdrop-blur-sm shadow-lg rounded-lg border p-3 max-w-sm">
-                      <p className="font-medium text-sm text-gray-900">Selected Property:</p>
-                      <p className="text-xs text-gray-600">
-                        {selectedProperty.place.name || selectedProperty.place.formatted_address}
-                      </p>
-                    </div>
-                  )}
-                  
-                  {/* Analysis Status */}
-                  {isAnalyzing && (
-                    <div className="mt-2 bg-blue-50/95 backdrop-blur-sm shadow-lg rounded-lg border p-3 max-w-sm">
-                      <p className="text-sm text-blue-700">Analyzing environmental factors...</p>
-                    </div>
-                  )}
-                  
-                  {/* Environmental Analysis Results */}
-                  {environmentalAnalysis && (
-                    <div className="mt-2 bg-green-50/95 backdrop-blur-sm shadow-lg rounded-lg border p-3 max-w-sm">
-                      <h4 className="font-medium text-sm mb-2 text-green-900">Environmental Analysis</h4>
-                      {environmentalAnalysis.soilType && (
-                        <div className="mb-2">
-                          <p className="text-xs font-medium text-green-800">Soil Type:</p>
-                          <p className="text-xs text-green-700">{environmentalAnalysis.soilType.description}</p>
-                        </div>
-                      )}
-                      {environmentalAnalysis.floodRisk && (
-                        <div className="mb-2">
-                          <p className="text-xs font-medium text-green-800">Flood Risk:</p>
-                          <p className="text-xs text-green-700">{environmentalAnalysis.floodRisk.zone}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
 
                 {isLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
