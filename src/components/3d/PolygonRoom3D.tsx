@@ -58,25 +58,6 @@ export const PolygonRoom3D: React.FC<PolygonRoom3DProps> = ({
         receiveShadow
       />
 
-      {/* Room label positioned at calculated center */}
-      <Html position={roomGeometry.labelPosition.toArray()}>
-        <div className="bg-background/90 border rounded px-2 py-1 text-xs font-medium shadow-lg backdrop-blur pointer-events-none">
-          <div className="font-semibold">{room.name}</div>
-          <div className="text-xs text-muted-foreground">
-            {room.realWorldDimensions ? 
-              `${room.realWorldDimensions.width}' × ${room.realWorldDimensions.length}'` :
-              `${Math.round(room.dimensions.width)}px × ${Math.round(room.dimensions.length)}px`
-            }
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {room.realWorldDimensions ? 
-              `${room.realWorldDimensions.area} sq ${room.realWorldDimensions.units}` :
-              `${Math.round(room.dimensions.area)} sq px`
-            }
-          </div>
-        </div>
-      </Html>
-
       {/* Optional wireframe for debugging */}
       {showWireframe && (
         <primitive
