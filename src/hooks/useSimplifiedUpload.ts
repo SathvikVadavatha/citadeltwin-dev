@@ -183,9 +183,9 @@ export const useSimplifiedUpload = () => {
     console.log(`Starting blueprint processing for upload ${uploadId} with image ${imageUrl}`);
     
     try {
-      // Import the enhanced analysis function
+      // Import the improved analysis function
       console.log('Loading required modules...');
-      const { detectRoomsWithDimensions } = await import('@/utils/enhancedRoomDetection');
+      const { detectRoomsWithImprovedBoundaries } = await import('@/utils/improvedRoomDetection');
       const { extractTextFromBlueprint } = await import('@/hooks/blueprint/utils/textExtraction');
       const { loadOpenCV, imageToMat } = await import('@/utils/wallDetection');
 
@@ -223,7 +223,7 @@ export const useSimplifiedUpload = () => {
         minRoomArea: 800 + (imageHash % 400) // Vary min area based on image
       };
       
-      const analysisResult = detectRoomsWithDimensions(imageMat, ocrResult.text, options);
+      const analysisResult = detectRoomsWithImprovedBoundaries(imageMat, ocrResult.text, options);
       console.log(`Room analysis completed: found ${analysisResult.totalRooms} rooms`);
 
       // Clean up
@@ -249,7 +249,7 @@ export const useSimplifiedUpload = () => {
         .insert({
           upload_id: uploadId,
           detected_objects: JSON.parse(JSON.stringify(detectedObjects)),
-          processing_method: 'enhanced_room_analysis',
+          processing_method: 'improved_room_boundaries',
           metadata: JSON.parse(JSON.stringify({
             analysis_summary: analysisResult.summary,
             scale_info: {
