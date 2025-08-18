@@ -19,20 +19,37 @@ interface RealTime3DGeneratorProps {
   uploadId?: string;
 }
 
-const Scene: React.FC<{ rooms: RoomWithDimensions[]; showWireframe?: boolean }> = ({ 
+const Scene: React.FC<{ 
+  rooms: RoomWithDimensions[]; 
+  showWireframe?: boolean;
+  showGrid?: boolean;
+  hideTiny?: boolean;
+}> = ({ 
   rooms, 
-  showWireframe = false 
+  showWireframe = false,
+  showGrid = true,
+  hideTiny = true
 }) => {
   const [hoveredRoom, setHoveredRoom] = useState<RoomWithDimensions | null>(null);
 
-  // Calculate overall building bounds from room polygons
+  // Scale factor for 3D visualization (matching Python scale conversion)
+  const scale = 0.01; // Convert pixels to world units like Python (/100)
+  const extrudeHeight = 2.5; // Same as Python extrusion height
+
+  // Filter tiny room fragments if enabled
+  const filteredRooms = useMemo(() => {
+    if (!hideTiny) return rooms;
+    return rooms.filter(room => room.dimensions.area > 5000); // Filter out tiny fragments
+  }, [rooms, hideTiny]);
+
+  // Calculate overall building bounds from filtered room polygons
   const buildingBounds = useMemo(() => {
-    if (rooms.length === 0) return { width: 10, length: 10, centerX: 0, centerY: 0 };
+    if (filteredRooms.length === 0) return { width: 10, length: 10, centerX: 0, centerY: 0 };
     
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
     
-    rooms.forEach(room => {
+    filteredRooms.forEach(room => {
       room.points.forEach(point => {
         minX = Math.min(minX, point.x);
         maxX = Math.max(maxX, point.x);
@@ -47,11 +64,14 @@ const Scene: React.FC<{ rooms: RoomWithDimensions[]; showWireframe?: boolean }> 
       centerX: (minX + maxX) / 2,
       centerY: (minY + maxY) / 2
     };
-  }, [rooms]);
+  }, [filteredRooms]);
 
-  // Scale factor for 3D visualization (matching Python scale conversion)
-  const scale = 0.01; // Convert pixels to world units like Python (/100)
-  const extrudeHeight = 2.5; // Same as Python extrusion height
+  // Building offset to center the entire floor plan at origin
+  const buildingOffset: [number, number, number] = useMemo(() => [
+    -buildingBounds.centerX * scale,
+    0,
+    -buildingBounds.centerY * scale
+  ], [buildingBounds, scale]);
 
   return (
     <>
@@ -61,38 +81,43 @@ const Scene: React.FC<{ rooms: RoomWithDimensions[]; showWireframe?: boolean }> 
       <directionalLight position={[-10, 10, -10]} intensity={0.4} />
       <directionalLight position={[0, 30, 0]} intensity={0.3} />
 
-      {/* Building Foundation */}
-      <mesh position={[0, -0.1, 0]}>
-        <boxGeometry args={[
-          buildingBounds.width * scale + 2, 
-          0.2, 
-          buildingBounds.length * scale + 2
-        ]} />
-        <meshLambertMaterial color="#8B7355" />
-      </mesh>
+      {/* Center entire building at origin */}
+      <group position={buildingOffset}>
+        {/* Building Foundation */}
+        <mesh position={[buildingBounds.centerX * scale, -0.1, buildingBounds.centerY * scale]}>
+          <boxGeometry args={[
+            buildingBounds.width * scale + 2, 
+            0.2, 
+            buildingBounds.length * scale + 2
+          ]} />
+          <meshLambertMaterial color="#8B7355" />
+        </mesh>
 
-      {/* Render Polygon-based Rooms */}
-      {rooms.map((room) => (
-        <PolygonRoom3D
-          key={room.id}
-          room={room}
-          extrudeHeight={extrudeHeight}
-          scale={scale}
-          showWireframe={showWireframe}
-          onHover={setHoveredRoom}
-        />
-      ))}
+        {/* Render Polygon-based Rooms */}
+        {filteredRooms.map((room) => (
+          <PolygonRoom3D
+            key={room.id}
+            room={room}
+            extrudeHeight={extrudeHeight}
+            scale={scale}
+            showWireframe={showWireframe}
+            onHover={setHoveredRoom}
+          />
+        ))}
 
-      {/* Grid reference */}
-      <gridHelper 
-        args={[
-          Math.max(20, buildingBounds.width * scale + 10), 
-          20, 
-          '#444444', 
-          '#222222'
-        ]} 
-        position={[0, -0.05, 0]} 
-      />
+        {/* Grid reference */}
+        {showGrid && (
+          <gridHelper 
+            args={[
+              Math.max(20, buildingBounds.width * scale + 10), 
+              20, 
+              '#444444', 
+              '#222222'
+            ]} 
+            position={[buildingBounds.centerX * scale, -0.05, buildingBounds.centerY * scale]} 
+          />
+        )}
+      </group>
 
       {/* Display hovered room info */}
       {hoveredRoom && (
@@ -120,6 +145,7 @@ export const RealTime3DGenerator: React.FC<RealTime3DGeneratorProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
   const [showWireframe, setShowWireframe] = useState(false);
+  const [hideTiny, setHideTiny] = useState(true);
   const [activeView, setActiveView] = useState("perspective");
 
   const handleDownload = async () => {
@@ -186,7 +212,12 @@ export const RealTime3DGenerator: React.FC<RealTime3DGeneratorProps> = ({
           maxPolarAngle={Math.PI / 2 - 0.1} // Allow near-top-down view
           target={[0, 0, 0]} // Focus on building center
         />
-        <Scene rooms={rooms} showWireframe={showWireframe} />
+        <Scene 
+          rooms={rooms} 
+          showWireframe={showWireframe} 
+          showGrid={showGrid}
+          hideTiny={hideTiny}
+        />
       </Canvas>
 
       {/* Controls Overlay */}
@@ -217,6 +248,15 @@ export const RealTime3DGenerator: React.FC<RealTime3DGeneratorProps> = ({
           title="Toggle Wireframe"
         >
           <Zap className="h-4 w-4" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setHideTiny(!hideTiny)}
+          className="bg-background/80 backdrop-blur"
+          title="Hide tiny fragments"
+        >
+          <Eye className="h-4 w-4" />
         </Button>
         <Button
           size="sm"

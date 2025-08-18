@@ -46,7 +46,7 @@ export const PolygonRoom3D: React.FC<PolygonRoom3DProps> = ({
   };
 
   return (
-    <group>
+    <group position={[roomGeometry.center.x, 0, roomGeometry.center.z]}>
       {/* Main extruded room mesh */}
       <mesh
         ref={meshRef}
