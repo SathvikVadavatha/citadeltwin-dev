@@ -12,6 +12,7 @@ interface UploadResult {
   model3DUrl?: string;
   model3DGenerated?: boolean;
   generating3D?: boolean;
+  enhancedRoomData?: any[];
 }
 
 interface UploadResultsProps {

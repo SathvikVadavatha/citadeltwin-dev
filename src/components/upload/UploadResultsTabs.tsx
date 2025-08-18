@@ -275,29 +275,38 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
         </TabsContent>
 
         <TabsContent value="3d-preview" className="space-y-4">
-          {uploadResult.enhancedRoomData && Array.isArray(uploadResult.enhancedRoomData) && uploadResult.enhancedRoomData.length > 0 ? (
-            <RealTime3DGenerator
-              rooms={uploadResult.enhancedRoomData}
-              title="Real-Time 3D Preview"
-              uploadId={uploadResult.id}
-            />
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>3D Preview</CardTitle>
-                <CardDescription>
-                  Real-time 3D visualization from room analysis
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <Box className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No room data available for 3D preview</p>
-                  <p className="text-sm mt-2">Upload a blueprint with detectable rooms to see 3D visualization</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Try enhancedRoomData first, fallback to detectedObjects */}
+          {(() => {
+            const roomData = uploadResult.enhancedRoomData && Array.isArray(uploadResult.enhancedRoomData) && uploadResult.enhancedRoomData.length > 0
+              ? uploadResult.enhancedRoomData
+              : uploadResult.detectedObjects && Array.isArray(uploadResult.detectedObjects) && uploadResult.detectedObjects.length > 0
+              ? uploadResult.detectedObjects
+              : null;
+
+            return roomData ? (
+              <RealTime3DGenerator
+                rooms={roomData}
+                title="Real-Time 3D Preview"
+                uploadId={uploadResult.id}
+              />
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>3D Preview</CardTitle>
+                  <CardDescription>
+                    Real-time 3D visualization from room analysis
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Box className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No room data available for 3D preview</p>
+                    <p className="text-sm mt-2">Upload a blueprint with detectable rooms to see 3D visualization</p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
         </TabsContent>
       </Tabs>
     </div>

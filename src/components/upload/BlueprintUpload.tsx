@@ -33,7 +33,8 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComple
           filename: uploadResult.filename,
           detectedObjects: uploadResult.detectedObjects || [],
           imageUrl: uploadResult.imageUrl,
-          processingMethod: 'fallback'
+          processingMethod: 'fallback',
+          enhancedRoomData: uploadResult.enhancedRoomData
         }}
         onReset={resetUpload}
       />
