@@ -12,6 +12,7 @@ import { RoomDetectionOptions } from '@/utils/roomBoundaryDetection';
 import { Upload, Download, Trash2, Eye, Settings, AlertCircle, RefreshCw, CheckCircle2, Loader2 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Switch } from '@/components/ui/switch';
 
 export function RoomBoundaryDetector() {
   const {
@@ -28,12 +29,18 @@ export function RoomBoundaryDetector() {
     retryOpenCVLoad,
   } = useRoomBoundaryDetection();
 
-  const [options, setOptions] = useState<RoomDetectionOptions>({
+const [options, setOptions] = useState<RoomDetectionOptions>({
     targetSize: 512,
     thresholdValue: 127,
     minRoomArea: 1000,
     morphKernelSize: 3,
     polygonApproxFactor: 0.02,
+    useAdvancedSegmentation: false,
+    invertColors: true,
+    wallThickness: 3,
+    morphologyIterations: 2,
+    snapToGrid: true,
+    gridSize: 10,
   });
 
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -67,7 +74,7 @@ export function RoomBoundaryDetector() {
     maxSize: 10 * 1024 * 1024, // 10MB
   });
 
-  const handleOptionChange = (key: keyof RoomDetectionOptions, value: number) => {
+  const handleOptionChange = (key: keyof RoomDetectionOptions, value: number | boolean) => {
     setOptions(prev => ({ ...prev, [key]: value }));
   };
 
@@ -197,6 +204,19 @@ export function RoomBoundaryDetector() {
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-4 mt-4">
+              {/* Advanced Segmentation Toggle */}
+              <div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-md">
+                <Switch
+                  id="useAdvancedSegmentation"
+                  checked={options.useAdvancedSegmentation}
+                  onCheckedChange={(checked) => handleOptionChange('useAdvancedSegmentation', checked)}
+                />
+                <Label htmlFor="useAdvancedSegmentation" className="text-sm font-medium">
+                  Use Advanced Room Segmentation
+                </Label>
+              </div>
+
+              {/* Standard Options */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="targetSize">Target Size (px)</Label>
@@ -207,18 +227,6 @@ export function RoomBoundaryDetector() {
                     onChange={(e) => handleOptionChange('targetSize', parseInt(e.target.value))}
                     min="256"
                     max="1024"
-                    step="1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="thresholdValue">Threshold Value</Label>
-                  <Input
-                    id="thresholdValue"
-                    type="number"
-                    value={options.thresholdValue}
-                    onChange={(e) => handleOptionChange('thresholdValue', parseInt(e.target.value))}
-                    min="0"
-                    max="255"
                     step="1"
                   />
                 </div>
@@ -234,30 +242,106 @@ export function RoomBoundaryDetector() {
                     step="100"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="morphKernelSize">Morph Kernel Size</Label>
-                  <Input
-                    id="morphKernelSize"
-                    type="number"
-                    value={options.morphKernelSize}
-                    onChange={(e) => handleOptionChange('morphKernelSize', parseInt(e.target.value))}
-                    min="1"
-                    max="10"
-                    step="1"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Label htmlFor="polygonApproxFactor">Polygon Approximation Factor</Label>
-                  <Input
-                    id="polygonApproxFactor"
-                    type="number"
-                    value={options.polygonApproxFactor}
-                    onChange={(e) => handleOptionChange('polygonApproxFactor', parseFloat(e.target.value))}
-                    min="0.01"
-                    max="0.1"
-                    step="0.01"
-                  />
-                </div>
+                
+                {!options.useAdvancedSegmentation && (
+                  <>
+                    <div>
+                      <Label htmlFor="thresholdValue">Threshold Value</Label>
+                      <Input
+                        id="thresholdValue"
+                        type="number"
+                        value={options.thresholdValue}
+                        onChange={(e) => handleOptionChange('thresholdValue', parseInt(e.target.value))}
+                        min="0"
+                        max="255"
+                        step="1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="morphKernelSize">Morph Kernel Size</Label>
+                      <Input
+                        id="morphKernelSize"
+                        type="number"
+                        value={options.morphKernelSize}
+                        onChange={(e) => handleOptionChange('morphKernelSize', parseInt(e.target.value))}
+                        min="1"
+                        max="10"
+                        step="1"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label htmlFor="polygonApproxFactor">Polygon Approximation Factor</Label>
+                      <Input
+                        id="polygonApproxFactor"
+                        type="number"
+                        value={options.polygonApproxFactor}
+                        onChange={(e) => handleOptionChange('polygonApproxFactor', parseFloat(e.target.value))}
+                        min="0.01"
+                        max="0.1"
+                        step="0.01"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {options.useAdvancedSegmentation && (
+                  <>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="invertColors"
+                        checked={options.invertColors}
+                        onCheckedChange={(checked) => handleOptionChange('invertColors', checked)}
+                      />
+                      <Label htmlFor="invertColors" className="text-sm">Invert Colors</Label>
+                    </div>
+                    <div>
+                      <Label htmlFor="wallThickness">Wall Thickness</Label>
+                      <Input
+                        id="wallThickness"
+                        type="number"
+                        value={options.wallThickness}
+                        onChange={(e) => handleOptionChange('wallThickness', parseInt(e.target.value))}
+                        min="1"
+                        max="10"
+                        step="1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="morphologyIterations">Morphology Iterations</Label>
+                      <Input
+                        id="morphologyIterations"
+                        type="number"
+                        value={options.morphologyIterations}
+                        onChange={(e) => handleOptionChange('morphologyIterations', parseInt(e.target.value))}
+                        min="1"
+                        max="5"
+                        step="1"
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="snapToGrid"
+                        checked={options.snapToGrid}
+                        onCheckedChange={(checked) => handleOptionChange('snapToGrid', checked)}
+                      />
+                      <Label htmlFor="snapToGrid" className="text-sm">Snap to Grid</Label>
+                    </div>
+                    {options.snapToGrid && (
+                      <div>
+                        <Label htmlFor="gridSize">Grid Size</Label>
+                        <Input
+                          id="gridSize"
+                          type="number"
+                          value={options.gridSize}
+                          onChange={(e) => handleOptionChange('gridSize', parseInt(e.target.value))}
+                          min="5"
+                          max="50"
+                          step="5"
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </CollapsibleContent>
           </Collapsible>

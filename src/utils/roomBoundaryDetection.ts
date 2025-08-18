@@ -24,6 +24,12 @@ export interface RoomDetectionOptions {
   minRoomArea?: number;
   morphKernelSize?: number;
   polygonApproxFactor?: number;
+  useAdvancedSegmentation?: boolean;
+  invertColors?: boolean;
+  wallThickness?: number;
+  morphologyIterations?: number;
+  snapToGrid?: boolean;
+  gridSize?: number;
 }
 
 /**
@@ -48,8 +54,21 @@ export function detectRoomBoundaries(
     thresholdValue = 127,
     minRoomArea = 1000,
     morphKernelSize = 3,
-    polygonApproxFactor = 0.02
+    polygonApproxFactor = 0.02,
+    useAdvancedSegmentation = false
   } = options;
+
+  // Use advanced segmentation if enabled
+  if (useAdvancedSegmentation) {
+    const { segmentRoomsFromImage } = require('./roomSegmentation');
+    const result = segmentRoomsFromImage(imageMat, options);
+    return {
+      rooms: result.rooms,
+      totalRooms: result.rooms.length,
+      imageSize: result.imageSize,
+      processingTime: result.processingTime
+    };
+  }
 
   // Step 1: Convert to grayscale and resize to standard size
   let grayMat = new cv.Mat();
