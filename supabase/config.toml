@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.environmental-analysis]
 verify_jwt = false
+
+[functions.report-scheduler]
+verify_jwt = false
+
+[functions.send-scheduled-report]
+verify_jwt = false

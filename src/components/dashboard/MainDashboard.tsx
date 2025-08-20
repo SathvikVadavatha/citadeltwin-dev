@@ -30,6 +30,7 @@ import { useUploads } from '@/hooks/useUploads';
 import { useSimplifiedUpload } from '@/hooks/useSimplifiedUpload';
 import { use3DModelViewer } from '@/hooks/use3DModelViewer';
 import { CustomReportBuilder } from '@/components/analytics/CustomReportBuilder';
+import { ScheduledReports } from '@/components/analytics/ScheduledReports';
 import { RealTime3DGenerator } from '@/components/3d/RealTime3DGenerator';
 import { useDetectionRooms } from '@/hooks/useDetectionRooms';
 
@@ -274,20 +275,7 @@ export const MainDashboard = () => {
             <TabsContent value="analytics" className="space-y-6">
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <CustomReportBuilder />
-                <Card className="cyber-tool-palette">
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <BarChart3 className="w-5 h-5 text-cyan-400" />
-                      <span>Analytics Dashboard</span>
-                    </CardTitle>
-                    <CardDescription>
-                      Project analytics and insights coming soon
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-400">Advanced analytics and reporting features will be available in the next update.</p>
-                  </CardContent>
-                </Card>
+                <ScheduledReports />
               </div>
             </TabsContent>
           </div>
