@@ -72,32 +72,15 @@ export const ScheduledReports: React.FC = () => {
   return (
     <Card className="h-full">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-cyan-400/10 border border-cyan-400/20">
+            <Calendar className="h-5 w-5 text-cyan-400" />
+          </div>
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Scheduled Reports
-            </CardTitle>
+            <CardTitle className="text-xl font-semibold">Scheduled Reports</CardTitle>
             <CardDescription>
               Automate report delivery on a schedule
             </CardDescription>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowLogs(true)}
-            >
-              <Mail className="h-4 w-4 mr-2" />
-              Delivery Logs
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => setShowForm(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Schedule
-            </Button>
           </div>
         </div>
       </CardHeader>
@@ -188,6 +171,29 @@ export const ScheduledReports: React.FC = () => {
           </div>
         )}
         
+        {/* Create Schedule Button */}
+        {scheduledReports.length > 0 && (
+          <div className="mt-6 pt-6 border-t">
+            <Button onClick={() => setShowForm(true)} className="w-full">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Schedule
+            </Button>
+          </div>
+        )}
+        
+        {/* Delivery Logs Button */}
+        <div className="mt-4">
+          <Button
+            variant="outline"
+            onClick={() => setShowLogs(true)}
+            className="w-full"
+          >
+            <Mail className="h-4 w-4 mr-2" />
+            Delivery Logs
+          </Button>
+        </div>
+        
+        {/* Recent Deliveries Section */}
         {deliveryLogs.length > 0 && (
           <div className="mt-6 pt-6 border-t">
             <h4 className="font-medium mb-3">Recent Deliveries</h4>
