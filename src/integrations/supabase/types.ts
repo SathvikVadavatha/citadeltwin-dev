@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -2229,6 +2229,104 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_report_deliveries: {
+        Row: {
+          created_at: string
+          delivered_at: string | null
+          error_message: string | null
+          execution_time_ms: number | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          recipients_sent: Json | null
+          scheduled_report_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          execution_time_ms?: number | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          recipients_sent?: Json | null
+          scheduled_report_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string | null
+          error_message?: string | null
+          execution_time_ms?: number | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          recipients_sent?: Json | null
+          scheduled_report_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_report_deliveries_scheduled_report_id_fkey"
+            columns: ["scheduled_report_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_reports: {
+        Row: {
+          created_at: string
+          delivery_format: string
+          filters: Json
+          frequency: string
+          id: string
+          is_active: boolean
+          last_run_at: string | null
+          name: string
+          next_run_at: string | null
+          recipients: Json
+          report_type: string
+          schedule_config: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_format?: string
+          filters?: Json
+          frequency: string
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          name: string
+          next_run_at?: string | null
+          recipients?: Json
+          report_type: string
+          schedule_config?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delivery_format?: string
+          filters?: Json
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          name?: string
+          next_run_at?: string | null
+          recipients?: Json
+          report_type?: string
+          schedule_config?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       security_events: {
         Row: {
           created_at: string
@@ -2526,24 +2624,39 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      calculate_next_run_at: {
+        Args: { frequency: string; last_run?: string; schedule_config: Json }
+        Returns: string
+      }
       cleanup_old_presence: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      complete_report_delivery: {
+        Args: {
+          delivery_id: string
+          delivery_status: string
+          error_msg?: string
+          execution_time?: number
+          file_path_val?: string
+          recipients_sent_val?: Json
+        }
+        Returns: undefined
+      }
       complete_workflow_step: {
         Args: {
+          p_error_message?: string
           p_execution_id: string
           p_output_data?: Json
           p_success?: boolean
-          p_error_message?: string
         }
         Returns: boolean
       }
       execute_workflow_step: {
         Args: {
-          p_workflow_id: string
-          p_step_index: number
           p_input_data?: Json
+          p_step_index: number
+          p_workflow_id: string
         }
         Returns: string
       }
@@ -2554,18 +2667,18 @@ export type Database = {
       log_audit_event: {
         Args: {
           p_action: string
-          p_resource_type: string
-          p_resource_id?: string
           p_details?: Json
+          p_resource_id?: string
+          p_resource_type: string
         }
         Returns: string
       }
       log_security_event: {
         Args: {
-          p_event_type: string
-          p_severity: string
           p_description: string
+          p_event_type: string
           p_metadata?: Json
+          p_severity: string
         }
         Returns: string
       }
