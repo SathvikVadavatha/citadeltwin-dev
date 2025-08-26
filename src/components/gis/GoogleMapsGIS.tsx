@@ -30,6 +30,21 @@ interface SpatialAnalysisResult {
   coordinates?: { lat: number; lng: number };
 }
 
+interface EnvironmentalAnalysis {
+  floodRisk?: {
+    level: string;
+    severity: string;
+    description: string;
+  };
+  soilType?: {
+    description: string;
+  };
+  protectedAreas?: {
+    name: string;
+    distance: string;
+  }[];
+}
+
 export const GoogleMapsGIS: React.FC = () => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
@@ -46,7 +61,7 @@ export const GoogleMapsGIS: React.FC = () => {
     place: google.maps.places.PlaceResult;
     location: google.maps.LatLng;
   } | null>(null);
-  const [environmentalAnalysis, setEnvironmentalAnalysis] = useState<any>(null);
+  const [environmentalAnalysis, setEnvironmentalAnalysis] = useState<EnvironmentalAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const { runIntersectionAnalysis, runBufferAnalysis, fetchRealGISData } = useSpatialAnalysis();
@@ -840,32 +855,6 @@ export const GoogleMapsGIS: React.FC = () => {
                 </div>
               )}
               
-              {/* Environmental Analysis Results */}
-              {environmentalAnalysis && (
-                <div className="bg-green-500/10 rounded-md p-3 border border-green-500/20">
-                  <h4 className="font-medium text-sm mb-2 text-green-400">Environmental Analysis</h4>
-                  {environmentalAnalysis.soilType && (
-                    <div className="mb-2">
-                      <p className="text-xs font-medium text-green-300">Soil Type:</p>
-                      <p className="text-xs text-muted-foreground">{environmentalAnalysis.soilType}</p>
-                    </div>
-                  )}
-                  {environmentalAnalysis.floodRisk && (
-                    <div className="mb-2">
-                      <p className="text-xs font-medium text-green-300">Flood Risk:</p>
-                      <p className="text-xs text-muted-foreground">{environmentalAnalysis.floodRisk}</p>
-                    </div>
-                  )}
-                  {environmentalAnalysis.protectedAreas && environmentalAnalysis.protectedAreas.length > 0 && (
-                    <div>
-                      <p className="text-xs font-medium text-green-300">Protected Areas:</p>
-                      {environmentalAnalysis.protectedAreas.map((area, idx) => (
-                        <p key={idx} className="text-xs text-muted-foreground">• {area}</p>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
