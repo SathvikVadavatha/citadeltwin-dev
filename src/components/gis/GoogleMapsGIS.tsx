@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Upload, MapPin, Layers, Download } from 'lucide-react';
+import { Upload, MapPin, Layers, Download, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSpatialAnalysis } from '@/hooks/useSpatialAnalysis';
 import { useAdvancedGIS } from '@/hooks/useAdvancedGIS';
@@ -1075,25 +1075,30 @@ export const GoogleMapsGIS: React.FC = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 {analysisResults.map((result, index) => (
-                  <div key={index} className="space-y-2">
-                    {result.intersections.map((intersection, idx) => (
-                      <div
-                        key={idx}
-                        className="p-3 rounded-lg"
-                        style={{
-                          backgroundColor: intersection.severity === 'error' ? 'hsl(0 62.8% 30.6%)' :
-                                         intersection.severity === 'warning' ? 'hsl(47.9 95.8% 53.1%)' :
-                                         'hsl(240 3.7% 15.9%)'
-                        }}
-                      >
-                        <div className="font-medium" style={{ color: 'hsl(0 0% 98%)' }}>
-                          {intersection.type}
-                        </div>
-                        <div className="text-sm" style={{ color: 'hsl(240 5% 64.9%)' }}>
-                          {intersection.description}
-                        </div>
+                  <div key={result.id || index} className="space-y-2">
+                    <div className="p-3 rounded-lg border border-border bg-card/50">
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertTriangle className="w-4 h-4 text-warning" />
+                        <span className="font-medium text-foreground">
+                          {result.analysis_type || 'Layer Intersection'}
+                        </span>
                       </div>
-                    ))}
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {result.result_data?.message}
+                      </p>
+                      {result.result_data?.intersections && (
+                        <div className="space-y-1">
+                          {result.result_data.intersections.map((intersection: string, idx: number) => (
+                            <div key={idx} className="text-xs px-2 py-1 bg-warning/20 text-warning rounded">
+                              {intersection}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="text-xs text-muted-foreground mt-2">
+                        {new Date(result.created_at!).toLocaleString()}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </CardContent>
