@@ -307,6 +307,8 @@ export const GoogleMapsGIS: React.FC = () => {
     setEnvironmentalAnalysis(null);
 
     try {
+      console.log('Starting environmental analysis for:', { lat, lng, placeName: place.name || place.formatted_address });
+      
       const { data, error } = await supabase.functions.invoke('environmental-analysis', {
         body: {
           latitude: lat,
@@ -322,8 +324,33 @@ export const GoogleMapsGIS: React.FC = () => {
         return;
       }
 
-      setEnvironmentalAnalysis(data);
-      toast.success('Environmental analysis completed');
+      console.log('Environmental analysis response:', data);
+
+      // Ensure data structure matches interface expectations
+      if (data && typeof data === 'object') {
+        // Transform flat response to expected nested structure if needed
+        const transformedData: EnvironmentalAnalysis = {
+          floodRisk: data.floodRisk || (data.floodLevel ? {
+            level: String(data.floodLevel),
+            severity: String(data.floodSeverity || 'low'),
+            description: String(data.description || 'No flood risk information available')
+          } : undefined),
+          soilType: data.soilType || (data.soilDescription ? {
+            description: String(data.soilDescription)
+          } : undefined),
+          protectedAreas: Array.isArray(data.protectedAreas) ? data.protectedAreas.map(area => ({
+            name: String(area.name || area),
+            distance: String(area.distance || 'Unknown distance')
+          })) : []
+        };
+        
+        console.log('Transformed environmental data:', transformedData);
+        setEnvironmentalAnalysis(transformedData);
+        toast.success('Environmental analysis completed');
+      } else {
+        console.warn('Invalid environmental analysis response:', data);
+        toast.error('Invalid response from environmental analysis');
+      }
     } catch (error) {
       console.error('Error calling environmental analysis:', error);
       toast.error('Failed to perform environmental analysis');
