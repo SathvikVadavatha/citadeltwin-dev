@@ -823,6 +823,7 @@ export const GoogleMapsGIS: React.FC = () => {
         selectedProperty.location.lat(),
         selectedProperty.location.lng()
       );
+    }
   };
 
   const switchRegion = (region: 'central-florida' | 'northeast-ohio') => {
