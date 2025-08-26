@@ -21,8 +21,15 @@ interface LayerToggle {
 }
 
 interface SpatialAnalysisResult {
+  id?: string;
+  analysis_type?: string;
+  input_layer_ids?: string[];
+  result_data?: any;
+  parameters?: any;
+  created_at?: string;
+  user_id?: string;
   parcelId?: string;
-  intersections: {
+  intersections?: {
     type: string;
     description: string;
     severity: 'info' | 'warning' | 'error';
@@ -237,19 +244,49 @@ export const GoogleMapsGIS: React.FC = () => {
     const enabledLayers = layers.filter(l => l.enabled);
     if (enabledLayers.length === 0) return;
 
+    const intersections: string[] = [];
+
     enabledLayers.forEach(layer => {
       if (layer.id === 'flood_zones') {
-        highlightFloodZoneIntersection(lat, lng);
+        const floodIntersection = checkFloodZoneIntersection(lat, lng);
+        if (floodIntersection) intersections.push(floodIntersection);
       } else if (layer.id === 'protected_lands') {
-        highlightProtectedAreaIntersection(lat, lng);
+        const protectedIntersection = checkProtectedAreaIntersection(lat, lng);
+        if (protectedIntersection) intersections.push(protectedIntersection);
       }
     });
+
+    // Show consolidated message and update analysis results
+    if (intersections.length > 0) {
+      const message = intersections.length === 1 
+        ? intersections[0]
+        : `Property intersects with ${intersections.length} layers: ${intersections.join(', ')}`;
+      
+      toast.warning('Layer Intersection Detected!', {
+        description: message
+      });
+
+      // Add to analysis results
+      setAnalysisResults(prev => [...prev, {
+        id: Date.now().toString(),
+        analysis_type: 'Layer Intersection',
+        input_layer_ids: enabledLayers.map(l => l.id),
+        result_data: {
+          intersections,
+          location: { lat, lng },
+          message
+        },
+        parameters: { layers: enabledLayers.map(l => l.name) },
+        created_at: new Date().toISOString(),
+        user_id: 'current-user'
+      }]);
+    }
   };
 
-  const highlightFloodZoneIntersection = (lat: number, lng: number) => {
+  const checkFloodZoneIntersection = (lat: number, lng: number): string | null => {
     const point = new google.maps.LatLng(lat, lng);
     
-    floodZoneOverlaysRef.current.forEach(polygon => {
+    for (const polygon of floodZoneOverlaysRef.current) {
       if (google.maps.geometry.poly.containsLocation(point, polygon)) {
         // Highlight the intersecting polygon
         polygon.setOptions({
@@ -267,17 +304,16 @@ export const GoogleMapsGIS: React.FC = () => {
           });
         }, 3000);
         
-        toast.info('Property intersects with flood zone!', {
-          description: 'The selected property is located within a flood risk area.'
-        });
+        return 'FEMA Flood Zone (Special flood hazard area)';
       }
-    });
+    }
+    return null;
   };
 
-  const highlightProtectedAreaIntersection = (lat: number, lng: number) => {
+  const checkProtectedAreaIntersection = (lat: number, lng: number): string | null => {
     const point = new google.maps.LatLng(lat, lng);
     
-    protectedAreaOverlaysRef.current.forEach(polygon => {
+    for (const polygon of protectedAreaOverlaysRef.current) {
       if (google.maps.geometry.poly.containsLocation(point, polygon)) {
         // Highlight the intersecting polygon
         polygon.setOptions({
@@ -295,11 +331,10 @@ export const GoogleMapsGIS: React.FC = () => {
           });
         }, 3000);
         
-        toast.info('Property intersects with protected area!', {
-          description: 'The selected property is located within or near a protected area.'
-        });
+        return 'Protected Area (Conservation land)';
       }
-    });
+    }
+    return null;
   };
 
   const analyzePropertyEnvironment = async (lat: number, lng: number, place: google.maps.places.PlaceResult) => {
@@ -770,6 +805,13 @@ export const GoogleMapsGIS: React.FC = () => {
       } catch (error) {
         console.error('Error fetching protected areas data:', error);
         toast.error('Failed to load protected areas data');
+      }
+      // Re-check intersections when layers are toggled
+      if (selectedProperty) {
+        checkLayerIntersections(
+          selectedProperty.location.lat(),
+          selectedProperty.location.lng()
+        );
       }
     }
   };
