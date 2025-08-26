@@ -239,14 +239,21 @@ export const GoogleMapsGIS: React.FC = () => {
   }, [selectedRegion]);
 
   const checkLayerIntersections = (lat: number, lng: number) => {
+    console.log('Checking layer intersections for property at:', lat, lng);
     if (!mapInstanceRef.current) return;
 
     const enabledLayers = layers.filter(l => l.enabled);
-    if (enabledLayers.length === 0) return;
+    console.log('Enabled layers:', enabledLayers.map(l => l.name));
+    
+    if (enabledLayers.length === 0) {
+      console.log('No enabled layers to check');
+      return;
+    }
 
     const intersections: string[] = [];
 
     enabledLayers.forEach(layer => {
+      console.log(`Checking intersection with ${layer.name} (${layer.id})`);
       if (layer.id === 'flood_zones') {
         const floodIntersection = checkFloodZoneIntersection(lat, lng);
         if (floodIntersection) intersections.push(floodIntersection);
@@ -804,16 +811,18 @@ export const GoogleMapsGIS: React.FC = () => {
         await fetchEnvironmentalData({ city: regionCity, state: regionState, dataTypes: ['protected_lands'] });
       } catch (error) {
         console.error('Error fetching protected areas data:', error);
-        toast.error('Failed to load protected areas data');
-      }
-      // Re-check intersections when layers are toggled
-      if (selectedProperty) {
-        checkLayerIntersections(
-          selectedProperty.location.lat(),
-          selectedProperty.location.lng()
-        );
+          toast.error('Failed to load protected areas data');
+        }
       }
     }
+
+    // Re-check intersections when any layer is toggled and a property is selected
+    if (selectedProperty) {
+      console.log('Re-checking intersections after layer toggle');
+      checkLayerIntersections(
+        selectedProperty.location.lat(),
+        selectedProperty.location.lng()
+      );
   };
 
   const switchRegion = (region: 'central-florida' | 'northeast-ohio') => {
