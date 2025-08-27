@@ -811,8 +811,7 @@ export const GoogleMapsGIS: React.FC = () => {
         await fetchEnvironmentalData({ city: regionCity, state: regionState, dataTypes: ['protected_lands'] });
       } catch (error) {
         console.error('Error fetching protected areas data:', error);
-          toast.error('Failed to load protected areas data');
-        }
+        toast.error('Failed to load protected areas data');
       }
     }
 
