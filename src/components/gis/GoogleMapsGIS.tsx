@@ -1205,6 +1205,11 @@ export const GoogleMapsGIS: React.FC = () => {
                           {isFetching && layer.id === 'flood_zones' && (
                             <span className="ml-2 text-xs text-blue-400">(Loading...)</span>
                           )}
+                          {layerData?.real_time_enabled && (
+                            <span className="ml-2 px-1.5 py-0.5 text-xs bg-green-500/20 text-green-400 rounded">
+                              Live
+                            </span>
+                          )}
                         </Label>
                       </div>
                       <div className="flex items-center space-x-2">

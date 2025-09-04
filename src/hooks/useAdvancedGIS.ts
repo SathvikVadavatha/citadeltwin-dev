@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from 'sonner';
+import { useRealtimeUpdates } from './useRealtimeUpdates';
 
 export interface PropertyBoundary {
   id: string;
@@ -48,6 +49,29 @@ export interface EnvironmentalLayer {
 export const useAdvancedGIS = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // Set up real-time updates for GIS layers
+  useRealtimeUpdates([
+    {
+      table: 'gis_layers',
+      filter: `layer_type=in.(flood_zones,environmental,zoning) OR environmental_type=in.(soils,wetlands,protected_lands)`,
+      onInsert: (payload) => {
+        console.log('New GIS layer added:', payload);
+        queryClient.invalidateQueries({ queryKey: ['environmental-layers'] });
+        toast.success('New environmental data available');
+      },
+      onUpdate: (payload) => {
+        console.log('GIS layer updated:', payload);
+        queryClient.invalidateQueries({ queryKey: ['environmental-layers'] });
+        toast.success('Environmental data updated');
+      },
+      onDelete: (payload) => {
+        console.log('GIS layer deleted:', payload);
+        queryClient.invalidateQueries({ queryKey: ['environmental-layers'] });
+        toast.info('Environmental layer removed');
+      }
+    }
+  ]);
 
   // Fetch environmental layers
   const { 
