@@ -72,10 +72,9 @@ export const GoogleMapsGIS: React.FC = () => {
   const [environmentalAnalysis, setEnvironmentalAnalysis] = useState<EnvironmentalAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [combinedAnalysis, setCombinedAnalysis] = useState<{
-    floodZones: { hit: boolean; name?: string; code?: string; details?: any };
-    protectedAreas: { hit: boolean; name?: string; details?: any };
-    soils: { hit: boolean; name?: string; details?: any };
-    wetlands: { hit: boolean; name?: string; details?: any };
+    floodZones: string[];
+    protectedAreas: string[];
+    soilsWetlands: string[];
   } | undefined>(undefined);
 
   const { runIntersectionAnalysis, runBufferAnalysis, fetchRealGISData } = useSpatialAnalysis();
@@ -356,15 +355,13 @@ export const GoogleMapsGIS: React.FC = () => {
     const regionState = selectedRegion === 'central-florida' ? 'FL' : 'OH';
     
     const analysis: {
-      floodZones: { hit: boolean; name?: string; code?: string; details?: any };
-      protectedAreas: { hit: boolean; name?: string; details?: any };
-      soils: { hit: boolean; name?: string; details?: any };
-      wetlands: { hit: boolean; name?: string; details?: any };
+      floodZones: string[];
+      protectedAreas: string[];
+      soilsWetlands: string[];
     } = {
-      floodZones: { hit: false },
-      protectedAreas: { hit: false },
-      soils: { hit: false },
-      wetlands: { hit: false }
+      floodZones: [],
+      protectedAreas: [],
+      soilsWetlands: []
     };
 
     // Check flood zones
@@ -394,16 +391,12 @@ export const GoogleMapsGIS: React.FC = () => {
               for (const path of paths) {
                 const polygon = new google.maps.Polygon({ paths: path });
                 if (google.maps.geometry.poly.containsLocation(point, polygon)) {
-                  analysis.floodZones = {
-                    hit: true,
-                    name: feature.properties?.ZONE_SUBTY || feature.properties?.FLD_ZONE || 'Flood Zone',
-                    code: feature.properties?.ZONE_SUBTY,
-                    details: feature.properties
-                  };
-                  break;
+                  const zoneName = feature.properties?.ZONE_SUBTY || feature.properties?.FLD_ZONE || 'Flood Zone';
+                  if (!analysis.floodZones.includes(zoneName)) {
+                    analysis.floodZones.push(zoneName);
+                  }
                 }
               }
-              if (analysis.floodZones.hit) break;
             }
           }
         }
@@ -439,15 +432,12 @@ export const GoogleMapsGIS: React.FC = () => {
               for (const path of paths) {
                 const polygon = new google.maps.Polygon({ paths: path });
                 if (google.maps.geometry.poly.containsLocation(point, polygon)) {
-                  analysis.protectedAreas = {
-                    hit: true,
-                    name: feature.properties?.Unit_Nm || 'Protected Area',
-                    details: feature.properties
-                  };
-                  break;
+                  const areaName = feature.properties?.Unit_Nm || 'Protected Area';
+                  if (!analysis.protectedAreas.includes(areaName)) {
+                    analysis.protectedAreas.push(areaName);
+                  }
                 }
               }
-              if (analysis.protectedAreas.hit) break;
             }
           }
         }
@@ -484,25 +474,16 @@ export const GoogleMapsGIS: React.FC = () => {
                 for (const path of paths) {
                   const polygon = new google.maps.Polygon({ paths: path });
                   if (google.maps.geometry.poly.containsLocation(point, polygon)) {
+                    let name = '';
                     if (layerData.environmental_type === 'soils') {
-                      analysis.soils = {
-                        hit: true,
-                        name: feature.properties?.MUNAME || feature.properties?.mapunit || 'Soil Unit',
-                        details: feature.properties
-                      };
+                      name = `${feature.properties?.MUNAME || feature.properties?.mapunit || 'Soil'} (${feature.properties?.HYDGRPDCD || 'Unknown Group'})`;
                     } else if (layerData.environmental_type === 'wetlands') {
-                      analysis.wetlands = {
-                        hit: true,
-                        name: feature.properties?.WETLAND_TYPE || feature.properties?.ATTRIBUTE || 'Wetland',
-                        details: feature.properties
-                      };
+                      name = `${feature.properties?.WETLAND_TYPE || feature.properties?.ATTRIBUTE || 'Wetland'} - ${feature.properties?.SYSTEM || 'Unknown System'}`;
                     }
-                    break;
+                    if (name && !analysis.soilsWetlands.includes(name)) {
+                      analysis.soilsWetlands.push(name);
+                    }
                   }
-                }
-                if ((layerData.environmental_type === 'soils' && analysis.soils.hit) ||
-                    (layerData.environmental_type === 'wetlands' && analysis.wetlands.hit)) {
-                  break;
                 }
               }
             }
@@ -1498,94 +1479,116 @@ export const GoogleMapsGIS: React.FC = () => {
           </Card>
 
 
-          {/* Environmental Analysis Results */}
-          {environmentalAnalysis && (
+          {/* Analysis Report */}
+          {(analysisResults.length > 0 || (selectedProperty && combinedAnalysis && (combinedAnalysis.floodZones.length > 0 || combinedAnalysis.protectedAreas.length > 0 || combinedAnalysis.soilsWetlands.length > 0))) && (
             <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2" style={{ color: 'hsl(0 0% 98%)' }}>
                   <MapPin className="w-5 h-5" />
-                  Environmental Analysis
-                  {isAnalyzing && <span className="text-xs">(Analyzing...)</span>}
+                  Analysis Report
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {environmentalAnalysis.floodRisk && (
-                    <div className="p-3 rounded-md" style={{ 
-                      backgroundColor: environmentalAnalysis.floodRisk.severity === 'high' ? 'hsl(0 84% 15%)' : 'hsl(240 5% 6%)'
-                    }}>
-                      <p className="text-sm font-medium" style={{ color: 'hsl(0 0% 98%)' }}>
-                        Flood Risk: {environmentalAnalysis.floodRisk.level}
-                      </p>
-                      <p className="text-xs mt-1" style={{ color: 'hsl(210 40% 70%)' }}>
-                        {environmentalAnalysis.floodRisk.description}
-                      </p>
-                    </div>
-                  )}
-                  {environmentalAnalysis.protectedAreas && environmentalAnalysis.protectedAreas.length > 0 && (
-                    <div className="p-3 rounded-md" style={{ backgroundColor: 'hsl(240 5% 6%)' }}>
-                      <p className="text-sm font-medium" style={{ color: 'hsl(0 0% 98%)' }}>
-                        Protected Areas Nearby
-                      </p>
-                      {environmentalAnalysis.protectedAreas.map((area: any, index: number) => (
-                        <p key={index} className="text-xs mt-1" style={{ color: 'hsl(210 40% 70%)' }}>
-                          • {area.name} ({area.distance})
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                  {environmentalAnalysis.soilType && (
-                    <div className="p-3 rounded-md" style={{ backgroundColor: 'hsl(240 5% 6%)' }}>
-                      <p className="text-sm font-medium" style={{ color: 'hsl(0 0% 98%)' }}>
-                        Soil Information
-                      </p>
-                      <p className="text-xs mt-1" style={{ color: 'hsl(210 40% 70%)' }}>
-                        {environmentalAnalysis.soilType.description}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Analysis Results */}
-          {analysisResults.length > 0 && (
-            <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2" style={{ color: 'hsl(0 0% 98%)' }}>
-                  <MapPin className="w-5 h-5" />
-                  Analysis Results
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {analysisResults.map((result, index) => (
-                  <div key={result.id || index} className="space-y-2">
-                    <div className="p-3 rounded-lg border border-border bg-card/50">
-                      <div className="flex items-center gap-2 mb-2">
-                        <AlertTriangle className="w-4 h-4 text-warning" />
-                        <span className="font-medium text-foreground">
-                          {result.analysis_type || 'Layer Intersection'}
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {result.result_data?.message}
-                      </p>
-                      {result.result_data?.intersections && (
-                        <div className="space-y-1">
-                          {result.result_data.intersections.map((intersection: string, idx: number) => (
-                            <div key={idx} className="text-xs px-2 py-1 bg-warning/20 text-warning rounded">
-                              {intersection}
-                            </div>
-                          ))}
+              <CardContent className="space-y-4">
+                {/* Combined Environmental Report */}
+                {selectedProperty && combinedAnalysis && (combinedAnalysis.floodZones.length > 0 || combinedAnalysis.protectedAreas.length > 0 || combinedAnalysis.soilsWetlands.length > 0) && (
+                  <div className="space-y-3">
+                    <h4 className="font-medium" style={{ color: 'hsl(0 0% 98%)', borderBottom: '1px solid hsl(240 3.7% 15.9%)', paddingBottom: '8px' }}>
+                      Combined Environmental Report
+                    </h4>
+                    
+                    {combinedAnalysis.floodZones.length > 0 && (
+                      <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'hsl(240 51% 15%)', border: '1px solid hsl(240 51% 25%)' }}>
+                        <div className="w-5 h-5 flex-shrink-0 mt-0.5">
+                          <svg className="w-5 h-5" fill="hsl(240 51% 75%)" viewBox="0 0 24 24">
+                            <path d="M12 2L14 7L18 7L15 10L16 14L12 12L8 14L9 10L6 7L10 7L12 2Z"/>
+                          </svg>
                         </div>
-                      )}
-                      <div className="text-xs text-muted-foreground mt-2">
-                        {new Date(result.created_at!).toLocaleString()}
+                        <div>
+                          <h5 className="font-medium" style={{ color: 'hsl(240 51% 95%)' }}>FEMA Flood Zones</h5>
+                          <div className="text-sm space-y-1" style={{ color: 'hsl(240 51% 75%)' }}>
+                            {combinedAnalysis.floodZones.map((zone, index) => (
+                              <div key={index}>{zone}</div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    )}
+                    
+                    {combinedAnalysis.protectedAreas.length > 0 && (
+                      <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'hsl(142 51% 15%)', border: '1px solid hsl(142 51% 25%)' }}>
+                        <div className="w-5 h-5 flex-shrink-0 mt-0.5">
+                          <svg className="w-5 h-5" fill="hsl(142 51% 75%)" viewBox="0 0 24 24">
+                            <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1M12 7C13.4 7 14.8 8.6 14.8 10V14H17V20H7V14H9.2V10C9.2 8.6 10.6 7 12 7Z"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <h5 className="font-medium" style={{ color: 'hsl(142 51% 95%)' }}>Protected Areas</h5>
+                          <div className="text-sm space-y-1" style={{ color: 'hsl(142 51% 75%)' }}>
+                            {combinedAnalysis.protectedAreas.map((area, index) => (
+                              <div key={index}>{area}</div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {combinedAnalysis.soilsWetlands.length > 0 && (
+                      <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'hsl(45 51% 15%)', border: '1px solid hsl(45 51% 25%)' }}>
+                        <div className="w-5 h-5 flex-shrink-0 mt-0.5">
+                          <svg className="w-5 h-5" fill="hsl(45 51% 75%)" viewBox="0 0 24 24">
+                            <path d="M14,6L10.25,11L13.1,14.8L11.5,16C9.81,13.75 7,10 7,10L1,18H23L14,6Z"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <h5 className="font-medium" style={{ color: 'hsl(45 51% 95%)' }}>Soils & Wetlands</h5>
+                          <div className="text-sm space-y-1" style={{ color: 'hsl(45 51% 75%)' }}>
+                            {combinedAnalysis.soilsWetlands.map((soil, index) => (
+                              <div key={index}>{soil}</div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ))}
+                )}
+
+                {/* Historical Layer Intersections */}
+                {analysisResults.length > 0 && (
+                  <div className="space-y-2">
+                    {(selectedProperty && combinedAnalysis && (combinedAnalysis.floodZones.length > 0 || combinedAnalysis.protectedAreas.length > 0 || combinedAnalysis.soilsWetlands.length > 0)) && (
+                      <div style={{ borderTop: '1px solid hsl(240 3.7% 15.9%)', paddingTop: '12px' }}>
+                        <h4 className="font-medium mb-3" style={{ color: 'hsl(0 0% 98%)' }}>Historical Layer Intersections</h4>
+                      </div>
+                    )}
+                    {analysisResults.map((result, index) => (
+                      <div key={result.id || index}>
+                        <div className="p-3 rounded-lg border" style={{ border: '1px solid hsl(240 3.7% 15.9%)', backgroundColor: 'hsl(240 5% 6%)' }}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <AlertTriangle className="w-4 h-4" style={{ color: 'hsl(45 84% 60%)' }} />
+                            <span className="font-medium" style={{ color: 'hsl(0 0% 98%)' }}>
+                              {result.analysis_type || 'Layer Intersection'}
+                            </span>
+                          </div>
+                          <p className="text-sm mb-2" style={{ color: 'hsl(210 40% 70%)' }}>
+                            {result.result_data?.message}
+                          </p>
+                          {result.result_data?.intersections && (
+                            <div className="space-y-1">
+                              {result.result_data.intersections.map((intersection: string, idx: number) => (
+                                <div key={idx} className="text-xs px-2 py-1 rounded" style={{ backgroundColor: 'hsl(45 84% 15%)', color: 'hsl(45 84% 70%)' }}>
+                                  {intersection}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="text-xs mt-2" style={{ color: 'hsl(210 40% 70%)' }}>
+                            {new Date(result.created_at!).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
