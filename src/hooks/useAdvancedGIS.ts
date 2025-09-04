@@ -59,7 +59,7 @@ export const useAdvancedGIS = () => {
       const { data, error } = await supabase
         .from('gis_layers')
         .select('*')
-        .in('layer_type', ['flood_zones', 'soil_conditions', 'environmental', 'zoning'])
+        .in('layer_type', ['flood_zones', 'environmental', 'zoning'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;

@@ -60,6 +60,7 @@ export const GoogleMapsGIS: React.FC = () => {
   const selectedPropertyMarkerRef = useRef<google.maps.Marker | null>(null);
   const floodZoneOverlaysRef = useRef<google.maps.Polygon[]>([]);
   const protectedAreaOverlaysRef = useRef<google.maps.Polygon[]>([]);
+  const soilsWetlandsOverlaysRef = useRef<google.maps.Polygon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRegion, setSelectedRegion] = useState<'central-florida' | 'northeast-ohio'>('central-florida');
   const [analysisResults, setAnalysisResults] = useState<SpatialAnalysisResult[]>([]);
@@ -765,6 +766,140 @@ export const GoogleMapsGIS: React.FC = () => {
     protectedAreaOverlaysRef.current = [];
   }, []);
 
+  // Function to render soils & wetlands polygons on the map
+  const renderSoilsWetlands = useCallback(() => {
+    if (!mapInstanceRef.current) return;
+
+    // Clear existing overlays
+    clearSoilsWetlands();
+
+    const regionCity = selectedRegion === 'central-florida' ? 'Orlando' : 'Cleveland';
+    const regionState = selectedRegion === 'central-florida' ? 'FL' : 'OH';
+
+    // Find soils and wetlands data for current region
+    const soilsData = environmentalLayers.find(envLayer => 
+      (envLayer.environmental_type === 'soils' || envLayer.layer_type === 'soil_conditions') && 
+      envLayer.city.toLowerCase() === regionCity.toLowerCase() &&
+      envLayer.state === regionState
+    );
+
+    const wetlandsData = environmentalLayers.find(envLayer => 
+      envLayer.environmental_type === 'wetlands' && 
+      envLayer.city.toLowerCase() === regionCity.toLowerCase() &&
+      envLayer.state === regionState
+    );
+
+    console.log('Rendering soils & wetlands for:', regionCity, regionState);
+    console.log('Soils data found:', !!soilsData, soilsData?.layer_name);
+    console.log('Wetlands data found:', !!wetlandsData, wetlandsData?.layer_name);
+
+    // Render soils data (brown colors)
+    if (soilsData?.geometry_data?.features) {
+      soilsData.geometry_data.features.forEach((feature: any, index: number) => {
+        if (feature.geometry?.coordinates) {
+          try {
+            const paths = feature.geometry.coordinates[0].map((coord: number[]) => ({
+              lat: coord[1],
+              lng: coord[0]
+            }));
+
+            const polygon = new google.maps.Polygon({
+              paths: paths,
+              strokeColor: '#8B4513',
+              strokeOpacity: 0.8,
+              strokeWeight: 2,
+              fillColor: '#DEB887',
+              fillOpacity: 0.4,
+            });
+
+            polygon.setMap(mapInstanceRef.current);
+            soilsWetlandsOverlaysRef.current.push(polygon);
+
+            // Add click handler for soil info
+            polygon.addListener('click', () => {
+              const infoWindow = new google.maps.InfoWindow({
+                content: `
+                  <div>
+                    <h3>Soil Information</h3>
+                    <p><strong>Name:</strong> ${feature.properties?.MUNAME || 'Unknown'}</p>
+                    <p><strong>Drainage:</strong> ${feature.properties?.DRCLASSDCD || 'Unknown'}</p>
+                    <p><strong>Hydro Group:</strong> ${feature.properties?.HYDGRP || 'Unknown'}</p>
+                    <p><strong>AWS:</strong> ${feature.properties?.AWS || 'Unknown'}</p>
+                    <p><strong>K Factor:</strong> ${feature.properties?.KFACT || 'Unknown'}</p>
+                  </div>
+                `,
+                position: { lat: paths[0].lat, lng: paths[0].lng }
+              });
+              infoWindow.open(mapInstanceRef.current);
+            });
+          } catch (error) {
+            console.error('Error rendering soil polygon:', error);
+          }
+        }
+      });
+    }
+
+    // Render wetlands data (blue colors)
+    if (wetlandsData?.geometry_data?.features) {
+      wetlandsData.geometry_data.features.forEach((feature: any, index: number) => {
+        if (feature.geometry?.coordinates) {
+          try {
+            const paths = feature.geometry.coordinates[0].map((coord: number[]) => ({
+              lat: coord[1],
+              lng: coord[0]
+            }));
+
+            const polygon = new google.maps.Polygon({
+              paths: paths,
+              strokeColor: '#006994',
+              strokeOpacity: 0.8,
+              strokeWeight: 2,
+              fillColor: '#87CEEB',
+              fillOpacity: 0.5,
+            });
+
+            polygon.setMap(mapInstanceRef.current);
+            soilsWetlandsOverlaysRef.current.push(polygon);
+
+            // Add click handler for wetland info
+            polygon.addListener('click', () => {
+              const infoWindow = new google.maps.InfoWindow({
+                content: `
+                  <div>
+                    <h3>Wetland Information</h3>
+                    <p><strong>Type:</strong> ${feature.properties?.WETLAND_TY || 'Unknown'}</p>
+                    <p><strong>Class:</strong> ${feature.properties?.CLASS || 'Unknown'}</p>
+                    <p><strong>System:</strong> ${feature.properties?.SYSTEM || 'Unknown'}</p>
+                    <p><strong>Water Regime:</strong> ${feature.properties?.WATER_REGI || 'Unknown'}</p>
+                    <p><strong>Area:</strong> ${feature.properties?.ACRES || 'Unknown'} acres</p>
+                  </div>
+                `,
+                position: { lat: paths[0].lat, lng: paths[0].lng }
+              });
+              infoWindow.open(mapInstanceRef.current);
+            });
+          } catch (error) {
+            console.error('Error rendering wetland polygon:', error);
+          }
+        }
+      });
+    }
+
+    if (soilsData || wetlandsData) {
+      toast.success(`Rendered ${regionCity} soils & wetlands data`);
+    } else {
+      console.log('No soils or wetlands data available for', regionCity, regionState);
+    }
+  }, [environmentalLayers, selectedRegion]);
+
+  // Function to clear soils & wetlands overlays
+  const clearSoilsWetlands = useCallback(() => {
+    soilsWetlandsOverlaysRef.current.forEach(overlay => {
+      overlay.setMap(null);
+    });
+    soilsWetlandsOverlaysRef.current = [];
+  }, []);
+
   // Effect to manage flood zone rendering based on layer toggle
   useEffect(() => {
     const floodLayer = layers.find(l => l.id === 'flood_zones');
@@ -785,15 +920,27 @@ export const GoogleMapsGIS: React.FC = () => {
     }
   }, [layers, renderProtectedAreas, clearProtectedAreas]);
 
+  // Effect to manage soils & wetlands rendering based on layer toggle
+  useEffect(() => {
+    const soilsWetlandsLayer = layers.find(l => l.id === 'soils_wetlands');
+    if (soilsWetlandsLayer?.enabled && mapInstanceRef.current) {
+      renderSoilsWetlands();
+    } else {
+      clearSoilsWetlands();
+    }
+  }, [layers, renderSoilsWetlands, clearSoilsWetlands]);
+
   // Effect to clear overlays when switching regions and re-render enabled layers
   useEffect(() => {
     clearFloodZones();
     clearProtectedAreas();
+    clearSoilsWetlands();
     
     // Re-render enabled layers for the new region
     setTimeout(() => {
       const floodLayer = layers.find(l => l.id === 'flood_zones');
       const protectedLayer = layers.find(l => l.id === 'protected_lands');
+      const soilsWetlandsLayer = layers.find(l => l.id === 'soils_wetlands');
       
       if (floodLayer?.enabled && mapInstanceRef.current) {
         renderFloodZones();
@@ -801,8 +948,11 @@ export const GoogleMapsGIS: React.FC = () => {
       if (protectedLayer?.enabled && mapInstanceRef.current) {
         renderProtectedAreas();
       }
+      if (soilsWetlandsLayer?.enabled && mapInstanceRef.current) {
+        renderSoilsWetlands();
+      }
     }, 500); // Small delay to ensure map is properly centered
-  }, [selectedRegion, clearFloodZones, clearProtectedAreas, layers, renderFloodZones, renderProtectedAreas]);
+  }, [selectedRegion, clearFloodZones, clearProtectedAreas, clearSoilsWetlands, layers, renderFloodZones, renderProtectedAreas, renderSoilsWetlands]);
 
   const toggleLayer = async (layerId: string) => {
     const layer = layers.find(l => l.id === layerId);
