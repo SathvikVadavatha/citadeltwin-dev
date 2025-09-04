@@ -312,19 +312,19 @@ export const GoogleMapsGIS: React.FC = () => {
   const ensureRegionEnvData = async (city: string, state: string) => {
     const hasFloodData = environmentalLayers.some(layer => 
       layer.layer_type === 'flood_zones' && 
-      layer.city.toLowerCase() === city.toLowerCase() && 
+      (layer.city.toLowerCase().includes(city.toLowerCase()) || layer.state === state) && 
       layer.state === state
     );
     
     const hasProtectedData = environmentalLayers.some(layer => 
       layer.environmental_type === 'protected_lands' && 
-      layer.city.toLowerCase() === city.toLowerCase() && 
+      (layer.city.toLowerCase().includes(city.toLowerCase()) || layer.state === state) && 
       layer.state === state
     );
     
     const hasSoilsData = environmentalLayers.some(layer => 
       (layer.environmental_type === 'soils' || layer.environmental_type === 'wetlands') && 
-      layer.city.toLowerCase() === city.toLowerCase() && 
+      (layer.city.toLowerCase().includes(city.toLowerCase()) || layer.state === state) && 
       layer.state === state
     );
 
@@ -400,7 +400,7 @@ export const GoogleMapsGIS: React.FC = () => {
     // Check flood zones with enhanced details
     const floodData = environmentalLayers.find(layer => 
       layer.layer_type === 'flood_zones' && 
-      layer.city.toLowerCase() === regionCity.toLowerCase() &&
+      (layer.city.toLowerCase().includes(regionCity.toLowerCase()) || layer.state === regionState) &&
       layer.state === regionState
     );
     
@@ -439,7 +439,7 @@ export const GoogleMapsGIS: React.FC = () => {
     // Check protected areas with enhanced details
     const protectedData = environmentalLayers.find(layer => 
       layer.environmental_type === 'protected_lands' && 
-      layer.city.toLowerCase() === regionCity.toLowerCase() &&
+      (layer.city.toLowerCase().includes(regionCity.toLowerCase()) || layer.state === regionState) &&
       layer.state === regionState
     );
     
@@ -478,7 +478,7 @@ export const GoogleMapsGIS: React.FC = () => {
     // Check soils and wetlands with enhanced details
     const soilsWetlandsData = environmentalLayers.filter(layer => 
       (layer.environmental_type === 'soils' || layer.environmental_type === 'wetlands') && 
-      layer.city.toLowerCase() === regionCity.toLowerCase() &&
+      (layer.city.toLowerCase().includes(regionCity.toLowerCase()) || layer.state === regionState) &&
       layer.state === regionState
     );
     
@@ -1332,6 +1332,50 @@ export const GoogleMapsGIS: React.FC = () => {
   useEffect(() => {
     initializeMap();
   }, [initializeMap]);
+
+  // Recompute analysis when data changes (independent of layer toggles)
+  useEffect(() => {
+    if (selectedProperty && window.google?.maps?.geometry?.poly) {
+      const lat = selectedProperty.location.lat();
+      const lng = selectedProperty.location.lng();
+      console.log('Recomputing analysis due to data/region change:', { lat, lng, selectedRegion });
+      computeCombinedAnalysis(lat, lng);
+    }
+  }, [selectedProperty, environmentalLayers, selectedRegion]);
+
+  // Render layers based on enabled state
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+
+    const floodLayer = layers.find(l => l.id === 'flood_zones');
+    if (floodLayer?.enabled) {
+      renderFloodZones();
+    } else {
+      clearFloodZones();
+    }
+  }, [layers, renderFloodZones, clearFloodZones]);
+
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+
+    const protectedLayer = layers.find(l => l.id === 'protected_lands');
+    if (protectedLayer?.enabled) {
+      renderProtectedAreas();
+    } else {
+      clearProtectedAreas();
+    }
+  }, [layers, renderProtectedAreas, clearProtectedAreas]);
+
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+
+    const soilsLayer = layers.find(l => l.id === 'soils_wetlands');
+    if (soilsLayer?.enabled) {
+      renderSoilsWetlands();
+    } else {
+      clearSoilsWetlands();
+    }
+  }, [layers, renderSoilsWetlands, clearSoilsWetlands]);
 
   if (apiKeyError) {
     return (
