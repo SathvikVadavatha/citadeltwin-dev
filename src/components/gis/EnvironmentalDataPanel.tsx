@@ -49,10 +49,15 @@ export const EnvironmentalDataPanel = () => {
     }
 
     try {
+      // Transform soils_wetlands to individual data types for the backend
+      const dataTypes = fetchParams.dataTypes.includes('soils_wetlands') 
+        ? fetchParams.dataTypes.filter(t => t !== 'soils_wetlands').concat(['soils', 'wetlands'])
+        : fetchParams.dataTypes;
+
       await fetchEnvironmentalData({
         city: fetchParams.city,
         state: fetchParams.state,
-        dataTypes: fetchParams.dataTypes
+        dataTypes: dataTypes
       });
     } catch (error) {
       console.error('Error fetching environmental data:', error);
@@ -68,7 +73,9 @@ export const EnvironmentalDataPanel = () => {
   const getEnvironmentalIcon = (type: string) => {
     switch (type) {
       case 'flood_zones': return Waves;
-      case 'soil_conditions': return TreePine;
+      case 'soil_conditions':
+      case 'soils': return TreePine;
+      case 'wetlands': return Waves;
       case 'environmental': return Shield;
       case 'zoning': return MapPin;
       default: return AlertTriangle;
@@ -78,7 +85,9 @@ export const EnvironmentalDataPanel = () => {
   const getEnvironmentalColor = (type: string) => {
     switch (type) {
       case 'flood_zones': return 'text-blue-500';
-      case 'soil_conditions': return 'text-green-500';
+      case 'soil_conditions':
+      case 'soils': return 'text-green-500';
+      case 'wetlands': return 'text-teal-500';
       case 'environmental': return 'text-orange-500';
       case 'zoning': return 'text-purple-500';
       default: return 'text-gray-500';
@@ -130,8 +139,8 @@ export const EnvironmentalDataPanel = () => {
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { id: 'flood_zones', label: 'Flood Zones', icon: Waves, color: 'text-blue-500' },
-                    { id: 'soil_conditions', label: 'Soil Conditions', icon: TreePine, color: 'text-green-500' },
-                    { id: 'environmental_hazards', label: 'Environmental Hazards', icon: AlertTriangle, color: 'text-red-500' },
+                    { id: 'protected_lands', label: 'Protected Areas', icon: Shield, color: 'text-orange-500' },
+                    { id: 'soils_wetlands', label: 'Soils & Wetlands', icon: TreePine, color: 'text-green-500' },
                     { id: 'zoning_data', label: 'Zoning Information', icon: MapPin, color: 'text-purple-500' }
                   ].map((dataType) => {
                     const IconComponent = dataType.icon;

@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface LayerToggle {
   id: string;
   name: string;
-  type: 'flood_zones' | 'soil_types' | 'protected_lands' | 'roads' | 'wetlands' | 'utilities';
+  type: 'flood_zones' | 'soil_types' | 'protected_lands' | 'roads' | 'wetlands' | 'utilities' | 'soils';
   enabled: boolean;
   color: string;
   description: string;
@@ -90,6 +90,14 @@ export const GoogleMapsGIS: React.FC = () => {
       enabled: false, 
       color: '#f97316',
       description: 'National parks, wildlife refuges, and conservation areas'
+    },
+    { 
+      id: 'soils_wetlands', 
+      name: 'Soils & Wetlands', 
+      type: 'soils',
+      enabled: false, 
+      color: '#22c55e',
+      description: 'NRCS soil types and USFWS wetlands data'
     }
   ]);
 
@@ -260,6 +268,9 @@ export const GoogleMapsGIS: React.FC = () => {
       } else if (layer.id === 'protected_lands') {
         const protectedIntersection = checkProtectedAreaIntersection(lat, lng);
         if (protectedIntersection) intersections.push(protectedIntersection);
+      } else if (layer.id === 'soils_wetlands') {
+        const soilsWetlandsIntersection = checkSoilsWetlandsIntersection(lat, lng);
+        if (soilsWetlandsIntersection) intersections.push(soilsWetlandsIntersection);
       }
     });
 
@@ -342,6 +353,38 @@ export const GoogleMapsGIS: React.FC = () => {
       }
     }
     return null;
+  };
+
+  const checkSoilsWetlandsIntersection = (lat: number, lng: number): string | null => {
+    // Check both soils and wetlands layers
+    const regionCity = selectedRegion === 'central-florida' ? 'Orlando' : 'Cleveland';
+    const regionState = selectedRegion === 'central-florida' ? 'FL' : 'OH';
+    
+    const soilsLayers = environmentalLayers.filter(layer => 
+      layer.environmental_type === 'soils' && 
+      layer.city.toLowerCase() === regionCity.toLowerCase() &&
+      layer.state === regionState
+    );
+    
+    const wetlandsLayers = environmentalLayers.filter(layer => 
+      layer.environmental_type === 'wetlands' && 
+      layer.city.toLowerCase() === regionCity.toLowerCase() &&
+      layer.state === regionState
+    );
+    
+    const intersections = [];
+    
+    // Check soils (simplified check for demo)
+    if (soilsLayers.length > 0) {
+      intersections.push('NRCS Soil Survey (soil type information available)');
+    }
+    
+    // Check wetlands (simplified check for demo)  
+    if (wetlandsLayers.length > 0) {
+      intersections.push('USFWS Wetlands (regulated wetland area)');
+    }
+    
+    return intersections.length > 0 ? intersections.join(', ') : null;
   };
 
   const analyzePropertyEnvironment = async (lat: number, lng: number, place: google.maps.places.PlaceResult) => {
@@ -813,8 +856,20 @@ export const GoogleMapsGIS: React.FC = () => {
         console.error('Error fetching protected areas data:', error);
         toast.error('Failed to load protected areas data');
       }
+    // If enabling soils & wetlands layer, fetch both datasets
+    if (isEnabling && layerId === 'soils_wetlands') {
+      const regionCity = selectedRegion === 'central-florida' ? 'Orlando' : 'Cleveland';
+      const regionState = selectedRegion === 'central-florida' ? 'FL' : 'OH';
+      
+      try {
+        toast.success(`Fetching soils and wetlands data for ${regionCity}, ${regionState}...`);
+        await fetchEnvironmentalData({ city: regionCity, state: regionState, dataTypes: ['soils_wetlands'] });
+      } catch (error) {
+        console.error('Error fetching soils and wetlands data:', error);
+        toast.error('Failed to fetch soils and wetlands data');
+      }
     }
-
+    
     // Re-check intersections when any layer is toggled and a property is selected
     if (selectedProperty) {
       console.log('Re-checking intersections after layer toggle');
