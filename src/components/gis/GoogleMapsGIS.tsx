@@ -856,6 +856,8 @@ export const GoogleMapsGIS: React.FC = () => {
         console.error('Error fetching protected areas data:', error);
         toast.error('Failed to load protected areas data');
       }
+    }
+    
     // If enabling soils & wetlands layer, fetch both datasets
     if (isEnabling && layerId === 'soils_wetlands') {
       const regionCity = selectedRegion === 'central-florida' ? 'Orlando' : 'Cleveland';
