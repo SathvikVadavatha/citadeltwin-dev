@@ -71,6 +71,12 @@ export const GoogleMapsGIS: React.FC = () => {
   } | null>(null);
   const [environmentalAnalysis, setEnvironmentalAnalysis] = useState<EnvironmentalAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [combinedAnalysis, setCombinedAnalysis] = useState<{
+    floodZones: { hit: boolean; name?: string; code?: string; details?: any };
+    protectedAreas: { hit: boolean; name?: string; details?: any };
+    soils: { hit: boolean; name?: string; details?: any };
+    wetlands: { hit: boolean; name?: string; details?: any };
+  } | undefined>(undefined);
 
   const { runIntersectionAnalysis, runBufferAnalysis, fetchRealGISData } = useSpatialAnalysis();
   const { fetchEnvironmentalData, fetchFEMAFloodData, performZoningAnalysis, environmentalLayers, isFetching } = useAdvancedGIS();
@@ -194,13 +200,14 @@ export const GoogleMapsGIS: React.FC = () => {
     });
     autocomplete.setBounds(circle.getBounds());
 
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace();
-      
+    const handlePlaceSelection = async (place: google.maps.places.PlaceResult) => {
       if (!place.geometry || !place.geometry.location) {
         toast.error('No location details available for this place');
         return;
       }
+
+      const lat = place.geometry.location.lat();
+      const lng = place.geometry.location.lng();
 
       setSelectedProperty({
         place: place,
@@ -235,17 +242,279 @@ export const GoogleMapsGIS: React.FC = () => {
 
       selectedPropertyMarkerRef.current = marker;
 
+      // Clear previous analysis states
+      setEnvironmentalAnalysis(null);
+      setCombinedAnalysis(undefined);
+
+      // Ensure region environmental data
+      const regionCity = selectedRegion === 'central-florida' ? 'Orlando' : 'Cleveland';
+      const regionState = selectedRegion === 'central-florida' ? 'FL' : 'OH';
+      await ensureRegionEnvData(regionCity, regionState);
+
       // Trigger environmental analysis
-      analyzePropertyEnvironment(place.geometry.location.lat(), place.geometry.location.lng(), place);
+      await analyzePropertyEnvironment(lat, lng, place);
+
+      // Compute combined analysis
+      computeCombinedAnalysis(lat, lng);
 
       // Check for intersections with active layers
-      checkLayerIntersections(place.geometry.location.lat(), place.geometry.location.lng());
+      checkLayerIntersections(lat, lng);
 
       toast.success(`Selected: ${place.name || place.formatted_address}`);
+    };
+
+    autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      handlePlaceSelection(place);
     });
+
+    // Add keydown handler for Enter key
+    if (searchInputRef.current) {
+      searchInputRef.current.addEventListener('keydown', async (event) => {
+        if (event.key === 'Enter' && event.target) {
+          const address = (event.target as HTMLInputElement).value;
+          if (address && !autocomplete.getPlace()?.geometry) {
+            // Geocode the typed address
+            const geocoder = new google.maps.Geocoder();
+            try {
+              const results = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
+                geocoder.geocode({ address }, (results, status) => {
+                  if (status === google.maps.GeocoderStatus.OK && results) {
+                    resolve(results);
+                  } else {
+                    reject(new Error(`Geocoding failed: ${status}`));
+                  }
+                });
+              });
+
+              if (results.length > 0) {
+                const result = results[0];
+                const place: google.maps.places.PlaceResult = {
+                  geometry: result.geometry,
+                  formatted_address: result.formatted_address,
+                  name: result.formatted_address,
+                  types: result.types,
+                  place_id: result.place_id
+                };
+                await handlePlaceSelection(place);
+              }
+            } catch (error) {
+              console.error('Geocoding error:', error);
+              toast.error('Could not find location. Please select from suggestions.');
+            }
+          }
+        }
+      });
+    }
 
     autocompleteRef.current = autocomplete;
   }, [selectedRegion]);
+
+  const ensureRegionEnvData = async (city: string, state: string) => {
+    const hasFloodData = environmentalLayers.some(layer => 
+      layer.layer_type === 'flood_zones' && 
+      layer.city.toLowerCase() === city.toLowerCase() && 
+      layer.state === state
+    );
+    
+    const hasProtectedData = environmentalLayers.some(layer => 
+      layer.environmental_type === 'protected_lands' && 
+      layer.city.toLowerCase() === city.toLowerCase() && 
+      layer.state === state
+    );
+    
+    const hasSoilsData = environmentalLayers.some(layer => 
+      (layer.environmental_type === 'soils' || layer.environmental_type === 'wetlands') && 
+      layer.city.toLowerCase() === city.toLowerCase() && 
+      layer.state === state
+    );
+
+    const promises = [];
+    
+    if (!hasFloodData) {
+      promises.push(fetchFEMAFloodData({ city, state }));
+    }
+    
+    if (!hasProtectedData) {
+      promises.push(fetchEnvironmentalData({ city, state, dataTypes: ['protected_lands'] }));
+    }
+    
+    if (!hasSoilsData) {
+      promises.push(fetchEnvironmentalData({ city, state, dataTypes: ['soils_wetlands'] }));
+    }
+
+    if (promises.length > 0) {
+      await Promise.all(promises);
+    }
+  };
+
+  const computeCombinedAnalysis = (lat: number, lng: number) => {
+    if (!google?.maps?.geometry?.poly) return;
+    
+    const point = new google.maps.LatLng(lat, lng);
+    const regionCity = selectedRegion === 'central-florida' ? 'Orlando' : 'Cleveland';
+    const regionState = selectedRegion === 'central-florida' ? 'FL' : 'OH';
+    
+    const analysis: {
+      floodZones: { hit: boolean; name?: string; code?: string; details?: any };
+      protectedAreas: { hit: boolean; name?: string; details?: any };
+      soils: { hit: boolean; name?: string; details?: any };
+      wetlands: { hit: boolean; name?: string; details?: any };
+    } = {
+      floodZones: { hit: false },
+      protectedAreas: { hit: false },
+      soils: { hit: false },
+      wetlands: { hit: false }
+    };
+
+    // Check flood zones
+    const floodData = environmentalLayers.find(layer => 
+      layer.layer_type === 'flood_zones' && 
+      layer.city.toLowerCase() === regionCity.toLowerCase() &&
+      layer.state === regionState
+    );
+    
+    if (floodData?.geometry_data) {
+      try {
+        const geometryData = typeof floodData.geometry_data === 'string' 
+          ? JSON.parse(floodData.geometry_data) 
+          : floodData.geometry_data;
+        
+        if (geometryData.features) {
+          for (const feature of geometryData.features) {
+            if (feature.geometry?.coordinates) {
+              const paths = feature.geometry.type === 'Polygon' 
+                ? [feature.geometry.coordinates[0].map((coord: [number, number]) => new google.maps.LatLng(coord[1], coord[0]))]
+                : feature.geometry.type === 'MultiPolygon'
+                ? feature.geometry.coordinates.map((polygon: any) => 
+                    polygon[0].map((coord: [number, number]) => new google.maps.LatLng(coord[1], coord[0]))
+                  )
+                : [];
+              
+              for (const path of paths) {
+                const polygon = new google.maps.Polygon({ paths: path });
+                if (google.maps.geometry.poly.containsLocation(point, polygon)) {
+                  analysis.floodZones = {
+                    hit: true,
+                    name: feature.properties?.ZONE_SUBTY || feature.properties?.FLD_ZONE || 'Flood Zone',
+                    code: feature.properties?.ZONE_SUBTY,
+                    details: feature.properties
+                  };
+                  break;
+                }
+              }
+              if (analysis.floodZones.hit) break;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking flood zones:', error);
+      }
+    }
+
+    // Check protected areas
+    const protectedData = environmentalLayers.find(layer => 
+      layer.environmental_type === 'protected_lands' && 
+      layer.city.toLowerCase() === regionCity.toLowerCase() &&
+      layer.state === regionState
+    );
+    
+    if (protectedData?.geometry_data) {
+      try {
+        const geometryData = typeof protectedData.geometry_data === 'string' 
+          ? JSON.parse(protectedData.geometry_data) 
+          : protectedData.geometry_data;
+        
+        if (geometryData.features) {
+          for (const feature of geometryData.features) {
+            if (feature.geometry?.coordinates) {
+              const paths = feature.geometry.type === 'Polygon' 
+                ? [feature.geometry.coordinates[0].map((coord: [number, number]) => new google.maps.LatLng(coord[1], coord[0]))]
+                : feature.geometry.type === 'MultiPolygon'
+                ? feature.geometry.coordinates.map((polygon: any) => 
+                    polygon[0].map((coord: [number, number]) => new google.maps.LatLng(coord[1], coord[0]))
+                  )
+                : [];
+              
+              for (const path of paths) {
+                const polygon = new google.maps.Polygon({ paths: path });
+                if (google.maps.geometry.poly.containsLocation(point, polygon)) {
+                  analysis.protectedAreas = {
+                    hit: true,
+                    name: feature.properties?.Unit_Nm || 'Protected Area',
+                    details: feature.properties
+                  };
+                  break;
+                }
+              }
+              if (analysis.protectedAreas.hit) break;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking protected areas:', error);
+      }
+    }
+
+    // Check soils and wetlands
+    const soilsWetlandsData = environmentalLayers.filter(layer => 
+      (layer.environmental_type === 'soils' || layer.environmental_type === 'wetlands') && 
+      layer.city.toLowerCase() === regionCity.toLowerCase() &&
+      layer.state === regionState
+    );
+    
+    for (const layerData of soilsWetlandsData) {
+      if (layerData.geometry_data) {
+        try {
+          const geometryData = typeof layerData.geometry_data === 'string' 
+            ? JSON.parse(layerData.geometry_data) 
+            : layerData.geometry_data;
+          
+          if (geometryData.features) {
+            for (const feature of geometryData.features) {
+              if (feature.geometry?.coordinates) {
+                const paths = feature.geometry.type === 'Polygon' 
+                  ? [feature.geometry.coordinates[0].map((coord: [number, number]) => new google.maps.LatLng(coord[1], coord[0]))]
+                  : feature.geometry.type === 'MultiPolygon'
+                  ? feature.geometry.coordinates.map((polygon: any) => 
+                      polygon[0].map((coord: [number, number]) => new google.maps.LatLng(coord[1], coord[0]))
+                    )
+                  : [];
+                
+                for (const path of paths) {
+                  const polygon = new google.maps.Polygon({ paths: path });
+                  if (google.maps.geometry.poly.containsLocation(point, polygon)) {
+                    if (layerData.environmental_type === 'soils') {
+                      analysis.soils = {
+                        hit: true,
+                        name: feature.properties?.MUNAME || feature.properties?.mapunit || 'Soil Unit',
+                        details: feature.properties
+                      };
+                    } else if (layerData.environmental_type === 'wetlands') {
+                      analysis.wetlands = {
+                        hit: true,
+                        name: feature.properties?.WETLAND_TYPE || feature.properties?.ATTRIBUTE || 'Wetland',
+                        details: feature.properties
+                      };
+                    }
+                    break;
+                  }
+                }
+                if ((layerData.environmental_type === 'soils' && analysis.soils.hit) ||
+                    (layerData.environmental_type === 'wetlands' && analysis.wetlands.hit)) {
+                  break;
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Error checking ${layerData.environmental_type}:`, error);
+        }
+      }
+    }
+
+    setCombinedAnalysis(analysis);
+  };
 
   const checkLayerIntersections = (lat: number, lng: number) => {
     console.log('Checking layer intersections for property at:', lat, lng);
@@ -1204,11 +1473,6 @@ export const GoogleMapsGIS: React.FC = () => {
                           {layer.name}
                           {isFetching && layer.id === 'flood_zones' && (
                             <span className="ml-2 text-xs text-blue-400">(Loading...)</span>
-                          )}
-                          {layerData?.real_time_enabled && (
-                            <span className="ml-2 px-1.5 py-0.5 text-xs bg-green-500/20 text-green-400 rounded">
-                              Live
-                            </span>
                           )}
                         </Label>
                       </div>
