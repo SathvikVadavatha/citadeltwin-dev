@@ -61,6 +61,15 @@ export const GoogleMapsGIS: React.FC = () => {
   const floodZoneOverlaysRef = useRef<google.maps.Polygon[]>([]);
   const protectedAreaOverlaysRef = useRef<google.maps.Polygon[]>([]);
   const soilsWetlandsOverlaysRef = useRef<google.maps.Polygon[]>([]);
+  
+  // Refs for analysis report stability
+  const lastGoodCombinedAnalysisRef = useRef<{
+    floodZones: string[];
+    protectedAreas: string[];
+    soilsWetlands: string[];
+  } | undefined>(undefined);
+  const lastPropertyKeyRef = useRef<string | null>(null);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRegion, setSelectedRegion] = useState<'central-florida' | 'northeast-ohio'>('central-florida');
   const [analysisResults, setAnalysisResults] = useState<SpatialAnalysisResult[]>([]);
@@ -102,7 +111,7 @@ export const GoogleMapsGIS: React.FC = () => {
       name: 'Soils & Wetlands', 
       type: 'soils',
       enabled: false, 
-      color: '#22c55e',
+      color: '#8B4513',
       description: 'NRCS soil types and USFWS wetlands data'
     }
   ]);
@@ -348,7 +357,21 @@ export const GoogleMapsGIS: React.FC = () => {
   };
 
   const computeCombinedAnalysis = (lat: number, lng: number) => {
-    if (!google?.maps?.geometry?.poly) return;
+    if (!google?.maps?.geometry?.poly) {
+      console.log('Google Maps geometry API not available');
+      return;
+    }
+    
+    // Generate current property key for stability
+    const currentPropertyKey = selectedProperty ? 
+      `${selectedProperty.location.lat().toFixed(6)}_${selectedProperty.location.lng().toFixed(6)}_${selectedRegion}` : 
+      null;
+    
+    // Skip recomputation if environmentalLayers are empty or still fetching
+    if (environmentalLayers.length === 0 || isFetching) {
+      console.log('Skipping analysis - no environmental data or still fetching');
+      return;
+    }
     
     const point = new google.maps.LatLng(lat, lng);
     const regionCity = selectedRegion === 'central-florida' ? 'Orlando' : 'Cleveland';
@@ -521,7 +544,10 @@ export const GoogleMapsGIS: React.FC = () => {
       }
     }
 
+    // Update analysis and preserve as last good state
     setCombinedAnalysis(analysis);
+    lastGoodCombinedAnalysisRef.current = analysis;
+    lastPropertyKeyRef.current = currentPropertyKey;
   };
 
   const checkLayerIntersections = (lat: number, lng: number) => {
@@ -1335,47 +1361,13 @@ export const GoogleMapsGIS: React.FC = () => {
 
   // Recompute analysis when data changes (independent of layer toggles)
   useEffect(() => {
-    if (selectedProperty && window.google?.maps?.geometry?.poly) {
+    if (selectedProperty && window.google?.maps?.geometry?.poly && environmentalLayers.length > 0) {
       const lat = selectedProperty.location.lat();
       const lng = selectedProperty.location.lng();
       console.log('Recomputing analysis due to data/region change:', { lat, lng, selectedRegion });
       computeCombinedAnalysis(lat, lng);
     }
   }, [selectedProperty, environmentalLayers, selectedRegion]);
-
-  // Render layers based on enabled state
-  useEffect(() => {
-    if (!mapInstanceRef.current) return;
-
-    const floodLayer = layers.find(l => l.id === 'flood_zones');
-    if (floodLayer?.enabled) {
-      renderFloodZones();
-    } else {
-      clearFloodZones();
-    }
-  }, [layers, renderFloodZones, clearFloodZones]);
-
-  useEffect(() => {
-    if (!mapInstanceRef.current) return;
-
-    const protectedLayer = layers.find(l => l.id === 'protected_lands');
-    if (protectedLayer?.enabled) {
-      renderProtectedAreas();
-    } else {
-      clearProtectedAreas();
-    }
-  }, [layers, renderProtectedAreas, clearProtectedAreas]);
-
-  useEffect(() => {
-    if (!mapInstanceRef.current) return;
-
-    const soilsLayer = layers.find(l => l.id === 'soils_wetlands');
-    if (soilsLayer?.enabled) {
-      renderSoilsWetlands();
-    } else {
-      clearSoilsWetlands();
-    }
-  }, [layers, renderSoilsWetlands, clearSoilsWetlands]);
 
   if (apiKeyError) {
     return (
@@ -1551,71 +1543,82 @@ export const GoogleMapsGIS: React.FC = () => {
 
 
           {/* Analysis Report */}
-          {selectedProperty && combinedAnalysis && (combinedAnalysis.floodZones.length > 0 || combinedAnalysis.protectedAreas.length > 0 || combinedAnalysis.soilsWetlands.length > 0) && (
-            <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2" style={{ color: 'hsl(0 0% 98%)' }}>
-                  <MapPin className="w-5 h-5" />
-                  Analysis Report
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {combinedAnalysis.floodZones.length > 0 && (
-                  <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'hsl(240 51% 15%)', border: '1px solid hsl(240 51% 25%)' }}>
-                    <div className="w-5 h-5 flex-shrink-0 mt-0.5">
-                      <svg className="w-5 h-5" fill="hsl(240 51% 75%)" viewBox="0 0 24 24">
-                        <path d="M12 2L14 7L18 7L15 10L16 14L12 12L8 14L9 10L6 7L10 7L12 2Z"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <h5 className="font-medium" style={{ color: 'hsl(240 51% 95%)' }}>FEMA Flood Zones</h5>
-                      <div className="text-sm space-y-1" style={{ color: 'hsl(240 51% 75%)' }}>
-                        {combinedAnalysis.floodZones.map((zone, index) => (
-                          <div key={index}>{zone}</div>
-                        ))}
+          {selectedProperty && (() => {
+            // Use current analysis or fallback to last good analysis for stability
+            const analysisToShow = combinedAnalysis || lastGoodCombinedAnalysisRef.current;
+            const currentPropertyKey = selectedProperty ? 
+              `${selectedProperty.location.lat().toFixed(6)}_${selectedProperty.location.lng().toFixed(6)}_${selectedRegion}` : 
+              null;
+            
+            // Show analysis if we have data and the property key matches (or no previous key exists)
+            return analysisToShow && 
+              (analysisToShow.floodZones.length > 0 || analysisToShow.protectedAreas.length > 0 || analysisToShow.soilsWetlands.length > 0) &&
+              (lastPropertyKeyRef.current === currentPropertyKey || !lastPropertyKeyRef.current) ? (
+              <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2" style={{ color: 'hsl(0 0% 98%)' }}>
+                    <MapPin className="w-5 h-5" />
+                    Analysis Report
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {analysisToShow.floodZones.length > 0 && (
+                    <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'hsl(240 51% 15%)', border: '1px solid hsl(240 51% 25%)' }}>
+                      <div className="w-5 h-5 flex-shrink-0 mt-0.5">
+                        <svg className="w-5 h-5" fill="hsl(240 51% 75%)" viewBox="0 0 24 24">
+                          <path d="M12 2L14 7L18 7L15 10L16 14L12 12L8 14L9 10L6 7L10 7L12 2Z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <h5 className="font-medium" style={{ color: 'hsl(240 51% 95%)' }}>FEMA Flood Zones</h5>
+                        <div className="text-sm space-y-1" style={{ color: 'hsl(240 51% 75%)' }}>
+                          {analysisToShow.floodZones.map((zone, index) => (
+                            <div key={index}>{zone}</div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-                
-                {combinedAnalysis.protectedAreas.length > 0 && (
-                  <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'hsl(142 51% 15%)', border: '1px solid hsl(142 51% 25%)' }}>
-                    <div className="w-5 h-5 flex-shrink-0 mt-0.5">
-                      <svg className="w-5 h-5" fill="hsl(142 51% 75%)" viewBox="0 0 24 24">
-                        <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1M12 7C13.4 7 14.8 8.6 14.8 10V14H17V20H7V14H9.2V10C9.2 8.6 10.6 7 12 7Z"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <h5 className="font-medium" style={{ color: 'hsl(142 51% 95%)' }}>Protected Areas</h5>
-                      <div className="text-sm space-y-1" style={{ color: 'hsl(142 51% 75%)' }}>
-                        {combinedAnalysis.protectedAreas.map((area, index) => (
-                          <div key={index}>{area}</div>
-                        ))}
+                  )}
+                  
+                  {analysisToShow.protectedAreas.length > 0 && (
+                    <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'hsl(142 51% 15%)', border: '1px solid hsl(142 51% 25%)' }}>
+                      <div className="w-5 h-5 flex-shrink-0 mt-0.5">
+                        <svg className="w-5 h-5" fill="hsl(142 51% 75%)" viewBox="0 0 24 24">
+                          <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1M12 7C13.4 7 14.8 8.6 14.8 10V14H17V20H7V14H9.2V10C9.2 8.6 10.6 7 12 7Z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <h5 className="font-medium" style={{ color: 'hsl(142 51% 95%)' }}>Protected Areas</h5>
+                        <div className="text-sm space-y-1" style={{ color: 'hsl(142 51% 75%)' }}>
+                          {analysisToShow.protectedAreas.map((area, index) => (
+                            <div key={index}>{area}</div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-                
-                {combinedAnalysis.soilsWetlands.length > 0 && (
-                  <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'hsl(45 51% 15%)', border: '1px solid hsl(45 51% 25%)' }}>
-                    <div className="w-5 h-5 flex-shrink-0 mt-0.5">
-                      <svg className="w-5 h-5" fill="hsl(45 51% 75%)" viewBox="0 0 24 24">
-                        <path d="M14,6L10.25,11L13.1,14.8L11.5,16C9.81,13.75 7,10 7,10L1,18H23L14,6Z"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <h5 className="font-medium" style={{ color: 'hsl(45 51% 95%)' }}>Soils & Wetlands</h5>
-                      <div className="text-sm space-y-1" style={{ color: 'hsl(45 51% 75%)' }}>
-                        {combinedAnalysis.soilsWetlands.map((soil, index) => (
-                          <div key={index}>{soil}</div>
-                        ))}
+                  )}
+                  
+                  {analysisToShow.soilsWetlands.length > 0 && (
+                    <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'hsl(30 51% 15%)', border: '1px solid hsl(30 51% 25%)' }}>
+                      <div className="w-5 h-5 flex-shrink-0 mt-0.5">
+                        <svg className="w-5 h-5" fill="hsl(30 51% 75%)" viewBox="0 0 24 24">
+                          <path d="M14,6L10.25,11L13.1,14.8L11.5,16C9.81,13.75 7,10 7,10L1,18H23L14,6Z"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <h5 className="font-medium" style={{ color: 'hsl(30 51% 95%)' }}>Soils & Wetlands</h5>
+                        <div className="text-sm space-y-1" style={{ color: 'hsl(30 51% 75%)' }}>
+                          {analysisToShow.soilsWetlands.map((soil, index) => (
+                            <div key={index}>{soil}</div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                  )}
+                </CardContent>
+              </Card>
+            ) : null;
+          })()}
 
         </div>
       </div>
