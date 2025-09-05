@@ -252,7 +252,6 @@ export const GoogleMapsGIS: React.FC = () => {
 
       // Clear previous analysis states
       setEnvironmentalAnalysis(null);
-      setCombinedAnalysis(undefined);
 
       // Ensure region environmental data
       const regionCity = selectedRegion === 'central-florida' ? 'Orlando' : 'Cleveland';
@@ -357,7 +356,7 @@ export const GoogleMapsGIS: React.FC = () => {
   };
 
   const computeCombinedAnalysis = (lat: number, lng: number) => {
-    if (!google?.maps?.geometry?.poly) {
+    if (!window.google?.maps?.geometry?.poly) {
       console.log('Google Maps geometry API not available');
       return;
     }
@@ -367,13 +366,13 @@ export const GoogleMapsGIS: React.FC = () => {
       `${selectedProperty.location.lat().toFixed(6)}_${selectedProperty.location.lng().toFixed(6)}_${selectedRegion}` : 
       null;
     
-    // Skip recomputation if environmentalLayers are empty or still fetching
-    if (environmentalLayers.length === 0 || isFetching) {
-      console.log('Skipping analysis - no environmental data or still fetching');
+    // Skip recomputation if environmentalLayers are empty
+    if (environmentalLayers.length === 0) {
+      console.log('Skipping analysis - no environmental data available');
       return;
     }
     
-    const point = new google.maps.LatLng(lat, lng);
+    const point = new window.google.maps.LatLng(lat, lng);
     const regionCity = selectedRegion === 'central-florida' ? 'Orlando' : 'Cleveland';
     const regionState = selectedRegion === 'central-florida' ? 'FL' : 'OH';
     
@@ -394,26 +393,26 @@ export const GoogleMapsGIS: React.FC = () => {
       if (geometryType === 'Polygon') {
         // Handle polygon with potential holes
         const outerRing = coordinates[0].map((coord: [number, number]) => 
-          new google.maps.LatLng(coord[1], coord[0])
+          new window.google.maps.LatLng(coord[1], coord[0])
         );
         const holes = coordinates.slice(1).map((hole: [number, number][]) =>
-          hole.map((coord: [number, number]) => new google.maps.LatLng(coord[1], coord[0]))
+          hole.map((coord: [number, number]) => new window.google.maps.LatLng(coord[1], coord[0]))
         );
         
         const paths = holes.length > 0 ? [outerRing, ...holes] : outerRing;
-        polygons.push(new google.maps.Polygon({ paths }));
+        polygons.push(new window.google.maps.Polygon({ paths }));
       } else if (geometryType === 'MultiPolygon') {
         // Handle multiple polygons, each potentially with holes
         for (const polygonCoords of coordinates) {
           const outerRing = polygonCoords[0].map((coord: [number, number]) => 
-            new google.maps.LatLng(coord[1], coord[0])
+            new window.google.maps.LatLng(coord[1], coord[0])
           );
           const holes = polygonCoords.slice(1).map((hole: [number, number][]) =>
-            hole.map((coord: [number, number]) => new google.maps.LatLng(coord[1], coord[0]))
+            hole.map((coord: [number, number]) => new window.google.maps.LatLng(coord[1], coord[0]))
           );
           
           const paths = holes.length > 0 ? [outerRing, ...holes] : outerRing;
-          polygons.push(new google.maps.Polygon({ paths }));
+          polygons.push(new window.google.maps.Polygon({ paths }));
         }
       }
       
@@ -439,7 +438,7 @@ export const GoogleMapsGIS: React.FC = () => {
               const polygons = createPolygonFromCoords(feature.geometry.coordinates, feature.geometry.type);
               
               for (const polygon of polygons) {
-                if (google.maps.geometry.poly.containsLocation(point, polygon)) {
+                if (window.google.maps.geometry.poly.containsLocation(point, polygon)) {
                   const zone = feature.properties?.FLD_ZONE || feature.properties?.ZONE_SUBTY || feature.properties?.flood_zone || 'Unknown Zone';
                   const riskLevel = feature.properties?.risk_level || 
                     (zone.includes('VE') || zone.includes('AE') ? 'High' :
@@ -478,7 +477,7 @@ export const GoogleMapsGIS: React.FC = () => {
               const polygons = createPolygonFromCoords(feature.geometry.coordinates, feature.geometry.type);
               
               for (const polygon of polygons) {
-                if (google.maps.geometry.poly.containsLocation(point, polygon)) {
+                if (window.google.maps.geometry.poly.containsLocation(point, polygon)) {
                   const unitName = feature.properties?.Unit_Nm || 'Protected Area';
                   const agency = feature.properties?.Mang_Name || 'Unknown Agency';
                   const type = feature.properties?.Des_Tp || 'Protected Land';
@@ -518,7 +517,7 @@ export const GoogleMapsGIS: React.FC = () => {
                 const polygons = createPolygonFromCoords(feature.geometry.coordinates, feature.geometry.type);
                 
                 for (const polygon of polygons) {
-                  if (google.maps.geometry.poly.containsLocation(point, polygon)) {
+                  if (window.google.maps.geometry.poly.containsLocation(point, polygon)) {
                     let name = '';
                     if (layerData.environmental_type === 'soils') {
                       const soilName = feature.properties?.MUNAME || 'Unknown Soil';
@@ -544,7 +543,13 @@ export const GoogleMapsGIS: React.FC = () => {
       }
     }
 
-    // Update analysis and preserve as last good state
+    // Update analysis and preserve as last good state with debug logs
+    console.log('Analysis computed:', {
+      floodZones: analysis.floodZones,
+      protectedAreas: analysis.protectedAreas,
+      soilsWetlands: analysis.soilsWetlands,
+      totalMatches: analysis.floodZones.length + analysis.protectedAreas.length + analysis.soilsWetlands.length
+    });
     setCombinedAnalysis(analysis);
     lastGoodCombinedAnalysisRef.current = analysis;
     lastPropertyKeyRef.current = currentPropertyKey;
@@ -1546,14 +1551,10 @@ export const GoogleMapsGIS: React.FC = () => {
           {selectedProperty && (() => {
             // Use current analysis or fallback to last good analysis for stability
             const analysisToShow = combinedAnalysis || lastGoodCombinedAnalysisRef.current;
-            const currentPropertyKey = selectedProperty ? 
-              `${selectedProperty.location.lat().toFixed(6)}_${selectedProperty.location.lng().toFixed(6)}_${selectedRegion}` : 
-              null;
             
-            // Show analysis if we have data and the property key matches (or no previous key exists)
+            // Show analysis if we have data for any category
             return analysisToShow && 
-              (analysisToShow.floodZones.length > 0 || analysisToShow.protectedAreas.length > 0 || analysisToShow.soilsWetlands.length > 0) &&
-              (lastPropertyKeyRef.current === currentPropertyKey || !lastPropertyKeyRef.current) ? (
+              (analysisToShow.floodZones.length > 0 || analysisToShow.protectedAreas.length > 0 || analysisToShow.soilsWetlands.length > 0) ? (
               <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2" style={{ color: 'hsl(0 0% 98%)' }}>
