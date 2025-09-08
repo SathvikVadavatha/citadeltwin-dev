@@ -103,7 +103,7 @@ export const GoogleMapsGIS: React.FC = () => {
       name: 'Protected Areas', 
       type: 'protected_lands',
       enabled: false, 
-      color: '#f97316',
+      color: '#22c55e',
       description: 'National parks, wildlife refuges, and conservation areas'
     },
     { 
@@ -652,7 +652,7 @@ export const GoogleMapsGIS: React.FC = () => {
         // Reset after 3 seconds
         setTimeout(() => {
           polygon.setOptions({
-            strokeColor: polygon.get('originalStrokeColor') || '#ea580c',
+            strokeColor: polygon.get('originalStrokeColor') || '#16a34a',
             strokeWeight: 2,
             fillOpacity: polygon.get('originalFillOpacity') || 0.35
           });
@@ -973,26 +973,26 @@ export const GoogleMapsGIS: React.FC = () => {
               const unitName = feature.properties?.Unit_Nm || 'Protected Area';
               const managingAgency = feature.properties?.Mang_Name || 'Unknown Agency';
               
-              // Orange color scheme with brightness indicating protection level
-              let fillColor = '#f97316'; // Default orange
-              let strokeColor = '#ea580c';
+              // Green color scheme with brightness indicating protection level
+              let fillColor = '#22c55e'; // Default green
+              let strokeColor = '#16a34a';
               let opacity = 0.3;
               
               if (gapStatus === '1') {
-                fillColor = '#c2410c'; // Highest protection - darker orange
-                strokeColor = '#9a3412';
+                fillColor = '#15803d'; // Highest protection - darker green
+                strokeColor = '#166534';
                 opacity = 0.5;
               } else if (gapStatus === '2') {
-                fillColor = '#ea580c'; // High protection - medium orange
-                strokeColor = '#c2410c';
+                fillColor = '#16a34a'; // High protection - medium green
+                strokeColor = '#15803d';
                 opacity = 0.4;
               } else if (gapStatus === '3') {
-                fillColor = '#f97316'; // Moderate protection - standard orange
-                strokeColor = '#ea580c';
+                fillColor = '#22c55e'; // Moderate protection - standard green
+                strokeColor = '#16a34a';
                 opacity = 0.35;
               } else {
-                fillColor = '#fb923c'; // Lower protection - lighter orange
-                strokeColor = '#f97316';
+                fillColor = '#4ade80'; // Lower protection - lighter green
+                strokeColor = '#22c55e';
                 opacity = 0.25;
               }
 
