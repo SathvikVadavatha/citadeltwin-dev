@@ -11,7 +11,7 @@ interface DeliveryLogsViewerProps {
 }
 
 export const DeliveryLogsViewer: React.FC<DeliveryLogsViewerProps> = ({ onClose }) => {
-  const { deliveryLogs, isLoading } = useDeliveryLogs();
+  const { deliveryLogs, isLoading, downloadReport } = useDeliveryLogs();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -164,8 +164,8 @@ export const DeliveryLogsViewer: React.FC<DeliveryLogsViewerProps> = ({ onClose 
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        // In a real implementation, this would download the file
-                        console.log('Download file:', log.file_path);
+                        const fileName = log.file_path?.split('/').pop() || `report_${log.id}`;
+                        downloadReport(log.file_path!, fileName);
                       }}
                     >
                       <Download className="h-4 w-4 mr-2" />

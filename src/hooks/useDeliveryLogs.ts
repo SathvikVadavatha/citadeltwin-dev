@@ -31,8 +31,30 @@ export const useDeliveryLogs = (reportId?: string) => {
     enabled: true,
   });
 
+  const downloadReport = async (filePath: string, fileName: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(filePath);
+      
+      if (error) throw error;
+      
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading report:', error);
+    }
+  };
+
   return {
     deliveryLogs: deliveryLogs || [],
     isLoading,
+    downloadReport,
   };
 };
