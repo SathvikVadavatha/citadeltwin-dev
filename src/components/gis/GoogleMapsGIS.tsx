@@ -99,11 +99,11 @@ export const GoogleMapsGIS: React.FC = () => {
       description: 'Federal Emergency Management Agency flood risk areas'
     },
     { 
-      id: 'protected_lands', 
+      id: 'protected_lands',
       name: 'Protected Areas', 
       type: 'protected_lands',
       enabled: false, 
-      color: '#22c55e',
+      color: '#a855f7',
       description: 'National parks, wildlife refuges, and conservation areas'
     },
     { 
@@ -652,7 +652,7 @@ export const GoogleMapsGIS: React.FC = () => {
         // Reset after 3 seconds
         setTimeout(() => {
           polygon.setOptions({
-            strokeColor: polygon.get('originalStrokeColor') || '#16a34a',
+            strokeColor: polygon.get('originalStrokeColor') || '#9333ea',
             strokeWeight: 2,
             fillOpacity: polygon.get('originalFillOpacity') || 0.35
           });
@@ -973,26 +973,26 @@ export const GoogleMapsGIS: React.FC = () => {
               const unitName = feature.properties?.Unit_Nm || 'Protected Area';
               const managingAgency = feature.properties?.Mang_Name || 'Unknown Agency';
               
-              // Green color scheme with brightness indicating protection level
-              let fillColor = '#22c55e'; // Default green
-              let strokeColor = '#16a34a';
+              // Purple color scheme with brightness indicating protection level
+              let fillColor = '#a855f7'; // Default purple
+              let strokeColor = '#9333ea';
               let opacity = 0.3;
               
               if (gapStatus === '1') {
-                fillColor = '#15803d'; // Highest protection - darker green
-                strokeColor = '#166534';
+                fillColor = '#7c3aed'; // Highest protection - darker purple
+                strokeColor = '#6d28d9';
                 opacity = 0.5;
               } else if (gapStatus === '2') {
-                fillColor = '#16a34a'; // High protection - medium green
-                strokeColor = '#15803d';
+                fillColor = '#8b5cf6'; // High protection - medium purple
+                strokeColor = '#7c3aed';
                 opacity = 0.4;
               } else if (gapStatus === '3') {
-                fillColor = '#22c55e'; // Moderate protection - standard green
-                strokeColor = '#16a34a';
+                fillColor = '#a855f7'; // Moderate protection - standard purple
+                strokeColor = '#9333ea';
                 opacity = 0.35;
               } else {
-                fillColor = '#4ade80'; // Lower protection - lighter green
-                strokeColor = '#22c55e';
+                fillColor = '#c084fc'; // Lower protection - lighter purple
+                strokeColor = '#a855f7';
                 opacity = 0.25;
               }
 
