@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Download, FileText, Mail, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Mail, AlertCircle } from 'lucide-react';
 import { useDeliveryLogs } from '@/hooks/useDeliveryLogs';
 import { format } from 'date-fns';
 
@@ -11,7 +11,7 @@ interface DeliveryLogsViewerProps {
 }
 
 export const DeliveryLogsViewer: React.FC<DeliveryLogsViewerProps> = ({ onClose }) => {
-  const { deliveryLogs, isLoading, downloadReport } = useDeliveryLogs();
+  const { deliveryLogs, isLoading } = useDeliveryLogs();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -33,9 +33,9 @@ export const DeliveryLogsViewer: React.FC<DeliveryLogsViewerProps> = ({ onClose 
       case 'failed':
         return <AlertCircle className="h-4 w-4" />;
       case 'generating':
-        return <FileText className="h-4 w-4" />;
+        return <AlertCircle className="h-4 w-4" />;
       default:
-        return <FileText className="h-4 w-4" />;
+        return <AlertCircle className="h-4 w-4" />;
     }
   };
 
@@ -158,19 +158,9 @@ export const DeliveryLogsViewer: React.FC<DeliveryLogsViewerProps> = ({ onClose 
                   </div>
                 )}
 
-                {log.file_path && log.status === 'sent' && (
-                  <div className="mt-3 flex justify-end">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const fileName = log.file_path?.split('/').pop() || `report_${log.id}`;
-                        downloadReport(log.file_path!, fileName);
-                      }}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download Report
-                    </Button>
+                {log.status === 'sent' && (
+                  <div className="mt-3 text-sm text-muted-foreground">
+                    Report sent via email to recipients
                   </div>
                 )}
               </div>

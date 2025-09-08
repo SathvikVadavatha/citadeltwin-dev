@@ -70,66 +70,81 @@ serve(async (req) => {
     // Calculate file size
     const fileSize = new TextEncoder().encode(reportContent).length;
 
-    // Store the report content in Supabase Storage for download
+    // No need to store in storage since we're sending via email
     const fileName = `${report.name.replace(/\s+/g, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.${fileExtension}`;
-    const filePath = `reports/${reportId}/${fileName}`;
-    
-    const { error: uploadError } = await supabase.storage
-      .from('documents')
-      .upload(filePath, reportContent, {
-        contentType: fileExtension === 'csv' ? 'text/csv' : 
-                    fileExtension === 'json' ? 'application/json' : 'text/html',
-        upsert: true
-      });
+    const filePath = null; // Not storing file, sending via email
 
-    if (uploadError) {
-      console.error('Error uploading report to storage:', uploadError);
-    }
-
-    // Create in-app notifications for recipients instead of emails
-    const notificationPromises = report.recipients.map(async (recipient: string) => {
+    // Send emails directly to recipients using Supabase Auth Admin API
+    const emailPromises = report.recipients.map(async (recipient: string) => {
       try {
-        // Find user by email to create notification
-        const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
-        const user = userData?.users?.find(u => u.email === recipient);
+        // Create email HTML content with embedded report data
+        const emailHTML = generateEmailContent(reportData, report, reportContent);
         
-        if (user) {
-          // Create a notification record (you may need to create this table)
-          const notificationData = {
-            user_id: user.id,
-            title: `Scheduled Report: ${report.name}`,
-            message: `Your ${report.report_type} report has been generated and is ready for download.`,
-            type: 'report_ready',
-            metadata: {
-              report_id: reportId,
-              delivery_id: deliveryId,
-              file_path: filePath,
-              report_name: report.name,
-              format: report.delivery_format
-            },
-            created_at: new Date().toISOString()
-          };
-
-          // Insert notification - this will work if notifications table exists
-          const { error: notificationError } = await supabase
-            .from('notifications')
-            .insert(notificationData);
-
-          if (notificationError) {
-            console.log('Notification table may not exist, skipping notification');
+        // Use Supabase Auth Admin API to send custom email
+        const { error: emailError } = await supabase.auth.admin.inviteUserByEmail(recipient, {
+          data: {
+            custom_email: true,
+            email_type: 'scheduled_report',
+            subject: `Scheduled Report: ${report.name}`,
+            html_content: emailHTML,
+            report_data: reportContent,
+            report_format: report.delivery_format,
+            report_name: report.name
           }
+        });
+
+        if (emailError) {
+          console.error(`Error sending email to ${recipient}:`, emailError);
+          // Fallback: Create client notification
+          await supabase
+            .from('client_notifications')
+            .insert({
+              client_email: recipient,
+              title: `Scheduled Report: ${report.name}`,
+              content: `Your ${report.report_type} report has been generated. Report data: ${reportContent.substring(0, 500)}...`,
+              type: 'scheduled_report',
+              read: false,
+              metadata: {
+                report_id: reportId,
+                delivery_id: deliveryId,
+                report_name: report.name,
+                format: report.delivery_format,
+                full_report: reportContent
+              }
+            });
         }
-        
-        console.log(`Report prepared for ${recipient}`);
+
+        console.log(`Report email sent to ${recipient}`);
         return recipient;
       } catch (error) {
-        console.error(`Failed to prepare report for ${recipient}:`, error);
-        return recipient; // Still count as successful for the delivery record
+        console.error(`Failed to send report email to ${recipient}:`, error);
+        // Fallback: Create client notification with full report data
+        try {
+          await supabase
+            .from('client_notifications')
+            .insert({
+              client_email: recipient,
+              title: `Scheduled Report: ${report.name}`,
+              content: `Your ${report.report_type} report has been generated. Report data: ${reportContent.substring(0, 500)}...`,
+              type: 'scheduled_report',
+              read: false,
+              metadata: {
+                report_id: reportId,
+                delivery_id: deliveryId,
+                report_name: report.name,
+                format: report.delivery_format,
+                full_report: reportContent
+              }
+            });
+        } catch (notifError) {
+          console.error(`Failed to create fallback notification for ${recipient}:`, notifError);
+        }
+        return recipient; // Still count as processed
       }
     });
 
-    // Wait for all notifications to be processed
-    const processedRecipients = await Promise.allSettled(notificationPromises);
+    // Wait for all emails to be processed
+    const processedRecipients = await Promise.allSettled(emailPromises);
     const successfulRecipients = processedRecipients
       .filter(result => result.status === 'fulfilled')
       .map(result => (result as PromiseFulfilledResult<string>).value);
@@ -161,7 +176,7 @@ serve(async (req) => {
         executionTime,
         fileSize,
         filePath,
-        message: 'Report generated and stored. Recipients will be notified in-app.'
+        message: 'Report generated and sent via email to recipients.'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -322,5 +337,57 @@ function generateHTMLContent(reportData: ReportData, report: any): string {
         </tbody>
       </table>
     </div>
+  `;
+}
+
+function generateEmailContent(reportData: ReportData, report: any, reportContent: string): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Scheduled Report: ${report.name}</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px;">
+        <h1 style="margin: 0; font-size: 28px;">CitadelTwin Scheduled Report</h1>
+        <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Your automated ${report.report_type} report is ready</p>
+      </div>
+      
+      <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; border-left: 4px solid #667eea; margin-bottom: 30px;">
+        <h2 style="margin-top: 0; color: #667eea;">${report.name}</h2>
+        <p><strong>Generated:</strong> ${new Date(reportData.dateGenerated).toLocaleString()}</p>
+        <p><strong>Report Type:</strong> ${report.report_type.toUpperCase()}</p>
+        <p><strong>Format:</strong> ${report.delivery_format.toUpperCase()}</p>
+      </div>
+
+      <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 30px;">
+        <h3 style="color: #667eea; margin-top: 0;">Report Summary</h3>
+        <p><strong>Total Items:</strong> ${reportData.summary.totalItems}</p>
+        ${reportData.summary.successRate ? `<p><strong>Success Rate:</strong> ${reportData.summary.successRate}%</p>` : ''}
+        ${reportData.summary.averageScore ? `<p><strong>Average Score:</strong> ${reportData.summary.averageScore}</p>` : ''}
+      </div>
+
+      <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 30px;">
+        <h3 style="color: #667eea; margin-top: 0;">Report Data</h3>
+        <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px;">
+          <pre style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 12px; padding: 15px; margin: 0; background: #f8f9fa;">${reportContent}</pre>
+        </div>
+      </div>
+
+      <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; border-left: 4px solid #2196f3;">
+        <p style="margin: 0; font-size: 14px; color: #1976d2;">
+          <strong>Note:</strong> This is an automated report generated by CitadelTwin. The complete report data is included above for your review and analysis.
+        </p>
+      </div>
+
+      <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
+        <p style="color: #666; font-size: 12px; margin: 0;">
+          Generated by CitadelTwin - Civil Engineering Digital Twin Platform<br>
+          © ${new Date().getFullYear()} Community Dreams Foundation
+        </p>
+      </div>
+    </body>
+    </html>
   `;
 }

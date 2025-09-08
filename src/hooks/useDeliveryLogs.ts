@@ -31,15 +31,25 @@ export const useDeliveryLogs = (reportId?: string) => {
     enabled: true,
   });
 
-  const downloadReport = async (filePath: string, fileName: string) => {
+  const downloadReport = async (reportData: any, fileName: string, format: string) => {
     try {
-      const { data, error } = await supabase.storage
-        .from('documents')
-        .download(filePath);
+      // Generate report content from stored data
+      let content = '';
+      let mimeType = '';
       
-      if (error) throw error;
+      if (format === 'csv') {
+        content = reportData;
+        mimeType = 'text/csv';
+      } else if (format === 'json') {
+        content = reportData;
+        mimeType = 'application/json';
+      } else {
+        content = reportData;
+        mimeType = 'text/html';
+      }
       
-      const url = URL.createObjectURL(data);
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = fileName;
