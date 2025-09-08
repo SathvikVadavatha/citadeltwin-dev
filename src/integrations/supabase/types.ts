@@ -2660,6 +2660,17 @@ export type Database = {
         }
         Returns: string
       }
+      get_next_scheduled_reports: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          frequency: string
+          id: string
+          is_active: boolean
+          minutes_until_run: number
+          name: string
+          next_run_at: string
+        }[]
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
