@@ -69,11 +69,10 @@ serve(async (req) => {
         attachmentContent = new TextEncoder().encode(reportContent);
         break;
       case 'pdf':
-        // Generate PDF content (simplified for now)
-        reportContent = generateHTMLContent(reportData, report);
+        reportContent = generatePDFContent(reportData, report);
         fileExtension = 'pdf';
         mimeType = 'application/pdf';
-        attachmentContent = new TextEncoder().encode(reportContent); // In real implementation, would convert HTML to PDF
+        attachmentContent = reportContent as Uint8Array;
         break;
       default: // html
         reportContent = generateHTMLContent(reportData, report);
@@ -123,95 +122,109 @@ serve(async (req) => {
     const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
     // Send email to all recipients with attachment
-    const emailPromises = report.recipients.map(async (recipient: string) => {
-      try {
-        console.log(`Sending report email to ${recipient} with subject: ${emailSubject}`);
-        
-        // Convert attachment to base64 for Resend
-        const base64Content = btoa(String.fromCharCode(...attachmentContent));
-        
-        const emailResponse = await resend.emails.send({
-          from: 'onboarding@resend.dev',
-          to: [recipient],
-          subject: emailSubject,
-          html: generateEmailContent(reportData, report),
-          attachments: [
-            {
-              filename: fileName,
-              content: base64Content,
-              content_type: mimeType,
-            }
-          ]
-        });
-
-        if (emailResponse.error) {
-          throw new Error(emailResponse.error.message);
-        }
-
-        console.log(`Report email sent to ${recipient} successfully`);
-        return recipient;
-      } catch (error) {
-        console.error(`Failed to send report email to ${recipient}:`, error);
-        throw error; // Re-throw to be caught in Promise.allSettled
-      }
-    });
-
-    // Wait for all emails to be processed
-    const processedRecipients = await Promise.allSettled(emailPromises);
-    const successfulRecipients = processedRecipients
-      .filter(result => result.status === 'fulfilled')
-      .map(result => (result as PromiseFulfilledResult<string>).value);
-
-    const failedRecipients = processedRecipients
-      .filter(result => result.status === 'rejected')
-      .map((result, index) => ({
-        recipient: report.recipients[index],
-        error: (result as PromiseRejectedResult).reason?.message
-      }));
-
-    const executionTime = Date.now() - startTime;
-
-    // Determine overall status
-    const overallStatus = successfulRecipients.length > 0 ? 'sent' : 'failed';
-    const errorMessage = failedRecipients.length > 0 ? 
-      `Failed to send to: ${failedRecipients.map(f => f.recipient).join(', ')}` : null;
-
-    // Update delivery record
-    const { error: updateError } = await supabase
-      .rpc('complete_report_delivery', {
-        delivery_id: deliveryId,
-        delivery_status: overallStatus,
-        file_path_val: fileName,
-        error_msg: errorMessage,
-        recipients_sent_val: JSON.stringify(successfulRecipients),
-        execution_time: executionTime
+    try {
+      console.log(`Sending report email to ${report.recipients.join(', ')} with subject: ${emailSubject}`);
+      
+      // Convert attachment to base64 for Resend
+      const base64Content = btoa(String.fromCharCode(...attachmentContent));
+      
+      const emailResponse = await resend.emails.send({
+        from: 'onboarding@resend.dev',
+        to: report.recipients, // Send to all recipients at once
+        subject: emailSubject,
+        html: generateEmailContent(reportData, report),
+        attachments: [
+          {
+            filename: fileName,
+            content: base64Content,
+            content_type: mimeType,
+          }
+        ]
       });
 
-    if (updateError) {
-      console.error('Error updating delivery record:', updateError);
-    }
-
-    console.log(`Report delivery completed: ${successfulRecipients.length}/${report.recipients.length} recipients successful`);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        deliveryId,
-        reportName: report.name,
-        subject: emailSubject,
-        recipientsSent: successfulRecipients.length,
-        totalRecipients: report.recipients.length,
-        failedRecipients,
-        executionTime,
-        fileSize,
-        fileName,
-        message: `Report sent successfully to ${successfulRecipients.length} out of ${report.recipients.length} recipients with attachment.`
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+      if (emailResponse.error) {
+        throw new Error(emailResponse.error.message);
       }
-    );
+
+      console.log(`Report email sent successfully to ${report.recipients.length} recipients`);
+      
+      const executionTime = Date.now() - startTime;
+
+      // Update delivery record
+      const { error: updateError } = await supabase
+        .rpc('complete_report_delivery', {
+          delivery_id: deliveryId,
+          delivery_status: 'sent',
+          file_path_val: fileName,
+          error_msg: null,
+          recipients_sent_val: JSON.stringify(report.recipients),
+          execution_time: executionTime
+        });
+
+      if (updateError) {
+        console.error('Error updating delivery record:', updateError);
+      }
+
+      console.log(`Report delivery completed: ${report.recipients.length}/${report.recipients.length} recipients successful`);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          deliveryId,
+          reportName: report.name,
+          subject: emailSubject,
+          recipientsSent: report.recipients.length,
+          totalRecipients: report.recipients.length,
+          failedRecipients: [],
+          executionTime,
+          fileSize,
+          fileName,
+          message: `Report sent successfully to ${report.recipients.length} recipients with attachment.`
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+
+    } catch (emailError) {
+      console.error('Failed to send report email:', emailError);
+      
+      const executionTime = Date.now() - startTime;
+      const errorMessage = `Failed to send email: ${emailError.message}`;
+
+      // Update delivery record with error
+      const { error: updateError } = await supabase
+        .rpc('complete_report_delivery', {
+          delivery_id: deliveryId,
+          delivery_status: 'failed',
+          error_msg: errorMessage,
+          execution_time: executionTime
+        });
+
+      if (updateError) {
+        console.error('Error updating delivery record:', updateError);
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: errorMessage,
+          deliveryId,
+          reportName: report.name,
+          recipientsSent: 0,
+          totalRecipients: report.recipients.length,
+          failedRecipients: report.recipients.map(r => ({ recipient: r, error: emailError.message })),
+          executionTime,
+          fileSize,
+          fileName
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      );
+    }
 
   } catch (error) {
     console.error('Error in send-scheduled-report function:', error);
@@ -249,6 +262,120 @@ serve(async (req) => {
 });
 
 // Helper functions
+function generatePDFContent(reportData: ReportData, report: any): Uint8Array {
+  // Simple PDF generation using basic PDF format
+  const pdfContent = `%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+/Resources <<
+/Font <<
+/F1 5 0 R
+>>
+>>
+>>
+endobj
+4 0 obj
+<<
+/Length ${generatePDFContentStream(reportData, report).length}
+>>
+stream
+${generatePDFContentStream(reportData, report)}
+endstream
+endobj
+5 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000317 00000 n 
+0000000${(400 + generatePDFContentStream(reportData, report).length).toString().padStart(3, '0')} 00000 n 
+trailer
+<<
+/Size 6
+/Root 1 0 R
+>>
+startxref
+${450 + generatePDFContentStream(reportData, report).length}
+%%EOF`;
+
+  return new TextEncoder().encode(pdfContent);
+}
+
+function generatePDFContentStream(reportData: ReportData, report: any): string {
+  const frequencyText = report.frequency.charAt(0).toUpperCase() + report.frequency.slice(1);
+  const reportTypeText = report.report_type.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+  
+  let yPos = 750;
+  let content = 'BT\n/F1 16 Tf\n50 750 Td\n';
+  
+  // Title
+  content += `(${report.name}) Tj\n`;
+  yPos -= 30;
+  content += `0 -30 Td\n/F1 12 Tf\n`;
+  
+  // Report info
+  content += `(Generated: ${new Date(reportData.dateGenerated).toLocaleString()}) Tj\n`;
+  content += `0 -20 Td\n(Type: ${reportTypeText}) Tj\n`;
+  content += `0 -20 Td\n(Frequency: ${frequencyText}) Tj\n`;
+  yPos -= 60;
+  
+  // Summary section
+  content += `0 -30 Td\n/F1 14 Tf\n(Summary) Tj\n`;
+  content += `0 -25 Td\n/F1 12 Tf\n`;
+  content += `(Total Items: ${reportData.summary.totalItems}) Tj\n`;
+  
+  if (reportData.summary.successRate) {
+    content += `0 -20 Td\n(Success Rate: ${reportData.summary.successRate}%) Tj\n`;
+  }
+  
+  if (reportData.summary.averageScore) {
+    content += `0 -20 Td\n(Average Score: ${reportData.summary.averageScore}) Tj\n`;
+  }
+  
+  yPos -= 100;
+  
+  // Data section
+  content += `0 -30 Td\n/F1 14 Tf\n(Data) Tj\n`;
+  content += `0 -25 Td\n/F1 10 Tf\n`;
+  
+  // Add first few data rows (limit to prevent PDF from getting too large)
+  const dataToShow = reportData.data.slice(0, 10);
+  dataToShow.forEach((row, index) => {
+    const keys = Object.keys(row);
+    const values = Object.values(row);
+    const rowText = `${index + 1}: ${keys[0]}: ${values[0]}`;
+    content += `(${rowText.substring(0, 60)}) Tj\n0 -15 Td\n`;
+  });
+  
+  content += 'ET';
+  return content;
+}
+
 async function generateReportData(reportType: string, filters: any): Promise<ReportData> {
   const now = new Date();
   
