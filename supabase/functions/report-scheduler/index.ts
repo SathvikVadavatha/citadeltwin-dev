@@ -37,13 +37,16 @@ serve(async (req) => {
 
     console.log('Report scheduler started at:', new Date().toISOString());
 
-    // Get all scheduled reports that are due to run
+    // Get all scheduled reports that are due to run and haven't been processed recently
     const now = new Date();
+    const twoMinutesAgo = new Date(now.getTime() - 2 * 60 * 1000).toISOString();
+    
     const { data: dueReports, error: fetchError } = await supabase
       .from('scheduled_reports')
       .select('*')
       .eq('is_active', true)
-      .lte('next_run_at', now.toISOString());
+      .lte('next_run_at', now.toISOString())
+      .or(`last_run_at.is.null,last_run_at.lt.${twoMinutesAgo}`);
 
     if (fetchError) {
       console.error('Error fetching due reports:', fetchError);

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.10';
+import { Resend } from 'npm:resend@2.0.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -48,98 +49,110 @@ serve(async (req) => {
     // Generate mock report data based on report type
     const reportData = await generateReportData(report.report_type, report.filters);
     
-    // Generate report content based on format
-    let reportContent: string;
+    // Generate report content and attachments
+    let reportContent: string | Uint8Array;
     let fileExtension: string;
+    let mimeType: string;
+    let attachmentContent: Uint8Array;
 
     switch (report.delivery_format) {
       case 'csv':
         reportContent = generateCSVContent(reportData);
         fileExtension = 'csv';
+        mimeType = 'text/csv';
+        attachmentContent = new TextEncoder().encode(reportContent);
         break;
       case 'json':
         reportContent = JSON.stringify(reportData, null, 2);
         fileExtension = 'json';
+        mimeType = 'application/json';
+        attachmentContent = new TextEncoder().encode(reportContent);
         break;
-      default: // pdf/html
+      case 'pdf':
+        // Generate PDF content (simplified for now)
+        reportContent = generateHTMLContent(reportData, report);
+        fileExtension = 'pdf';
+        mimeType = 'application/pdf';
+        attachmentContent = new TextEncoder().encode(reportContent); // In real implementation, would convert HTML to PDF
+        break;
+      default: // html
         reportContent = generateHTMLContent(reportData, report);
         fileExtension = 'html';
+        mimeType = 'text/html';
+        attachmentContent = new TextEncoder().encode(reportContent);
         break;
     }
 
-    // Calculate file size
-    const fileSize = new TextEncoder().encode(reportContent).length;
-
-    // No need to store in storage since we're sending via email
-    const fileName = `${report.name.replace(/\s+/g, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.${fileExtension}`;
-    const filePath = null; // Not storing file, sending via email
-
-    // Send emails directly to recipients using Supabase Auth Admin API
-    const emailPromises = report.recipients.map(async (recipient: string) => {
-      try {
-        // Create email HTML content with embedded report data
-        const emailHTML = generateEmailContent(reportData, report, reportContent);
-        
-        // Use Supabase Auth Admin API to send custom email
-        const { error: emailError } = await supabase.auth.admin.inviteUserByEmail(recipient, {
-          data: {
-            custom_email: true,
-            email_type: 'scheduled_report',
-            subject: `Scheduled Report: ${report.name}`,
-            html_content: emailHTML,
-            report_data: reportContent,
-            report_format: report.delivery_format,
-            report_name: report.name
-          }
+    // Check file size (35MB limit)
+    const fileSize = attachmentContent.length;
+    const maxFileSize = 35 * 1024 * 1024; // 35MB in bytes
+    
+    if (fileSize > maxFileSize) {
+      console.error(`Report file size (${fileSize} bytes) exceeds 35MB limit`);
+      
+      // Mark delivery as failed due to file size
+      await supabase
+        .rpc('complete_report_delivery', {
+          delivery_id: deliveryId,
+          delivery_status: 'failed',
+          error_msg: `Report file size (${Math.round(fileSize / 1024 / 1024)}MB) exceeds 35MB attachment limit`
         });
 
-        if (emailError) {
-          console.error(`Error sending email to ${recipient}:`, emailError);
-          // Fallback: Create client notification
-          await supabase
-            .from('client_notifications')
-            .insert({
-              client_email: recipient,
-              title: `Scheduled Report: ${report.name}`,
-              content: `Your ${report.report_type} report has been generated. Report data: ${reportContent.substring(0, 500)}...`,
-              type: 'scheduled_report',
-              read: false,
-              metadata: {
-                report_id: reportId,
-                delivery_id: deliveryId,
-                report_name: report.name,
-                format: report.delivery_format,
-                full_report: reportContent
-              }
-            });
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Report file size exceeds 35MB limit',
+          fileSize,
+          maxFileSize
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
+    }
+
+    const fileName = `${report.name.replace(/\s+/g, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.${fileExtension}`;
+    
+    // Create dynamic subject line
+    const frequencyText = report.frequency.charAt(0).toUpperCase() + report.frequency.slice(1);
+    const reportTypeText = report.report_type.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+    const emailSubject = `${frequencyText} ${reportTypeText} Report`;
+
+    // Initialize Resend
+    const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
+
+    // Send email to all recipients with attachment
+    const emailPromises = report.recipients.map(async (recipient: string) => {
+      try {
+        console.log(`Sending report email to ${recipient} with subject: ${emailSubject}`);
+        
+        // Convert attachment to base64 for Resend
+        const base64Content = btoa(String.fromCharCode(...attachmentContent));
+        
+        const emailResponse = await resend.emails.send({
+          from: 'onboarding@resend.dev',
+          to: [recipient],
+          subject: emailSubject,
+          html: generateEmailContent(reportData, report),
+          attachments: [
+            {
+              filename: fileName,
+              content: base64Content,
+              content_type: mimeType,
+            }
+          ]
+        });
+
+        if (emailResponse.error) {
+          throw new Error(emailResponse.error.message);
         }
 
-        console.log(`Report email sent to ${recipient}`);
+        console.log(`Report email sent to ${recipient} successfully`);
         return recipient;
       } catch (error) {
         console.error(`Failed to send report email to ${recipient}:`, error);
-        // Fallback: Create client notification with full report data
-        try {
-          await supabase
-            .from('client_notifications')
-            .insert({
-              client_email: recipient,
-              title: `Scheduled Report: ${report.name}`,
-              content: `Your ${report.report_type} report has been generated. Report data: ${reportContent.substring(0, 500)}...`,
-              type: 'scheduled_report',
-              read: false,
-              metadata: {
-                report_id: reportId,
-                delivery_id: deliveryId,
-                report_name: report.name,
-                format: report.delivery_format,
-                full_report: reportContent
-              }
-            });
-        } catch (notifError) {
-          console.error(`Failed to create fallback notification for ${recipient}:`, notifError);
-        }
-        return recipient; // Still count as processed
+        throw error; // Re-throw to be caught in Promise.allSettled
       }
     });
 
@@ -149,15 +162,27 @@ serve(async (req) => {
       .filter(result => result.status === 'fulfilled')
       .map(result => (result as PromiseFulfilledResult<string>).value);
 
+    const failedRecipients = processedRecipients
+      .filter(result => result.status === 'rejected')
+      .map((result, index) => ({
+        recipient: report.recipients[index],
+        error: (result as PromiseRejectedResult).reason?.message
+      }));
+
     const executionTime = Date.now() - startTime;
 
-    // Update delivery record with success status
+    // Determine overall status
+    const overallStatus = successfulRecipients.length > 0 ? 'sent' : 'failed';
+    const errorMessage = failedRecipients.length > 0 ? 
+      `Failed to send to: ${failedRecipients.map(f => f.recipient).join(', ')}` : null;
+
+    // Update delivery record
     const { error: updateError } = await supabase
       .rpc('complete_report_delivery', {
         delivery_id: deliveryId,
-        delivery_status: 'sent',
-        file_path_val: filePath,
-        error_msg: null,
+        delivery_status: overallStatus,
+        file_path_val: fileName,
+        error_msg: errorMessage,
         recipients_sent_val: JSON.stringify(successfulRecipients),
         execution_time: executionTime
       });
@@ -166,17 +191,21 @@ serve(async (req) => {
       console.error('Error updating delivery record:', updateError);
     }
 
+    console.log(`Report delivery completed: ${successfulRecipients.length}/${report.recipients.length} recipients successful`);
+
     return new Response(
       JSON.stringify({
         success: true,
         deliveryId,
         reportName: report.name,
+        subject: emailSubject,
         recipientsSent: successfulRecipients.length,
         totalRecipients: report.recipients.length,
+        failedRecipients,
         executionTime,
         fileSize,
-        filePath,
-        message: 'Report generated and sent via email to recipients.'
+        fileName,
+        message: `Report sent successfully to ${successfulRecipients.length} out of ${report.recipients.length} recipients with attachment.`
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -340,24 +369,28 @@ function generateHTMLContent(reportData: ReportData, report: any): string {
   `;
 }
 
-function generateEmailContent(reportData: ReportData, report: any, reportContent: string): string {
+function generateEmailContent(reportData: ReportData, report: any): string {
+  const frequencyText = report.frequency.charAt(0).toUpperCase() + report.frequency.slice(1);
+  const reportTypeText = report.report_type.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+  
   return `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="utf-8">
-      <title>Scheduled Report: ${report.name}</title>
+      <title>${frequencyText} ${reportTypeText} Report</title>
     </head>
     <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px;">
       <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px;">
-        <h1 style="margin: 0; font-size: 28px;">CitadelTwin Scheduled Report</h1>
-        <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Your automated ${report.report_type} report is ready</p>
+        <h1 style="margin: 0; font-size: 28px;">CitadelTwin ${frequencyText} Report</h1>
+        <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Your automated ${reportTypeText.toLowerCase()} report is ready</p>
       </div>
       
       <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; border-left: 4px solid #667eea; margin-bottom: 30px;">
         <h2 style="margin-top: 0; color: #667eea;">${report.name}</h2>
         <p><strong>Generated:</strong> ${new Date(reportData.dateGenerated).toLocaleString()}</p>
-        <p><strong>Report Type:</strong> ${report.report_type.toUpperCase()}</p>
+        <p><strong>Report Type:</strong> ${reportTypeText}</p>
+        <p><strong>Frequency:</strong> ${frequencyText}</p>
         <p><strong>Format:</strong> ${report.delivery_format.toUpperCase()}</p>
       </div>
 
@@ -368,16 +401,18 @@ function generateEmailContent(reportData: ReportData, report: any, reportContent
         ${reportData.summary.averageScore ? `<p><strong>Average Score:</strong> ${reportData.summary.averageScore}</p>` : ''}
       </div>
 
-      <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 30px;">
-        <h3 style="color: #667eea; margin-top: 0;">Report Data</h3>
-        <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px;">
-          <pre style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 12px; padding: 15px; margin: 0; background: #f8f9fa;">${reportContent}</pre>
-        </div>
+      <div style="background: #e8f5e8; padding: 20px; border-radius: 8px; border-left: 4px solid #4caf50; margin-bottom: 30px;">
+        <h3 style="color: #2e7d32; margin-top: 0;">📎 Report Attachment</h3>
+        <p style="margin: 0; font-size: 14px; color: #2e7d32;">
+          <strong>The complete report is attached to this email</strong> in ${report.delivery_format.toUpperCase()} format. 
+          Please download and open the attachment to view the full report data and analysis.
+        </p>
       </div>
 
       <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; border-left: 4px solid #2196f3;">
         <p style="margin: 0; font-size: 14px; color: #1976d2;">
-          <strong>Note:</strong> This is an automated report generated by CitadelTwin. The complete report data is included above for your review and analysis.
+          <strong>Note:</strong> This is an automated ${report.frequency} report generated by CitadelTwin. 
+          The complete report data is provided as an attachment for detailed analysis.
         </p>
       </div>
 
