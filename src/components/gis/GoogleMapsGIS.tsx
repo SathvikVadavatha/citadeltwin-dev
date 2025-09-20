@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useSpatialAnalysis } from '@/hooks/useSpatialAnalysis';
 import { useAdvancedGIS } from '@/hooks/useAdvancedGIS';
 import { supabase } from '@/integrations/supabase/client';
+import { GISExportPanel } from '@/components/gis/GISExportPanel';
 
 interface LayerToggle {
   id: string;
@@ -1490,6 +1491,15 @@ export const GoogleMapsGIS: React.FC = () => {
 
         {/* Controls Panel */}
         <div className="space-y-6">
+
+          {/* Export Panel */}
+          <GISExportPanel
+            mapInstance={mapInstanceRef.current}
+            selectedProperty={selectedProperty}
+            combinedAnalysis={combinedAnalysis}
+            selectedRegion={selectedRegion}
+            layers={layers}
+          />
 
           {/* Layer Controls */}
           <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
