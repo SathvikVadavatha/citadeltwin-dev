@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { useSpatialAnalysis } from '@/hooks/useSpatialAnalysis';
 import { useAdvancedGIS } from '@/hooks/useAdvancedGIS';
 import { supabase } from '@/integrations/supabase/client';
-import { GISExportPanel } from '@/components/gis/GISExportPanel';
+import { GISSidebar } from '@/components/gis/GISSidebar';
 
 interface LayerToggle {
   id: string;
@@ -1464,9 +1464,25 @@ export const GoogleMapsGIS: React.FC = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="flex gap-6">
+        {/* Enhanced Sidebar */}
+        <div className="flex-shrink-0">
+          <GISSidebar
+            isCollapsed={false}
+            onToggleCollapsed={() => {}}
+            mapInstance={mapInstanceRef.current}
+            selectedProperty={selectedProperty}
+            combinedAnalysis={combinedAnalysis}
+            selectedRegion={selectedRegion}
+            layers={layers}
+            onToggleLayer={toggleLayer}
+            environmentalLayers={environmentalLayers}
+            isFetching={isFetching}
+          />
+        </div>
+
         {/* Map Container */}
-        <div className="lg:col-span-3">
+        <div className="flex-1">
           <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
             <CardContent className="p-0">
               <div className="relative">
@@ -1487,150 +1503,6 @@ export const GoogleMapsGIS: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Controls Panel */}
-        <div className="space-y-6">
-
-          {/* Export Panel */}
-          <GISExportPanel
-            mapInstance={mapInstanceRef.current}
-            selectedProperty={selectedProperty}
-            combinedAnalysis={combinedAnalysis}
-            selectedRegion={selectedRegion}
-            layers={layers}
-          />
-
-          {/* Layer Controls */}
-          <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2" style={{ color: 'hsl(0 0% 98%)' }}>
-                <Layers className="w-5 h-5" />
-                Map Layers
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {layers.map((layer) => {
-                const layerData = environmentalLayers.find(envLayer => 
-                  envLayer.layer_type === layer.type &&
-                  (selectedRegion === 'central-florida' ? 
-                    envLayer.city.toLowerCase().includes('orlando') : 
-                    envLayer.city.toLowerCase().includes('cleveland'))
-                );
-                
-                return (
-                  <div key={layer.id} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id={layer.id}
-                          checked={layer.enabled}
-                          onCheckedChange={() => toggleLayer(layer.id)}
-                          disabled={isFetching && layer.id === 'flood_zones'}
-                        />
-                        <Label htmlFor={layer.id} style={{ color: 'hsl(210 40% 98%)' }}>
-                          {layer.name}
-                          {isFetching && layer.id === 'flood_zones' && (
-                            <span className="ml-2 text-xs text-blue-400">(Loading...)</span>
-                          )}
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div
-                          className="w-4 h-4 rounded"
-                          style={{ backgroundColor: layer.color }}
-                        />
-                      </div>
-                    </div>
-                    <p className="text-xs" style={{ color: 'hsl(240 5% 64.9%)' }}>
-                      {layer.description}
-                      {layerData && layerData.metadata?.last_updated && (
-                        <span className="block mt-1">
-                          Last updated: {new Date(layerData.metadata.last_updated).toLocaleDateString()}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-
-
-          {/* Analysis Report */}
-          {selectedProperty && (() => {
-            // Use current analysis or fallback to last good analysis for stability
-            const analysisToShow = combinedAnalysis || lastGoodCombinedAnalysisRef.current;
-            
-            // Show analysis if we have data for any category
-            return analysisToShow && 
-              (analysisToShow.floodZones.length > 0 || analysisToShow.protectedAreas.length > 0 || analysisToShow.soilsWetlands.length > 0) ? (
-              <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2" style={{ color: 'hsl(0 0% 98%)' }}>
-                    <MapPin className="w-5 h-5" />
-                    Analysis Report
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {analysisToShow.floodZones.length > 0 && (
-                    <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'hsl(240 51% 15%)', border: '1px solid hsl(240 51% 25%)' }}>
-                      <div className="w-5 h-5 flex-shrink-0 mt-0.5">
-                        <svg className="w-5 h-5" fill="hsl(240 51% 75%)" viewBox="0 0 24 24">
-                          <path d="M12 2L14 7L18 7L15 10L16 14L12 12L8 14L9 10L6 7L10 7L12 2Z"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <h5 className="font-medium" style={{ color: 'hsl(240 51% 95%)' }}>FEMA Flood Zones</h5>
-                        <div className="text-sm space-y-1" style={{ color: 'hsl(240 51% 75%)' }}>
-                          {analysisToShow.floodZones.map((zone, index) => (
-                            <div key={index}>{zone}</div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {analysisToShow.protectedAreas.length > 0 && (
-                    <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'hsl(142 51% 15%)', border: '1px solid hsl(142 51% 25%)' }}>
-                      <div className="w-5 h-5 flex-shrink-0 mt-0.5">
-                        <svg className="w-5 h-5" fill="hsl(142 51% 75%)" viewBox="0 0 24 24">
-                          <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1M12 7C13.4 7 14.8 8.6 14.8 10V14H17V20H7V14H9.2V10C9.2 8.6 10.6 7 12 7Z"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <h5 className="font-medium" style={{ color: 'hsl(142 51% 95%)' }}>Protected Areas</h5>
-                        <div className="text-sm space-y-1" style={{ color: 'hsl(142 51% 75%)' }}>
-                          {analysisToShow.protectedAreas.map((area, index) => (
-                            <div key={index}>{area}</div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {analysisToShow.soilsWetlands.length > 0 && (
-                    <div className="flex items-start gap-3 p-3 rounded-lg" style={{ backgroundColor: 'hsl(30 51% 15%)', border: '1px solid hsl(30 51% 25%)' }}>
-                      <div className="w-5 h-5 flex-shrink-0 mt-0.5">
-                        <svg className="w-5 h-5" fill="hsl(30 51% 75%)" viewBox="0 0 24 24">
-                          <path d="M14,6L10.25,11L13.1,14.8L11.5,16C9.81,13.75 7,10 7,10L1,18H23L14,6Z"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <h5 className="font-medium" style={{ color: 'hsl(30 51% 95%)' }}>Soils & Wetlands</h5>
-                        <div className="text-sm space-y-1" style={{ color: 'hsl(30 51% 75%)' }}>
-                          {analysisToShow.soilsWetlands.map((soil, index) => (
-                            <div key={index}>{soil}</div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ) : null;
-          })()}
-
         </div>
       </div>
     </div>
