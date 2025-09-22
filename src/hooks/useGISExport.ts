@@ -515,30 +515,29 @@ export const useGISExport = () => {
         }
       };
 
-      // Helper function to add wrapped text
+      // Helper function to add wrapped text with proper spacing
       const addWrappedText = (text: string, x: number, fontSize: number = 10, maxWidth: number = 170) => {
         pdf.setFontSize(fontSize);
         const lines = pdf.splitTextToSize(text, maxWidth);
         pdf.text(lines, x, yPosition);
-        yPosition += lines.length * (fontSize * 0.4);
+        yPosition += lines.length * (fontSize * 0.352777778) + 2; // Proper line height + spacing
       };
 
-      // Cover Page
+      // Cover Page with proper spacing
       pdf.setFontSize(24);
       pdf.text('Comprehensive GIS Analysis Report', 20, 40);
       
       pdf.setFontSize(16);
       pdf.text('Environmental Assessment & Site Analysis', 20, 55);
       
+      // Reset yPosition for proper spacing
+      yPosition = 70;
       pdf.setFontSize(12);
       if (selectedProperty) {
         addWrappedText(`Property: ${selectedProperty.place.name || selectedProperty.place.formatted_address}`, 20, 12);
       }
-      yPosition += 5;
       addWrappedText(`Region: ${selectedRegion === 'central-florida' ? 'Central Florida' : 'Northeast Ohio'}`, 20, 12);
-      yPosition += 5;
       addWrappedText(`Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, 20, 12);
-      yPosition += 5;
       addWrappedText(`Analysis Version: 2.0 | Confidence Level: 95%`, 20, 12);
 
       // Risk Assessment Box

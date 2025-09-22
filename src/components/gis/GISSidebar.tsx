@@ -252,20 +252,25 @@ export const GISSidebar: React.FC<GISSidebarProps> = ({
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="layers" className="text-xs">
+          <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 rounded-lg">
+            <TabsTrigger 
+              value="layers" 
+              className="text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200"
+            >
               <Layers className="w-3 h-3 mr-1" />
               Layers
             </TabsTrigger>
-            <TabsTrigger value="analysis" className="text-xs">
-              <BarChart3 className="w-3 h-3 mr-1" />
-              Analysis
-            </TabsTrigger>
-            <TabsTrigger value="export" className="text-xs">
+            <TabsTrigger 
+              value="export" 
+              className="text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200"
+            >
               <Download className="w-3 h-3 mr-1" />
               Export
             </TabsTrigger>
-            <TabsTrigger value="settings" className="text-xs">
+            <TabsTrigger 
+              value="settings" 
+              className="text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all duration-200"
+            >
               <Settings className="w-3 h-3 mr-1" />
               Settings
             </TabsTrigger>
@@ -327,84 +332,83 @@ export const GISSidebar: React.FC<GISSidebarProps> = ({
                 );
               })}
             </div>
-          </TabsContent>
 
-          {/* Analysis Tab */}
-          <TabsContent value="analysis" className="space-y-4 mt-4">
-            {selectedProperty ? (
-              <div className="space-y-4">
-                <div className="p-3 rounded-lg bg-muted/30">
-                  <h5 className="font-medium text-sm mb-2">Selected Property</h5>
-                  <p className="text-xs text-muted-foreground">
-                    {selectedProperty.place.name || selectedProperty.place.formatted_address}
-                  </p>
-                </div>
+            {/* Analysis Results */}
+            {selectedProperty && (
+              <div className="space-y-4 mt-6">
+                <div className="border-t pt-4">
+                  <h4 className="text-sm font-semibold text-foreground/90 mb-3">Analysis Results</h4>
+                  
+                  <div className="p-3 rounded-lg bg-muted/30 mb-3">
+                    <h5 className="font-medium text-sm mb-2">Selected Property</h5>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedProperty.place.name || selectedProperty.place.formatted_address}
+                    </p>
+                  </div>
 
-                {combinedAnalysis && (
-                  <>
-                    {combinedAnalysis.floodZones.length > 0 && (
-                      <div className="p-3 rounded-lg" style={{ backgroundColor: 'hsl(217 91% 15%)', border: '1px solid hsl(217 91% 25%)' }}>
-                        <h5 className="font-medium text-sm mb-2 flex items-center gap-2" style={{ color: 'hsl(217 91% 75%)' }}>
-                          <Droplets className="w-4 h-4" />
-                          FEMA Flood Zones
-                        </h5>
-                        <div className="text-xs space-y-1" style={{ color: 'hsl(217 91% 65%)' }}>
-                          {combinedAnalysis.floodZones.map((zone, index) => (
-                            <div key={index} className="flex items-start gap-1">
-                              <span>•</span>
-                              <span>{zone}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {combinedAnalysis.protectedAreas.length > 0 && (
-                      <div className="p-3 rounded-lg" style={{ backgroundColor: 'hsl(142 51% 15%)', border: '1px solid hsl(142 51% 25%)' }}>
-                        <h5 className="font-medium text-sm mb-2 flex items-center gap-2" style={{ color: 'hsl(142 51% 75%)' }}>
-                          <Shield className="w-4 h-4" />
-                          Protected Areas
-                        </h5>
-                        <div className="text-xs space-y-1" style={{ color: 'hsl(142 51% 65%)' }}>
-                          {combinedAnalysis.protectedAreas.map((area, index) => (
-                            <div key={index} className="flex items-start gap-1">
-                              <span>•</span>
-                              <span>{area}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {combinedAnalysis.soilsWetlands.length > 0 && (
-                      <div className="p-3 rounded-lg" style={{ backgroundColor: 'hsl(30 51% 15%)', border: '1px solid hsl(30 51% 25%)' }}>
-                        <h5 className="font-medium text-sm mb-2 flex items-center gap-2" style={{ color: 'hsl(30 51% 75%)' }}>
-                          <div className="w-4 h-4 rounded bg-orange-200 flex items-center justify-center">
-                            <div className="w-2 h-2 rounded bg-orange-600" />
+                  {combinedAnalysis && (
+                    <div className="space-y-3">
+                      {combinedAnalysis.floodZones.length > 0 && (
+                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'hsl(217 91% 15%)', border: '1px solid hsl(217 91% 25%)' }}>
+                          <h5 className="font-medium text-sm mb-2 flex items-center gap-2" style={{ color: 'hsl(217 91% 75%)' }}>
+                            <Droplets className="w-4 h-4" />
+                            FEMA Flood Zones
+                          </h5>
+                          <div className="text-xs space-y-1" style={{ color: 'hsl(217 91% 65%)' }}>
+                            {combinedAnalysis.floodZones.map((zone, index) => (
+                              <div key={index} className="flex items-start gap-1">
+                                <span>•</span>
+                                <span>{zone}</span>
+                              </div>
+                            ))}
                           </div>
-                          Soils & Wetlands
-                        </h5>
-                        <div className="text-xs space-y-1" style={{ color: 'hsl(30 51% 65%)' }}>
-                          {combinedAnalysis.soilsWetlands.map((soil, index) => (
-                            <div key={index} className="flex items-start gap-1">
-                              <span>•</span>
-                              <span>{soil}</span>
-                            </div>
-                          ))}
                         </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="text-center p-6 text-muted-foreground">
-                <MapPin className="w-8 h-8 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">Select a property to view analysis results</p>
+                      )}
+
+                      {combinedAnalysis.protectedAreas.length > 0 && (
+                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'hsl(142 51% 15%)', border: '1px solid hsl(142 51% 25%)' }}>
+                          <h5 className="font-medium text-sm mb-2 flex items-center gap-2" style={{ color: 'hsl(142 51% 75%)' }}>
+                            <Shield className="w-4 h-4" />
+                            Protected Areas
+                          </h5>
+                          <div className="text-xs space-y-1" style={{ color: 'hsl(142 51% 65%)' }}>
+                            {combinedAnalysis.protectedAreas.map((area, index) => (
+                              <div key={index} className="flex items-start gap-1">
+                                <span>•</span>
+                                <span>{area}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {combinedAnalysis.soilsWetlands.length > 0 && (
+                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'hsl(30 51% 15%)', border: '1px solid hsl(30 51% 25%)' }}>
+                          <h5 className="font-medium text-sm mb-2 flex items-center gap-2" style={{ color: 'hsl(30 51% 75%)' }}>
+                            <div className="w-4 h-4 rounded bg-orange-200 flex items-center justify-center">
+                              <div className="w-2 h-2 rounded bg-orange-600" />
+                            </div>
+                            Soils & Wetlands
+                          </h5>
+                          <div className="text-xs space-y-1" style={{ color: 'hsl(30 51% 65%)' }}>
+                            {combinedAnalysis.soilsWetlands.map((soil, index) => (
+                              <div key={index} className="flex items-start gap-1">
+                                <span>•</span>
+                                <span>{soil}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </TabsContent>
 
+          {/* Analysis Tab - Remove since we moved content to layers */}
+          
           {/* Export Tab */}
           <TabsContent value="export" className="space-y-4 mt-4">
             <div className="space-y-4">
