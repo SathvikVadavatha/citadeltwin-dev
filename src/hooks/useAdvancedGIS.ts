@@ -25,6 +25,25 @@ export interface PropertyBoundary {
   updated_at: string;
 }
 
+// Public view interface with masked owner information
+export interface PropertyBoundaryPublic {
+  id: string;
+  parcel_id: string;
+  location_display: string; // Masked: "City, State" only
+  boundary_geometry: any;
+  area_sqft: number | null;
+  zoning_designation: string | null;
+  flood_zone: string | null;
+  soil_type: string | null;
+  environmental_constraints: any[];
+  city: string;
+  state: string;
+  county: string | null;
+  last_surveyed: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface EnvironmentalLayer {
   id: string;
   layer_name: string;
@@ -91,7 +110,8 @@ export const useAdvancedGIS = () => {
     },
   });
 
-  // Fetch property boundaries
+  // Fetch property boundaries using secure public view
+  // This view masks owner names and full addresses to protect privacy
   const { 
     data: propertyBoundaries = [], 
     isLoading: isLoadingBoundaries 
@@ -99,13 +119,20 @@ export const useAdvancedGIS = () => {
     queryKey: ['property-boundaries'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('property_boundaries')
+        .from('property_boundaries_public')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(1000);
 
       if (error) throw error;
-      return data as PropertyBoundary[];
+      
+      // Map public view data to PropertyBoundary interface
+      // Owner information is masked for security
+      return (data || []).map((item: any) => ({
+        ...item,
+        property_address: null, // Masked for security
+        owner_name: null, // Masked for security
+      })) as PropertyBoundary[];
     },
   });
 

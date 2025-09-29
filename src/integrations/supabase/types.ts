@@ -2617,6 +2617,60 @@ export type Database = {
       }
     }
     Views: {
+      property_boundaries_public: {
+        Row: {
+          area_sqft: number | null
+          boundary_geometry: Json | null
+          city: string | null
+          county: string | null
+          created_at: string | null
+          environmental_constraints: Json | null
+          flood_zone: string | null
+          id: string | null
+          last_surveyed: string | null
+          location_display: string | null
+          parcel_id: string | null
+          soil_type: string | null
+          state: string | null
+          updated_at: string | null
+          zoning_designation: string | null
+        }
+        Insert: {
+          area_sqft?: number | null
+          boundary_geometry?: Json | null
+          city?: string | null
+          county?: string | null
+          created_at?: string | null
+          environmental_constraints?: Json | null
+          flood_zone?: string | null
+          id?: string | null
+          last_surveyed?: string | null
+          location_display?: never
+          parcel_id?: string | null
+          soil_type?: string | null
+          state?: string | null
+          updated_at?: string | null
+          zoning_designation?: string | null
+        }
+        Update: {
+          area_sqft?: number | null
+          boundary_geometry?: Json | null
+          city?: string | null
+          county?: string | null
+          created_at?: string | null
+          environmental_constraints?: Json | null
+          flood_zone?: string | null
+          id?: string | null
+          last_surveyed?: string | null
+          location_display?: never
+          parcel_id?: string | null
+          soil_type?: string | null
+          state?: string | null
+          updated_at?: string | null
+          zoning_designation?: string | null
+        }
+        Relationships: []
+      }
       user_sessions_secure: {
         Row: {
           created_at: string | null
@@ -2665,6 +2719,10 @@ export type Database = {
       calculate_next_run_at: {
         Args: { frequency: string; last_run?: string; schedule_config: Json }
         Returns: string
+      }
+      can_access_property_details: {
+        Args: { property_id: string; user_id: string }
+        Returns: boolean
       }
       cleanup_expired_sessions: {
         Args: Record<PropertyKey, never>
