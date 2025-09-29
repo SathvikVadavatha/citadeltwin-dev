@@ -87,18 +87,30 @@ export const useSecurity = () => {
     }
   });
 
-  // User Sessions
+  // User Sessions - using secure view that masks sensitive data
   const { data: userSessions, isLoading: userSessionsLoading } = useQuery({
     queryKey: ['user-sessions'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('user_sessions')
+        .from('user_sessions_secure')
         .select('*')
         .order('last_activity', { ascending: false })
         .limit(50);
       
       if (error) throw error;
-      return data as UserSession[];
+      // Map the secure view fields to match UserSession interface
+      return (data || []).map((session: any) => ({
+        id: session.id,
+        user_id: session.user_id,
+        session_token: session.session_token_masked || '****',
+        ip_address: session.ip_address,
+        user_agent: session.user_agent,
+        location: session.location_summary,
+        is_active: session.is_active,
+        last_activity: session.last_activity,
+        expires_at: session.expires_at,
+        created_at: session.created_at
+      })) as UserSession[];
     }
   });
 

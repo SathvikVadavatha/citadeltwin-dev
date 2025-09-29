@@ -2617,7 +2617,45 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_sessions_secure: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string | null
+          ip_address: unknown | null
+          is_active: boolean | null
+          last_activity: string | null
+          location_summary: Json | null
+          session_token_masked: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string | null
+          ip_address?: unknown | null
+          is_active?: boolean | null
+          last_activity?: string | null
+          location_summary?: never
+          session_token_masked?: never
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string | null
+          ip_address?: unknown | null
+          is_active?: boolean | null
+          last_activity?: string | null
+          location_summary?: never
+          session_token_masked?: never
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       archive_old_compliance_checks: {
@@ -2627,6 +2665,10 @@ export type Database = {
       calculate_next_run_at: {
         Args: { frequency: string; last_run?: string; schedule_config: Json }
         Returns: string
+      }
+      cleanup_expired_sessions: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       cleanup_old_presence: {
         Args: Record<PropertyKey, never>
@@ -2671,8 +2713,16 @@ export type Database = {
           next_run_at: string
         }[]
       }
+      hash_session_token: {
+        Args: { token: string }
+        Returns: string
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_user_admin: {
+        Args: { user_uuid: string }
         Returns: boolean
       }
       log_audit_event: {
