@@ -316,25 +316,26 @@ serve(async (req) => {
       
     } catch (storageError) {
       console.error('❌ Storage operation failed:', storageError);
-      throw new Error(`Storage operation failed: ${storageError.message}`);
+      throw new Error(`Storage operation failed: ${storageError instanceof Error ? storageError.message : String(storageError)}`);
     }
 
   } catch (error) {
     console.error('💥 Plan2Scene processing failed with error:', error);
+    const err = error instanceof Error ? error : new Error(String(error));
     console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack?.split('\n').slice(0, 5)
+      name: err.name,
+      message: err.message,
+      stack: err.stack?.split('\n').slice(0, 5)
     });
     
     const errorResponse = {
       success: false,
-      error: error.message || 'Unknown error occurred during Plan2Scene processing',
-      errorType: error.name || 'ProcessingError',
+      error: err.message || 'Unknown error occurred during Plan2Scene processing',
+      errorType: err.name || 'ProcessingError',
       errorDetails: {
         timestamp: new Date().toISOString(),
         stage: 'unknown',
-        originalError: error.toString()
+        originalError: err.toString()
       },
       fallback: 'Enhanced sample data generation will be used instead',
       supportInfo: 'Check edge function logs for detailed debugging information'
@@ -402,7 +403,7 @@ async function preprocessFloorPlan(imageBuffer: Uint8Array): Promise<any> {
     return result;
   } catch (error) {
     console.error('Preprocessing error:', error);
-    throw new Error(`Image preprocessing failed: ${error.message}`);
+    throw new Error(`Image preprocessing failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -479,7 +480,7 @@ async function detectRooms(preprocessedData: any): Promise<Plan2SceneRoom[]> {
     return baseRooms;
   } catch (error) {
     console.error('Room detection error:', error);
-    throw new Error(`Room detection failed: ${error.message}`);
+    throw new Error(`Room detection failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -511,7 +512,7 @@ async function detectWalls(preprocessedData: any): Promise<Plan2SceneWall[]> {
     return baseWalls;
   } catch (error) {
     console.error('Wall detection error:', error);
-    throw new Error(`Wall detection failed: ${error.message}`);
+    throw new Error(`Wall detection failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -583,7 +584,7 @@ async function detectRoomElements(rooms: Plan2SceneRoom[], preprocessedData: any
     return enhancedRooms;
   } catch (error) {
     console.error('Element detection error:', error);
-    throw new Error(`Element detection failed: ${error.message}`);
+    throw new Error(`Element detection failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -637,7 +638,7 @@ async function generate3DModel(rooms: Plan2SceneRoom[], walls: Plan2SceneWall[])
     return glbBuffer;
   } catch (error) {
     console.error('3D model generation error:', error);
-    throw new Error(`3D model generation failed: ${error.message}`);
+    throw new Error(`3D model generation failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

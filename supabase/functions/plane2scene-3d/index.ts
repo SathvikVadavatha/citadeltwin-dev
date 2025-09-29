@@ -163,7 +163,7 @@ serve(async (req) => {
     console.error('Error in Plane2Scene 3D generation:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         fallback: 'Using enhanced sample data generation instead'
       }),
       { 

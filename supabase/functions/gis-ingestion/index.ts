@@ -179,7 +179,7 @@ const processGISData = (data: any[], layerType: string) => {
     };
   } catch (error) {
     console.error('Error processing GIS data:', error);
-    throw new Error(`Data processing failed: ${error.message}`);
+    throw new Error(`Data processing failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 };
 
@@ -347,7 +347,7 @@ serve(async (req) => {
             status: 'inactive',
             metadata: {
               ...layer.metadata,
-              last_refresh_error: error.message,
+              last_refresh_error: error instanceof Error ? error.message : String(error),
               last_refresh_attempt: new Date().toISOString()
             }
           })
@@ -369,7 +369,7 @@ serve(async (req) => {
     console.error('Enhanced GIS ingestion error:', error);
     return new Response(JSON.stringify({
       success: false,
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
       timestamp: new Date().toISOString()
     }), {
       status: 500,

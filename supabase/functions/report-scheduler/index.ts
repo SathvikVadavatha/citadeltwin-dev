@@ -121,7 +121,7 @@ serve(async (req) => {
           reportId: report.id,
           reportName: report.name,
           status: 'error',
-          error: error.message
+          error: error instanceof Error ? error.message : String(error)
         });
       }
     }
@@ -144,7 +144,7 @@ serve(async (req) => {
     console.error('Error in report-scheduler function:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         success: false 
       }),
       {

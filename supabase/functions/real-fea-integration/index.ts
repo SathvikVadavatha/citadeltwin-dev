@@ -63,7 +63,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in real-fea-integration:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
@@ -387,7 +387,16 @@ async function validateModel(supabaseClient: any, params: any) {
       throw new Error('Analysis not found');
     }
 
-    const validationResults = {
+    const validationResults: {
+      isValid: boolean;
+      warnings: string[];
+      errors: string[];
+      checks: {
+        mesh?: any;
+        loads?: any;
+        boundaryConditions?: any;
+      };
+    } = {
       isValid: true,
       warnings: [],
       errors: [],
@@ -828,7 +837,11 @@ function generateMockBucklingModes() {
 }
 
 function validateMesh(mesh: any) {
-  const validation = {
+  const validation: {
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+  } = {
     isValid: true,
     errors: [],
     warnings: []
@@ -852,7 +865,10 @@ function validateMesh(mesh: any) {
 }
 
 function validateLoads(loads: any[]) {
-  const validation = {
+  const validation: {
+    isValid: boolean;
+    warnings: string[];
+  } = {
     isValid: true,
     warnings: []
   };
@@ -871,7 +887,10 @@ function validateLoads(loads: any[]) {
 }
 
 function validateBoundaryConditions(bcs: any[]) {
-  const validation = {
+  const validation: {
+    isValid: boolean;
+    errors: string[];
+  } = {
     isValid: true,
     errors: []
   };

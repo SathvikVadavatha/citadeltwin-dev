@@ -137,7 +137,7 @@ serve(async (req) => {
           {
             filename: fileName,
             content: base64Content,
-            content_type: mimeType,
+            contentType: mimeType,
           }
         ]
       });
@@ -191,7 +191,8 @@ serve(async (req) => {
       console.error('Failed to send report email:', emailError);
       
       const executionTime = Date.now() - startTime;
-      const errorMessage = `Failed to send email: ${emailError.message}`;
+      const err = emailError instanceof Error ? emailError : new Error(String(emailError));
+      const errorMessage = `Failed to send email: ${err.message}`;
 
       // Update delivery record with error
       const { error: updateError } = await supabase
@@ -214,7 +215,7 @@ serve(async (req) => {
           reportName: report.name,
           recipientsSent: 0,
           totalRecipients: report.recipients.length,
-          failedRecipients: report.recipients.map(r => ({ recipient: r, error: emailError.message })),
+          failedRecipients: report.recipients.map((r: string) => ({ recipient: r, error: err.message })),
           executionTime,
           fileSize,
           fileName
@@ -241,7 +242,7 @@ serve(async (req) => {
           .rpc('complete_report_delivery', {
             delivery_id: deliveryId,
             delivery_status: 'failed',
-            error_msg: error.message
+            error_msg: error instanceof Error ? error.message : String(error)
           });
       }
     } catch (updateError) {
@@ -250,7 +251,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         success: false 
       }),
       {

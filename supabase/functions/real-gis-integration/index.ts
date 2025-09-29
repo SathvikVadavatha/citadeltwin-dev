@@ -149,7 +149,7 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         details: 'Failed to process GIS integration request'
       }),
       {
@@ -162,6 +162,10 @@ serve(async (req) => {
 
 async function handleEnvironmentalDataFetch(request: GISRequest) {
   const { city, state, data_types } = request;
+  
+  if (!city || !state) {
+    throw new Error('City and state are required for environmental data fetch');
+  }
   
   console.log(`Fetching environmental data for ${city}, ${state}`);
   
@@ -364,13 +368,13 @@ async function handleZoningAnalysis(request: GISRequest) {
     proposed_use,
     current_zoning: property.zoning_designation,
     analysis_results: {
-      use_permitted: checkUsePermitted(property.zoning_designation, proposed_use),
-      height_compliance: checkHeightCompliance(property.zoning_designation, building_height),
-      coverage_compliance: checkCoverageCompliance(property.zoning_designation, lot_coverage),
+      use_permitted: checkUsePermitted(property.zoning_designation, proposed_use || ''),
+      height_compliance: checkHeightCompliance(property.zoning_designation, building_height || 0),
+      coverage_compliance: checkCoverageCompliance(property.zoning_designation, lot_coverage || 0),
       setback_requirements: getSetbackRequirements(property.zoning_designation),
-      parking_requirements: getParkingRequirements(property.zoning_designation, proposed_use)
+      parking_requirements: getParkingRequirements(property.zoning_designation, proposed_use || '')
     },
-    recommendations: generateZoningRecommendations(property.zoning_designation, proposed_use),
+    recommendations: generateZoningRecommendations(property.zoning_designation, proposed_use || ''),
     compliance_score: Math.floor(Math.random() * 30) + 70, // 70-100
     issues_identified: Math.floor(Math.random() * 5),
     analysis_date: new Date().toISOString()
@@ -408,10 +412,10 @@ async function handleAdvancedSpatialAnalysis(request: GISRequest) {
     input_layers: layers.length,
     environmental_factors: environmental_factors || [],
     parameters: parameters || {},
-    results: generateSpatialAnalysisResults(analysis_type, layers),
+    results: generateSpatialAnalysisResults(analysis_type || '', layers),
     processing_time_ms: Math.floor(Math.random() * 5000) + 1000,
     confidence_score: Math.floor(Math.random() * 20) + 80,
-    recommendations: generateSpatialRecommendations(analysis_type),
+    recommendations: generateSpatialRecommendations(analysis_type || ''),
     created_at: new Date().toISOString()
   };
   
@@ -561,6 +565,10 @@ function generateSpatialRecommendations(analysisType: string) {
 async function handleFEMAFloodDataFetch(request: GISRequest) {
   const { city, state } = request;
   
+  if (!city || !state) {
+    throw new Error('City and state are required for FEMA flood data fetch');
+  }
+  
   console.log(`Fetching FEMA flood data for ${city}, ${state}`);
   
   try {
@@ -585,7 +593,7 @@ async function handleFEMAFloodDataFetch(request: GISRequest) {
     
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         details: 'Failed to fetch FEMA flood data'
       }),
       {
@@ -806,7 +814,7 @@ function generateRealisticFEMAFloodData(countyFips: string, center: { lat: numbe
 }
 
 function getFloodZoneDescription(zoneType: string): string {
-  const descriptions = {
+  const descriptions: Record<string, string> = {
     'AE': 'Special Flood Hazard Area with base flood elevations determined',
     'AH': 'Special Flood Hazard Area with flood depths of 1 to 3 feet',
     'AO': 'Special Flood Hazard Area with sheet flow flood depths of 1 to 3 feet',
