@@ -212,7 +212,7 @@ export function generateHallwayConnections(rooms: Room3DGeometry[]): { vertices:
 
 // Helper functions for room heights
 function getRoomHeight(roomType: string): number {
-  const heights = {
+  const heights: Record<string, number> = {
     'bathroom': 2.4,
     'bedroom': 2.7,
     'kitchen': 2.7,
@@ -225,7 +225,7 @@ function getRoomHeight(roomType: string): number {
 
 // Helper functions for room materials
 function getRoomMaterial(roomType: string) {
-  const materials = {
+  const materials: Record<string, { color: [number, number, number]; roughness: number; metallic: number }> = {
     'bathroom': { color: [0.9, 0.95, 1.0], roughness: 0.3, metallic: 0.1 },
     'bedroom': { color: [1.0, 0.95, 0.9], roughness: 0.8, metallic: 0.0 },
     'kitchen': { color: [0.95, 0.95, 0.95], roughness: 0.4, metallic: 0.2 },

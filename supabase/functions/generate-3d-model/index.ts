@@ -161,8 +161,8 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in generate-3d-model function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
+      {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
@@ -210,7 +210,7 @@ function generateArchitecturalGLB(detectedObjects: any[], metadata: any = {}): U
   if (metadata.enhancedRoomData && metadata.enhancedRoomData.rooms) {
     // Use the rich room data with actual dimensions and positions
     enhancedRooms = metadata.enhancedRoomData.rooms;
-    rooms = enhancedRooms.map(room => ({
+    rooms = enhancedRooms.map((room: any) => ({
       label: room.type || room.label || 'room',
       confidence: room.confidence || 0.8,
       bbox: room.bounds || room.bbox || { x: 0, y: 0, width: 100, height: 100 },
@@ -603,6 +603,7 @@ function generateEnhancedRoomGeometry(room: RoomData, roomIndex: number, scale: 
   return {
     vertices,
     normals,
+    materials: [],
     roomCenter: { x: centerX, y: floorLevel + roomHeight/2, z: centerZ },
     roomType: classifyRoomType(room.label)
   };

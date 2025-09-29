@@ -116,7 +116,7 @@ serve(async (req) => {
         console.log('✅ Base64 to binary conversion successful');
       } catch (conversionError) {
         console.error('Base64 conversion failed:', conversionError);
-        throw new Error(`Base64 decoding failed: ${conversionError.message}`);
+        throw new Error(`Base64 decoding failed: ${conversionError instanceof Error ? conversionError.message : String(conversionError)}`);
       }
       
       console.log('Image buffer created, size:', imageBuffer.length, 'bytes');
@@ -150,7 +150,7 @@ serve(async (req) => {
       
     } catch (error) {
       console.error('❌ Image processing failed:', error);
-      throw new Error(`Image validation and conversion failed: ${error.message}`);
+      throw new Error(`Image validation and conversion failed: ${error instanceof Error ? error.message : String(error)}`);
     }
     
     console.log('🧠 Starting Plan2Scene AI processing pipeline...');

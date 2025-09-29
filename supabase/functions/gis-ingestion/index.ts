@@ -103,10 +103,11 @@ const fetchGISDataWithRetry = async (url: string, retries = 3, limit = 1000) => 
       return data;
 
     } catch (error) {
-      console.error(`Attempt ${attempt} failed:`, error.message);
+      const err = error as Error;
+      console.error(`Attempt ${attempt} failed:`, err.message);
       
       if (attempt === retries) {
-        throw new Error(`Failed after ${retries} attempts: ${error.message}`);
+        throw new Error(`Failed after ${retries} attempts: ${err.message}`);
       }
       
       // Wait before retry (exponential backoff)
@@ -120,8 +121,8 @@ const processGISData = (data: any[], layerType: string) => {
   try {
     if (!Array.isArray(data)) {
       // Handle GeoJSON FeatureCollection
-      if (data.type === 'FeatureCollection' && Array.isArray(data.features)) {
-        data = data.features;
+      if ((data as any).type === 'FeatureCollection' && Array.isArray((data as any).features)) {
+        data = (data as any).features;
       } else {
         throw new Error('Data is not an array or valid FeatureCollection');
       }
@@ -138,11 +139,11 @@ const processGISData = (data: any[], layerType: string) => {
           // GeoJSON format
           geometry = feature.geometry;
           properties = feature.properties;
-        } else if (feature.the_geom) {
+        } else if ((feature as any).the_geom) {
           // NYC Open Data format
-          geometry = feature.the_geom;
+          geometry = (feature as any).the_geom;
           properties = { ...feature };
-          delete properties.the_geom;
+          delete (properties as any).the_geom;
         } else {
           // Flat format, try to extract coordinates
           geometry = {
@@ -270,9 +271,10 @@ serve(async (req) => {
 
           console.log(`Successfully processed ${layerType}: ${processedData.features.length} features`);
         } catch (error) {
+          const err = error as Error;
           console.error(`Error processing ${layerType}:`, error);
-          errors.push({ layerType, error: error.message });
-          results.push({ action: 'error', layerType, error: error.message });
+          errors.push({ layerType, error: err.message });
+          results.push({ action: 'error', layerType, error: err.message });
         }
       }
 
