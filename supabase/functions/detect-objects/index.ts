@@ -200,7 +200,7 @@ class AdvancedBlueprintProcessor {
       return { raw_content: content };
     } catch (e) {
       console.warn('Failed to parse AI response as JSON:', e);
-      return { raw_content: content, parse_error: e.message };
+      return { raw_content: content, parse_error: e instanceof Error ? e.message : String(e) };
     }
   }
 
@@ -393,7 +393,7 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
       timestamp: new Date().toISOString()
     }), {
       status: 500,

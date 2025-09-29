@@ -62,7 +62,7 @@ async function retryWithBackoff<T>(
   maxRetries: number = 3,
   baseDelay: number = 1000
 ): Promise<T> {
-  let lastError: Error
+  let lastError: Error | undefined = undefined
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -71,9 +71,10 @@ async function retryWithBackoff<T>(
       lastError = error as Error
       
       // Check if it's a rate limit error (429)
-      const isRateLimitError = error.message?.includes('429') || 
-                              error.message?.toLowerCase().includes('rate limit') ||
-                              error.message?.toLowerCase().includes('quota exceeded')
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      const isRateLimitError = errorMessage.includes('429') || 
+                              errorMessage.toLowerCase().includes('rate limit') ||
+                              errorMessage.toLowerCase().includes('quota exceeded')
       
       // If not a rate limit error or final attempt, throw immediately
       if (!isRateLimitError || attempt === maxRetries) {
@@ -87,7 +88,7 @@ async function retryWithBackoff<T>(
     }
   }
   
-  throw lastError
+  throw lastError || new Error('Max retries reached')
 }
 
 // Request queuing to manage API calls
@@ -123,7 +124,7 @@ async function processQueue(userId: string) {
   const { resolve, reject, request } = queue.shift()!
   
   try {
-    const result = await retryWithBackoff(request)
+    const result = await retryWithBackoff(() => request())
     resolve(result)
   } catch (error) {
     reject(error)
@@ -409,7 +410,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             error: 'Invalid image data format',
-            details: imageError.message 
+            details: imageError instanceof Error ? imageError.message : String(imageError)
           }),
           { 
             status: 400, 
@@ -537,16 +538,17 @@ serve(async (req) => {
     )
 
   } catch (error) {
+    const errorObj = error as Error
     console.error('💥 Critical error in gemini-ai function:', error)
-    console.error('🔍 Error name:', error.name)
-    console.error('📜 Error message:', error.message)
-    console.error('📋 Error stack:', error.stack)
+    console.error('🔍 Error name:', errorObj.name)
+    console.error('📜 Error message:', errorObj.message)
+    console.error('📋 Error stack:', errorObj.stack)
     
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        errorType: error.name,
-        details: error.message,
+        errorType: errorObj.name,
+        details: errorObj.message,
         timestamp: new Date().toISOString()
       }),
       { 

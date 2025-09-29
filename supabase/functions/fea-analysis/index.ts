@@ -67,7 +67,7 @@ class AdvancedFEASolver {
     const I = (width * Math.pow(height, 3)) / 12; // Moment of inertia
     
     let maxDeflection = 0;
-    const deflections = [];
+    const deflections: Array<{ location?: any; deflection?: number; loadIndex?: number; loadType?: string; value?: number; direction?: string }> = [];
 
     loads.forEach((load, index) => {
       let deflection = 0;
@@ -125,7 +125,7 @@ class AdvancedFEASolver {
     const yMax = height / 2;
     
     let maxStress = 0;
-    const stresses = [];
+    const stresses: Array<{ location?: any; bending?: number; shear?: number; vonMises?: number; loadIndex?: number; loadType?: string; axial?: number }> = [];
 
     loads.forEach((load, index) => {
       let bendingStress = 0;
@@ -372,11 +372,11 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('FEA analysis error:', error)
+      console.error('FEA analysis error:', error)
     
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         success: false 
       }),
       { 

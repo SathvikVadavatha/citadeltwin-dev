@@ -80,7 +80,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: false,
-          message: `Network error: ${fetchError.message}`,
+          message: `Network error: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`,
           errorType: 'FETCH_ERROR',
           timestamp: new Date().toISOString()
         }),
@@ -164,16 +164,17 @@ serve(async (req) => {
     )
 
   } catch (error) {
+    const err = error as Error
     console.error('💥 Critical error in connection test:', error)
     return new Response(
       JSON.stringify({ 
         success: false,
-        message: `Critical error: ${error.message}`,
+        message: `Critical error: ${err.message}`,
         errorType: 'CRITICAL_ERROR',
         details: {
-          name: error.name,
-          message: error.message,
-          stack: error.stack
+          name: err.name,
+          message: err.message,
+          stack: err.stack
         },
         timestamp: new Date().toISOString()
       }),
