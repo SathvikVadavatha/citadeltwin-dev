@@ -153,20 +153,71 @@ export const useGISExport = () => {
 
     const scale = canvas.width / mapInstance.getDiv().offsetWidth;
     
-    // Add semi-transparent background for annotations
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(canvas.width - 200 * scale, 10 * scale, 190 * scale, 120 * scale);
+    // Add legend with map layers
+    const legendItems = [
+      { color: 'rgba(0, 100, 255, 0.5)', label: 'Flood Zones', border: 'rgba(0, 100, 255, 1)' },
+      { color: 'rgba(34, 139, 34, 0.5)', label: 'Protected Areas', border: 'rgba(34, 139, 34, 1)' },
+      { color: 'rgba(139, 69, 19, 0.5)', label: 'Soils & Wetlands', border: 'rgba(139, 69, 19, 1)' }
+    ];
+    
+    const legendWidth = 220 * scale;
+    const legendHeight = (60 + legendItems.length * 25) * scale;
+    const legendX = 10 * scale;
+    const legendY = canvas.height - legendHeight - 10 * scale;
+    
+    // Legend background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+    ctx.fillRect(legendX, legendY, legendWidth, legendHeight);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1 * scale;
+    ctx.strokeRect(legendX, legendY, legendWidth, legendHeight);
+    
+    // Legend title
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${14 * scale}px Arial`;
+    ctx.textAlign = 'left';
+    ctx.fillText('Map Legend', legendX + 10 * scale, legendY + 20 * scale);
+    
+    // Legend items
+    ctx.font = `${11 * scale}px Arial`;
+    legendItems.forEach((item, index) => {
+      const itemY = legendY + 40 * scale + (index * 25 * scale);
+      
+      // Color box with border
+      ctx.fillStyle = item.color;
+      ctx.fillRect(legendX + 15 * scale, itemY - 10 * scale, 20 * scale, 15 * scale);
+      ctx.strokeStyle = item.border;
+      ctx.lineWidth = 1.5 * scale;
+      ctx.strokeRect(legendX + 15 * scale, itemY - 10 * scale, 20 * scale, 15 * scale);
+      
+      // Label
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(item.label, legendX + 45 * scale, itemY);
+    });
+    
+    // Add annotations box (top right)
+    const annotationsWidth = 200 * scale;
+    const annotationsHeight = 120 * scale;
+    const annotationsX = canvas.width - annotationsWidth - 10 * scale;
+    const annotationsY = 10 * scale;
+    
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+    ctx.fillRect(annotationsX, annotationsY, annotationsWidth, annotationsHeight);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1 * scale;
+    ctx.strokeRect(annotationsX, annotationsY, annotationsWidth, annotationsHeight);
     
     // Add timestamp
     ctx.fillStyle = '#ffffff';
     ctx.font = `${12 * scale}px Arial`;
-    ctx.fillText(`Exported: ${new Date().toLocaleDateString()}`, canvas.width - 195 * scale, 30 * scale);
+    ctx.textAlign = 'left';
+    ctx.fillText(`Exported: ${new Date().toLocaleDateString()}`, annotationsX + 10 * scale, annotationsY + 20 * scale);
     
     // Add north arrow
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2 * scale;
-    const centerX = canvas.width - 100 * scale;
-    const centerY = 70 * scale;
+    const centerX = annotationsX + annotationsWidth / 2;
+    const centerY = annotationsY + 60 * scale;
     const arrowSize = 15 * scale;
     
     // Draw north arrow
@@ -179,18 +230,19 @@ export const useGISExport = () => {
     
     // Add 'N' label
     ctx.fillStyle = '#ffffff';
-    ctx.font = `${10 * scale}px Arial`;
+    ctx.font = `bold ${12 * scale}px Arial`;
     ctx.textAlign = 'center';
-    ctx.fillText('N', centerX, centerY - arrowSize - 5 * scale);
+    ctx.fillText('N', centerX, centerY - arrowSize - 8 * scale);
     
     // Add scale information
+    ctx.font = `${11 * scale}px Arial`;
     ctx.textAlign = 'left';
-    ctx.fillText(`Zoom: ${mapInstance.getZoom()}`, canvas.width - 195 * scale, 100 * scale);
+    ctx.fillText(`Zoom Level: ${mapInstance.getZoom()}`, annotationsX + 10 * scale, annotationsY + 95 * scale);
     
     // Add coordinates
     const center = mapInstance.getCenter();
     if (center) {
-      ctx.fillText(`Center: ${center.lat().toFixed(4)}, ${center.lng().toFixed(4)}`, canvas.width - 195 * scale, 115 * scale);
+      ctx.fillText(`Lat: ${center.lat().toFixed(4)}, Lng: ${center.lng().toFixed(4)}`, annotationsX + 10 * scale, annotationsY + 110 * scale);
     }
     
     return canvas;
@@ -507,20 +559,21 @@ export const useGISExport = () => {
       const pageHeight = pdf.internal.pageSize.height;
       let yPosition = 20;
 
-      // Helper function to add new page if needed
+      // Helper function to add new page if needed (accounting for footer space)
       const checkAddPage = (requiredSpace: number) => {
-        if (yPosition + requiredSpace > pageHeight - 20) {
+        if (yPosition + requiredSpace > pageHeight - 25) { // Reserve 25mm for footer
           pdf.addPage();
           yPosition = 20;
         }
       };
 
       // Helper function to add wrapped text with proper spacing
-      const addWrappedText = (text: string, x: number, fontSize: number = 10, maxWidth: number = 170) => {
+      const addWrappedText = (text: string, x: number, fontSize: number = 10, maxWidth: number = 170, extraSpacing: number = 0) => {
+        checkAddPage(fontSize * 0.5 + 5); // Ensure space for text before adding
         pdf.setFontSize(fontSize);
         const lines = pdf.splitTextToSize(text, maxWidth);
         pdf.text(lines, x, yPosition);
-        yPosition += lines.length * (fontSize * 0.352777778) + 2; // Proper line height + spacing
+        yPosition += lines.length * (fontSize * 0.352777778) + 3 + extraSpacing; // Better line height + spacing
       };
 
       // Cover Page with proper spacing
@@ -580,89 +633,99 @@ export const useGISExport = () => {
       checkAddPage(40);
       pdf.setFontSize(16);
       pdf.text('1. Property Information', 20, yPosition);
-      yPosition += 10;
+      yPosition += 12;
 
       if (selectedProperty) {
+        checkAddPage(35);
         pdf.setFontSize(12);
         pdf.text('Property Identification', 25, yPosition);
         yPosition += 8;
         
         pdf.setFontSize(10);
-        addWrappedText(`Name: ${selectedProperty.place.name || 'Unnamed Property'}`, 30);
-        addWrappedText(`Address: ${selectedProperty.place.formatted_address || 'No address available'}`, 30);
-        addWrappedText(`Coordinates: ${selectedProperty.location.lat().toFixed(6)}, ${selectedProperty.location.lng().toFixed(6)}`, 30);
-        addWrappedText(`Place ID: ${selectedProperty.place.place_id || 'Not available'}`, 30);
-        yPosition += 5;
+        addWrappedText(`Name: ${selectedProperty.place.name || 'Unnamed Property'}`, 30, 10, 170, 1);
+        addWrappedText(`Address: ${selectedProperty.place.formatted_address || 'No address available'}`, 30, 10, 170, 1);
+        addWrappedText(`Coordinates: ${selectedProperty.location.lat().toFixed(6)}, ${selectedProperty.location.lng().toFixed(6)}`, 30, 10, 170, 1);
+        addWrappedText(`Place ID: ${selectedProperty.place.place_id || 'Not available'}`, 30, 10, 170, 1);
+        yPosition += 8;
       }
 
       // Risk Analysis
       checkAddPage(60);
       pdf.setFontSize(16);
       pdf.text('2. Risk Analysis', 20, yPosition);
-      yPosition += 10;
+      yPosition += 12;
 
+      checkAddPage(15);
       pdf.setFontSize(12);
       pdf.text(`Overall Risk Level: ${detailedAnalysis.riskAssessment.overallRisk}`, 25, yPosition);
       yPosition += 10;
 
       if (detailedAnalysis.riskAssessment.riskFactors.length > 0) {
+        checkAddPage(20 + detailedAnalysis.riskAssessment.riskFactors.length * 8);
         pdf.text('Identified Risk Factors:', 25, yPosition);
         yPosition += 8;
-        detailedAnalysis.riskAssessment.riskFactors.forEach((factor, index) => {
-          addWrappedText(`• ${factor}`, 30, 10);
+        detailedAnalysis.riskAssessment.riskFactors.forEach((factor) => {
+          addWrappedText(`• ${factor}`, 30, 10, 170, 1);
         });
-        yPosition += 5;
+        yPosition += 8;
       }
 
       // Flood Analysis
       checkAddPage(50);
       pdf.setFontSize(16);
       pdf.text('3. Flood Risk Assessment', 20, yPosition);
-      yPosition += 10;
+      yPosition += 12;
 
+      checkAddPage(15);
       pdf.setFontSize(12);
       pdf.text(`Risk Level: ${detailedAnalysis.floodAnalysis.riskLevel}`, 25, yPosition);
-      yPosition += 8;
+      yPosition += 10;
 
       if (detailedAnalysis.floodAnalysis.zones.length > 0) {
+        checkAddPage(20 + detailedAnalysis.floodAnalysis.zones.length * 8);
         pdf.text('FEMA Flood Zones:', 25, yPosition);
-        yPosition += 6;
+        yPosition += 8;
         detailedAnalysis.floodAnalysis.zones.forEach((zone) => {
-          addWrappedText(`• ${zone}`, 30, 10);
+          addWrappedText(`• ${zone}`, 30, 10, 170, 1);
         });
         yPosition += 5;
       }
 
       if (detailedAnalysis.floodAnalysis.historicalData) {
+        checkAddPage(25);
         pdf.text('Historical Context:', 25, yPosition);
-        yPosition += 6;
-        addWrappedText(detailedAnalysis.floodAnalysis.historicalData, 30, 10);
         yPosition += 8;
+        addWrappedText(detailedAnalysis.floodAnalysis.historicalData, 30, 10, 170, 2);
+        yPosition += 5;
       }
 
+      checkAddPage(25 + detailedAnalysis.floodAnalysis.mitigationSteps.length * 8);
       pdf.text('Recommended Mitigation Measures:', 25, yPosition);
-      yPosition += 6;
+      yPosition += 8;
       detailedAnalysis.floodAnalysis.mitigationSteps.forEach((step) => {
-        addWrappedText(`• ${step}`, 30, 10);
+        addWrappedText(`• ${step}`, 30, 10, 170, 1);
       });
+      yPosition += 8;
 
       // Environmental Constraints
       checkAddPage(60);
       pdf.setFontSize(16);
       pdf.text('4. Environmental Constraints', 20, yPosition);
-      yPosition += 10;
+      yPosition += 12;
 
       if (detailedAnalysis.environmentalConstraints.protectedAreas.length > 0) {
+        checkAddPage(25);
         pdf.setFontSize(12);
         pdf.text('Protected Areas:', 25, yPosition);
         yPosition += 8;
         detailedAnalysis.environmentalConstraints.protectedAreas.forEach((area) => {
-          addWrappedText(`• ${area.name} (${area.distance})`, 30, 10);
+          checkAddPage(20);
+          addWrappedText(`• ${area.name} (${area.distance})`, 30, 10, 170, 1);
           area.restrictions.forEach((restriction) => {
-            addWrappedText(`  - ${restriction}`, 35, 9);
+            addWrappedText(`  - ${restriction}`, 35, 9, 165, 1);
           });
         });
-        yPosition += 5;
+        yPosition += 8;
       }
 
       if (detailedAnalysis.environmentalConstraints.wetlands.length > 0) {
@@ -671,12 +734,13 @@ export const useGISExport = () => {
         pdf.text('Wetlands:', 25, yPosition);
         yPosition += 8;
         detailedAnalysis.environmentalConstraints.wetlands.forEach((wetland) => {
-          addWrappedText(`• ${wetland.type}`, 30, 10);
+          checkAddPage(20);
+          addWrappedText(`• ${wetland.type}`, 30, 10, 170, 1);
           wetland.regulations.forEach((reg) => {
-            addWrappedText(`  - ${reg}`, 35, 9);
+            addWrappedText(`  - ${reg}`, 35, 9, 165, 1);
           });
         });
-        yPosition += 5;
+        yPosition += 8;
       }
 
       if (detailedAnalysis.environmentalConstraints.soils.length > 0) {
@@ -685,56 +749,63 @@ export const useGISExport = () => {
         pdf.text('Soil Conditions:', 25, yPosition);
         yPosition += 8;
         detailedAnalysis.environmentalConstraints.soils.forEach((soil) => {
-          addWrappedText(`• ${soil.type}`, 30, 10);
-          addWrappedText(`  Properties: ${soil.engineeringProperties}`, 35, 9);
-          addWrappedText(`  Suitability: ${soil.suitability}`, 35, 9);
+          checkAddPage(20);
+          addWrappedText(`• ${soil.type}`, 30, 10, 170, 1);
+          addWrappedText(`  Properties: ${soil.engineeringProperties}`, 35, 9, 165, 1);
+          addWrappedText(`  Suitability: ${soil.suitability}`, 35, 9, 165, 1);
         });
+        yPosition += 8;
       }
 
       // Compliance Requirements
       checkAddPage(50);
       pdf.setFontSize(16);
       pdf.text('5. Regulatory Compliance', 20, yPosition);
-      yPosition += 10;
+      yPosition += 12;
 
+      checkAddPage(30);
       pdf.setFontSize(12);
       pdf.text('Zoning Information:', 25, yPosition);
       yPosition += 8;
-      addWrappedText(`Designation: ${detailedAnalysis.compliance.zoning.designation}`, 30, 10);
-      addWrappedText(`Allowed Uses: ${detailedAnalysis.compliance.zoning.allowedUses.join(', ')}`, 30, 10);
-      addWrappedText(`Restrictions: ${detailedAnalysis.compliance.zoning.restrictions.join(', ')}`, 30, 10);
-      yPosition += 8;
+      addWrappedText(`Designation: ${detailedAnalysis.compliance.zoning.designation}`, 30, 10, 170, 1);
+      addWrappedText(`Allowed Uses: ${detailedAnalysis.compliance.zoning.allowedUses.join(', ')}`, 30, 10, 170, 1);
+      addWrappedText(`Restrictions: ${detailedAnalysis.compliance.zoning.restrictions.join(', ')}`, 30, 10, 170, 2);
+      yPosition += 5;
 
+      checkAddPage(25);
       pdf.text('Building Codes:', 25, yPosition);
       yPosition += 8;
-      addWrappedText(`Jurisdiction: ${detailedAnalysis.compliance.buildingCodes.jurisdiction}`, 30, 10);
-      addWrappedText(`Applicable Codes: ${detailedAnalysis.compliance.buildingCodes.applicableCodes.join(', ')}`, 30, 10);
-      yPosition += 8;
+      addWrappedText(`Jurisdiction: ${detailedAnalysis.compliance.buildingCodes.jurisdiction}`, 30, 10, 170, 1);
+      addWrappedText(`Applicable Codes: ${detailedAnalysis.compliance.buildingCodes.applicableCodes.join(', ')}`, 30, 10, 170, 2);
+      yPosition += 5;
 
+      checkAddPage(25 + detailedAnalysis.compliance.environmentalPermits.required.length * 8);
       pdf.text('Required Permits:', 25, yPosition);
       yPosition += 8;
       detailedAnalysis.compliance.environmentalPermits.required.forEach((permit, index) => {
         const timeline = detailedAnalysis.compliance.environmentalPermits.timelines[index] || 'Timeline TBD';
-        addWrappedText(`• ${permit} (${timeline})`, 30, 10);
+        addWrappedText(`• ${permit} (${timeline})`, 30, 10, 170, 1);
       });
+      yPosition += 8;
 
       // Add map screenshot if available
       if (mapInstance) {
         try {
-          checkAddPage(120);
+          checkAddPage(130);
           pdf.setFontSize(16);
           pdf.text('6. Site Map', 20, yPosition);
-          yPosition += 15;
+          yPosition += 12;
 
           const mapScreenshot = await captureMapScreenshot(mapInstance, true);
           const imgWidth = pageWidth - 40;
           const imgHeight = (imgWidth * 3) / 4; // 4:3 aspect ratio
           
+          checkAddPage(imgHeight + 20);
           pdf.addImage(mapScreenshot, 'PNG', 20, yPosition, imgWidth, imgHeight);
-          yPosition += imgHeight + 10;
+          yPosition += imgHeight + 8;
 
           pdf.setFontSize(10);
-          addWrappedText('Map shows current property location with active environmental data layers. Legend includes active flood zones, protected areas, and soil/wetland information.', 20, 10);
+          addWrappedText('Map shows current property location with active environmental data layers. Legend (bottom left) displays flood zones in blue, protected areas in green, and soils/wetlands in brown. North arrow and coordinates shown in top right annotation box.', 20, 10, 170, 5);
         } catch (error) {
           console.warn('Could not add map screenshot to PDF:', error);
         }
@@ -744,21 +815,23 @@ export const useGISExport = () => {
       checkAddPage(60);
       pdf.setFontSize(16);
       pdf.text('7. Recommendations', 20, yPosition);
-      yPosition += 10;
+      yPosition += 12;
 
+      checkAddPage(25 + detailedAnalysis.riskAssessment.recommendations.length * 8);
       pdf.setFontSize(12);
       pdf.text('Immediate Actions:', 25, yPosition);
       yPosition += 8;
       detailedAnalysis.riskAssessment.recommendations.forEach((rec) => {
-        addWrappedText(`• ${rec}`, 30, 10);
+        addWrappedText(`• ${rec}`, 30, 10, 170, 1);
       });
       yPosition += 8;
 
+      checkAddPage(40);
       pdf.text('Recommended Consultants:', 25, yPosition);
       yPosition += 8;
       const consultants = ['Licensed Surveyor', 'Environmental Consultant', 'Geotechnical Engineer', 'Civil Engineer', 'Land Use Attorney'];
       consultants.forEach((consultant) => {
-        addWrappedText(`• ${consultant}`, 30, 10);
+        addWrappedText(`• ${consultant}`, 30, 10, 170, 1);
       });
 
       // Footer on each page
