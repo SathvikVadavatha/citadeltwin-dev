@@ -153,11 +153,11 @@ export const useGISExport = () => {
 
     const scale = canvas.width / mapInstance.getDiv().offsetWidth;
     
-    // Add legend with map layers
+    // Add legend with map layers - colors match actual polygon overlays
     const legendItems = [
-      { color: 'rgba(0, 100, 255, 0.5)', label: 'Flood Zones', border: 'rgba(0, 100, 255, 1)' },
-      { color: 'rgba(34, 139, 34, 0.5)', label: 'Protected Areas', border: 'rgba(34, 139, 34, 1)' },
-      { color: 'rgba(139, 69, 19, 0.5)', label: 'Soils & Wetlands', border: 'rgba(139, 69, 19, 1)' }
+      { color: 'rgba(59, 130, 246, 0.4)', label: 'FEMA Flood Zones', border: 'rgba(37, 99, 235, 1)' },
+      { color: 'rgba(168, 85, 247, 0.35)', label: 'Protected Areas', border: 'rgba(147, 51, 234, 1)' },
+      { color: 'rgba(222, 184, 135, 0.4)', label: 'Soils & Wetlands', border: 'rgba(139, 69, 19, 1)' }
     ];
     
     const legendWidth = 220 * scale;
