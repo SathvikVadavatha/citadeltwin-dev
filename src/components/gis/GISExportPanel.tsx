@@ -36,7 +36,6 @@ export const GISExportPanel: React.FC<GISExportPanelProps> = ({
     isExporting,
     exportMapAsImage,
     exportAnalysisAsCSV,
-    exportAnalysisAsJSON,
     exportAnalysisAsPDF
   } = useGISExport();
 
@@ -65,10 +64,6 @@ export const GISExportPanel: React.FC<GISExportPanelProps> = ({
 
   const handleAnalysisCSVExport = () => {
     exportAnalysisAsCSV(exportData);
-  };
-
-  const handleAnalysisJSONExport = () => {
-    exportAnalysisAsJSON(exportData);
   };
 
   const handleAnalysisPDFExport = () => {
@@ -145,17 +140,6 @@ export const GISExportPanel: React.FC<GISExportPanelProps> = ({
             >
               <File className="w-4 h-4" />
               Export as CSV
-            </Button>
-            
-            <Button
-              onClick={handleAnalysisJSONExport}
-              disabled={isExporting || !hasAnalysisData}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2 justify-start"
-            >
-              <File className="w-4 h-4" />
-              Export as JSON
             </Button>
           </div>
           
