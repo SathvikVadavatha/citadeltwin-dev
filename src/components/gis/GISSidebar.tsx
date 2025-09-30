@@ -73,7 +73,6 @@ export const GISSidebar: React.FC<GISSidebarProps> = ({
     isExporting,
     exportMapAsImage,
     exportAnalysisAsCSV,
-    exportAnalysisAsJSON,
     exportAnalysisAsPDF
   } = useGISExport();
 
@@ -476,17 +475,6 @@ export const GISSidebar: React.FC<GISSidebarProps> = ({
                   >
                     <File className="w-3 h-3 mr-2" />
                     Detailed CSV Data
-                  </Button>
-                  
-                  <Button
-                    onClick={() => exportAnalysisAsJSON(exportData)}
-                    disabled={isExporting || !hasAnalysisData}
-                    variant="outline"
-                    size="sm"
-                    className="w-full text-xs justify-start"
-                  >
-                    <File className="w-3 h-3 mr-2" />
-                    Structured JSON Data
                   </Button>
                 </div>
               </div>
