@@ -103,42 +103,29 @@ export const useGISExport = () => {
                 control.style.display = originalDisplay[index];
               });
 
-              // Add map legend, scale bar, and north arrow
-              const enhancedCanvas = addMapAnnotations(canvas, mapInstance);
-              resolve(enhancedCanvas.toDataURL('image/png'));
+              // Wait for next animation frame to ensure canvas is fully rendered
+              requestAnimationFrame(() => {
+                // Add map legend, scale bar, and north arrow with bulletproof timing
+                const enhancedCanvas = addMapAnnotations(canvas, mapInstance);
+                resolve(enhancedCanvas.toDataURL('image/png'));
+              });
             }).catch((error) => {
               // Restore UI controls on error
               controlsToHide.forEach((control: any, index) => {
                 control.style.display = originalDisplay[index];
               });
-              reject(error);
+              
+              // Fallback with annotations
+              console.warn('html2canvas failed, using fallback with annotations:', error);
+              const fallbackCanvas = createFallbackCanvas(mapDiv, highRes);
+              const enhancedCanvas = addMapAnnotations(fallbackCanvas, mapInstance);
+              resolve(enhancedCanvas.toDataURL('image/png'));
             });
           }).catch(() => {
-            // Fallback: Create enhanced representation
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            if (!ctx) {
-              reject(new Error('Canvas context not available'));
-              return;
-            }
-
-            canvas.width = mapDiv.offsetWidth * (highRes ? 2 : 1);
-            canvas.height = mapDiv.offsetHeight * (highRes ? 2 : 1);
-            
-            // Enhanced fallback design
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#2d3748';
-            ctx.fillRect(20, 20, canvas.width - 40, canvas.height - 40);
-            ctx.fillStyle = '#ffffff';
-            ctx.font = `${20 * (highRes ? 2 : 1)}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.fillText('GIS Map Export', canvas.width / 2, canvas.height / 2);
-            ctx.font = `${14 * (highRes ? 2 : 1)}px Arial`;
-            ctx.fillText('High-Resolution Export Ready', canvas.width / 2, canvas.height / 2 + (30 * (highRes ? 2 : 1)));
-            
-            resolve(canvas.toDataURL('image/png'));
+            // Fallback: Create enhanced representation with annotations
+            const fallbackCanvas = createFallbackCanvas(mapDiv, highRes);
+            const enhancedCanvas = addMapAnnotations(fallbackCanvas, mapInstance);
+            resolve(enhancedCanvas.toDataURL('image/png'));
           });
         });
       } catch (error) {
@@ -147,102 +134,199 @@ export const useGISExport = () => {
     });
   };
 
+  // Helper function to create fallback canvas
+  const createFallbackCanvas = (mapDiv: HTMLElement, highRes: boolean): HTMLCanvasElement => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      throw new Error('Canvas context not available');
+    }
+
+    canvas.width = mapDiv.offsetWidth * (highRes ? 2 : 1);
+    canvas.height = mapDiv.offsetHeight * (highRes ? 2 : 1);
+    
+    // Enhanced fallback design
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#2d3748';
+    ctx.fillRect(20, 20, canvas.width - 40, canvas.height - 40);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `${20 * (highRes ? 2 : 1)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText('GIS Map Export', canvas.width / 2, canvas.height / 2);
+    ctx.font = `${14 * (highRes ? 2 : 1)}px Arial`;
+    ctx.fillText('High-Resolution Export Ready', canvas.width / 2, canvas.height / 2 + (30 * (highRes ? 2 : 1)));
+    
+    return canvas;
+  };
+
   const addMapAnnotations = (canvas: HTMLCanvasElement, mapInstance: google.maps.Map): HTMLCanvasElement => {
     const ctx = canvas.getContext('2d');
-    if (!ctx) return canvas;
+    if (!ctx) {
+      console.error('Cannot add annotations: no canvas context');
+      return canvas;
+    }
 
-    const scale = canvas.width / mapInstance.getDiv().offsetWidth;
+    // Save context state to ensure clean restore
+    ctx.save();
     
-    // Add legend with map layers - colors match actual polygon overlays
-    const legendItems = [
-      { color: 'rgba(59, 130, 246, 0.4)', label: 'FEMA Flood Zones', border: 'rgba(37, 99, 235, 1)' },
-      { color: 'rgba(168, 85, 247, 0.35)', label: 'Protected Areas', border: 'rgba(147, 51, 234, 1)' },
-      { color: 'rgba(222, 184, 135, 0.4)', label: 'Soils & Wetlands', border: 'rgba(139, 69, 19, 1)' }
-    ];
-    
-    const legendWidth = 220 * scale;
-    const legendHeight = (60 + legendItems.length * 25) * scale;
-    const legendX = 10 * scale;
-    const legendY = canvas.height - legendHeight - 10 * scale;
-    
-    // Legend background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-    ctx.fillRect(legendX, legendY, legendWidth, legendHeight);
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1 * scale;
-    ctx.strokeRect(legendX, legendY, legendWidth, legendHeight);
-    
-    // Legend title
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${14 * scale}px Arial`;
-    ctx.textAlign = 'left';
-    ctx.fillText('Map Legend', legendX + 10 * scale, legendY + 20 * scale);
-    
-    // Legend items
-    ctx.font = `${11 * scale}px Arial`;
-    legendItems.forEach((item, index) => {
-      const itemY = legendY + 40 * scale + (index * 25 * scale);
+    try {
+      const scale = canvas.width / mapInstance.getDiv().offsetWidth;
       
-      // Color box with border
-      ctx.fillStyle = item.color;
-      ctx.fillRect(legendX + 15 * scale, itemY - 10 * scale, 20 * scale, 15 * scale);
-      ctx.strokeStyle = item.border;
-      ctx.lineWidth = 1.5 * scale;
-      ctx.strokeRect(legendX + 15 * scale, itemY - 10 * scale, 20 * scale, 15 * scale);
+      // Debug logging
+      console.log('Adding map annotations:', {
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        scale: scale
+      });
       
-      // Label
+      // Add legend with map layers - colors match actual polygon overlays
+      const legendItems = [
+        { color: 'rgba(59, 130, 246, 0.4)', label: 'FEMA Flood Zones', border: 'rgba(37, 99, 235, 1)' },
+        { color: 'rgba(168, 85, 247, 0.35)', label: 'Protected Areas', border: 'rgba(147, 51, 234, 1)' },
+        { color: 'rgba(222, 184, 135, 0.4)', label: 'Soils & Wetlands', border: 'rgba(139, 69, 19, 1)' }
+      ];
+      
+      // Dynamically scale font and boxes for small canvases
+      const minScale = Math.min(scale, canvas.height / 400);
+      const fontSize = Math.max(11, 11 * minScale);
+      const titleFontSize = Math.max(14, 14 * minScale);
+      
+      const legendWidth = 220 * scale;
+      const legendHeight = (60 + legendItems.length * 25) * scale;
+      
+      // Clamp legend position to ensure it's visible
+      const legendX = Math.max(10 * scale, 10);
+      const legendY = Math.max(10, Math.min(
+        canvas.height - legendHeight - 10 * scale,
+        canvas.height - legendHeight - 10
+      ));
+      
+      console.log('Legend position:', {
+        legendX,
+        legendY,
+        legendWidth,
+        legendHeight,
+        willFit: legendY > 0 && legendY + legendHeight < canvas.height
+      });
+      
+      // Legend background with shadow for visibility
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+      ctx.shadowBlur = 10 * scale;
+      ctx.shadowOffsetX = 2 * scale;
+      ctx.shadowOffsetY = 2 * scale;
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+      ctx.fillRect(legendX, legendY, legendWidth, legendHeight);
+      
+      // Reset shadow for border
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2 * scale; // Increased from 1 for better visibility
+      ctx.strokeRect(legendX, legendY, legendWidth, legendHeight);
+      
+      // Legend title
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(item.label, legendX + 45 * scale, itemY);
-    });
-    
-    // Add annotations box (top right)
-    const annotationsWidth = 200 * scale;
-    const annotationsHeight = 120 * scale;
-    const annotationsX = canvas.width - annotationsWidth - 10 * scale;
-    const annotationsY = 10 * scale;
-    
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-    ctx.fillRect(annotationsX, annotationsY, annotationsWidth, annotationsHeight);
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1 * scale;
-    ctx.strokeRect(annotationsX, annotationsY, annotationsWidth, annotationsHeight);
-    
-    // Add timestamp
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `${12 * scale}px Arial`;
-    ctx.textAlign = 'left';
-    ctx.fillText(`Exported: ${new Date().toLocaleDateString()}`, annotationsX + 10 * scale, annotationsY + 20 * scale);
-    
-    // Add north arrow
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2 * scale;
-    const centerX = annotationsX + annotationsWidth / 2;
-    const centerY = annotationsY + 60 * scale;
-    const arrowSize = 15 * scale;
-    
-    // Draw north arrow
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY - arrowSize);
-    ctx.lineTo(centerX - arrowSize/2, centerY + arrowSize/2);
-    ctx.moveTo(centerX, centerY - arrowSize);
-    ctx.lineTo(centerX + arrowSize/2, centerY + arrowSize/2);
-    ctx.stroke();
-    
-    // Add 'N' label
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${12 * scale}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.fillText('N', centerX, centerY - arrowSize - 8 * scale);
-    
-    // Add scale information
-    ctx.font = `${11 * scale}px Arial`;
-    ctx.textAlign = 'left';
-    ctx.fillText(`Zoom Level: ${mapInstance.getZoom()}`, annotationsX + 10 * scale, annotationsY + 95 * scale);
-    
-    // Add coordinates
-    const center = mapInstance.getCenter();
-    if (center) {
-      ctx.fillText(`Lat: ${center.lat().toFixed(4)}, Lng: ${center.lng().toFixed(4)}`, annotationsX + 10 * scale, annotationsY + 110 * scale);
+      ctx.font = `bold ${titleFontSize}px Arial`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Map Legend', legendX + 10 * scale, legendY + 20 * scale);
+      
+      // Legend items
+      ctx.font = `${fontSize}px Arial`;
+      legendItems.forEach((item, index) => {
+        const itemY = legendY + 40 * scale + (index * 25 * scale);
+        
+        // Color box with border
+        ctx.fillStyle = item.color;
+        ctx.fillRect(legendX + 15 * scale, itemY - 10 * scale, 20 * scale, 15 * scale);
+        ctx.strokeStyle = item.border;
+        ctx.lineWidth = 2 * scale; // Increased from 1.5 for better visibility
+        ctx.strokeRect(legendX + 15 * scale, itemY - 10 * scale, 20 * scale, 15 * scale);
+        
+        // Label with white text for maximum contrast
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(item.label, legendX + 45 * scale, itemY);
+      });
+      
+      // Add annotations box (top right)
+      const annotationsWidth = 200 * scale;
+      const annotationsHeight = 120 * scale;
+      const annotationsX = Math.max(
+        10,
+        Math.min(canvas.width - annotationsWidth - 10 * scale, canvas.width - annotationsWidth - 10)
+      );
+      const annotationsY = Math.max(10 * scale, 10);
+      
+      // Annotations background with shadow
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+      ctx.shadowBlur = 10 * scale;
+      ctx.shadowOffsetX = 2 * scale;
+      ctx.shadowOffsetY = 2 * scale;
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+      ctx.fillRect(annotationsX, annotationsY, annotationsWidth, annotationsHeight);
+      
+      // Reset shadow for border
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2 * scale; // Increased from 1 for better visibility
+      ctx.strokeRect(annotationsX, annotationsY, annotationsWidth, annotationsHeight);
+      
+      // Add timestamp
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `${12 * minScale}px Arial`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`Exported: ${new Date().toLocaleDateString()}`, annotationsX + 10 * scale, annotationsY + 20 * scale);
+      
+      // Add north arrow
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2 * scale;
+      const centerX = annotationsX + annotationsWidth / 2;
+      const centerY = annotationsY + 60 * scale;
+      const arrowSize = 15 * scale;
+      
+      // Draw north arrow
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY - arrowSize);
+      ctx.lineTo(centerX - arrowSize/2, centerY + arrowSize/2);
+      ctx.moveTo(centerX, centerY - arrowSize);
+      ctx.lineTo(centerX + arrowSize/2, centerY + arrowSize/2);
+      ctx.stroke();
+      
+      // Add 'N' label
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${12 * minScale}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.fillText('N', centerX, centerY - arrowSize - 8 * scale);
+      
+      // Add scale information
+      ctx.font = `${11 * minScale}px Arial`;
+      ctx.textAlign = 'left';
+      ctx.fillText(`Zoom Level: ${mapInstance.getZoom()}`, annotationsX + 10 * scale, annotationsY + 95 * scale);
+      
+      // Add coordinates
+      const center = mapInstance.getCenter();
+      if (center) {
+        ctx.fillText(`Lat: ${center.lat().toFixed(4)}, Lng: ${center.lng().toFixed(4)}`, annotationsX + 10 * scale, annotationsY + 110 * scale);
+      }
+      
+      console.log('Annotations added successfully');
+    } catch (error) {
+      console.error('Error adding map annotations:', error);
+    } finally {
+      // Always restore context state
+      ctx.restore();
     }
     
     return canvas;
