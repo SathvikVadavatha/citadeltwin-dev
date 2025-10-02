@@ -375,7 +375,13 @@ export const useGISExport = () => {
       link.click();
       document.body.removeChild(link);
 
-      toast.success(`High-quality map exported as ${format.toUpperCase()}`);
+      toast.success(
+        `Map exported as ${format.toUpperCase()}`,
+        {
+          description: 'Note: Layer colors - Flood Zones (blue), Protected Areas (purple), Soils & Wetlands (tan)',
+          duration: 6000,
+        }
+      );
     } catch (error) {
       console.error('Error exporting map:', error);
       toast.error('Failed to export map');
@@ -937,21 +943,86 @@ export const useGISExport = () => {
           yPosition += imgHeight + 8;
 
           pdf.setFontSize(10);
-          addWrappedText('Map shows property location with active GIS data layers. Legend indicates flood zones (blue), protected areas (purple), and soils/wetlands (tan). Coordinates and scale shown in annotation box.', 20, 10, 170, 5);
+          pdf.setTextColor(100, 100, 100);
+          addWrappedText(`Site map showing property location and surrounding area as of ${new Date().toLocaleDateString()}.`, 20, 10, 170, 5);
+          pdf.setTextColor(0, 0, 0);
+          yPosition += 8;
+
+          // Map Layer Legend
+          checkAddPage(60);
+          pdf.setFontSize(14);
+          pdf.text('Map Layer Legend', 20, yPosition);
+          yPosition += 10;
+
+          // Build legend from active layers with data
+          const activeLayers = [];
+          if (detailedAnalysis.floodAnalysis.zones.length > 0) {
+            activeLayers.push({ name: 'Flood Zones', color: [0, 102, 204], description: 'FEMA flood hazard areas' });
+          }
+          if (detailedAnalysis.environmentalConstraints.protectedAreas.length > 0) {
+            activeLayers.push({ name: 'Protected Areas', color: [147, 51, 234], description: 'Conservation and restricted zones' });
+          }
+          if (detailedAnalysis.environmentalConstraints.soils.length > 0 || detailedAnalysis.environmentalConstraints.wetlands.length > 0) {
+            activeLayers.push({ name: 'Soils & Wetlands', color: [217, 179, 140], description: 'Soil types and wetland areas' });
+          }
+
+          if (activeLayers.length > 0) {
+            // Draw table header
+            pdf.setFillColor(240, 240, 240);
+            pdf.rect(20, yPosition, 170, 8, 'F');
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Layer', 25, yPosition + 5.5);
+            pdf.text('Description', 75, yPosition + 5.5);
+            yPosition += 8;
+            pdf.setFont('helvetica', 'normal');
+
+            // Draw table rows
+            activeLayers.forEach((layer, index) => {
+              checkAddPage(10);
+              
+              // Alternating row colors
+              if (index % 2 === 0) {
+                pdf.setFillColor(250, 250, 250);
+                pdf.rect(20, yPosition, 170, 8, 'F');
+              }
+              
+              // Color indicator box
+              pdf.setFillColor(layer.color[0], layer.color[1], layer.color[2]);
+              pdf.rect(25, yPosition + 2, 4, 4, 'F');
+              pdf.setDrawColor(200, 200, 200);
+              pdf.rect(25, yPosition + 2, 4, 4, 'S');
+              
+              // Layer name and description
+              pdf.setFontSize(10);
+              pdf.text(layer.name, 32, yPosition + 5.5);
+              pdf.setFontSize(9);
+              pdf.setTextColor(80, 80, 80);
+              pdf.text(layer.description, 75, yPosition + 5.5);
+              pdf.setTextColor(0, 0, 0);
+              
+              yPosition += 8;
+            });
+
+            // Draw table border
+            pdf.setDrawColor(200, 200, 200);
+            pdf.rect(20, yPosition - (activeLayers.length * 8) - 8, 170, (activeLayers.length * 8) + 8);
+          } else {
+            pdf.setFontSize(10);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text('No GIS data layers available for this location.', 25, yPosition);
+            pdf.setTextColor(0, 0, 0);
+          }
         } catch (error) {
           console.warn('Could not add map screenshot to PDF:', error);
         }
       }
 
       // Data Availability Summary
-      checkAddPage(50);
+      checkAddPage(70);
       pdf.setFontSize(16);
       pdf.text('7. Data Availability', 20, yPosition);
       yPosition += 12;
-
-      pdf.setFontSize(12);
-      pdf.text('GIS Layers Analyzed:', 25, yPosition);
-      yPosition += 8;
 
       const dataAvailability = [
         { name: 'Flood Zones', available: detailedAnalysis.floodAnalysis.zones.length > 0 },
@@ -959,10 +1030,58 @@ export const useGISExport = () => {
         { name: 'Soils & Wetlands', available: detailedAnalysis.environmentalConstraints.soils.length > 0 || detailedAnalysis.environmentalConstraints.wetlands.length > 0 }
       ];
 
-      dataAvailability.forEach((layer) => {
-        const status = layer.available ? '✓ Data Available' : '✗ No Data Found';
-        addWrappedText(`${layer.name}: ${status}`, 30, 10, 170, 1);
+      // Draw formatted table for data availability
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('GIS LAYERS ANALYZED', 25, yPosition);
+      yPosition += 8;
+      pdf.setFont('helvetica', 'normal');
+
+      // Table header
+      pdf.setFillColor(245, 245, 245);
+      pdf.rect(25, yPosition, 145, 10, 'F');
+      pdf.setDrawColor(180, 180, 180);
+      pdf.rect(25, yPosition, 145, 10);
+      
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('GIS Layer', 30, yPosition + 6.5);
+      pdf.text('Status', 120, yPosition + 6.5);
+      yPosition += 10;
+      pdf.setFont('helvetica', 'normal');
+
+      // Table rows
+      dataAvailability.forEach((layer, index) => {
+        // Alternating row colors
+        if (index % 2 === 1) {
+          pdf.setFillColor(252, 252, 252);
+          pdf.rect(25, yPosition, 145, 9, 'F');
+        }
+        
+        pdf.setDrawColor(220, 220, 220);
+        pdf.rect(25, yPosition, 145, 9);
+        
+        // Layer name
+        pdf.setFontSize(10);
+        pdf.text(layer.name, 30, yPosition + 6);
+        
+        // Status with color coding
+        if (layer.available) {
+          pdf.setTextColor(34, 139, 34); // Green
+          pdf.text('✓ Data Available', 120, yPosition + 6);
+        } else {
+          pdf.setTextColor(220, 53, 69); // Red
+          pdf.text('✗ No Data Found', 120, yPosition + 6);
+        }
+        pdf.setTextColor(0, 0, 0);
+        
+        yPosition += 9;
       });
+
+      // Table border
+      pdf.setDrawColor(180, 180, 180);
+      pdf.rect(25, yPosition - (dataAvailability.length * 9) - 10, 145, (dataAvailability.length * 9) + 10);
+      
       yPosition += 8;
 
       checkAddPage(30);
