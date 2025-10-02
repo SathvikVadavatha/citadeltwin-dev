@@ -98,7 +98,20 @@ export const GISSidebar: React.FC<GISSidebarProps> = ({
 
   const handleMapImageExport = () => {
     if (!mapInstance) return;
-    exportMapAsImage(mapInstance, imageFormat, imageQuality);
+    
+    // Build active layers list with data
+    const activeLayers = [];
+    if (combinedAnalysis?.floodZones && combinedAnalysis.floodZones.length > 0) {
+      activeLayers.push({ name: 'Flood Zones', color: 'rgb(0, 102, 204)' });
+    }
+    if (combinedAnalysis?.protectedAreas && combinedAnalysis.protectedAreas.length > 0) {
+      activeLayers.push({ name: 'Protected Areas', color: 'rgb(147, 51, 234)' });
+    }
+    if (combinedAnalysis?.soilsWetlands && combinedAnalysis.soilsWetlands.length > 0) {
+      activeLayers.push({ name: 'Soils & Wetlands', color: 'rgb(217, 179, 140)' });
+    }
+    
+    exportMapAsImage(mapInstance, imageFormat, imageQuality, undefined, activeLayers);
   };
 
   const getRiskLevel = () => {

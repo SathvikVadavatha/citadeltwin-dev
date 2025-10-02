@@ -336,12 +336,94 @@ export const useGISExport = () => {
     mapInstance: google.maps.Map, 
     format: 'png' | 'jpeg' = 'png',
     quality: 'standard' | 'high' | 'print' = 'standard',
-    filename?: string
+    filename?: string,
+    activeLayers?: Array<{ name: string; color: string }>
   ) => {
     setIsExporting(true);
     try {
       const highRes = quality === 'high' || quality === 'print';
-      const dataUrl = await captureMapScreenshot(mapInstance, highRes);
+      let dataUrl = await captureMapScreenshot(mapInstance, highRes);
+      
+      // Add embedded legend if active layers are provided
+      if (activeLayers && activeLayers.length > 0) {
+        const img = new Image();
+        await new Promise<void>((resolve) => {
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            if (!ctx) {
+              resolve();
+              return;
+            }
+            
+            // Set canvas size to match image
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            // Draw the map screenshot
+            ctx.drawImage(img, 0, 0);
+            
+            // Draw legend box in bottom-left corner
+            const padding = 20;
+            const boxPadding = 15;
+            const legendWidth = 220;
+            const itemHeight = 25;
+            const titleHeight = 30;
+            const legendHeight = titleHeight + (activeLayers.length * itemHeight) + boxPadding * 2;
+            const legendX = padding;
+            const legendY = canvas.height - legendHeight - padding;
+            
+            // Draw semi-transparent background
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.fillRect(legendX, legendY, legendWidth, legendHeight);
+            
+            // Draw border
+            ctx.strokeStyle = '#888888';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(legendX, legendY, legendWidth, legendHeight);
+            
+            // Draw title
+            ctx.fillStyle = '#000000';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText('Map Layers', legendX + boxPadding, legendY + boxPadding);
+            
+            // Draw separator line
+            ctx.strokeStyle = '#cccccc';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(legendX + boxPadding, legendY + titleHeight);
+            ctx.lineTo(legendX + legendWidth - boxPadding, legendY + titleHeight);
+            ctx.stroke();
+            
+            // Draw layer items
+            ctx.font = '14px Arial';
+            activeLayers.forEach((layer, index) => {
+              const itemY = legendY + titleHeight + boxPadding + (index * itemHeight);
+              
+              // Draw colored square
+              ctx.fillStyle = layer.color;
+              ctx.fillRect(legendX + boxPadding, itemY, 15, 15);
+              
+              // Draw square border
+              ctx.strokeStyle = '#666666';
+              ctx.lineWidth = 1;
+              ctx.strokeRect(legendX + boxPadding, itemY, 15, 15);
+              
+              // Draw layer name
+              ctx.fillStyle = '#000000';
+              ctx.fillText(layer.name, legendX + boxPadding + 25, itemY + 2);
+            });
+            
+            // Update dataUrl with the canvas containing the legend
+            dataUrl = canvas.toDataURL('image/png');
+            resolve();
+          };
+          img.src = dataUrl;
+        });
+      }
       
       // Convert to desired format if needed
       let finalDataUrl = dataUrl;
@@ -375,13 +457,7 @@ export const useGISExport = () => {
       link.click();
       document.body.removeChild(link);
 
-      toast.success(
-        `Map exported as ${format.toUpperCase()}`,
-        {
-          description: 'Note: Layer colors - Flood Zones (blue), Protected Areas (purple), Soils & Wetlands (tan)',
-          duration: 6000,
-        }
-      );
+      toast.success(`Map exported as ${format.toUpperCase()} with embedded legend`);
     } catch (error) {
       console.error('Error exporting map:', error);
       toast.error('Failed to export map');
@@ -947,72 +1023,6 @@ export const useGISExport = () => {
           addWrappedText(`Site map showing property location and surrounding area as of ${new Date().toLocaleDateString()}.`, 20, 10, 170, 5);
           pdf.setTextColor(0, 0, 0);
           yPosition += 8;
-
-          // Map Layer Legend
-          checkAddPage(60);
-          pdf.setFontSize(14);
-          pdf.text('Map Layer Legend', 20, yPosition);
-          yPosition += 10;
-
-          // Build legend from active layers with data
-          const activeLayers = [];
-          if (detailedAnalysis.floodAnalysis.zones.length > 0) {
-            activeLayers.push({ name: 'Flood Zones', color: [0, 102, 204], description: 'FEMA flood hazard areas' });
-          }
-          if (detailedAnalysis.environmentalConstraints.protectedAreas.length > 0) {
-            activeLayers.push({ name: 'Protected Areas', color: [147, 51, 234], description: 'Conservation and restricted zones' });
-          }
-          if (detailedAnalysis.environmentalConstraints.soils.length > 0 || detailedAnalysis.environmentalConstraints.wetlands.length > 0) {
-            activeLayers.push({ name: 'Soils & Wetlands', color: [217, 179, 140], description: 'Soil types and wetland areas' });
-          }
-
-          if (activeLayers.length > 0) {
-            // Draw table header
-            pdf.setFillColor(240, 240, 240);
-            pdf.rect(20, yPosition, 170, 8, 'F');
-            pdf.setFontSize(10);
-            pdf.setFont('helvetica', 'bold');
-            pdf.text('Layer', 25, yPosition + 5.5);
-            pdf.text('Description', 75, yPosition + 5.5);
-            yPosition += 8;
-            pdf.setFont('helvetica', 'normal');
-
-            // Draw table rows
-            activeLayers.forEach((layer, index) => {
-              checkAddPage(10);
-              
-              // Alternating row colors
-              if (index % 2 === 0) {
-                pdf.setFillColor(250, 250, 250);
-                pdf.rect(20, yPosition, 170, 8, 'F');
-              }
-              
-              // Color indicator box
-              pdf.setFillColor(layer.color[0], layer.color[1], layer.color[2]);
-              pdf.rect(25, yPosition + 2, 4, 4, 'F');
-              pdf.setDrawColor(200, 200, 200);
-              pdf.rect(25, yPosition + 2, 4, 4, 'S');
-              
-              // Layer name and description
-              pdf.setFontSize(10);
-              pdf.text(layer.name, 32, yPosition + 5.5);
-              pdf.setFontSize(9);
-              pdf.setTextColor(80, 80, 80);
-              pdf.text(layer.description, 75, yPosition + 5.5);
-              pdf.setTextColor(0, 0, 0);
-              
-              yPosition += 8;
-            });
-
-            // Draw table border
-            pdf.setDrawColor(200, 200, 200);
-            pdf.rect(20, yPosition - (activeLayers.length * 8) - 8, 170, (activeLayers.length * 8) + 8);
-          } else {
-            pdf.setFontSize(10);
-            pdf.setTextColor(100, 100, 100);
-            pdf.text('No GIS data layers available for this location.', 25, yPosition);
-            pdf.setTextColor(0, 0, 0);
-          }
         } catch (error) {
           console.warn('Could not add map screenshot to PDF:', error);
         }
