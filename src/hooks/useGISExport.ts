@@ -332,6 +332,92 @@ export const useGISExport = () => {
     return canvas;
   };
 
+  // Helper function to draw the legend panel on the right side
+  const drawLegendPanel = (
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    layers: Array<{ name: string; color: string }>
+  ) => {
+    // Fill background with light gray
+    ctx.fillStyle = '#f8f9fa';
+    ctx.fillRect(x, y, width, height);
+
+    // Draw left border
+    ctx.strokeStyle = '#dee2e6';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, y + height);
+    ctx.stroke();
+
+    const padding = 30;
+    let currentY = y + padding + 20;
+
+    // Draw title
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold 22px Arial';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('MAP LAYERS', x + padding, currentY);
+    currentY += 35;
+
+    // Draw separator line
+    ctx.strokeStyle = '#dee2e6';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x + padding, currentY);
+    ctx.lineTo(x + width - padding, currentY);
+    ctx.stroke();
+    currentY += 40;
+
+    // Draw each layer
+    if (layers.length === 0) {
+      ctx.fillStyle = '#6c757d';
+      ctx.font = '14px Arial';
+      ctx.fillText('No active layers', x + padding, currentY);
+    } else {
+      layers.forEach((layer) => {
+        // Draw colored square (20x20px)
+        ctx.fillStyle = layer.color;
+        ctx.fillRect(x + padding, currentY - 5, 22, 22);
+        
+        // Draw border around square
+        ctx.strokeStyle = '#333333';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(x + padding, currentY - 5, 22, 22);
+
+        // Draw layer name
+        ctx.fillStyle = '#000000';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(layer.name, x + padding + 35, currentY - 3);
+
+        currentY += 38;
+      });
+    }
+
+    // Draw bottom separator (positioned from bottom)
+    const bottomY = y + height - 80;
+    ctx.strokeStyle = '#dee2e6';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x + padding, bottomY);
+    ctx.lineTo(x + width - padding, bottomY);
+    ctx.stroke();
+
+    // Add export metadata at bottom
+    ctx.fillStyle = '#6c757d';
+    ctx.font = '12px Arial';
+    const exportDate = new Date().toLocaleDateString();
+    const exportTime = new Date().toLocaleTimeString();
+    ctx.fillText(`Exported: ${exportDate}`, x + padding, bottomY + 20);
+    ctx.fillText(`Time: ${exportTime}`, x + padding, bottomY + 38);
+  };
+
   const exportMapAsImage = async (
     mapInstance: google.maps.Map, 
     format: 'png' | 'jpeg' = 'png',
@@ -344,90 +430,64 @@ export const useGISExport = () => {
       const highRes = quality === 'high' || quality === 'print';
       let dataUrl = await captureMapScreenshot(mapInstance, highRes);
       
-      // Add embedded legend if active layers are provided
-      if (activeLayers && activeLayers.length > 0) {
-        const img = new Image();
-        await new Promise<void>((resolve) => {
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            if (!ctx) {
-              resolve();
-              return;
-            }
-            
-            // Set canvas size to match image
-            canvas.width = img.width;
-            canvas.height = img.height;
-            
-            // Draw the map screenshot
-            ctx.drawImage(img, 0, 0);
-            
-            // Draw legend box in bottom-left corner
-            const padding = 20;
-            const boxPadding = 15;
-            const legendWidth = 220;
-            const itemHeight = 25;
-            const titleHeight = 30;
-            const legendHeight = titleHeight + (activeLayers.length * itemHeight) + boxPadding * 2;
-            const legendX = padding;
-            const legendY = canvas.height - legendHeight - padding;
-            
-            // Draw semi-transparent background
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-            ctx.fillRect(legendX, legendY, legendWidth, legendHeight);
-            
-            // Draw border
-            ctx.strokeStyle = '#888888';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(legendX, legendY, legendWidth, legendHeight);
-            
-            // Draw title
-            ctx.fillStyle = '#000000';
-            ctx.font = 'bold 16px Arial';
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'top';
-            ctx.fillText('Map Layers', legendX + boxPadding, legendY + boxPadding);
-            
-            // Draw separator line
-            ctx.strokeStyle = '#cccccc';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(legendX + boxPadding, legendY + titleHeight);
-            ctx.lineTo(legendX + legendWidth - boxPadding, legendY + titleHeight);
-            ctx.stroke();
-            
-            // Draw layer items
-            ctx.font = '14px Arial';
-            activeLayers.forEach((layer, index) => {
-              const itemY = legendY + titleHeight + boxPadding + (index * itemHeight);
-              
-              // Draw colored square
-              ctx.fillStyle = layer.color;
-              ctx.fillRect(legendX + boxPadding, itemY, 15, 15);
-              
-              // Draw square border
-              ctx.strokeStyle = '#666666';
-              ctx.lineWidth = 1;
-              ctx.strokeRect(legendX + boxPadding, itemY, 15, 15);
-              
-              // Draw layer name
-              ctx.fillStyle = '#000000';
-              ctx.fillText(layer.name, legendX + boxPadding + 25, itemY + 2);
-            });
-            
-            // Update dataUrl with the canvas containing the legend
-            dataUrl = canvas.toDataURL('image/png');
-            resolve();
-          };
-          img.src = dataUrl;
-        });
-      }
-      
-      // Convert to desired format if needed
+      // Create side-by-side composite if active layers are provided
       let finalDataUrl = dataUrl;
-      if (format === 'jpeg') {
+      if (activeLayers && activeLayers.length > 0) {
+        const mapImg = new Image();
+        await new Promise<void>((resolve, reject) => {
+          mapImg.onload = () => {
+            try {
+              // Calculate composite dimensions
+              const mapWidth = mapImg.width;
+              const mapHeight = mapImg.height;
+              const legendWidth = Math.floor(mapWidth * 0.33); // Legend is 33% (map is 75% of total)
+              const totalWidth = mapWidth + legendWidth;
+              const totalHeight = mapHeight;
+
+              // Create composite canvas
+              const compositeCanvas = document.createElement('canvas');
+              compositeCanvas.width = totalWidth;
+              compositeCanvas.height = totalHeight;
+              const ctx = compositeCanvas.getContext('2d');
+              
+              if (!ctx) {
+                reject(new Error('Failed to get canvas context'));
+                return;
+              }
+
+              // For JPEG or white background
+              if (format === 'jpeg') {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, totalWidth, totalHeight);
+              }
+
+              // Draw map on the left
+              ctx.drawImage(mapImg, 0, 0, mapWidth, mapHeight);
+
+              // Draw legend panel on the right
+              drawLegendPanel(ctx, mapWidth, 0, legendWidth, mapHeight, activeLayers);
+
+              // Convert canvas to dataUrl
+              const jpegQuality = quality === 'print' ? 1.0 : 0.9;
+              finalDataUrl = compositeCanvas.toDataURL(
+                `image/${format}`, 
+                format === 'jpeg' ? jpegQuality : undefined
+              );
+              resolve();
+            } catch (error) {
+              console.error('Error creating composite:', error);
+              // Fall back to original image
+              resolve();
+            }
+          };
+          mapImg.onerror = () => {
+            console.error('Failed to load map image');
+            resolve(); // Fall back to original
+          };
+          mapImg.src = dataUrl;
+        });
+      } else if (format === 'jpeg') {
+        // Convert to JPEG format if no layers
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const img = new Image();
