@@ -387,40 +387,109 @@ export const useGISExport = () => {
   const generateDetailedAnalysis = (data: ExportData): DetailedAnalysis => {
     const { selectedProperty, combinedAnalysis, selectedRegion } = data;
     
-    // Generate risk assessment
+    // Generate risk assessment based on actual GIS data
     let overallRisk: 'Low' | 'Moderate' | 'High' | 'Critical' = 'Low';
     const riskFactors: string[] = [];
     const recommendations: string[] = [];
     
+    const hasFloodData = combinedAnalysis?.floodZones && combinedAnalysis.floodZones.length > 0;
+    const hasProtectedAreas = combinedAnalysis?.protectedAreas && combinedAnalysis.protectedAreas.length > 0;
+    const hasSoilsWetlands = combinedAnalysis?.soilsWetlands && combinedAnalysis.soilsWetlands.length > 0;
+    
     if (combinedAnalysis) {
-      if (combinedAnalysis.floodZones.length > 0) {
+      // Flood risk analysis
+      if (hasFloodData) {
         const hasHighRiskZones = combinedAnalysis.floodZones.some(zone => 
           zone.includes('High') || zone.includes('VE') || zone.includes('AE')
         );
         if (hasHighRiskZones) {
-          overallRisk = overallRisk === 'Low' ? 'High' : 'Critical';
           riskFactors.push('High flood risk zones detected');
-          recommendations.push('Implement flood mitigation measures', 'Consider elevated construction', 'Obtain flood insurance');
+          recommendations.push('Implement flood mitigation measures');
+          recommendations.push('Consider elevated construction');
+          recommendations.push('Obtain flood insurance');
+          
+          // Update risk level
+          if (hasProtectedAreas || hasSoilsWetlands) {
+            overallRisk = 'Critical';
+          } else {
+            overallRisk = 'High';
+          }
         }
       }
       
-      if (combinedAnalysis.protectedAreas.length > 0) {
-        if (overallRisk === 'Low') overallRisk = 'Moderate';
+      // Protected areas analysis
+      if (hasProtectedAreas) {
         riskFactors.push('Proximity to protected environmental areas');
-        recommendations.push('Environmental impact assessment required', 'Consult with environmental agencies', 'Consider alternative development approaches');
+        recommendations.push('Environmental impact assessment required');
+        recommendations.push('Consult with environmental agencies');
+        
+        if (overallRisk === 'Low') overallRisk = 'Moderate';
       }
       
-      if (combinedAnalysis.soilsWetlands.length > 0) {
+      // Wetlands analysis
+      if (hasSoilsWetlands) {
         const hasWetlands = combinedAnalysis.soilsWetlands.some(soil => 
           soil.toLowerCase().includes('wetland') || soil.toLowerCase().includes('hydric')
         );
         if (hasWetlands) {
-          if (overallRisk === 'Low') overallRisk = 'Moderate';
           riskFactors.push('Wetlands or hydric soils present');
-          recommendations.push('Wetland delineation study required', 'Army Corps of Engineers consultation', 'Potential mitigation banking needs');
+          recommendations.push('Wetland delineation study required');
+          recommendations.push('Army Corps of Engineers consultation');
+          
+          if (overallRisk === 'Low') overallRisk = 'Moderate';
+        }
+        
+        // Add soil-specific recommendations
+        if (combinedAnalysis.soilsWetlands.some(soil => !soil.toLowerCase().includes('wetland'))) {
+          recommendations.push('Geotechnical investigation recommended');
+          recommendations.push('Soil testing for engineering properties');
         }
       }
     }
+    
+    // Build flood analysis with only real data
+    const floodAnalysis = hasFloodData ? {
+      zones: combinedAnalysis!.floodZones,
+      riskLevel: combinedAnalysis!.floodZones.some(z => z.includes('High')) ? 'High Risk' : 'Moderate Risk',
+      historicalData: selectedRegion === 'central-florida' ? 
+        'Central Florida experiences seasonal flooding during hurricane season (June-November)' :
+        'Northeast Ohio experiences spring flooding from snowmelt and heavy rainfall',
+      mitigationSteps: [
+        'Elevate critical systems above base flood elevation',
+        'Install proper drainage systems',
+        'Consider flood-resistant materials',
+        'Develop emergency response plan'
+      ]
+    } : {
+      zones: [],
+      riskLevel: 'Low Risk',
+      mitigationSteps: []
+    };
+    
+    // Build environmental constraints with only real data
+    const environmentalConstraints = {
+      protectedAreas: hasProtectedAreas ? combinedAnalysis!.protectedAreas.map(area => ({
+        name: area,
+        distance: 'Within or adjacent to property',
+        restrictions: ['Limited development allowed', 'Environmental review required', 'Buffer zones may apply']
+      })) : [],
+      wetlands: hasSoilsWetlands ? combinedAnalysis!.soilsWetlands.filter(soil => 
+        soil.toLowerCase().includes('wetland') || soil.toLowerCase().includes('hydric')
+      ).map(wetland => ({
+        type: wetland,
+        regulations: ['Section 404 Clean Water Act applies', 'State wetland permits required', 'Mitigation may be necessary']
+      })) : [],
+      soils: hasSoilsWetlands ? combinedAnalysis!.soilsWetlands.filter(soil => 
+        !soil.toLowerCase().includes('wetland')
+      ).map(soil => ({
+        type: soil,
+        engineeringProperties: 'Requires detailed geotechnical investigation',
+        suitability: 'Engineering assessment needed for construction suitability'
+      })) : []
+    };
+    
+    // NO hardcoded infrastructure - removed completely
+    // NO generic compliance - will be conditional based on actual data needs
     
     return {
       riskAssessment: {
@@ -428,70 +497,28 @@ export const useGISExport = () => {
         riskFactors,
         recommendations
       },
-      floodAnalysis: {
-        zones: combinedAnalysis?.floodZones || [],
-        riskLevel: combinedAnalysis?.floodZones.length ? 
-          (combinedAnalysis.floodZones.some(z => z.includes('High')) ? 'High Risk' : 'Moderate Risk') : 'Low Risk',
-        historicalData: selectedRegion === 'central-florida' ? 
-          'Central Florida experiences seasonal flooding during hurricane season (June-November)' :
-          'Northeast Ohio experiences spring flooding from snowmelt and heavy rainfall',
-        mitigationSteps: [
-          'Elevate critical systems above base flood elevation',
-          'Install proper drainage systems',
-          'Consider flood-resistant materials',
-          'Develop emergency response plan'
-        ]
-      },
-      environmentalConstraints: {
-        protectedAreas: (combinedAnalysis?.protectedAreas || []).map(area => ({
-          name: area,
-          distance: 'Within or adjacent to property',
-          restrictions: ['Limited development allowed', 'Environmental review required', 'Buffer zones may apply']
-        })),
-        wetlands: (combinedAnalysis?.soilsWetlands || []).filter(soil => 
-          soil.toLowerCase().includes('wetland') || soil.toLowerCase().includes('hydric')
-        ).map(wetland => ({
-          type: wetland,
-          regulations: ['Section 404 Clean Water Act applies', 'State wetland permits required', 'Mitigation may be necessary']
-        })),
-        soils: (combinedAnalysis?.soilsWetlands || []).filter(soil => 
-          !soil.toLowerCase().includes('wetland')
-        ).map(soil => ({
-          type: soil,
-          engineeringProperties: 'Analysis pending detailed geotechnical survey',
-          suitability: 'Suitable with proper engineering considerations'
-        }))
-      },
+      floodAnalysis,
+      environmentalConstraints,
       infrastructure: {
-        utilities: [
-          { type: 'Electric', proximity: 'Available at street', availability: 'Connection feasible' },
-          { type: 'Water', proximity: 'Municipal service available', availability: 'Tap fee required' },
-          { type: 'Sewer', proximity: 'Municipal system available', availability: 'Connection permits required' }
-        ],
-        roads: [
-          { access: selectedRegion === 'central-florida' ? 'State highway access' : 'County road access', traffic: 'Moderate', }
-        ],
-        emergencyServices: [
-          { type: 'Fire Department', distance: '< 5 miles', responseTime: '< 10 minutes' },
-          { type: 'Police', distance: '< 3 miles', responseTime: '< 8 minutes' },
-          { type: 'Medical', distance: '< 8 miles', responseTime: '< 15 minutes' }
-        ]
+        utilities: [],
+        roads: [],
+        emergencyServices: []
       },
       compliance: {
         zoning: {
-          designation: selectedRegion === 'central-florida' ? 'Mixed Use Residential' : 'Single Family Residential',
-          allowedUses: ['Residential', 'Limited Commercial', 'Accessory Structures'],
-          restrictions: ['Height limitations apply', 'Setback requirements', 'Density restrictions']
+          designation: 'Requires verification with local jurisdiction',
+          allowedUses: [],
+          restrictions: []
         },
         buildingCodes: {
-          jurisdiction: selectedRegion === 'central-florida' ? 'Orange County, FL' : 'Cuyahoga County, OH',
-          applicableCodes: ['International Building Code (IBC)', 'International Residential Code (IRC)', 'Local amendments']
+          jurisdiction: selectedRegion === 'central-florida' ? 'Central Florida' : 'Northeast Ohio',
+          applicableCodes: ['Consult local building department for applicable codes']
         },
         environmentalPermits: {
-          required: combinedAnalysis?.protectedAreas.length ? 
-            ['Environmental Resource Permit', 'Wetland Impact Permit', 'Stormwater Management Permit'] :
-            ['Standard Stormwater Management Permit'],
-          timelines: ['ERP: 60-90 days', 'Wetland Permit: 90-120 days', 'Stormwater: 30-45 days']
+          required: hasProtectedAreas || hasSoilsWetlands ? 
+            ['Environmental assessment required - contact local permitting authority'] :
+            ['Contact local permitting authority for requirements'],
+          timelines: []
         }
       }
     };
@@ -519,22 +546,35 @@ export const useGISExport = () => {
       rows.push(`Risk Assessment,Risk Factor ${index + 1},"${factor}","Identified concern",Requires mitigation consideration`);
     });
     
-    // Detailed sections
-    detailedAnalysis.floodAnalysis.zones.forEach((zone, index) => {
-      rows.push(`Flood Analysis,Zone ${index + 1},"${zone}","FEMA designation",Federal flood zone classification`);
-    });
+    // Detailed sections - Only include if data exists
+    if (detailedAnalysis.floodAnalysis.zones.length > 0) {
+      detailedAnalysis.floodAnalysis.zones.forEach((zone, index) => {
+        rows.push(`Flood Analysis,Zone ${index + 1},"${zone}","FEMA designation",Federal flood zone classification`);
+      });
+    }
     
-    detailedAnalysis.environmentalConstraints.protectedAreas.forEach((area, index) => {
-      rows.push(`Environmental,Protected Area ${index + 1},"${area.name}","${area.distance}",Regulatory protection applies`);
-    });
+    if (detailedAnalysis.environmentalConstraints.protectedAreas.length > 0) {
+      detailedAnalysis.environmentalConstraints.protectedAreas.forEach((area, index) => {
+        rows.push(`Environmental,Protected Area ${index + 1},"${area.name}","${area.distance}",Regulatory protection applies`);
+      });
+    }
     
-    detailedAnalysis.environmentalConstraints.wetlands.forEach((wetland, index) => {
-      rows.push(`Environmental,Wetland ${index + 1},"${wetland.type}","Jurisdictional wetland",Federal/state regulations apply`);
-    });
+    if (detailedAnalysis.environmentalConstraints.wetlands.length > 0) {
+      detailedAnalysis.environmentalConstraints.wetlands.forEach((wetland, index) => {
+        rows.push(`Environmental,Wetland ${index + 1},"${wetland.type}","Jurisdictional wetland",Federal/state regulations apply`);
+      });
+    }
     
-    detailedAnalysis.environmentalConstraints.soils.forEach((soil, index) => {
-      rows.push(`Environmental,Soil ${index + 1},"${soil.type}","${soil.suitability}",Engineering considerations required`);
-    });
+    if (detailedAnalysis.environmentalConstraints.soils.length > 0) {
+      detailedAnalysis.environmentalConstraints.soils.forEach((soil, index) => {
+        rows.push(`Environmental,Soil ${index + 1},"${soil.type}","Engineering investigation required",Geotechnical assessment needed`);
+      });
+    }
+    
+    // Data availability summary
+    rows.push(`Data Status,Flood Zones,"${detailedAnalysis.floodAnalysis.zones.length > 0 ? 'Available' : 'Not Found'}","GIS layer status",Data availability indicator`);
+    rows.push(`Data Status,Protected Areas,"${detailedAnalysis.environmentalConstraints.protectedAreas.length > 0 ? 'Available' : 'Not Found'}","GIS layer status",Data availability indicator`);
+    rows.push(`Data Status,Soils & Wetlands,"${(detailedAnalysis.environmentalConstraints.soils.length > 0 || detailedAnalysis.environmentalConstraints.wetlands.length > 0) ? 'Available' : 'Not Found'}","GIS layer status",Data availability indicator`);
     
     // Active layers
     const activeLayers = layers.filter(layer => layer.enabled);
@@ -754,18 +794,18 @@ export const useGISExport = () => {
         yPosition += 8;
       }
 
-      // Flood Analysis
-      checkAddPage(50);
-      pdf.setFontSize(16);
-      pdf.text('3. Flood Risk Assessment', 20, yPosition);
-      yPosition += 12;
-
-      checkAddPage(15);
-      pdf.setFontSize(12);
-      pdf.text(`Risk Level: ${detailedAnalysis.floodAnalysis.riskLevel}`, 25, yPosition);
-      yPosition += 10;
-
+      // Flood Analysis - Only if data exists
       if (detailedAnalysis.floodAnalysis.zones.length > 0) {
+        checkAddPage(50);
+        pdf.setFontSize(16);
+        pdf.text('3. Flood Risk Assessment', 20, yPosition);
+        yPosition += 12;
+
+        checkAddPage(15);
+        pdf.setFontSize(12);
+        pdf.text(`Risk Level: ${detailedAnalysis.floodAnalysis.riskLevel}`, 25, yPosition);
+        yPosition += 10;
+
         checkAddPage(20 + detailedAnalysis.floodAnalysis.zones.length * 8);
         pdf.text('FEMA Flood Zones:', 25, yPosition);
         yPosition += 8;
@@ -773,106 +813,114 @@ export const useGISExport = () => {
           addWrappedText(`• ${zone}`, 30, 10, 170, 1);
         });
         yPosition += 5;
+
+        if (detailedAnalysis.floodAnalysis.historicalData) {
+          checkAddPage(25);
+          pdf.text('Historical Context:', 25, yPosition);
+          yPosition += 8;
+          addWrappedText(detailedAnalysis.floodAnalysis.historicalData, 30, 10, 170, 2);
+          yPosition += 5;
+        }
+
+        if (detailedAnalysis.floodAnalysis.mitigationSteps.length > 0) {
+          checkAddPage(25 + detailedAnalysis.floodAnalysis.mitigationSteps.length * 8);
+          pdf.text('Recommended Mitigation Measures:', 25, yPosition);
+          yPosition += 8;
+          detailedAnalysis.floodAnalysis.mitigationSteps.forEach((step) => {
+            addWrappedText(`• ${step}`, 30, 10, 170, 1);
+          });
+          yPosition += 8;
+        }
       }
 
-      if (detailedAnalysis.floodAnalysis.historicalData) {
-        checkAddPage(25);
-        pdf.text('Historical Context:', 25, yPosition);
+      // Environmental Constraints - Only if data exists
+      const hasEnvData = detailedAnalysis.environmentalConstraints.protectedAreas.length > 0 ||
+                         detailedAnalysis.environmentalConstraints.wetlands.length > 0 ||
+                         detailedAnalysis.environmentalConstraints.soils.length > 0;
+      
+      if (hasEnvData) {
+        checkAddPage(60);
+        pdf.setFontSize(16);
+        pdf.text('4. Environmental Constraints', 20, yPosition);
+        yPosition += 12;
+
+        if (detailedAnalysis.environmentalConstraints.protectedAreas.length > 0) {
+          checkAddPage(25);
+          pdf.setFontSize(12);
+          pdf.text('Protected Areas:', 25, yPosition);
+          yPosition += 8;
+          detailedAnalysis.environmentalConstraints.protectedAreas.forEach((area) => {
+            checkAddPage(20);
+            addWrappedText(`• ${area.name} (${area.distance})`, 30, 10, 170, 1);
+            area.restrictions.forEach((restriction) => {
+              addWrappedText(`  - ${restriction}`, 35, 9, 165, 1);
+            });
+          });
+          yPosition += 8;
+        }
+
+        if (detailedAnalysis.environmentalConstraints.wetlands.length > 0) {
+          checkAddPage(30);
+          pdf.setFontSize(12);
+          pdf.text('Wetlands & Hydric Soils:', 25, yPosition);
+          yPosition += 8;
+          detailedAnalysis.environmentalConstraints.wetlands.forEach((wetland) => {
+            checkAddPage(20);
+            addWrappedText(`• ${wetland.type}`, 30, 10, 170, 1);
+            wetland.regulations.forEach((reg) => {
+              addWrappedText(`  - ${reg}`, 35, 9, 165, 1);
+            });
+          });
+          yPosition += 8;
+        }
+
+        if (detailedAnalysis.environmentalConstraints.soils.length > 0) {
+          checkAddPage(30);
+          pdf.setFontSize(12);
+          pdf.text('Soil Conditions:', 25, yPosition);
+          yPosition += 8;
+          detailedAnalysis.environmentalConstraints.soils.forEach((soil) => {
+            checkAddPage(20);
+            addWrappedText(`• ${soil.type}`, 30, 10, 170, 1);
+            addWrappedText(`  Engineering Note: ${soil.engineeringProperties}`, 35, 9, 165, 1);
+          });
+          yPosition += 8;
+        }
+      }
+
+      // Next Steps & Recommendations
+      checkAddPage(50);
+      pdf.setFontSize(16);
+      pdf.text('5. Recommended Next Steps', 20, yPosition);
+      yPosition += 12;
+
+      if (detailedAnalysis.riskAssessment.recommendations.length > 0) {
+        checkAddPage(25 + detailedAnalysis.riskAssessment.recommendations.length * 8);
+        pdf.setFontSize(12);
+        pdf.text('Based on GIS Analysis:', 25, yPosition);
         yPosition += 8;
-        addWrappedText(detailedAnalysis.floodAnalysis.historicalData, 30, 10, 170, 2);
-        yPosition += 5;
+        detailedAnalysis.riskAssessment.recommendations.forEach((rec) => {
+          addWrappedText(`• ${rec}`, 30, 10, 170, 1);
+        });
+        yPosition += 8;
       }
 
-      checkAddPage(25 + detailedAnalysis.floodAnalysis.mitigationSteps.length * 8);
-      pdf.text('Recommended Mitigation Measures:', 25, yPosition);
+      // Data-driven next steps
+      checkAddPage(40);
+      pdf.setFontSize(12);
+      pdf.text('General Recommendations:', 25, yPosition);
       yPosition += 8;
-      detailedAnalysis.floodAnalysis.mitigationSteps.forEach((step) => {
+      const nextSteps = [
+        'Verify zoning and land use requirements with local jurisdiction',
+        'Consult with licensed surveyor for site boundaries',
+        'Contact local permitting authority for specific requirements'
+      ];
+      nextSteps.forEach((step) => {
         addWrappedText(`• ${step}`, 30, 10, 170, 1);
       });
       yPosition += 8;
 
-      // Environmental Constraints
-      checkAddPage(60);
-      pdf.setFontSize(16);
-      pdf.text('4. Environmental Constraints', 20, yPosition);
-      yPosition += 12;
-
-      if (detailedAnalysis.environmentalConstraints.protectedAreas.length > 0) {
-        checkAddPage(25);
-        pdf.setFontSize(12);
-        pdf.text('Protected Areas:', 25, yPosition);
-        yPosition += 8;
-        detailedAnalysis.environmentalConstraints.protectedAreas.forEach((area) => {
-          checkAddPage(20);
-          addWrappedText(`• ${area.name} (${area.distance})`, 30, 10, 170, 1);
-          area.restrictions.forEach((restriction) => {
-            addWrappedText(`  - ${restriction}`, 35, 9, 165, 1);
-          });
-        });
-        yPosition += 8;
-      }
-
-      if (detailedAnalysis.environmentalConstraints.wetlands.length > 0) {
-        checkAddPage(30);
-        pdf.setFontSize(12);
-        pdf.text('Wetlands:', 25, yPosition);
-        yPosition += 8;
-        detailedAnalysis.environmentalConstraints.wetlands.forEach((wetland) => {
-          checkAddPage(20);
-          addWrappedText(`• ${wetland.type}`, 30, 10, 170, 1);
-          wetland.regulations.forEach((reg) => {
-            addWrappedText(`  - ${reg}`, 35, 9, 165, 1);
-          });
-        });
-        yPosition += 8;
-      }
-
-      if (detailedAnalysis.environmentalConstraints.soils.length > 0) {
-        checkAddPage(30);
-        pdf.setFontSize(12);
-        pdf.text('Soil Conditions:', 25, yPosition);
-        yPosition += 8;
-        detailedAnalysis.environmentalConstraints.soils.forEach((soil) => {
-          checkAddPage(20);
-          addWrappedText(`• ${soil.type}`, 30, 10, 170, 1);
-          addWrappedText(`  Properties: ${soil.engineeringProperties}`, 35, 9, 165, 1);
-          addWrappedText(`  Suitability: ${soil.suitability}`, 35, 9, 165, 1);
-        });
-        yPosition += 8;
-      }
-
-      // Compliance Requirements
-      checkAddPage(50);
-      pdf.setFontSize(16);
-      pdf.text('5. Regulatory Compliance', 20, yPosition);
-      yPosition += 12;
-
-      checkAddPage(30);
-      pdf.setFontSize(12);
-      pdf.text('Zoning Information:', 25, yPosition);
-      yPosition += 8;
-      addWrappedText(`Designation: ${detailedAnalysis.compliance.zoning.designation}`, 30, 10, 170, 1);
-      addWrappedText(`Allowed Uses: ${detailedAnalysis.compliance.zoning.allowedUses.join(', ')}`, 30, 10, 170, 1);
-      addWrappedText(`Restrictions: ${detailedAnalysis.compliance.zoning.restrictions.join(', ')}`, 30, 10, 170, 2);
-      yPosition += 5;
-
-      checkAddPage(25);
-      pdf.text('Building Codes:', 25, yPosition);
-      yPosition += 8;
-      addWrappedText(`Jurisdiction: ${detailedAnalysis.compliance.buildingCodes.jurisdiction}`, 30, 10, 170, 1);
-      addWrappedText(`Applicable Codes: ${detailedAnalysis.compliance.buildingCodes.applicableCodes.join(', ')}`, 30, 10, 170, 2);
-      yPosition += 5;
-
-      checkAddPage(25 + detailedAnalysis.compliance.environmentalPermits.required.length * 8);
-      pdf.text('Required Permits:', 25, yPosition);
-      yPosition += 8;
-      detailedAnalysis.compliance.environmentalPermits.required.forEach((permit, index) => {
-        const timeline = detailedAnalysis.compliance.environmentalPermits.timelines[index] || 'Timeline TBD';
-        addWrappedText(`• ${permit} (${timeline})`, 30, 10, 170, 1);
-      });
-      yPosition += 8;
-
-      // Add map screenshot if available
+      // Site Map - Always include if available
       if (mapInstance) {
         try {
           checkAddPage(130);
@@ -889,34 +937,39 @@ export const useGISExport = () => {
           yPosition += imgHeight + 8;
 
           pdf.setFontSize(10);
-          addWrappedText('Map shows current property location with active environmental data layers. Legend (bottom left) displays flood zones in blue, protected areas in green, and soils/wetlands in brown. North arrow and coordinates shown in top right annotation box.', 20, 10, 170, 5);
+          addWrappedText('Map shows property location with active GIS data layers. Legend indicates flood zones (blue), protected areas (purple), and soils/wetlands (tan). Coordinates and scale shown in annotation box.', 20, 10, 170, 5);
         } catch (error) {
           console.warn('Could not add map screenshot to PDF:', error);
         }
       }
 
-      // Recommendations
-      checkAddPage(60);
+      // Data Availability Summary
+      checkAddPage(50);
       pdf.setFontSize(16);
-      pdf.text('7. Recommendations', 20, yPosition);
+      pdf.text('7. Data Availability', 20, yPosition);
       yPosition += 12;
 
-      checkAddPage(25 + detailedAnalysis.riskAssessment.recommendations.length * 8);
       pdf.setFontSize(12);
-      pdf.text('Immediate Actions:', 25, yPosition);
+      pdf.text('GIS Layers Analyzed:', 25, yPosition);
       yPosition += 8;
-      detailedAnalysis.riskAssessment.recommendations.forEach((rec) => {
-        addWrappedText(`• ${rec}`, 30, 10, 170, 1);
+
+      const dataAvailability = [
+        { name: 'Flood Zones', available: detailedAnalysis.floodAnalysis.zones.length > 0 },
+        { name: 'Protected Areas', available: detailedAnalysis.environmentalConstraints.protectedAreas.length > 0 },
+        { name: 'Soils & Wetlands', available: detailedAnalysis.environmentalConstraints.soils.length > 0 || detailedAnalysis.environmentalConstraints.wetlands.length > 0 }
+      ];
+
+      dataAvailability.forEach((layer) => {
+        const status = layer.available ? '✓ Data Available' : '✗ No Data Found';
+        addWrappedText(`${layer.name}: ${status}`, 30, 10, 170, 1);
       });
       yPosition += 8;
 
-      checkAddPage(40);
-      pdf.text('Recommended Consultants:', 25, yPosition);
-      yPosition += 8;
-      const consultants = ['Licensed Surveyor', 'Environmental Consultant', 'Geotechnical Engineer', 'Civil Engineer', 'Land Use Attorney'];
-      consultants.forEach((consultant) => {
-        addWrappedText(`• ${consultant}`, 30, 10, 170, 1);
-      });
+      checkAddPage(30);
+      pdf.setFontSize(10);
+      pdf.setTextColor(100, 100, 100);
+      addWrappedText('Note: This report is based on available GIS data at the time of generation. Additional site-specific investigations may be required. Always verify with local authorities for current regulations and requirements.', 20, 10, 170, 5);
+      pdf.setTextColor(0, 0, 0);
 
       // Footer on each page
       const totalPages = pdf.internal.pages.length - 1;

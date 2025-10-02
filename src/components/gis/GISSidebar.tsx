@@ -19,10 +19,17 @@ import {
   BarChart3,
   AlertTriangle,
   Shield,
-  Droplets
+  Droplets,
+  Info
 } from 'lucide-react';
 import { useGISExport } from '@/hooks/useGISExport';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface LayerToggle {
   id: string;
@@ -239,6 +246,25 @@ export const GISSidebar: React.FC<GISSidebarProps> = ({
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" style={{ color: getRiskColor(getRiskLevel()) }} />
                 <span className="font-medium text-sm">Risk Level</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-3.5 h-3.5 cursor-help opacity-60 hover:opacity-100 transition-opacity" />
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-xs">
+                      <div className="space-y-2 text-xs">
+                        <p className="font-semibold">Risk Model Calculation:</p>
+                        <ul className="space-y-1 pl-2">
+                          <li><strong>Critical:</strong> High-risk flood zone + (protected areas OR wetlands)</li>
+                          <li><strong>High:</strong> High-risk flood zone OR (protected areas AND wetlands)</li>
+                          <li><strong>Moderate:</strong> Protected areas OR wetlands present</li>
+                          <li><strong>Low:</strong> None of the above conditions</li>
+                        </ul>
+                        <p className="text-muted-foreground mt-2">Based on real GIS analysis of environmental factors</p>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               <Badge variant="outline" style={{ 
                 borderColor: getRiskColor(getRiskLevel()),
