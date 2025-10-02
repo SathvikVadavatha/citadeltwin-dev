@@ -36,7 +36,7 @@ interface DetailedAnalysis {
   environmentalConstraints: {
     protectedAreas: { name: string; distance: string; restrictions: string[] }[];
     wetlands: { type: string; regulations: string[] }[];
-    soils: { type: string; engineeringProperties: string; suitability: string }[];
+    soils: { type: string; classification: string; concern: string; engineeringNote: string }[];
   };
   infrastructure: {
     utilities: { type: string; proximity: string; availability: string }[];
@@ -581,10 +581,60 @@ export const useGISExport = () => {
           if (overallRisk === 'Low') overallRisk = 'Moderate';
         }
         
-        // Add soil-specific recommendations
+        // Enhanced soil classification checks
+        const hasExpansiveSoils = combinedAnalysis.soilsWetlands.some(soil => {
+          const lower = soil.toLowerCase();
+          return lower.includes('clay') || lower.includes('expansive') || lower.includes('montmorillonite');
+        });
+        
+        const hasOrganicSoils = combinedAnalysis.soilsWetlands.some(soil => {
+          const lower = soil.toLowerCase();
+          return lower.includes('organic') || lower.includes('peat') || lower.includes('muck') || lower.includes('histosol');
+        });
+        
+        const hasPoorDrainageSoils = combinedAnalysis.soilsWetlands.some(soil => {
+          const lower = soil.toLowerCase();
+          return lower.includes('silt') || lower.includes('poorly drained') || lower.includes('poor drainage');
+        });
+        
+        const hasFillSoils = combinedAnalysis.soilsWetlands.some(soil => {
+          const lower = soil.toLowerCase();
+          return lower.includes('fill') || lower.includes('disturbed');
+        });
+        
+        // Add soil-specific risk factors and recommendations
+        if (hasExpansiveSoils) {
+          riskFactors.push('Expansive clay soils detected - foundation movement risk');
+          recommendations.push('Design foundations to accommodate soil expansion/contraction (post-tension slab or pier and beam)');
+          recommendations.push('Implement proper site drainage to minimize moisture variation');
+          if (overallRisk === 'Low' || overallRisk === 'Moderate') overallRisk = 'High';
+        }
+        
+        if (hasOrganicSoils) {
+          riskFactors.push('Organic soils present - high compressibility and settlement risk');
+          recommendations.push('Consider deep foundations or soil removal/replacement');
+          recommendations.push('Extensive geotechnical investigation required for organic soils');
+          if (overallRisk === 'Low' || overallRisk === 'Moderate') overallRisk = 'High';
+        }
+        
+        if (hasPoorDrainageSoils) {
+          riskFactors.push('Poor soil drainage characteristics detected');
+          recommendations.push('Design comprehensive drainage system');
+          recommendations.push('Consider soil improvement techniques');
+          if (overallRisk === 'Low') overallRisk = 'Moderate';
+        }
+        
+        if (hasFillSoils) {
+          riskFactors.push('Fill or disturbed soils present - variable properties');
+          recommendations.push('Detailed investigation of fill depth and composition required');
+          recommendations.push('Compaction testing and remediation may be necessary');
+          if (overallRisk === 'Low') overallRisk = 'Moderate';
+        }
+        
+        // General soil recommendations
         if (combinedAnalysis.soilsWetlands.some(soil => !soil.toLowerCase().includes('wetland'))) {
-          recommendations.push('Geotechnical investigation recommended');
-          recommendations.push('Soil testing for engineering properties');
+          recommendations.push('Geotechnical investigation with soil borings required');
+          recommendations.push('Laboratory testing for bearing capacity, consolidation, and shear strength');
         }
       }
     }
@@ -623,11 +673,51 @@ export const useGISExport = () => {
       })) : [],
       soils: hasSoilsWetlands ? combinedAnalysis!.soilsWetlands.filter(soil => 
         !soil.toLowerCase().includes('wetland')
-      ).map(soil => ({
-        type: soil,
-        engineeringProperties: 'Requires detailed geotechnical investigation',
-        suitability: 'Engineering assessment needed for construction suitability'
-      })) : []
+      ).map(soil => {
+        const lower = soil.toLowerCase();
+        
+        // Classify soil based on keywords
+        let classification = 'General';
+        let concern = 'Standard investigation required';
+        let engineeringNote = 'Geotechnical investigation recommended';
+        
+        if (lower.includes('clay') || lower.includes('expansive') || lower.includes('montmorillonite')) {
+          classification = 'Expansive Clay';
+          concern = 'Foundation movement risk';
+          engineeringNote = 'Specialized foundation design required for expansive soils';
+        } else if (lower.includes('organic') || lower.includes('peat') || lower.includes('muck') || lower.includes('histosol')) {
+          classification = 'Organic';
+          concern = 'High settlement risk';
+          engineeringNote = 'Deep foundations or soil removal may be necessary';
+        } else if (lower.includes('sand') || lower.includes('gravel') || lower.includes('granular')) {
+          classification = 'Granular/Sandy';
+          concern = 'Erosion potential';
+          engineeringNote = 'Generally favorable with proper drainage design';
+        } else if (lower.includes('silt') || lower.includes('poorly drained') || lower.includes('poor drainage')) {
+          classification = 'Poor Drainage';
+          concern = 'Water retention issues';
+          engineeringNote = 'Drainage system design critical';
+        } else if (lower.includes('fill') || lower.includes('disturbed')) {
+          classification = 'Fill/Disturbed';
+          concern = 'Variable properties';
+          engineeringNote = 'Detailed investigation of fill depth and composition required';
+        } else if (lower.includes('rock') || lower.includes('bedrock')) {
+          classification = 'Rock/Bedrock';
+          concern = 'Excavation difficulty';
+          engineeringNote = 'Excellent bearing capacity but difficult excavation';
+        } else if (lower.includes('loam')) {
+          classification = 'Loamy';
+          concern = 'Minor settlement possible';
+          engineeringNote = 'Generally suitable for construction';
+        }
+        
+        return {
+          type: soil,
+          classification,
+          concern,
+          engineeringNote
+        };
+      }) : []
     };
     
     // NO hardcoded infrastructure - removed completely
@@ -1017,16 +1107,100 @@ export const useGISExport = () => {
         }
 
         if (detailedAnalysis.environmentalConstraints.soils.length > 0) {
-          checkAddPage(30);
+          checkAddPage(50);
           pdf.setFontSize(12);
-          pdf.text('Soil Conditions:', 25, yPosition);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text('SOIL CONDITIONS (Brief Engineering Summary)', 25, yPosition);
+          yPosition += 10;
+          
+          // Soil Types Identified
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(11);
+          pdf.text('Soil Types Identified:', 30, yPosition);
           yPosition += 8;
+          
           detailedAnalysis.environmentalConstraints.soils.forEach((soil) => {
-            checkAddPage(20);
-            addWrappedText(`• ${soil.type}`, 30, 10, 170, 1);
-            addWrappedText(`  Engineering Note: ${soil.engineeringProperties}`, 35, 9, 165, 1);
+            checkAddPage(15);
+            pdf.setFontSize(10);
+            addWrappedText(`• ${soil.type} [${soil.classification}] - ${soil.concern}`, 35, 10, 165, 1);
           });
           yPosition += 8;
+          
+          // Critical Findings
+          checkAddPage(30);
+          pdf.setFontSize(11);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text('Critical Findings:', 30, yPosition);
+          yPosition += 8;
+          pdf.setFont('helvetica', 'normal');
+          
+          const criticalFindings: string[] = [];
+          detailedAnalysis.environmentalConstraints.soils.forEach((soil) => {
+            if (soil.classification === 'Expansive Clay') {
+              criticalFindings.push('Expansive clay soils detected - specialized foundation design required');
+            } else if (soil.classification === 'Organic') {
+              criticalFindings.push('Organic soils present - high settlement risk');
+            } else if (soil.classification === 'Poor Drainage') {
+              criticalFindings.push('Poor drainage soils - water management critical');
+            } else if (soil.classification === 'Fill/Disturbed') {
+              criticalFindings.push('Fill/disturbed soils - variable properties require investigation');
+            }
+          });
+          
+          if (criticalFindings.length === 0) {
+            criticalFindings.push('No critical soil concerns identified');
+          }
+          criticalFindings.push('Geotechnical investigation with soil borings strongly recommended');
+          
+          pdf.setFontSize(10);
+          criticalFindings.forEach((finding) => {
+            checkAddPage(12);
+            addWrappedText(`✓ ${finding}`, 35, 10, 165, 1);
+          });
+          yPosition += 8;
+          
+          // Recommended Engineering Actions
+          checkAddPage(30);
+          pdf.setFontSize(11);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text('Recommended Engineering Actions:', 30, yPosition);
+          yPosition += 8;
+          pdf.setFont('helvetica', 'normal');
+          
+          const actions: string[] = [];
+          detailedAnalysis.environmentalConstraints.soils.forEach((soil) => {
+            if (soil.classification === 'Expansive Clay') {
+              if (!actions.includes('Design foundations to accommodate soil expansion/contraction (post-tension slab or pier and beam)')) {
+                actions.push('Design foundations to accommodate soil expansion/contraction (post-tension slab or pier and beam)');
+              }
+              if (!actions.includes('Implement proper site drainage to minimize moisture variation')) {
+                actions.push('Implement proper site drainage to minimize moisture variation');
+              }
+            } else if (soil.classification === 'Organic') {
+              if (!actions.includes('Consider deep foundations or soil removal/replacement for organic soils')) {
+                actions.push('Consider deep foundations or soil removal/replacement for organic soils');
+              }
+            } else if (soil.classification === 'Poor Drainage') {
+              if (!actions.includes('Design comprehensive drainage system')) {
+                actions.push('Design comprehensive drainage system');
+              }
+            }
+          });
+          
+          // Always add these
+          if (!actions.includes('Geotechnical investigation with soil borings required')) {
+            actions.push('Geotechnical investigation with soil borings required');
+          }
+          if (!actions.includes('Laboratory testing for bearing capacity, consolidation, and shear strength')) {
+            actions.push('Laboratory testing for bearing capacity, consolidation, and shear strength');
+          }
+          
+          pdf.setFontSize(10);
+          actions.forEach((action) => {
+            checkAddPage(12);
+            addWrappedText(`• ${action}`, 35, 10, 165, 1);
+          });
+          yPosition += 10;
         }
       }
 

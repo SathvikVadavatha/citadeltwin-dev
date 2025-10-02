@@ -125,9 +125,22 @@ export const GISSidebar: React.FC<GISSidebarProps> = ({
       soil.toLowerCase().includes('wetland') || soil.toLowerCase().includes('hydric')
     );
     
-    if (hasHighRiskFlood && (hasProtectedAreas || hasWetlands)) return 'Critical';
-    if (hasHighRiskFlood || (hasProtectedAreas && hasWetlands)) return 'High';
-    if (hasProtectedAreas || hasWetlands) return 'Moderate';
+    // Enhanced soil risk checks
+    const hasHighRiskSoils = combinedAnalysis.soilsWetlands.some(soil => {
+      const lower = soil.toLowerCase();
+      return lower.includes('clay') || lower.includes('expansive') || 
+             lower.includes('organic') || lower.includes('peat') || lower.includes('muck');
+    });
+    
+    const hasModerateRiskSoils = combinedAnalysis.soilsWetlands.some(soil => {
+      const lower = soil.toLowerCase();
+      return lower.includes('fill') || lower.includes('disturbed') ||
+             lower.includes('poorly drained') || lower.includes('poor drainage') || lower.includes('silt');
+    });
+    
+    if (hasHighRiskFlood && (hasProtectedAreas || hasWetlands || hasHighRiskSoils)) return 'Critical';
+    if (hasHighRiskFlood || hasHighRiskSoils || (hasProtectedAreas && hasWetlands)) return 'High';
+    if (hasProtectedAreas || hasWetlands || hasModerateRiskSoils) return 'Moderate';
     return 'Low';
   };
 
@@ -268,12 +281,13 @@ export const GISSidebar: React.FC<GISSidebarProps> = ({
                       <div className="space-y-2 text-xs">
                         <p className="font-semibold">Risk Model Calculation:</p>
                         <ul className="space-y-1 pl-2">
-                          <li><strong>Critical:</strong> High-risk flood zone + (protected areas OR wetlands)</li>
-                          <li><strong>High:</strong> High-risk flood zone OR (protected areas AND wetlands)</li>
-                          <li><strong>Moderate:</strong> Protected areas OR wetlands present</li>
+                          <li><strong>Critical:</strong> High-risk flood zone + (protected areas OR wetlands OR high-risk soils)</li>
+                          <li><strong>High:</strong> High-risk flood zone OR high-risk soils OR (protected areas AND wetlands)</li>
+                          <li><strong>Moderate:</strong> Protected areas OR wetlands OR moderate-risk soils present</li>
                           <li><strong>Low:</strong> None of the above conditions</li>
                         </ul>
-                        <p className="text-muted-foreground mt-2">Based on real GIS analysis of environmental factors</p>
+                        <p className="text-muted-foreground mt-2">Soil types considered: expansive clay, organic, poor drainage, fill/disturbed, sandy/granular, loamy, bedrock</p>
+                        <p className="text-muted-foreground">Based on real GIS analysis of environmental and geotechnical factors</p>
                       </div>
                     </TooltipContent>
                   </Tooltip>
