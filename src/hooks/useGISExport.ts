@@ -1152,6 +1152,7 @@ export const useGISExport = () => {
           }
           criticalFindings.push('Geotechnical investigation with soil borings strongly recommended');
           
+          pdf.setFont('helvetica', 'normal');
           pdf.setFontSize(10);
           criticalFindings.forEach((finding) => {
             checkAddPage(12);
@@ -1195,6 +1196,7 @@ export const useGISExport = () => {
             actions.push('Laboratory testing for bearing capacity, consolidation, and shear strength');
           }
           
+          pdf.setFont('helvetica', 'normal');
           pdf.setFontSize(10);
           actions.forEach((action) => {
             checkAddPage(12);
@@ -1306,10 +1308,13 @@ export const useGISExport = () => {
         pdf.rect(25, yPosition, 145, 9);
         
         // Layer name
+        pdf.setFont('helvetica', 'normal');
         pdf.setFontSize(10);
         pdf.text(layer.name, 30, yPosition + 6);
         
         // Status with color coding
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(10);
         if (layer.available) {
           pdf.setTextColor(34, 139, 34); // Green
           pdf.text('✓ Data Available', 120, yPosition + 6);
