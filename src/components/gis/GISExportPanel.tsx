@@ -54,12 +54,40 @@ export const GISExportPanel: React.FC<GISExportPanelProps> = ({
     combinedAnalysis.soilsWetlands.length > 0
   );
 
+  const getLayerColor = (layerId: string): string => {
+    const colorMap: Record<string, string> = {
+      'flood-zones': '#3b82f6',
+      'protected-areas': '#10b981',
+      'soils-wetlands': '#8b5cf6',
+      'utilities': '#f59e0b',
+      'parcels': '#ef4444',
+      'roads': '#6b7280',
+    };
+    return colorMap[layerId] || '#64748b';
+  };
+
   const handleMapImageExport = () => {
     if (!mapInstance) {
       console.error('Map instance not available');
       return;
     }
-    exportMapAsImage(mapInstance, imageFormat);
+    
+    // Prepare active layers for legend panel
+    const activeLayers = layers
+      .filter(layer => layer.enabled)
+      .map(layer => ({
+        name: layer.name,
+        color: getLayerColor(layer.id)
+      }));
+    
+    // Pass all parameters including activeLayers to trigger side-by-side composite
+    exportMapAsImage(
+      mapInstance, 
+      imageFormat, 
+      'standard',
+      undefined,
+      activeLayers.length > 0 ? activeLayers : undefined
+    );
   };
 
   const handleAnalysisCSVExport = () => {
