@@ -53,7 +53,7 @@ interface DetailedAnalysis {
 export const useGISExport = () => {
   const [isExporting, setIsExporting] = useState(false);
 
-  const captureMapScreenshot = async (mapInstance: google.maps.Map, highRes: boolean = false): Promise<string> => {
+  const captureMapScreenshot = async (mapInstance: google.maps.Map, highRes: boolean = false, withAnnotations: boolean = true): Promise<string> => {
     return new Promise((resolve, reject) => {
       try {
         // Get the map div element
@@ -105,9 +105,9 @@ export const useGISExport = () => {
 
               // Wait for next animation frame to ensure canvas is fully rendered
               requestAnimationFrame(() => {
-                // Add map legend, scale bar, and north arrow with bulletproof timing
-                const enhancedCanvas = addMapAnnotations(canvas, mapInstance);
-                resolve(enhancedCanvas.toDataURL('image/png'));
+                // Add map legend, scale bar, and north arrow with bulletproof timing (if requested)
+                const finalCanvas = withAnnotations ? addMapAnnotations(canvas, mapInstance) : canvas;
+                resolve(finalCanvas.toDataURL('image/png'));
               });
             }).catch((error) => {
               // Restore UI controls on error
@@ -115,17 +115,17 @@ export const useGISExport = () => {
                 control.style.display = originalDisplay[index];
               });
               
-              // Fallback with annotations
-              console.warn('html2canvas failed, using fallback with annotations:', error);
+              // Fallback with annotations (if requested)
+              console.warn('html2canvas failed, using fallback:', error);
               const fallbackCanvas = createFallbackCanvas(mapDiv, highRes);
-              const enhancedCanvas = addMapAnnotations(fallbackCanvas, mapInstance);
-              resolve(enhancedCanvas.toDataURL('image/png'));
+              const finalCanvas = withAnnotations ? addMapAnnotations(fallbackCanvas, mapInstance) : fallbackCanvas;
+              resolve(finalCanvas.toDataURL('image/png'));
             });
           }).catch(() => {
-            // Fallback: Create enhanced representation with annotations
+            // Fallback: Create enhanced representation (with annotations if requested)
             const fallbackCanvas = createFallbackCanvas(mapDiv, highRes);
-            const enhancedCanvas = addMapAnnotations(fallbackCanvas, mapInstance);
-            resolve(enhancedCanvas.toDataURL('image/png'));
+            const finalCanvas = withAnnotations ? addMapAnnotations(fallbackCanvas, mapInstance) : fallbackCanvas;
+            resolve(finalCanvas.toDataURL('image/png'));
           });
         });
       } catch (error) {
@@ -423,16 +423,100 @@ export const useGISExport = () => {
     format: 'png' | 'jpeg' = 'png',
     quality: 'standard' | 'high' | 'print' = 'standard',
     filename?: string,
-    activeLayers?: Array<{ name: string; color: string }>
+    activeLayers?: Array<{ name: string; color: string }>,
+    separateLegend: boolean = false
   ) => {
     setIsExporting(true);
     try {
       const highRes = quality === 'high' || quality === 'print';
-      let dataUrl = await captureMapScreenshot(mapInstance, highRes);
       
-      // Create side-by-side composite if active layers are provided
+      // Option B: Export map and legend as separate files
+      if (separateLegend && activeLayers && activeLayers.length > 0) {
+        // Capture clean map without annotations
+        const cleanMapDataUrl = await captureMapScreenshot(mapInstance, highRes, false);
+        
+        // Create separate legend canvas
+        const legendWidth = 460;
+        const legendHeight = 120 + (activeLayers.length * 38) + 80; // padding + items + bottom metadata
+        const legendCanvas = document.createElement('canvas');
+        legendCanvas.width = legendWidth;
+        legendCanvas.height = legendHeight;
+        const legendCtx = legendCanvas.getContext('2d');
+        
+        if (legendCtx) {
+          // Fill with white background for JPEG compatibility
+          if (format === 'jpeg') {
+            legendCtx.fillStyle = '#ffffff';
+            legendCtx.fillRect(0, 0, legendWidth, legendHeight);
+          }
+          
+          // Draw legend panel
+          drawLegendPanel(legendCtx, 0, 0, legendWidth, legendHeight, activeLayers);
+          
+          // Download map image
+          const mapLink = document.createElement('a');
+          const timestamp = Date.now();
+          const qualityPrefix = quality === 'standard' ? '' : `${quality}-`;
+          mapLink.download = `gis-map-${qualityPrefix}${timestamp}.${format}`;
+          
+          // Convert to final format if JPEG
+          if (format === 'jpeg') {
+            const mapImg = new Image();
+            await new Promise<void>((resolve) => {
+              mapImg.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = mapImg.width;
+                canvas.height = mapImg.height;
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                  ctx.fillStyle = '#ffffff';
+                  ctx.fillRect(0, 0, canvas.width, canvas.height);
+                  ctx.drawImage(mapImg, 0, 0);
+                  const jpegQuality = quality === 'print' ? 1.0 : 0.9;
+                  mapLink.href = canvas.toDataURL('image/jpeg', jpegQuality);
+                } else {
+                  mapLink.href = cleanMapDataUrl;
+                }
+                resolve();
+              };
+              mapImg.onerror = () => {
+                mapLink.href = cleanMapDataUrl;
+                resolve();
+              };
+              mapImg.src = cleanMapDataUrl;
+            });
+          } else {
+            mapLink.href = cleanMapDataUrl;
+          }
+          
+          document.body.appendChild(mapLink);
+          mapLink.click();
+          document.body.removeChild(mapLink);
+          
+          // Download legend image
+          const legendLink = document.createElement('a');
+          legendLink.download = `gis-map-legend-${qualityPrefix}${timestamp}.${format}`;
+          const jpegQuality = quality === 'print' ? 1.0 : 0.9;
+          legendLink.href = legendCanvas.toDataURL(
+            `image/${format}`,
+            format === 'jpeg' ? jpegQuality : undefined
+          );
+          document.body.appendChild(legendLink);
+          legendLink.click();
+          document.body.removeChild(legendLink);
+          
+          toast.success(`Map and legend exported as separate ${format.toUpperCase()} files`);
+          setIsExporting(false);
+          return;
+        }
+      }
+      
+      // Original behavior: capture with annotations
+      let dataUrl = await captureMapScreenshot(mapInstance, highRes, true);
+      
+      // Create side-by-side composite if active layers are provided (original Option A - kept as fallback)
       let finalDataUrl = dataUrl;
-      if (activeLayers && activeLayers.length > 0) {
+      if (activeLayers && activeLayers.length > 0 && !separateLegend) {
         const mapImg = new Image();
         await new Promise<void>((resolve, reject) => {
           mapImg.onload = () => {
@@ -846,8 +930,7 @@ export const useGISExport = () => {
       property: data.selectedProperty ? {
         identification: {
           name: data.selectedProperty.place.name,
-          address: data.selectedProperty.place.formatted_address,
-          placeId: data.selectedProperty.place.place_id
+          address: data.selectedProperty.place.formatted_address
         },
         location: {
           coordinates: {
@@ -923,9 +1006,13 @@ export const useGISExport = () => {
         }
       };
 
+      // Set global default font
+      pdf.setFont('helvetica', 'normal');
+
       // Helper function to add wrapped text with proper spacing
       const addWrappedText = (text: string, x: number, fontSize: number = 10, maxWidth: number = 170, extraSpacing: number = 0) => {
         checkAddPage(fontSize * 0.5 + 5); // Ensure space for text before adding
+        pdf.setFont('helvetica', 'normal'); // Always enforce body font
         pdf.setFontSize(fontSize);
         const lines = pdf.splitTextToSize(text, maxWidth);
         pdf.text(lines, x, yPosition);
@@ -1001,7 +1088,6 @@ export const useGISExport = () => {
         addWrappedText(`Name: ${selectedProperty.place.name || 'Unnamed Property'}`, 30, 10, 170, 1);
         addWrappedText(`Address: ${selectedProperty.place.formatted_address || 'No address available'}`, 30, 10, 170, 1);
         addWrappedText(`Coordinates: ${selectedProperty.location.lat().toFixed(6)}, ${selectedProperty.location.lng().toFixed(6)}`, 30, 10, 170, 1);
-        addWrappedText(`Place ID: ${selectedProperty.place.place_id || 'Not available'}`, 30, 10, 170, 1);
         yPosition += 8;
       }
 

@@ -80,13 +80,14 @@ export const GISExportPanel: React.FC<GISExportPanelProps> = ({
         color: getLayerColor(layer.id)
       }));
     
-    // Pass all parameters including activeLayers to trigger side-by-side composite
+    // Pass activeLayers with separateLegend=true to export map and legend as separate files
     exportMapAsImage(
       mapInstance, 
       imageFormat, 
       'standard',
       undefined,
-      activeLayers.length > 0 ? activeLayers : undefined
+      activeLayers.length > 0 ? activeLayers : undefined,
+      true // separateLegend - exports map and legend as separate files
     );
   };
 
