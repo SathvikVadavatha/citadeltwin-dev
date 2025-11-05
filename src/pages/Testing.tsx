@@ -5,7 +5,8 @@ import { TestingFramework } from '@/components/testing/TestingFramework';
 import { PerformanceDashboard } from '@/components/performance/PerformanceDashboard';
 import { RenderingAnalysisDashboard } from '@/components/performance/RenderingAnalysisDashboard';
 import { GeminiConnectionTester } from '@/components/testing/GeminiConnectionTester';
-import { Activity, TestTube, Zap, Bot } from 'lucide-react';
+import { SupabaseConnectionTest } from '@/components/test/SupabaseConnectionTest';
+import { Activity, TestTube, Zap, Bot, Database } from 'lucide-react';
 
 export const Testing: React.FC = () => {
   return (
@@ -20,8 +21,12 @@ export const Testing: React.FC = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="testing" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs defaultValue="supabase" className="w-full">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="supabase" className="flex items-center gap-2">
+              <Database className="w-4 h-4" />
+              Supabase Test
+            </TabsTrigger>
             <TabsTrigger value="testing" className="flex items-center gap-2">
               <TestTube className="w-4 h-4" />
               Testing Framework
@@ -39,6 +44,10 @@ export const Testing: React.FC = () => {
               Rendering Analysis
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="supabase" className="space-y-4">
+            <SupabaseConnectionTest />
+          </TabsContent>
 
           <TabsContent value="testing" className="space-y-4">
             <TestingFramework />
