@@ -22,6 +22,7 @@ import Security from './pages/Security';
 import WorkflowAutomation from './pages/WorkflowAutomation';
 import { GIS } from './pages/GIS';
 import { AuthPage } from './pages/AuthPage';
+import { Blueprint3D } from './pages/Blueprint3D';
 
 function App() {
   console.log('App component rendering...');
@@ -118,6 +119,16 @@ function App() {
                   <RouteErrorBoundary routeName="Blueprint Upload">
                     <EnhancedResponsiveLayout>
                       <UploadBlueprint />
+                    </EnhancedResponsiveLayout>
+                  </RouteErrorBoundary>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/blueprint-3d" element={
+                <ProtectedRoute>
+                  <RouteErrorBoundary routeName="Blueprint 3D">
+                    <EnhancedResponsiveLayout>
+                      <Blueprint3D />
                     </EnhancedResponsiveLayout>
                   </RouteErrorBoundary>
                 </ProtectedRoute>

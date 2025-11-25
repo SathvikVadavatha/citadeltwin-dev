@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.send-scheduled-report]
 verify_jwt = false
+
+[functions.process-blueprint-3d]
+verify_jwt = false

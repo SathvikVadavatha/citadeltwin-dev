@@ -6,15 +6,16 @@ import {
   Upload, 
   FileText, 
   Shield, 
-  BarChart3
+  BarChart3,
+  Box
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Upload', href: '/blueprints/upload', icon: Upload },
+  { name: '3D', href: '/blueprint-3d', icon: Box },
   { name: 'Blueprints', href: '/blueprints/view', icon: FileText },
-  { name: 'Compliance', href: '/compliance', icon: Shield },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
 ];
 
