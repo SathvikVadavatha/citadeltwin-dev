@@ -28,7 +28,7 @@ export const BlueprintTo3DConverter: React.FC = () => {
       
       console.log('Sending blueprint to:', `${backendUrl}/api/blueprint/process`);
 
-      // Call the Python backend
+      // Call the Python backend directly (no edge function)
       const response = await fetch(
         `${backendUrl}/api/blueprint/process`,
         {
@@ -45,13 +45,14 @@ export const BlueprintTo3DConverter: React.FC = () => {
       
       if (data.status === 'success') {
         // Convert relative GLB path to full URL
-        const fullGlbUrl = data.glb_url.startsWith('http') 
-          ? data.glb_url 
-          : `${backendUrl}${data.glb_url}`;
+        const fullGlbUrl = data.glb_path?.startsWith('http') 
+          ? data.glb_path 
+          : `${backendUrl}/${data.glb_path}`;
         
         setResult({
-          ...data,
-          glb_url: fullGlbUrl
+          glb_url: fullGlbUrl,
+          html_view: data.html_view,
+          detections: data.detections || []
         });
       } else {
         throw new Error(data.error || 'Processing failed');
