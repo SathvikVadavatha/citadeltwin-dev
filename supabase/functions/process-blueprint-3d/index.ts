@@ -25,8 +25,7 @@ serve(async (req) => {
     console.log(`Processing file: ${file.name}, size: ${file.size} bytes`);
 
     // TODO: Replace this URL with your deployed Python backend endpoint
-    // For now, this is a placeholder that should be replaced with the actual Python service URL
-    const PYTHON_BACKEND_URL = Deno.env.get("PYTHON_BACKEND_URL") || "http://localhost:8000/api/blueprint/process";
+    const PYTHON_BACKEND_URL = "http://localhost:8000/api/blueprint/process";
 
     // Create a new FormData to forward to the Python backend
     const pythonFormData = new FormData();
