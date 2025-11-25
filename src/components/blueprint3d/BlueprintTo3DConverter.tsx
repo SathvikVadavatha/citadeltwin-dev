@@ -1,0 +1,107 @@
+import React, { useState } from 'react';
+import { BlueprintUploadBox } from './BlueprintUploadBox';
+import { Blueprint3DViewer } from './Blueprint3DViewer';
+import { ProcessingStatus } from './ProcessingStatus';
+
+export interface ProcessingResult {
+  glb_url: string;
+  html_view: string;
+  detections: any[];
+}
+
+export const BlueprintTo3DConverter: React.FC = () => {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [result, setResult] = useState<ProcessingResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleFileUpload = async (file: File) => {
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      // Create FormData to send the file
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Call the edge function
+      const response = await fetch(
+        'https://fjybggorcizszcpedjbb.supabase.co/functions/v1/process-blueprint-3d',
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Processing failed');
+      }
+
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        setResult(data);
+      } else {
+        throw new Error(data.error || 'Processing failed');
+      }
+    } catch (err) {
+      console.error('Blueprint processing error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred during processing');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleReset = () => {
+    setResult(null);
+    setError(null);
+    setIsProcessing(false);
+  };
+
+  if (isProcessing) {
+    return <ProcessingStatus />;
+  }
+
+  if (result) {
+    return <Blueprint3DViewer result={result} onReset={handleReset} />;
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">2D Blueprint to 3D Model Converter</h2>
+          <p className="text-muted-foreground">
+            Upload a JPG or PNG floorplan. CitadelTwin will detect rooms and generate a 3D model automatically.
+          </p>
+        </div>
+
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 text-center">
+          <div className="text-destructive text-lg mb-2">❌ Blueprint processing failed.</div>
+          <p className="text-sm text-muted-foreground mb-4">
+            {error}
+          </p>
+          <button
+            onClick={handleReset}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold mb-2">2D Blueprint to 3D Model Converter</h2>
+        <p className="text-muted-foreground">
+          Upload a JPG or PNG floorplan. CitadelTwin will detect rooms and generate a 3D model automatically.
+        </p>
+      </div>
+
+      <BlueprintUploadBox onFileUpload={handleFileUpload} />
+    </div>
+  );
+};

@@ -13,13 +13,15 @@ import {
   TestTube,
   Zap,
   Share2,
-  Map
+  Map,
+  Box
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Upload Blueprints', href: '/blueprints/upload', icon: Upload },
+  { name: 'Blueprint → 3D', href: '/blueprint-3d', icon: Box },
   { name: 'View Blueprints', href: '/blueprints/view', icon: FileText },
   { name: 'GIS Analysis', href: '/gis', icon: Map },
   { name: 'Compliance', href: '/compliance', icon: Shield },

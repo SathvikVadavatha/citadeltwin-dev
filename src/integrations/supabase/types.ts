@@ -53,7 +53,7 @@ export type Database = {
           created_at: string
           details: Json | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           resource_id: string | null
           resource_type: string
           risk_score: number | null
@@ -66,7 +66,7 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource_id?: string | null
           resource_type: string
           risk_score?: number | null
@@ -79,7 +79,7 @@ export type Database = {
           created_at?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resource_id?: string | null
           resource_type?: string
           risk_score?: number | null
@@ -1590,7 +1590,7 @@ export type Database = {
           description: string | null
           id: string
           ip_address: unknown
-          ip_range: unknown | null
+          ip_range: unknown
           is_active: boolean | null
         }
         Insert: {
@@ -1599,7 +1599,7 @@ export type Database = {
           description?: string | null
           id?: string
           ip_address: unknown
-          ip_range?: unknown | null
+          ip_range?: unknown
           is_active?: boolean | null
         }
         Update: {
@@ -1608,7 +1608,7 @@ export type Database = {
           description?: string | null
           id?: string
           ip_address?: unknown
-          ip_range?: unknown | null
+          ip_range?: unknown
           is_active?: boolean | null
         }
         Relationships: []
@@ -2333,7 +2333,7 @@ export type Database = {
           description: string
           event_type: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           metadata: Json | null
           resolved: boolean | null
           resolved_at: string | null
@@ -2346,7 +2346,7 @@ export type Database = {
           description: string
           event_type: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           metadata?: Json | null
           resolved?: boolean | null
           resolved_at?: string | null
@@ -2359,7 +2359,7 @@ export type Database = {
           description?: string
           event_type?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           metadata?: Json | null
           resolved?: boolean | null
           resolved_at?: string | null
@@ -2676,7 +2676,7 @@ export type Database = {
           created_at: string | null
           expires_at: string | null
           id: string | null
-          ip_address: unknown | null
+          ip_address: unknown
           is_active: boolean | null
           last_activity: string | null
           location_summary: Json | null
@@ -2688,7 +2688,7 @@ export type Database = {
           created_at?: string | null
           expires_at?: string | null
           id?: string | null
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_active?: boolean | null
           last_activity?: string | null
           location_summary?: never
@@ -2700,7 +2700,7 @@ export type Database = {
           created_at?: string | null
           expires_at?: string | null
           id?: string | null
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_active?: boolean | null
           last_activity?: string | null
           location_summary?: never
@@ -2712,10 +2712,7 @@ export type Database = {
       }
     }
     Functions: {
-      archive_old_compliance_checks: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      archive_old_compliance_checks: { Args: never; Returns: undefined }
       calculate_next_run_at: {
         Args: { frequency: string; last_run?: string; schedule_config: Json }
         Returns: string
@@ -2724,14 +2721,8 @@ export type Database = {
         Args: { property_id: string; user_id: string }
         Returns: boolean
       }
-      cleanup_expired_sessions: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      cleanup_old_presence: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      cleanup_expired_sessions: { Args: never; Returns: undefined }
+      cleanup_old_presence: { Args: never; Returns: undefined }
       complete_report_delivery: {
         Args: {
           delivery_id: string
@@ -2761,7 +2752,7 @@ export type Database = {
         Returns: string
       }
       get_next_scheduled_reports: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           frequency: string
           id: string
@@ -2771,18 +2762,9 @@ export type Database = {
           next_run_at: string
         }[]
       }
-      hash_session_token: {
-        Args: { token: string }
-        Returns: string
-      }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_user_admin: {
-        Args: { user_uuid: string }
-        Returns: boolean
-      }
+      hash_session_token: { Args: { token: string }; Returns: string }
+      is_admin: { Args: never; Returns: boolean }
+      is_user_admin: { Args: { user_uuid: string }; Returns: boolean }
       log_audit_event: {
         Args: {
           p_action: string
@@ -2801,10 +2783,7 @@ export type Database = {
         }
         Returns: string
       }
-      refresh_protected_areas_data: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      refresh_protected_areas_data: { Args: never; Returns: undefined }
     }
     Enums: {
       analysis_status:
