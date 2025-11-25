@@ -23,14 +23,9 @@ export const BlueprintTo3DConverter: React.FC = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      // Get backend URL from environment variable or use default
-      const backendUrl = import.meta.env.VITE_PYTHON_BACKEND_URL || 'http://localhost:8000';
-      
-      console.log('Sending blueprint to:', `${backendUrl}/api/blueprint/process`);
-
-      // Call the Python backend
+      // Call the edge function
       const response = await fetch(
-        `${backendUrl}/api/blueprint/process`,
+        'https://fjybggorcizszcpedjbb.supabase.co/functions/v1/process-blueprint-3d',
         {
           method: 'POST',
           body: formData,
@@ -38,21 +33,14 @@ export const BlueprintTo3DConverter: React.FC = () => {
       );
 
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Processing failed');
       }
 
       const data = await response.json();
       
       if (data.status === 'success') {
-        // Convert relative GLB path to full URL
-        const fullGlbUrl = data.glb_url.startsWith('http') 
-          ? data.glb_url 
-          : `${backendUrl}${data.glb_url}`;
-        
-        setResult({
-          ...data,
-          glb_url: fullGlbUrl
-        });
+        setResult(data);
       } else {
         throw new Error(data.error || 'Processing failed');
       }
