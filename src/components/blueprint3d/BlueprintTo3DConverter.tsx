@@ -25,7 +25,7 @@ export const BlueprintTo3DConverter: React.FC = () => {
 
       // Call the edge function
       const response = await fetch(
-        'https://fjybggorcizszcpedjbb.supabase.co/functions/v1/process-blueprint-3d',
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-blueprint-3d`,
         {
           method: 'POST',
           body: formData,
