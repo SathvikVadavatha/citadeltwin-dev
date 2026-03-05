@@ -185,7 +185,7 @@ serve(async (req) => {
         console.error('Error updating delivery record:', updateError);
       }
 
-      console.log(`Report delivery completed: ${report.recipients.length}/${report.recipients.length} recipients successful`);
+      console.log(`Report delivery completed: ${recipients.length}/${recipients.length} recipients successful`);
 
       return new Response(
         JSON.stringify({
@@ -193,13 +193,13 @@ serve(async (req) => {
           deliveryId,
           reportName: report.name,
           subject: emailSubject,
-          recipientsSent: report.recipients.length,
-          totalRecipients: report.recipients.length,
+          recipientsSent: recipients.length,
+          totalRecipients: recipients.length,
           failedRecipients: [],
           executionTime,
           fileSize,
           fileName,
-          message: `Report sent successfully to ${report.recipients.length} recipients with attachment.`
+          message: `Report sent successfully to ${recipients.length} recipients with attachment.`
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -234,8 +234,8 @@ serve(async (req) => {
           deliveryId,
           reportName: report.name,
           recipientsSent: 0,
-          totalRecipients: report.recipients.length,
-          failedRecipients: report.recipients.map((r: string) => ({ recipient: r, error: err.message })),
+          totalRecipients: recipients.length,
+          failedRecipients: recipients.map((r: string) => ({ recipient: r, error: err.message })),
           executionTime,
           fileSize,
           fileName
