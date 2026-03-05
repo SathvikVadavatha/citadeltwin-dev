@@ -26,7 +26,10 @@ serve(async (req) => {
     const file = formData.get("file") as File;
     if (!file) throw new Error("No file provided");
 
-    console.log(`Processing file: ${file.name}, size: ${file.size} bytes`);
+    // Optional: caller can pass an existing blueprint upload_id to link models
+    const existingUploadId = formData.get("upload_id") as string | null;
+
+    console.log(`Processing file: ${file.name}, size: ${file.size} bytes, upload_id: ${existingUploadId || 'none'}`);
 
     // Convert image to base64 for AI analysis
     const arrayBuffer = await file.arrayBuffer();
