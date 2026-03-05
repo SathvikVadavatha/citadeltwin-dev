@@ -158,7 +158,7 @@ export const useBIMElements = (projectIdOrUploadId?: string, filterType: 'projec
         .eq('id', id)
         .select(`
           *,
-          materials (
+          materials!bim_elements_material_id_fkey (
             id,
             name,
             material_type,
