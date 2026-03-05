@@ -46,7 +46,9 @@ serve(async (req) => {
       .select('*')
       .eq('is_active', true)
       .lte('next_run_at', now.toISOString())
-      .or(`last_run_at.is.null,last_run_at.lt.${twoMinutesAgo}`);
+      .or(`last_run_at.is.null,last_run_at.lt.${twoMinutesAgo}`)
+      // Only process reports that actually have recipients configured
+      .not('recipients', 'eq', '{}');
 
     if (fetchError) {
       console.error('Error fetching due reports:', fetchError);

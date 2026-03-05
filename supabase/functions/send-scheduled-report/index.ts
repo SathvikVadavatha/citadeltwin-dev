@@ -46,6 +46,26 @@ serve(async (req) => {
       throw new Error(`Report not found: ${reportError?.message}`);
     }
 
+    // Validate recipients before doing any work
+    const recipients = Array.isArray(report.recipients)
+      ? report.recipients.filter((r: string) => typeof r === 'string' && r.trim().length > 0)
+      : [];
+
+    if (recipients.length === 0) {
+      console.error(`Report "${report.name}" has no valid recipients — skipping.`);
+
+      await supabase.rpc('complete_report_delivery', {
+        delivery_id: deliveryId,
+        delivery_status: 'failed',
+        error_msg: 'No valid recipients configured for this report.',
+      });
+
+      return new Response(
+        JSON.stringify({ success: false, error: 'No valid recipients configured.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
     // Generate mock report data based on report type
     const reportData = await generateReportData(report.report_type, report.filters);
     
