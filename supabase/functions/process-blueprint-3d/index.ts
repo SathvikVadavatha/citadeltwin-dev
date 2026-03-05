@@ -212,9 +212,50 @@ serve(async (req) => {
     ];
 
     // Generate GLB 3D model from detected elements
-    // Use caller-supplied upload_id or generate a new one
-    const modelUploadId = existingUploadId || crypto.randomUUID();
     const timestamp = Date.now();
+
+    // We need a valid blueprint_uploads row for the FK on generated_3d_models.
+    // If the caller passed an upload_id we use that; otherwise we create a placeholder row
+    // using the service role key (no auth required for this anonymous endpoint).
+    let modelUploadId = existingUploadId;
+    if (!modelUploadId) {
+      // Store the file first so we have a real storage_path
+      const placeholderPath = `anonymous/${timestamp}_${file.name.replace(/[^a-z0-9.]/gi, '_')}`;
+      const { error: bpUploadFileErr } = await supabase.storage
+        .from('blueprints')
+        .upload(placeholderPath, await file.arrayBuffer(), {
+          contentType: file.type || 'image/png',
+          upsert: true,
+        });
+      if (bpUploadFileErr) {
+        console.warn('Could not upload blueprint file to storage:', bpUploadFileErr.message);
+      }
+
+      // Insert placeholder blueprint_uploads row with a dummy user_id (service account)
+      const SERVICE_USER_ID = '00000000-0000-0000-0000-000000000000';
+      const { data: bpRow, error: bpInsertErr } = await supabase
+        .from('blueprint_uploads')
+        .insert({
+          user_id: SERVICE_USER_ID,
+          filename: `${timestamp}_${file.name}`,
+          original_filename: file.name,
+          storage_path: placeholderPath,
+          file_type: file.type?.split('/')[1]?.toUpperCase() || 'PNG',
+          file_size: file.size,
+          upload_status: 'completed',
+        })
+        .select('id')
+        .single();
+
+      if (bpInsertErr) {
+        console.error('Failed to create blueprint_uploads record:', bpInsertErr.message);
+        // Fall back: use a random UUID (will fail FK, model won't show in dashboard but won't crash)
+        modelUploadId = crypto.randomUUID();
+      } else {
+        modelUploadId = bpRow!.id;
+        console.log('Created placeholder blueprint_uploads record:', modelUploadId);
+      }
+    }
 
     const glbData = generateGLBFromDetections(detectedElements, modelUploadId);
     const fileName = `${modelUploadId}/${timestamp}.glb`;
