@@ -26,7 +26,10 @@ serve(async (req) => {
     const file = formData.get("file") as File;
     if (!file) throw new Error("No file provided");
 
-    console.log(`Processing file: ${file.name}, size: ${file.size} bytes`);
+    // Optional: caller can pass an existing blueprint upload_id to link models
+    const existingUploadId = formData.get("upload_id") as string | null;
+
+    console.log(`Processing file: ${file.name}, size: ${file.size} bytes, upload_id: ${existingUploadId || 'none'}`);
 
     // Convert image to base64 for AI analysis
     const arrayBuffer = await file.arrayBuffer();
@@ -209,11 +212,53 @@ serve(async (req) => {
     ];
 
     // Generate GLB 3D model from detected elements
-    const uploadId = crypto.randomUUID();
     const timestamp = Date.now();
 
-    const glbData = generateGLBFromDetections(detectedElements, uploadId);
-    const fileName = `${uploadId}/${timestamp}.glb`;
+    // We need a valid blueprint_uploads row for the FK on generated_3d_models.
+    // If the caller passed an upload_id we use that; otherwise we create a placeholder row
+    // using the service role key (no auth required for this anonymous endpoint).
+    let modelUploadId = existingUploadId;
+    if (!modelUploadId) {
+      // Store the file first so we have a real storage_path
+      const placeholderPath = `anonymous/${timestamp}_${file.name.replace(/[^a-z0-9.]/gi, '_')}`;
+      const { error: bpUploadFileErr } = await supabase.storage
+        .from('blueprints')
+        .upload(placeholderPath, await file.arrayBuffer(), {
+          contentType: file.type || 'image/png',
+          upsert: true,
+        });
+      if (bpUploadFileErr) {
+        console.warn('Could not upload blueprint file to storage:', bpUploadFileErr.message);
+      }
+
+      // Insert placeholder blueprint_uploads row with a dummy user_id (service account)
+      const SERVICE_USER_ID = '00000000-0000-0000-0000-000000000000';
+      const { data: bpRow, error: bpInsertErr } = await supabase
+        .from('blueprint_uploads')
+        .insert({
+          user_id: SERVICE_USER_ID,
+          filename: `${timestamp}_${file.name}`,
+          original_filename: file.name,
+          storage_path: placeholderPath,
+          file_type: file.type?.split('/')[1]?.toUpperCase() || 'PNG',
+          file_size: file.size,
+          upload_status: 'completed',
+        })
+        .select('id')
+        .single();
+
+      if (bpInsertErr) {
+        console.error('Failed to create blueprint_uploads record:', bpInsertErr.message);
+        // Fall back: use a random UUID (will fail FK, model won't show in dashboard but won't crash)
+        modelUploadId = crypto.randomUUID();
+      } else {
+        modelUploadId = bpRow!.id;
+        console.log('Created placeholder blueprint_uploads record:', modelUploadId);
+      }
+    }
+
+    const glbData = generateGLBFromDetections(detectedElements, modelUploadId);
+    const fileName = `${modelUploadId}/${timestamp}.glb`;
 
     console.log("Uploading GLB to storage, size:", glbData.length);
 
@@ -238,6 +283,35 @@ serve(async (req) => {
     const glbUrl = urlData.publicUrl;
     console.log("GLB uploaded:", glbUrl);
 
+    // ---- Save record to generated_3d_models so dashboard 3D viewer can find it ----
+    const roomCount = detectedElements.rooms?.length || 0;
+    const buildingType = detectedElements.building_info?.building_type || 'Building';
+    const modelName = `${buildingType} - ${roomCount} Rooms`;
+    const modelDescription = `AI-generated 3D model from blueprint. ${roomCount} rooms detected.`;
+
+    const { data: savedModel, error: saveError } = await supabase
+      .from('generated_3d_models')
+      .insert({
+        upload_id: modelUploadId,
+        model_name: modelName,
+        model_description: modelDescription,
+        model_file_path: fileName,
+        generation_status: 'completed',
+        file_size: glbData.length,
+        generation_prompt: `AI floor plan analysis: ${roomCount} rooms`,
+        processing_time_ms: Date.now() - timestamp,
+      })
+      .select('id')
+      .single();
+
+    if (saveError) {
+      // Non-fatal: log but continue — model is uploaded, just won't appear in dashboard
+      console.error("Warning: failed to save generated_3d_models record:", saveError.message);
+    } else {
+      console.log("Saved generated_3d_models record:", savedModel?.id);
+    }
+    // ---------------------------------------------------------------------------------
+
     // Build detections array for frontend
     const detections = (detectedElements.rooms || []).map((room: any) => ({
       class: `space_${room.label}`,
@@ -259,6 +333,7 @@ serve(async (req) => {
         html_view: htmlView,
         detections,
         building_info: detectedElements.building_info || {},
+        model_record_id: savedModel?.id || null,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
