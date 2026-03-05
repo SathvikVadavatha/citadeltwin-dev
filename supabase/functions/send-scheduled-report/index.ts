@@ -46,6 +46,26 @@ serve(async (req) => {
       throw new Error(`Report not found: ${reportError?.message}`);
     }
 
+    // Validate recipients before doing any work
+    const recipients = Array.isArray(report.recipients)
+      ? report.recipients.filter((r: string) => typeof r === 'string' && r.trim().length > 0)
+      : [];
+
+    if (recipients.length === 0) {
+      console.error(`Report "${report.name}" has no valid recipients — skipping.`);
+
+      await supabase.rpc('complete_report_delivery', {
+        delivery_id: deliveryId,
+        delivery_status: 'failed',
+        error_msg: 'No valid recipients configured for this report.',
+      });
+
+      return new Response(
+        JSON.stringify({ success: false, error: 'No valid recipients configured.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
     // Generate mock report data based on report type
     const reportData = await generateReportData(report.report_type, report.filters);
     
@@ -123,14 +143,14 @@ serve(async (req) => {
 
     // Send email to all recipients with attachment
     try {
-      console.log(`Sending report email to ${report.recipients.join(', ')} with subject: ${emailSubject}`);
+      console.log(`Sending report email to ${recipients.join(', ')} with subject: ${emailSubject}`);
       
       // Convert attachment to base64 for Resend
       const base64Content = btoa(String.fromCharCode(...attachmentContent));
       
       const emailResponse = await resend.emails.send({
         from: 'onboarding@resend.dev',
-        to: report.recipients, // Send to all recipients at once
+        to: recipients, // use validated recipients list
         subject: emailSubject,
         html: generateEmailContent(reportData, report),
         attachments: [
@@ -146,7 +166,7 @@ serve(async (req) => {
         throw new Error(emailResponse.error.message);
       }
 
-      console.log(`Report email sent successfully to ${report.recipients.length} recipients`);
+      console.log(`Report email sent successfully to ${recipients.length} recipients`);
       
       const executionTime = Date.now() - startTime;
 
@@ -165,7 +185,7 @@ serve(async (req) => {
         console.error('Error updating delivery record:', updateError);
       }
 
-      console.log(`Report delivery completed: ${report.recipients.length}/${report.recipients.length} recipients successful`);
+      console.log(`Report delivery completed: ${recipients.length}/${recipients.length} recipients successful`);
 
       return new Response(
         JSON.stringify({
@@ -173,13 +193,13 @@ serve(async (req) => {
           deliveryId,
           reportName: report.name,
           subject: emailSubject,
-          recipientsSent: report.recipients.length,
-          totalRecipients: report.recipients.length,
+          recipientsSent: recipients.length,
+          totalRecipients: recipients.length,
           failedRecipients: [],
           executionTime,
           fileSize,
           fileName,
-          message: `Report sent successfully to ${report.recipients.length} recipients with attachment.`
+          message: `Report sent successfully to ${recipients.length} recipients with attachment.`
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -214,8 +234,8 @@ serve(async (req) => {
           deliveryId,
           reportName: report.name,
           recipientsSent: 0,
-          totalRecipients: report.recipients.length,
-          failedRecipients: report.recipients.map((r: string) => ({ recipient: r, error: err.message })),
+          totalRecipients: recipients.length,
+          failedRecipients: recipients.map((r: string) => ({ recipient: r, error: err.message })),
           executionTime,
           fileSize,
           fileName
