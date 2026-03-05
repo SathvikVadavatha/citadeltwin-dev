@@ -109,20 +109,20 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComple
 
         {/* 3D generation status */}
         {generating3D && (
-          <div className="flex items-center gap-3 p-4 rounded-lg border border-cyan-400/20 bg-cyan-900/10">
-            <Loader2 className="h-5 w-5 animate-spin text-cyan-400" />
+          <div className="flex items-center gap-3 p-4 rounded-lg border border-primary/20 bg-primary/5">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
             <div>
-              <p className="text-sm font-medium text-cyan-300">Generating 3D Model…</p>
+              <p className="text-sm font-medium text-foreground">Generating 3D Model…</p>
               <p className="text-xs text-muted-foreground">AI is analyzing your blueprint and building the 3D model</p>
             </div>
           </div>
         )}
 
         {model3DUrl && !generating3D && (
-          <div className="flex items-center gap-3 p-4 rounded-lg border border-green-400/20 bg-green-900/10">
-            <Box className="h-5 w-5 text-green-400" />
+          <div className="flex items-center gap-3 p-4 rounded-lg border border-accent/20 bg-accent/5">
+            <Box className="h-5 w-5 text-accent-foreground" />
             <div>
-              <p className="text-sm font-medium text-green-300">3D Model Ready</p>
+              <p className="text-sm font-medium text-foreground">3D Model Ready</p>
               <p className="text-xs text-muted-foreground">Switch to the "3D View" tab to explore your model</p>
             </div>
           </div>
