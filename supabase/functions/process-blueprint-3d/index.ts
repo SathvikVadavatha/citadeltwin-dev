@@ -212,11 +212,12 @@ serve(async (req) => {
     ];
 
     // Generate GLB 3D model from detected elements
-    const uploadId = crypto.randomUUID();
+    // Use caller-supplied upload_id or generate a new one
+    const modelUploadId = existingUploadId || crypto.randomUUID();
     const timestamp = Date.now();
 
-    const glbData = generateGLBFromDetections(detectedElements, uploadId);
-    const fileName = `${uploadId}/${timestamp}.glb`;
+    const glbData = generateGLBFromDetections(detectedElements, modelUploadId);
+    const fileName = `${modelUploadId}/${timestamp}.glb`;
 
     console.log("Uploading GLB to storage, size:", glbData.length);
 
@@ -241,6 +242,35 @@ serve(async (req) => {
     const glbUrl = urlData.publicUrl;
     console.log("GLB uploaded:", glbUrl);
 
+    // ---- Save record to generated_3d_models so dashboard 3D viewer can find it ----
+    const roomCount = detectedElements.rooms?.length || 0;
+    const buildingType = detectedElements.building_info?.building_type || 'Building';
+    const modelName = `${buildingType} - ${roomCount} Rooms`;
+    const modelDescription = `AI-generated 3D model from blueprint. ${roomCount} rooms detected.`;
+
+    const { data: savedModel, error: saveError } = await supabase
+      .from('generated_3d_models')
+      .insert({
+        upload_id: modelUploadId,
+        model_name: modelName,
+        model_description: modelDescription,
+        model_file_path: fileName,
+        generation_status: 'completed',
+        file_size: glbData.length,
+        generation_prompt: `AI floor plan analysis: ${roomCount} rooms`,
+        processing_time_ms: Date.now() - timestamp,
+      })
+      .select('id')
+      .single();
+
+    if (saveError) {
+      // Non-fatal: log but continue — model is uploaded, just won't appear in dashboard
+      console.error("Warning: failed to save generated_3d_models record:", saveError.message);
+    } else {
+      console.log("Saved generated_3d_models record:", savedModel?.id);
+    }
+    // ---------------------------------------------------------------------------------
+
     // Build detections array for frontend
     const detections = (detectedElements.rooms || []).map((room: any) => ({
       class: `space_${room.label}`,
@@ -262,6 +292,7 @@ serve(async (req) => {
         html_view: htmlView,
         detections,
         building_info: detectedElements.building_info || {},
+        model_record_id: savedModel?.id || null,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
