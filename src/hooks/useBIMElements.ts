@@ -63,7 +63,7 @@ export const useBIMElements = (projectIdOrUploadId?: string, filterType: 'projec
         .from('bim_elements')
         .select(`
           *,
-          materials (
+          materials!bim_elements_material_id_fkey (
             id,
             name,
             material_type,
@@ -123,14 +123,13 @@ export const useBIMElements = (projectIdOrUploadId?: string, filterType: 'projec
         })
         .select(`
           *,
-          materials (
+          materials!bim_elements_material_id_fkey (
             id,
             name,
             material_type,
             properties
           )
         `)
-        .single();
 
       if (error) {
         console.error('Error creating BIM element:', error);
@@ -159,7 +158,7 @@ export const useBIMElements = (projectIdOrUploadId?: string, filterType: 'projec
         .eq('id', id)
         .select(`
           *,
-          materials (
+          materials!bim_elements_material_id_fkey (
             id,
             name,
             material_type,
