@@ -123,14 +123,13 @@ export const useBIMElements = (projectIdOrUploadId?: string, filterType: 'projec
         })
         .select(`
           *,
-          materials (
+          materials!bim_elements_material_id_fkey (
             id,
             name,
             material_type,
             properties
           )
         `)
-        .single();
 
       if (error) {
         console.error('Error creating BIM element:', error);
