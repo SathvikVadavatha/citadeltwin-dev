@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BlueprintUploadBox } from './BlueprintUploadBox';
 import { Blueprint3DViewer } from './Blueprint3DViewer';
 import { ProcessingStatus } from './ProcessingStatus';
@@ -9,21 +9,41 @@ export interface ProcessingResult {
   detections: any[];
 }
 
+const STORAGE_KEY = 'citadeltwin_blueprint3d_result';
+
 export const BlueprintTo3DConverter: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [result, setResult] = useState<ProcessingResult | null>(null);
+  const [result, setResult] = useState<ProcessingResult | null>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [error, setError] = useState<string | null>(null);
+
+  // Persist result to localStorage whenever it changes
+  useEffect(() => {
+    if (result) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(result));
+      } catch {
+        // localStorage full or unavailable — silently ignore
+      }
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [result]);
 
   const handleFileUpload = async (file: File) => {
     setIsProcessing(true);
     setError(null);
 
     try {
-      // Create FormData to send the file
       const formData = new FormData();
       formData.append('file', file);
 
-      // Call the edge function
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-blueprint-3d`,
         {
@@ -38,7 +58,7 @@ export const BlueprintTo3DConverter: React.FC = () => {
       }
 
       const data = await response.json();
-      
+
       if (data.status === 'success') {
         setResult(data);
       } else {
@@ -56,6 +76,7 @@ export const BlueprintTo3DConverter: React.FC = () => {
     setResult(null);
     setError(null);
     setIsProcessing(false);
+    localStorage.removeItem(STORAGE_KEY);
   };
 
   if (isProcessing) {
