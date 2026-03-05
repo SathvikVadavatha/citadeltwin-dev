@@ -143,14 +143,14 @@ serve(async (req) => {
 
     // Send email to all recipients with attachment
     try {
-      console.log(`Sending report email to ${report.recipients.join(', ')} with subject: ${emailSubject}`);
+      console.log(`Sending report email to ${recipients.join(', ')} with subject: ${emailSubject}`);
       
       // Convert attachment to base64 for Resend
       const base64Content = btoa(String.fromCharCode(...attachmentContent));
       
       const emailResponse = await resend.emails.send({
         from: 'onboarding@resend.dev',
-        to: report.recipients, // Send to all recipients at once
+        to: recipients, // use validated recipients list
         subject: emailSubject,
         html: generateEmailContent(reportData, report),
         attachments: [
@@ -166,7 +166,7 @@ serve(async (req) => {
         throw new Error(emailResponse.error.message);
       }
 
-      console.log(`Report email sent successfully to ${report.recipients.length} recipients`);
+      console.log(`Report email sent successfully to ${recipients.length} recipients`);
       
       const executionTime = Date.now() - startTime;
 
