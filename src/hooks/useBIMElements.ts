@@ -63,7 +63,7 @@ export const useBIMElements = (projectIdOrUploadId?: string, filterType: 'projec
         .from('bim_elements')
         .select(`
           *,
-          materials (
+          materials!bim_elements_material_id_fkey (
             id,
             name,
             material_type,
