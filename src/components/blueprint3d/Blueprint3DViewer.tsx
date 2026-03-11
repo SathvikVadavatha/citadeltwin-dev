@@ -53,36 +53,42 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
 
   // Normalize room type labels for counting
   const normalizeRoomType = (label: string): string => {
-    const l = (label || '').toLowerCase().replace(/[\s-]+/g, '_');
-    if (/master.*bed|bed.*room|bedroom/.test(l)) return 'bedroom';
-    if (/bath|powder_room/.test(l)) return 'bathroom';
-    if (/kitchen|kit/.test(l)) return 'kitchen';
-    if (/living|lounge|family/.test(l)) return 'living';
+    // Strip common prefixes like "space_"
+    let l = (label || '').toLowerCase().replace(/^space_/, '').replace(/[\s-]+/g, '_');
+    if (/master.*bed|bed.*room|bedroom|master_bed/.test(l)) return 'bedroom';
+    if (/bath|powder_room|shower/.test(l)) return 'bathroom';
+    if (/kitchen|kitchenette|kit/.test(l)) return 'kitchen';
+    if (/living|lounge|family|great_room/.test(l)) return 'living';
     if (/dining/.test(l)) return 'dining';
-    if (/office|study|den/.test(l)) return 'office';
+    if (/office|study|den|work/.test(l)) return 'office';
     if (/garage|carport/.test(l)) return 'garage';
-    if (/walk.*in.*closet/.test(l)) return 'walk_in_closet';
-    if (/closet/.test(l)) return 'closet';
-    if (/laundry/.test(l)) return 'laundry';
-    if (/balcony|porch|deck|patio/.test(l)) return 'balcony';
-    if (/hallway|corridor|hall/.test(l)) return 'hallway';
-    if (/foyer|entry|vestibule|mudroom/.test(l)) return 'foyer';
+    if (/walk.*in.*closet|wic/.test(l)) return 'walk_in_closet';
+    if (/closet|wardrobe/.test(l)) return 'closet';
+    if (/laundry|wash/.test(l)) return 'laundry';
+    if (/balcony|porch|deck|patio|terrace|veranda/.test(l)) return 'balcony';
+    if (/hallway|corridor|hall|passage/.test(l)) return 'hallway';
+    if (/foyer|entry|vestibule|mudroom|lobby/.test(l)) return 'foyer';
     if (/pantry/.test(l)) return 'pantry';
-    if (/mech|utility|mechanical/.test(l)) return 'utility';
-    if (/storage/.test(l)) return 'storage';
-    if (/sunroom|loft/.test(l)) return l;
+    if (/mech|utility|mechanical|furnace|hvac/.test(l)) return 'utility';
+    if (/storage|store/.test(l)) return 'storage';
+    if (/sunroom|loft|attic|bonus/.test(l)) return l;
     return l;
   };
 
   const roomCounts: Record<string, number> = {};
   const roomDimensions: Record<string, string[]> = {};
   result.detections.forEach((d) => {
-    const type = normalizeRoomType(d.label || d.class || '');
+    // Try label first, then strip "space_" from class, then fallback
+    const rawLabel = d.label || (d.class ? d.class.replace(/^space_/, '') : '') || '';
+    const type = normalizeRoomType(rawLabel);
     roomCounts[type] = (roomCounts[type] || 0) + 1;
     if (!roomDimensions[type]) roomDimensions[type] = [];
     const dim = d.width_m && d.depth_m ? `${d.width_m}×${d.depth_m}m` : '';
     if (dim) roomDimensions[type].push(dim);
   });
+  
+  console.log('Detection data sample:', result.detections[0]);
+  console.log('Room counts:', roomCounts);
 
   const bedrooms = roomCounts['bedroom'] || 0;
   const bathrooms = roomCounts['bathroom'] || 0;
