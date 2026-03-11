@@ -99,6 +99,10 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComple
     resetUpload();
     setModel3DUrl(null);
     setGenerating3D(false);
+    setAiDetections(null);
+    setAiScaleInfo(null);
+    setAiBuildingInfo(null);
+    setAiWalls(null);
   };
 
   if (uploadResult) {
