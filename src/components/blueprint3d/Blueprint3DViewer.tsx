@@ -46,6 +46,7 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
   const [activeTab, setActiveTab] = useState<'3d' | '2d'>('3d');
   const [bgMode, setBgMode] = useState<'dark' | 'light'>('dark');
   const orbitRef = useRef<any>(null);
+  const dimensionsAvailable = result.dimensions_available !== false;
 
   const resetCamera = () => { orbitRef.current?.reset(); };
 
@@ -152,12 +153,27 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
 
   return (
     <div className="space-y-4">
+      {/* No Dimensions Warning */}
+      {!dimensionsAvailable && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
+          <Info className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">No Dimensions Detected</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              This blueprint does not contain written dimension annotations. Room sizes, areas, and square footage 
+              cannot be accurately determined. Please submit a plan with dimensions (e.g., 14'-6" × 12'-0") to generate 
+              a precise analysis and accurate 3D model with real-world measurements.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">3D Model Generated</h2>
           <p className="text-muted-foreground text-sm mt-0.5">
-            {summaryLine} · {totalAreaSqft} sq ft · {buildingType} · {numFloors} {numFloors > 1 ? 'Floors' : 'Floor'}
+            {summaryLine} {dimensionsAvailable ? `· ${totalAreaSqft} sq ft` : ''} · {buildingType} · {numFloors} {numFloors > 1 ? 'Floors' : 'Floor'}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -225,8 +241,17 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
             <div className="text-xs text-muted-foreground">Kitchens</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-[#59BF82]">{totalAreaSqft}</div>
-            <div className="text-xs text-muted-foreground">Total sq ft</div>
+            {dimensionsAvailable ? (
+              <>
+                <div className="text-2xl font-bold text-[#59BF82]">{totalAreaSqft}</div>
+                <div className="text-xs text-muted-foreground">Total sq ft</div>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-muted-foreground">—</div>
+                <div className="text-xs text-muted-foreground">No dimensions</div>
+              </>
+            )}
           </div>
         </div>
 
@@ -255,14 +280,14 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
           ))}
         </div>
 
-        {/* Room dimensions detail with original measurement text */}
+        {/* Room list — show names only when no dimensions, show full details when dimensions exist */}
         {result.detections.length > 0 && (
           <>
             <Separator className="my-3" />
             <details className="group" open>
               <summary className="text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
-                📐 Individual room dimensions ({result.detections.length} spaces)
-                {scaleInfo?.scale_source === 'text' && (
+                {dimensionsAvailable ? '📐 Individual room dimensions' : '🏠 Detected rooms'} ({result.detections.length} spaces)
+                {dimensionsAvailable && scaleInfo?.scale_source === 'text' && (
                   <Badge variant="outline" className="ml-2 text-[10px] h-4">OCR-calibrated</Badge>
                 )}
               </summary>
@@ -270,7 +295,7 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
                 {result.detections.map((d, idx) => {
                   const roomType = normalizeRoomType(d.label || d.class || '');
                   const color = getRoomColor(roomType);
-                  const dims = formatDimensions(d);
+                  const dims = dimensionsAvailable ? formatDimensions(d) : '';
                   return (
                     <div key={idx} className="flex items-center gap-2 bg-muted/30 rounded-md px-2 py-1.5">
                       <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0 border border-black/10" style={{ backgroundColor: color }} />
@@ -279,11 +304,11 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
                         {dims && (
                           <span className="text-muted-foreground ml-1">{dims}</span>
                         )}
-                        {d.area_m2 && (
+                        {dimensionsAvailable && d.area_m2 && (
                           <span className="text-muted-foreground/70 ml-1">({d.area_m2} m²)</span>
                         )}
                       </div>
-                      {d.original_dimension_text && (
+                      {dimensionsAvailable && d.original_dimension_text && (
                         <Badge variant="secondary" className="text-[9px] h-4 px-1 flex-shrink-0">
                           {d.original_dimension_text}
                         </Badge>
@@ -336,7 +361,7 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
 
         <Separator className="my-3" />
         <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary" className="text-xs">{totalArea.toFixed(0)} m²</Badge>
+          {dimensionsAvailable && <Badge variant="secondary" className="text-xs">{totalArea.toFixed(0)} m²</Badge>}
           <Badge variant="secondary" className="text-xs">{buildingType}</Badge>
           <Badge variant="secondary" className="text-xs">{numFloors} {numFloors > 1 ? 'Floors' : 'Floor'}</Badge>
           {result.building_info?.exterior_wall_thickness_m && (
@@ -347,7 +372,12 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
           <Badge variant="secondary" className="text-xs">
             {result.detections.length} Total Rooms
           </Badge>
-          {scaleInfo?.scale_source && (
+          {!dimensionsAvailable && (
+            <Badge variant="outline" className="text-xs text-amber-600 border-amber-500/30">
+              ⚠ No dimensions on plan
+            </Badge>
+          )}
+          {dimensionsAvailable && scaleInfo?.scale_source && (
             <Badge variant="outline" className="text-xs">
               Scale: {scaleInfo.scale_source}
             </Badge>
