@@ -97,11 +97,12 @@ serve(async (req) => {
             content: [
               {
                 type: "text",
-                text: `Analyze this floor plan with maximum precision. 
-1. Read ALL written dimension text on the plan — these are the SOURCE OF TRUTH for room sizes.
-2. Classify every wall as exterior (thick/double-line) or interior (thin/single-line).
-3. Detect the scale and unit system (imperial vs metric).
-4. Return precise bounding boxes AND the exact written dimensions for each room.`
+                text: `Analyze this floor plan with maximum precision.
+1. IMPORTANT: Only report dimensions that are ACTUALLY WRITTEN on the plan. Do NOT estimate or fabricate any room dimensions.
+2. If no dimension text exists anywhere on the plan, set dimensions_available to false.
+3. Classify every wall as exterior (thick/double-line) or interior (thin/single-line).
+4. Detect the scale and unit system if dimensions exist, otherwise set scale_source to "none" and unit_system to "unknown".
+5. Return precise bounding boxes for each room. Only include dimension values if the room has actual written measurements.`
               },
               {
                 type: "image_url",
