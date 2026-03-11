@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, RotateCcw, Home, Maximize2, Box, BedDouble, Bath, CookingPot, DoorOpen, Sofa, UtensilsCrossed, Briefcase, Car, LayoutGrid, ShowerHead, WashingMachine, TreePine, Warehouse, Wrench, Archive, Square } from 'lucide-react';
+import { Loader2, RotateCcw, Home, Maximize2, Box, BedDouble, Bath, CookingPot, DoorOpen, Sofa, UtensilsCrossed, Briefcase, Car, LayoutGrid, ShowerHead, WashingMachine, TreePine, Warehouse, Wrench, Archive, Square, Ruler, Scale, Layers, Info } from 'lucide-react';
 import type { ProcessingResult } from './BlueprintTo3DConverter';
 import * as THREE from 'three';
 
@@ -51,9 +51,7 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
 
   const totalArea = result.detections.reduce((sum, d) => sum + (parseFloat(d.area_m2) || 0), 0);
 
-  // Normalize room type labels for counting
   const normalizeRoomType = (label: string): string => {
-    // Strip common prefixes like "space_"
     let l = (label || '').toLowerCase().replace(/^space_/, '').replace(/[\s-]+/g, '_');
     if (/master.*bed|bed.*room|bedroom|master_bed/.test(l)) return 'bedroom';
     if (/bath|powder_room|shower/.test(l)) return 'bathroom';
@@ -71,24 +69,15 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
     if (/pantry/.test(l)) return 'pantry';
     if (/mech|utility|mechanical|furnace|hvac/.test(l)) return 'utility';
     if (/storage|store/.test(l)) return 'storage';
-    if (/sunroom|loft|attic|bonus/.test(l)) return l;
     return l;
   };
 
   const roomCounts: Record<string, number> = {};
-  const roomDimensions: Record<string, string[]> = {};
   result.detections.forEach((d) => {
-    // Try label first, then strip "space_" from class, then fallback
     const rawLabel = d.label || (d.class ? d.class.replace(/^space_/, '') : '') || '';
     const type = normalizeRoomType(rawLabel);
     roomCounts[type] = (roomCounts[type] || 0) + 1;
-    if (!roomDimensions[type]) roomDimensions[type] = [];
-    const dim = d.width_m && d.depth_m ? `${d.width_m}×${d.depth_m}m` : '';
-    if (dim) roomDimensions[type].push(dim);
   });
-  
-  console.log('Detection data sample:', result.detections[0]);
-  console.log('Room counts:', roomCounts);
 
   const bedrooms = roomCounts['bedroom'] || 0;
   const bathrooms = roomCounts['bathroom'] || 0;
@@ -104,9 +93,8 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
   const foyers = roomCounts['foyer'] || 0;
   const utilities = roomCounts['utility'] || 0;
   const pantries = roomCounts['pantry'] || 0;
-  const storage = roomCounts['storage'] || 0;
+  const storageRooms = roomCounts['storage'] || 0;
 
-  // Room types already handled with dedicated slots
   const handledTypes = new Set([
     'bedroom', 'bathroom', 'kitchen', 'living', 'dining', 'office', 'garage',
     'closet', 'walk_in_closet', 'laundry', 'balcony', 'hallway', 'foyer',
@@ -120,6 +108,14 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
 
   const buildingType = result.building_info?.building_type || 'Residential';
   const numFloors = result.building_info?.num_floors || 1;
+  const scaleInfo = result.scale_info;
+  const unitSystem = scaleInfo?.unit_system || 'metric';
+
+  // Wall classification counts
+  const extWalls = result.walls?.filter(w => w.wall_type === 'exterior_wall' || w.wall_type === 'load_bearing_wall').length || result.building_info?.num_exterior_walls || 0;
+  const intWalls = result.walls?.filter(w => w.wall_type === 'interior_wall').length || result.building_info?.num_interior_walls || 0;
+  const numDoors = result.building_info?.num_doors || 0;
+  const numWindows = result.building_info?.num_windows || 0;
 
   const summaryParts: string[] = [];
   if (bedrooms > 0) summaryParts.push(`${bedrooms} Bed`);
@@ -128,10 +124,8 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
   if (livingRooms > 0) summaryParts.push(`${livingRooms} Living`);
   if (closets > 0) summaryParts.push(`${closets} Closet`);
   if (laundry > 0) summaryParts.push(`${laundry} Laundry`);
-  if (balconies > 0) summaryParts.push(`${balconies} Balcony`);
   const summaryLine = summaryParts.length > 0 ? summaryParts.join(' · ') : `${result.detections.length} Rooms`;
 
-  // Helper to render a room chip
   const RoomChip = ({ count, label, icon: Icon, color }: { count: number; label: string; icon: any; color: string }) => {
     if (count === 0) return null;
     return (
@@ -143,6 +137,17 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
         </div>
       </div>
     );
+  };
+
+  // Format dimension display based on unit system
+  const formatDimensions = (d: any) => {
+    if (unitSystem === 'imperial' && d.width_ft && d.depth_ft) {
+      return `${d.width_ft}'×${d.depth_ft}'`;
+    }
+    if (d.width_m && d.depth_m) {
+      return `${d.width_m}×${d.depth_m}m`;
+    }
+    return '';
   };
 
   return (
@@ -162,6 +167,45 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
           </Button>
         </div>
       </div>
+
+      {/* Scale & Measurement Info */}
+      {scaleInfo && (
+        <div className="bg-card border border-border rounded-xl p-3 flex flex-wrap items-center gap-3 text-xs">
+          <div className="flex items-center gap-1.5">
+            <Ruler className="h-3.5 w-3.5 text-primary" />
+            <span className="font-medium">Scale:</span>
+            <span className="text-muted-foreground">
+              {scaleInfo.scale_text || `${scaleInfo.scale_source || 'auto-detected'}`}
+            </span>
+          </div>
+          <Separator orientation="vertical" className="h-4" />
+          <div className="flex items-center gap-1.5">
+            <Scale className="h-3.5 w-3.5 text-primary" />
+            <span className="font-medium">Units:</span>
+            <Badge variant="outline" className="text-[10px] h-5">
+              {unitSystem === 'imperial' ? 'Imperial (ft/in)' : 'Metric (m)'}
+            </Badge>
+          </div>
+          <Separator orientation="vertical" className="h-4" />
+          <div className="flex items-center gap-1.5">
+            <Layers className="h-3.5 w-3.5 text-primary" />
+            <span className="font-medium">Walls:</span>
+            <span className="text-muted-foreground">
+              {extWalls} exterior · {intWalls} interior
+            </span>
+          </div>
+          {(numDoors > 0 || numWindows > 0) && (
+            <>
+              <Separator orientation="vertical" className="h-4" />
+              <span className="text-muted-foreground">
+                {numDoors > 0 && `🚪 ${numDoors} doors`}
+                {numDoors > 0 && numWindows > 0 && ' · '}
+                {numWindows > 0 && `🪟 ${numWindows} windows`}
+              </span>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Room Breakdown Summary */}
       <div className="bg-card border border-border rounded-xl p-4">
@@ -186,7 +230,6 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
           </div>
         </div>
 
-        {/* All additional detected spaces */}
         <Separator className="my-3" />
         <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 gap-3">
           <RoomChip count={livingRooms} label="Living" icon={Sofa} color="#59BF82" />
@@ -200,7 +243,7 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
           <RoomChip count={foyers} label="Foyer" icon={Home} color="#E6C78E" />
           <RoomChip count={utilities} label="Utility" icon={Wrench} color="#B8945B" />
           <RoomChip count={pantries} label="Pantry" icon={CookingPot} color="#CCAA59" />
-          <RoomChip count={storage} label="Storage" icon={Warehouse} color="#B3AFA5" />
+          <RoomChip count={storageRooms} label="Storage" icon={Warehouse} color="#B3AFA5" />
           {otherRoomTypes.map(([type, count]) => (
             <div key={type} className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
               <Square className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
@@ -212,32 +255,80 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
           ))}
         </div>
 
-        {/* Room dimensions detail */}
+        {/* Room dimensions detail with original measurement text */}
         {result.detections.length > 0 && (
           <>
             <Separator className="my-3" />
-            <details className="group">
+            <details className="group" open>
               <summary className="text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
-                📐 View individual room dimensions ({result.detections.length} spaces)
+                📐 Individual room dimensions ({result.detections.length} spaces)
+                {scaleInfo?.scale_source === 'text' && (
+                  <Badge variant="outline" className="ml-2 text-[10px] h-4">OCR-calibrated</Badge>
+                )}
               </summary>
               <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 {result.detections.map((d, idx) => {
                   const roomType = normalizeRoomType(d.label || d.class || '');
                   const color = getRoomColor(roomType);
+                  const dims = formatDimensions(d);
                   return (
                     <div key={idx} className="flex items-center gap-2 bg-muted/30 rounded-md px-2 py-1.5">
                       <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0 border border-black/10" style={{ backgroundColor: color }} />
-                      <div className="text-xs min-w-0">
+                      <div className="text-xs min-w-0 flex-1">
                         <span className="font-medium">{d.name || (d.label || roomType).replace(/_/g, ' ')}</span>
-                        {d.width_m && d.depth_m && (
-                          <span className="text-muted-foreground ml-1">
-                            {d.width_m}×{d.depth_m}m ({d.area_m2} m²)
-                          </span>
+                        {dims && (
+                          <span className="text-muted-foreground ml-1">{dims}</span>
+                        )}
+                        {d.area_m2 && (
+                          <span className="text-muted-foreground/70 ml-1">({d.area_m2} m²)</span>
                         )}
                       </div>
+                      {d.original_dimension_text && (
+                        <Badge variant="secondary" className="text-[9px] h-4 px-1 flex-shrink-0">
+                          {d.original_dimension_text}
+                        </Badge>
+                      )}
                     </div>
                   );
                 })}
+              </div>
+            </details>
+          </>
+        )}
+
+        {/* Wall Classification Detail */}
+        {(extWalls > 0 || intWalls > 0) && (
+          <>
+            <Separator className="my-3" />
+            <details className="group">
+              <summary className="text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                🧱 Wall classification ({extWalls + intWalls} walls)
+              </summary>
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                <div className="bg-muted/30 rounded-md p-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-3 h-3 rounded-sm bg-[#404048] border border-black/20" />
+                    <span className="text-xs font-medium">Exterior / Load-Bearing</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {extWalls} walls
+                    {result.building_info?.exterior_wall_thickness_m && (
+                      <span> · {(result.building_info.exterior_wall_thickness_m * 100).toFixed(0)}cm thick</span>
+                    )}
+                  </div>
+                </div>
+                <div className="bg-muted/30 rounded-md p-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-3 h-3 rounded-sm bg-[#d9d4cc] border border-black/10" />
+                    <span className="text-xs font-medium">Interior / Partition</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {intWalls} walls
+                    {result.building_info?.interior_wall_thickness_m && (
+                      <span> · {(result.building_info.interior_wall_thickness_m * 100).toFixed(0)}cm thick</span>
+                    )}
+                  </div>
+                </div>
               </div>
             </details>
           </>
@@ -248,14 +339,19 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
           <Badge variant="secondary" className="text-xs">{totalArea.toFixed(0)} m²</Badge>
           <Badge variant="secondary" className="text-xs">{buildingType}</Badge>
           <Badge variant="secondary" className="text-xs">{numFloors} {numFloors > 1 ? 'Floors' : 'Floor'}</Badge>
-          {result.building_info?.wall_thickness_m && (
+          {result.building_info?.exterior_wall_thickness_m && (
             <Badge variant="secondary" className="text-xs">
-              Wall: {(result.building_info.wall_thickness_m * 100).toFixed(0)}cm thick
+              Ext. Wall: {(result.building_info.exterior_wall_thickness_m * 100).toFixed(0)}cm
             </Badge>
           )}
           <Badge variant="secondary" className="text-xs">
             {result.detections.length} Total Rooms
           </Badge>
+          {scaleInfo?.scale_source && (
+            <Badge variant="outline" className="text-xs">
+              Scale: {scaleInfo.scale_source}
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -265,7 +361,6 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
           <TabsTrigger value="2d" className="gap-1.5"><Home className="h-3.5 w-3.5" />Floor Plan</TabsTrigger>
         </TabsList>
 
-        {/* ===== 3D TAB ===== */}
         <TabsContent value="3d" className="space-y-3 mt-3">
           <div className="relative rounded-xl overflow-hidden border border-border shadow-lg" style={{ height: 580 }}>
             <div className="absolute top-3 right-3 z-10 flex gap-2">
@@ -343,7 +438,7 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
           </div>
 
           <p className="text-xs text-muted-foreground pl-1">
-            🖱 Drag to rotate · Scroll to zoom · Right-click to pan · Each color = distinct room type
+            🖱 Drag to rotate · Scroll to zoom · Right-click to pan · Each color = distinct room type · Dark walls = exterior/structural
           </p>
 
           {/* Room legend */}
@@ -356,6 +451,7 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
               {result.detections.map((d, idx) => {
                 const roomType = normalizeRoomType(d.label || d.class || '');
                 const color = getRoomColor(roomType);
+                const dims = formatDimensions(d);
                 return (
                   <div key={idx} className="flex items-start gap-2 min-w-0">
                     <div
@@ -364,8 +460,11 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
                     />
                     <div className="min-w-0">
                       <div className="text-xs font-medium truncate leading-tight">{d.name || roomType}</div>
-                      <div className="text-xs text-muted-foreground">{d.width_m}×{d.depth_m}m</div>
+                      {dims && <div className="text-xs text-muted-foreground">{dims}</div>}
                       <div className="text-xs text-muted-foreground/70">{d.area_m2} m²</div>
+                      {d.original_dimension_text && (
+                        <div className="text-[10px] text-primary/80 italic">{d.original_dimension_text}</div>
+                      )}
                     </div>
                   </div>
                 );
@@ -374,7 +473,6 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
           </div>
         </TabsContent>
 
-        {/* ===== 2D TAB ===== */}
         <TabsContent value="2d" className="mt-3">
           <div className="rounded-xl overflow-auto border border-border bg-[#1a1a2e]">
             <div
@@ -383,7 +481,7 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
             />
           </div>
           <p className="text-xs text-muted-foreground pl-1 mt-2">
-            Hover over rooms to see dimensions. Colors match the 3D model.
+            Hover over rooms to see dimensions. Colors match the 3D model. Dark walls = exterior/structural.
           </p>
         </TabsContent>
       </Tabs>
