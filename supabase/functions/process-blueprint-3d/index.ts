@@ -1031,7 +1031,7 @@ function generateHTMLVisualization(elements: any): string {
   return `<div style="font-family:system-ui,sans-serif;background:#1a1a2e;padding:20px;border-radius:8px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
       <h3 style="margin:0;font-size:16px;font-weight:700;color:#e2e8f0;">
-        🏠 BIM Vector Reconstruction — ${rooms.length} rooms
+        🏠 Geometric Reconstruction — ${rooms.length} rooms
         ${elements.building_info?.total_area_sqft ? `<span style="font-size:12px;font-weight:400;color:#94a3b8;margin-left:8px;">${elements.building_info.total_area_sqft} sq ft</span>` : ''}
         ${scaleLabel ? `<span style="font-size:11px;color:#94a3b8;margin-left:8px;">${scaleLabel}</span>` : ''}
       </h3>
