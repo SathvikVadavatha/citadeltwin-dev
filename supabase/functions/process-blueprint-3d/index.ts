@@ -259,15 +259,17 @@ serve(async (req) => {
     const hasDimensions = detectedElements.dimensions_available === true;
     const scaleSource = detectedElements.scale_info?.scale_source || 'none';
     const hasScale = scaleSource === 'text' || scaleSource === 'bar';
+    const hasEstimatedScale = scaleSource === 'estimated';
     const hasNumericalMeasurements = hasDimensions && (detectedElements.rooms || []).some(
       (r: any) => r.original_dimension_text && r.original_dimension_text.trim() !== ''
     );
 
-    console.log(`Pre-flight validation: hasDimensions=${hasDimensions}, hasScale=${hasScale}, scaleSource=${scaleSource}, hasNumericalMeasurements=${hasNumericalMeasurements}`);
+    console.log(`Pre-flight validation: hasDimensions=${hasDimensions}, hasScale=${hasScale}, hasEstimatedScale=${hasEstimatedScale}, scaleSource=${scaleSource}, hasNumericalMeasurements=${hasNumericalMeasurements}`);
 
-    // FAILURE PROTOCOL: No measurements AND no scale → STOP immediately
-    if (!hasNumericalMeasurements && !hasScale) {
-      console.warn('Pre-flight validation FAILED: No numerical dimensions and no scale information detected.');
+    // FAILURE PROTOCOL: No dimensions at all, no scale, and no estimated scale → STOP
+    // Allow processing when: AI says dimensions_available=true, OR a scale (text/bar) exists, OR estimated scale exists
+    if (!hasDimensions && !hasScale && !hasEstimatedScale) {
+      console.warn('Pre-flight validation FAILED: No dimensions, no scale, and no estimated scale detected.');
       return new Response(
         JSON.stringify({
           status: "validation_failed",
