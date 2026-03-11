@@ -438,24 +438,32 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
                         </div>
                         
                         {dims && (
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-3 bg-muted/50 rounded-md">
-                            <div>
-                              <p className="text-sm text-muted-foreground">Dimensions</p>
-                              <p className="font-medium">
-                                {dims.width} × {dims.depth} {dims.units === 'm' ? 'm' : 'ft'}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">Area</p>
-                              <p className="font-medium">
-                                {dims.area} {dims.units === 'm' ? 'm²' : 'sq ft'}
-                              </p>
-                            </div>
-                            <div className="hidden md:block">
-                              <p className="text-sm text-muted-foreground">Position</p>
-                              <p className="font-medium text-xs">
-                                ({Math.round(room.bbox?.x || 0)}, {Math.round(room.bbox?.y || 0)})
-                              </p>
+                          <div className="space-y-2">
+                            {dims.originalText && (
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="font-mono text-xs">📐 {dims.originalText}</Badge>
+                                <span className="text-[10px] text-muted-foreground">Source of Truth (OCR)</span>
+                              </div>
+                            )}
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-3 bg-muted/50 rounded-md">
+                              <div>
+                                <p className="text-sm text-muted-foreground">Dimensions</p>
+                                <p className="font-medium">
+                                  {dims.width} × {dims.depth} {dims.units === 'm' ? 'm' : ''}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-muted-foreground">Area</p>
+                                <p className="font-medium">
+                                  {dims.area} {dims.units === 'm' ? 'm²' : 'sq ft'}
+                                </p>
+                              </div>
+                              <div className="hidden md:block">
+                                <p className="text-sm text-muted-foreground">Position</p>
+                                <p className="font-medium text-xs">
+                                  ({Math.round(room.bbox?.x || 0)}, {Math.round(room.bbox?.y || 0)})
+                                </p>
+                              </div>
                             </div>
                           </div>
                         )}
