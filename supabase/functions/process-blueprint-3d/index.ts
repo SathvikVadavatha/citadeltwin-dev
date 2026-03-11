@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Blueprint 3D processing started");
+    console.log("Blueprint 3D processing started — Geometric Reconstruction Protocol");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -38,7 +38,96 @@ serve(async (req) => {
     const base64Image = btoa(binary);
     const mimeType = file.type || 'image/png';
 
-    console.log("Sending image to Lovable AI for detailed room detection...");
+    // ==================== STEP 1: HARD VALIDATION GATE (FIRST STEP) ====================
+    // Pre-flight scan for numerical dimensions AND scale bar
+    console.log("STEP 1: Pre-flight dimension & scale scan via Gemini Vision...");
+
+    const preFlightResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content: `You are a dimension detection specialist for architectural blueprints. Your ONLY job is to determine if this plan contains ANY of the following:
+1. Numerical dimension annotations with unit symbols: e.g. 10', 12'-0", 14'-6", 3.5m, 3500mm, 4400, 7000
+2. Scale ratios: e.g. 1:100, 1/4" = 1'-0", 1" = 20'
+3. Graphic scale bars with marked distances
+4. Combined dimension strings: e.g. 12'x15', 4.4m x 3.7m
+
+Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only actual measurement annotations count.`
+          },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "Scan this floor plan. Does it contain numerical dimension annotations or a scale bar? Report findings." },
+              { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Image}` } }
+            ]
+          }
+        ],
+        tools: [{
+          type: "function",
+          function: {
+            name: "report_dimension_scan",
+            description: "Report whether numerical dimensions were found on the plan",
+            parameters: {
+              type: "object",
+              properties: {
+                has_numerical_dimensions: { type: "boolean", description: "true ONLY if actual measurement annotations (with unit symbols like ', \", m, mm, ft) are found." },
+                dimension_examples: { type: "array", items: { type: "string" }, description: "Up to 5 examples of dimension strings found. Empty if none." },
+                has_scale_bar: { type: "boolean", description: "true if a graphic scale bar is detected" },
+                has_scale_text: { type: "boolean", description: "true if a scale ratio text is detected (e.g. 1:100)" },
+                scan_notes: { type: "string", description: "Brief note about findings" }
+              },
+              required: ["has_numerical_dimensions", "dimension_examples", "has_scale_bar", "has_scale_text", "scan_notes"]
+            }
+          }
+        }],
+        tool_choice: { type: "function", function: { name: "report_dimension_scan" } },
+      }),
+    });
+
+    if (!preFlightResponse.ok) {
+      const errText = await preFlightResponse.text();
+      console.error("Pre-flight scan failed:", preFlightResponse.status, errText);
+      throw new Error(`Pre-flight dimension scan failed: ${preFlightResponse.status}`);
+    }
+
+    const preFlightData = await preFlightResponse.json();
+    const preFlightToolCall = preFlightData.choices?.[0]?.message?.tool_calls?.[0];
+    if (!preFlightToolCall) throw new Error("Pre-flight scan did not return structured data");
+
+    const scanResult = JSON.parse(preFlightToolCall.function.arguments);
+    const hasAnyDimensions = scanResult.has_numerical_dimensions;
+    const hasAnyScale = scanResult.has_scale_bar || scanResult.has_scale_text;
+    console.log(`Pre-flight: dims=${hasAnyDimensions}, scale_bar=${scanResult.has_scale_bar}, scale_text=${scanResult.has_scale_text}, examples=${JSON.stringify(scanResult.dimension_examples)}`);
+
+    // ZERO-ERROR VALIDATION: If NO dimensions AND NO scale bar → hard stop (422)
+    if (!hasAnyDimensions && !hasAnyScale) {
+      console.warn('HARD VALIDATION GATE: No dimensions and no scale bar detected. STOPPING.');
+      return new Response(
+        JSON.stringify({
+          status: "validation_failed",
+          error: "Insufficient Architectural Data. Please provide a plan with clear measurements to ensure 3D accuracy.",
+          validation: {
+            dimensions_found: false,
+            scale_found: false,
+            reason: "no_measurements_no_scale",
+            scan_notes: scanResult.scan_notes || "",
+          },
+        }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`Pre-flight PASSED. Proceeding to Geometric Reconstruction...`);
+
+    // ==================== STEP 2: FULL GEOMETRIC RECONSTRUCTION ANALYSIS ====================
+    console.log("STEP 2: Geometric Reconstruction analysis via Gemini Vision...");
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -51,58 +140,70 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert architectural floor plan analyzer with civil engineering precision. Analyze the provided floor plan image following these CRITICAL rules:
+            content: `You are a Geometric Reconstruction engine for architectural floor plans. Analyze with these STRICT rules:
 
-## 1. HONESTY ABOUT DIMENSIONS — MOST IMPORTANT RULE
-- **CRITICAL**: You MUST NOT fabricate, estimate, or invent room dimensions.
-- ONLY return width_m, depth_m, area_m2, width_ft, depth_ft values if there are ACTUAL dimension annotations written on the plan (e.g., "14'-6"", "3.5m", "7000", "12'x15'").
-- If a room has NO written dimension text on the plan, you MUST return width_m: 0, depth_m: 0, area_m2: 0, width_ft: 0, depth_ft: 0, and original_dimension_text: "".
-- Set dimensions_available to true ONLY if the plan contains at least one written dimension annotation. Otherwise set it to false.
-- Overall dimension annotations on the building exterior (like "7000" or "11725" in mm) count as dimensions_available: true, but only assign them to the building_info, NOT to individual rooms unless the room itself has its own annotation.
+## RULE 1: GEOMETRIC TRUTH — OCR IS ABSOLUTE
+- Use OCR to find EVERY numerical dimension string (e.g., "12' 6\" x 11' 6\"", "3.5m × 4.2m").
+- If a room is labeled with dimensions, those EXACT numbers define the 3D mesh geometry, overriding any visual/pixel data.
+- Maintain the exact unit footprint by snapping wall intersections to the labels provided in the plan.
+- If a room has NO written dimension text, set width_m=0, depth_m=0, area_m2=0 — do NOT guess.
+- Set dimensions_available=true ONLY if actual dimension annotations exist on the plan.
 
-## 2. SCALE DETECTION (Priority Order)
-- FIRST: Search for written scale text (e.g., "1" = 10'", "1:100", "Scale: 1/4" = 1'-0"").
-- SECOND: Look for a graphic scale bar and use it to calibrate pixel-to-unit ratio.
-- THIRD: If no scale or dimensions are found, mark scale_source as "none".
-- Return the detected scale_source ("text", "bar", "estimated", "none") and the unit system.
+## RULE 2: STRUCTURAL DIFFERENTIATION (OUTER vs INNER WALLS)
+- Outer Walls: Identify the THICKEST perimeter lines. These are solid, opaque structural elements.
+  - Standard thickness: 8 inches (0.20m) unless labeled otherwise.
+- Inner Partition Walls: Identify interior dividing lines separating individual rooms.
+  - Standard thickness: 5 inches (0.12m) unless labeled otherwise.
+- Return wall_type as "exterior_wall", "interior_wall", or "load_bearing_wall".
 
-## 3. DIMENSION TEXT IS SOURCE OF TRUTH
-- Read ALL dimension strings written on the plan (e.g., "14'-6"", "3.5m", "12'x15'").
-- If a dimension text says a room is 14'-6" × 12'-0", those EXACT numbers must be returned.
-- If visual pixel geometry conflicts with written dimension text, the WRITTEN TEXT MUST OVERRIDE.
-- If NO dimension text exists on the plan, DO NOT estimate or guess dimensions.
+## RULE 3: COMPONENT PLACEMENT — DOORS & WINDOWS
+- Detect door swing arc symbols. Return door center-point (bbox center) and width.
+- Detect window glass lines. Return window center-point and width.
+- Generate 3D openings at the EXACT center-points indicated in the 2D plan.
+- Standard door width: 36 inches (0.9m) unless labeled otherwise.
+- Standard window width: 36 inches (0.9m) unless labeled otherwise.
+- Assign door_type: "single", "double", "sliding", "pocket", "french", "garage".
 
-## 4. WALL CLASSIFICATION
-- Detect wall line thickness in the drawing.
-- Outer/Load-Bearing Walls: thickness > 0.2m (8 inches) — typically drawn with thicker/double lines.
-- Inner/Partition Walls: thickness < 0.15m (6 inches) — typically drawn with thinner single lines.
-- Return wall_type as "exterior_wall", "interior_wall", or "load_bearing_wall" with thickness_m.
+## RULE 4: SCALE CALIBRATION (LARGEST DIMENSION)
+- Calibrate the pixel-to-meter ratio based on the LARGEST identified dimension string in the plan.
+- Priority 1: Use the LARGEST room dimension string found by OCR as the calibration anchor.
+- Priority 2: Use scale text ratio if found (e.g., "1:100").
+- Priority 3: Use graphic scale bar if found.
+- Priority 4: If NONE found, use a standard door width (36"/0.9m) as fallback.
+- Return scale_source: "largest_dimension", "text", "bar", "door_calibration".
+- Return largest_dimension_text: the exact text of the largest dimension used for calibration.
 
-## 5. UNIT DETECTION
-- Detect whether the plan uses Imperial (feet/inches, e.g., 14'-6") or Metric (meters, e.g., 4.4m).
-- If no dimensions exist, return unit_system as "unknown".
+## RULE 5: ROOM MATERIAL CLASSIFICATION
+- Based on room text labels, assign semantic material types:
+  - Bathroom/WC/Toilet → "space_toilet"
+  - Bedroom/Master/Guest → "space_bedroom"
+  - Kitchen/Kitchenette → "space_kitchen"
+  - Living Room/Lounge → "space_living_room"
+  - Dining Room → "space_dining_room"
+  - Office/Study → "space_office"
+  - Garage → "space_garage"
+  - Hallway/Corridor → "space_hallway"
+  - Other → "space_generic"
 
-## 6. ROOM DETECTION
-- Detect ALL rooms with precise bounding boxes (x, y, width, height in pixels from top-left).
-- Include the original_dimension_text field with the EXACT text written on the plan for that room. If none, use empty string.
-- Detect doors (swing arcs), windows, and all architectural elements.
-
-## 7. BUILDING CONTEXT
-- Identify total building footprint, orientation, number of floors.
-- Note the building type (residential, commercial, etc.).
-- Only calculate total_area_sqft if actual dimensions are available.`
+## RULE 6: ENTRANCE-ANCHORED ORIGIN
+- Identify the PRIMARY ENTRANCE (front door) of the building.
+- This entrance is the absolute origin (0,0,0) for all geometry.
+- Return entrance_x_px and entrance_y_px for the entrance center-point in pixels.
+- All coordinates are relative to the entrance anchor to prevent coordinate drift.`
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: `Analyze this floor plan with maximum precision.
-1. IMPORTANT: Only report dimensions that are ACTUALLY WRITTEN on the plan. Do NOT estimate or fabricate any room dimensions.
-2. If no dimension text exists anywhere on the plan, set dimensions_available to false.
-3. Classify every wall as exterior (thick/double-line) or interior (thin/single-line).
-4. Detect the scale and unit system if dimensions exist, otherwise set scale_source to "none" and unit_system to "unknown".
-5. Return precise bounding boxes for each room. Only include dimension values if the room has actual written measurements.`
+                text: `Perform Geometric Reconstruction on this floor plan:
+1. OCR every dimension string — these are absolute truth for mesh generation. Snap wall intersections to labeled dimensions.
+2. Classify all walls: Outer/perimeter walls (thickest lines, ~8"/0.2m) vs Interior partition walls (thinner lines, ~5"/0.12m).
+3. Detect every door swing symbol and window glass line with exact center-point positions.
+4. Calibrate scale using the LARGEST dimension string found. Report which dimension was used.
+5. Assign room material types based on text labels.
+6. Identify the PRIMARY ENTRANCE (front door) — this is the origin anchor (0,0,0).
+7. Return precise bounding boxes for all elements.`
               },
               {
                 type: "image_url",
@@ -111,130 +212,144 @@ serve(async (req) => {
             ]
           }
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "detect_floor_plan_elements",
-              description: "Return all detected rooms, walls, doors, and windows from the floor plan with precise measurements",
-              parameters: {
-                type: "object",
-                properties: {
-                  dimensions_available: { type: "boolean", description: "true ONLY if the plan has actual written dimension annotations (e.g., 14'-6\", 3.5m, 7000mm). false if no measurements are written anywhere on the plan." },
-                  image_width_px: { type: "number", description: "Total image width in pixels" },
-                  image_height_px: { type: "number", description: "Total image height in pixels" },
-                  scale_info: {
+        tools: [{
+          type: "function",
+          function: {
+            name: "reconstruct_floor_plan_geometry",
+            description: "Geometric Reconstruction of all architectural elements with entrance-anchored origin",
+            parameters: {
+              type: "object",
+              properties: {
+                dimensions_available: { type: "boolean", description: "true ONLY if actual written dimension annotations exist on the plan." },
+                image_width_px: { type: "number" },
+                image_height_px: { type: "number" },
+                scale_info: {
+                  type: "object",
+                  properties: {
+                    scale_text: { type: "string", description: "Scale text found, e.g. '1:100'. Empty if none." },
+                    scale_source: { type: "string", enum: ["largest_dimension", "text", "bar", "door_calibration", "none"], description: "How scale was determined. 'largest_dimension' if calibrated from the largest OCR dimension string." },
+                    pixels_per_meter: { type: "number", description: "Computed pixels per meter." },
+                    unit_system: { type: "string", enum: ["imperial", "metric", "unknown"] },
+                    calibration_reference: { type: "string", description: "What was used to calibrate: 'largest_room_dimension', 'scale_text', 'scale_bar', 'door_width_36in', or 'none'" },
+                    largest_dimension_text: { type: "string", description: "The exact text of the largest dimension string used for calibration. Empty if not applicable." }
+                  },
+                  required: ["scale_source", "pixels_per_meter", "unit_system"]
+                },
+                rooms: {
+                  type: "array",
+                  items: {
                     type: "object",
-                    description: "Detected scale information",
                     properties: {
-                      scale_text: { type: "string", description: "Original scale text found on plan, e.g. '1/4\" = 1'-0\"' or '1:100'. Empty if none found." },
-                      scale_source: { type: "string", enum: ["text", "bar", "estimated", "none"], description: "How the scale was determined. 'none' if no scale or dimensions found." },
-                      pixels_per_meter: { type: "number", description: "Calculated pixels per meter. 0 if unknown." },
-                      unit_system: { type: "string", enum: ["imperial", "metric", "unknown"], description: "Detected unit system. 'unknown' if no dimensions on plan." }
+                      label: { type: "string", description: "Room type: bedroom, master_bedroom, bathroom, kitchen, living_room, dining_room, office, garage, hallway, foyer, pantry, closet, walk_in_closet, laundry, porch, storage, utility, den, mudroom, powder_room, balcony, mechanical" },
+                      name: { type: "string", description: "Room name as shown on plan" },
+                      material_class: { type: "string", description: "BIM material: space_toilet, space_bedroom, space_kitchen, space_living_room, space_dining_room, space_office, space_garage, space_hallway, space_generic" },
+                      confidence: { type: "number" },
+                      bbox: {
+                        type: "object",
+                        properties: { x: { type: "number" }, y: { type: "number" }, width: { type: "number" }, height: { type: "number" } },
+                        required: ["x", "y", "width", "height"]
+                      },
+                      original_dimension_text: { type: "string", description: "EXACT dimension text from plan for this room. Empty string if none." },
+                      width_m: { type: "number", description: "Width in meters from OCR text. 0 if no text." },
+                      depth_m: { type: "number", description: "Depth in meters from OCR text. 0 if no text." },
+                      area_m2: { type: "number", description: "Area m². 0 if no dimensions." },
+                      width_ft: { type: "number", description: "Width in feet. 0 if no text." },
+                      depth_ft: { type: "number", description: "Depth in feet. 0 if no text." }
                     },
-                    required: ["scale_source", "pixels_per_meter", "unit_system"]
-                  },
-                  rooms: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        label: { type: "string", description: "Room type: bedroom, master_bedroom, bathroom, kitchen, living_room, dining_room, office, garage, hallway, foyer, pantry, closet, walk_in_closet, laundry, porch, storage, utility, den, mudroom, powder_room, balcony, mechanical" },
-                        name: { type: "string", description: "Room name exactly as shown on plan" },
-                        confidence: { type: "number", description: "Detection confidence 0-1" },
-                        bbox: {
-                          type: "object",
-                          properties: {
-                            x: { type: "number" }, y: { type: "number" },
-                            width: { type: "number" }, height: { type: "number" }
-                          },
-                          required: ["x", "y", "width", "height"]
-                        },
-                        original_dimension_text: { type: "string", description: "The EXACT dimension text written on the plan for this room, e.g. \"14'-6\\\" x 12'-0\\\"\" or \"4.4m x 3.7m\". Empty string if no dimensions written." },
-                        width_m: { type: "number", description: "Real-world width in meters (converted from plan dimensions)" },
-                        depth_m: { type: "number", description: "Real-world depth in meters (converted from plan dimensions)" },
-                        area_m2: { type: "number", description: "Area in square meters (width_m × depth_m)" },
-                        width_ft: { type: "number", description: "Width in feet (for imperial plans)" },
-                        depth_ft: { type: "number", description: "Depth in feet (for imperial plans)" }
-                      },
-                      required: ["label", "name", "confidence", "bbox", "width_m", "depth_m", "area_m2"]
-                    }
-                  },
-                  walls: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        wall_type: { type: "string", enum: ["exterior_wall", "interior_wall", "load_bearing_wall"], description: "Wall classification based on thickness" },
-                        confidence: { type: "number" },
-                        bbox: {
-                          type: "object",
-                          properties: { x: { type: "number" }, y: { type: "number" }, width: { type: "number" }, height: { type: "number" } },
-                          required: ["x", "y", "width", "height"]
-                        },
-                        thickness_m: { type: "number", description: "Wall thickness in meters. Exterior: >0.2m, Interior: <0.15m" },
-                        length_m: { type: "number", description: "Wall length in meters" }
-                      },
-                      required: ["wall_type", "confidence", "bbox", "thickness_m"]
-                    }
-                  },
-                  doors: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        label: { type: "string" },
-                        door_type: { type: "string", enum: ["single", "double", "sliding", "pocket", "french", "garage"], description: "Type of door" },
-                        width_m: { type: "number", description: "Door width in meters" },
-                        confidence: { type: "number" },
-                        bbox: {
-                          type: "object",
-                          properties: { x: { type: "number" }, y: { type: "number" }, width: { type: "number" }, height: { type: "number" } },
-                          required: ["x", "y", "width", "height"]
-                        }
-                      },
-                      required: ["label", "confidence", "bbox"]
-                    }
-                  },
-                  windows: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        label: { type: "string" },
-                        width_m: { type: "number", description: "Window width in meters" },
-                        confidence: { type: "number" },
-                        bbox: {
-                          type: "object",
-                          properties: { x: { type: "number" }, y: { type: "number" }, width: { type: "number" }, height: { type: "number" } },
-                          required: ["x", "y", "width", "height"]
-                        }
-                      },
-                      required: ["label", "confidence", "bbox"]
-                    }
-                  },
-                  building_info: {
-                    type: "object",
-                    properties: {
-                      total_area_sqft: { type: "number" },
-                      total_area_m2: { type: "number" },
-                      building_type: { type: "string" },
-                      num_floors: { type: "number" },
-                      exterior_wall_thickness_m: { type: "number", description: "Average exterior wall thickness" },
-                      interior_wall_thickness_m: { type: "number", description: "Average interior wall thickness" },
-                      num_exterior_walls: { type: "number" },
-                      num_interior_walls: { type: "number" },
-                      num_doors: { type: "number" },
-                      num_windows: { type: "number" }
-                    }
+                    required: ["label", "name", "material_class", "confidence", "bbox", "width_m", "depth_m", "area_m2"]
                   }
                 },
-                required: ["dimensions_available", "rooms", "walls", "doors", "windows", "scale_info"]
-              }
+                walls: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      wall_type: { type: "string", enum: ["exterior_wall", "interior_wall", "load_bearing_wall"] },
+                      confidence: { type: "number" },
+                      bbox: {
+                        type: "object",
+                        properties: { x: { type: "number" }, y: { type: "number" }, width: { type: "number" }, height: { type: "number" } },
+                        required: ["x", "y", "width", "height"]
+                      },
+                      thickness_m: { type: "number", description: "Wall thickness. Exterior default: 0.20m. Interior default: 0.12m." },
+                      length_m: { type: "number", description: "Wall length in meters from OCR or scale." }
+                    },
+                    required: ["wall_type", "confidence", "bbox", "thickness_m"]
+                  }
+                },
+                doors: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      label: { type: "string" },
+                      door_type: { type: "string", enum: ["single", "double", "sliding", "pocket", "french", "garage"] },
+                      width_m: { type: "number", description: "Door width in meters. Default 0.9m if not labeled." },
+                      height_m: { type: "number", description: "Door height. Default 2.1m." },
+                      confidence: { type: "number" },
+                      bbox: {
+                        type: "object",
+                        properties: { x: { type: "number" }, y: { type: "number" }, width: { type: "number" }, height: { type: "number" } },
+                        required: ["x", "y", "width", "height"]
+                      },
+                      center_x_px: { type: "number", description: "Center X of door opening in pixels" },
+                      center_y_px: { type: "number", description: "Center Y of door opening in pixels" }
+                    },
+                    required: ["label", "confidence", "bbox"]
+                  }
+                },
+                windows: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      label: { type: "string" },
+                      width_m: { type: "number", description: "Window width in meters. Default 0.9m." },
+                      height_m: { type: "number", description: "Window height. Default 1.2m." },
+                      sill_height_m: { type: "number", description: "Sill height from floor. Default 0.9m." },
+                      confidence: { type: "number" },
+                      bbox: {
+                        type: "object",
+                        properties: { x: { type: "number" }, y: { type: "number" }, width: { type: "number" }, height: { type: "number" } },
+                        required: ["x", "y", "width", "height"]
+                      },
+                      center_x_px: { type: "number", description: "Center X of window in pixels" },
+                      center_y_px: { type: "number", description: "Center Y of window in pixels" }
+                    },
+                    required: ["label", "confidence", "bbox"]
+                  }
+                },
+                building_info: {
+                  type: "object",
+                  properties: {
+                    total_area_sqft: { type: "number" },
+                    total_area_m2: { type: "number" },
+                    building_type: { type: "string" },
+                    num_floors: { type: "number" },
+                    exterior_wall_thickness_m: { type: "number", description: "Default 0.20m (8 inches)" },
+                    interior_wall_thickness_m: { type: "number", description: "Default 0.12m (5 inches)" },
+                    num_exterior_walls: { type: "number" },
+                    num_interior_walls: { type: "number" },
+                    num_doors: { type: "number" },
+                    num_windows: { type: "number" }
+                  }
+                },
+                entrance_info: {
+                  type: "object",
+                  properties: {
+                    entrance_x_px: { type: "number", description: "X pixel coordinate of primary entrance center" },
+                    entrance_y_px: { type: "number", description: "Y pixel coordinate of primary entrance center" },
+                    entrance_label: { type: "string", description: "Label of the entrance door, e.g. 'Front Door'" },
+                    entrance_door_index: { type: "number", description: "Index into doors array for the primary entrance" }
+                  },
+                  required: ["entrance_x_px", "entrance_y_px"]
+                }
+              },
+              required: ["dimensions_available", "rooms", "walls", "doors", "windows", "scale_info", "entrance_info"]
             }
           }
-        ],
-        tool_choice: { type: "function", function: { name: "detect_floor_plan_elements" } },
+        }],
+        tool_choice: { type: "function", function: { name: "reconstruct_floor_plan_geometry" } },
       }),
     });
 
@@ -251,48 +366,45 @@ serve(async (req) => {
     if (!toolCall) throw new Error("AI did not return structured room data");
 
     const detectedElements = JSON.parse(toolCall.function.arguments);
-    console.log(`AI detected: ${detectedElements.rooms?.length || 0} rooms, ${detectedElements.walls?.length || 0} walls`);
-    console.log(`Scale: ${detectedElements.scale_info?.scale_source || 'unknown'}, Units: ${detectedElements.scale_info?.unit_system || 'unknown'}`);
-    console.log(`Dimensions available: ${detectedElements.dimensions_available}`);
+    console.log(`Geometric Reconstruction: ${detectedElements.rooms?.length || 0} rooms, ${detectedElements.walls?.length || 0} walls, ${detectedElements.doors?.length || 0} doors, ${detectedElements.windows?.length || 0} windows`);
+    console.log(`Scale: ${detectedElements.scale_info?.scale_source || 'unknown'}, px/m: ${detectedElements.scale_info?.pixels_per_meter || 0}, largest_dim: ${detectedElements.scale_info?.largest_dimension_text || 'N/A'}`);
+    console.log(`Entrance anchor: (${detectedElements.entrance_info?.entrance_x_px || 'N/A'}, ${detectedElements.entrance_info?.entrance_y_px || 'N/A'}) — ${detectedElements.entrance_info?.entrance_label || 'auto-detected'}`);
 
-    // ==================== PRE-FLIGHT DATA VALIDATION ====================
-    const hasDimensions = detectedElements.dimensions_available === true;
-    const scaleSource = detectedElements.scale_info?.scale_source || 'none';
-    const hasScale = scaleSource === 'text' || scaleSource === 'bar';
-    const hasEstimatedScale = scaleSource === 'estimated';
-    const hasNumericalMeasurements = hasDimensions && (detectedElements.rooms || []).some(
+    // ==================== STEP 3: ENFORCE ARCHITECTURAL DEFAULTS ====================
+    // Enforce standard wall thicknesses
+    (detectedElements.walls || []).forEach((wall: any) => {
+      if (wall.wall_type === 'exterior_wall' || wall.wall_type === 'load_bearing_wall') {
+        wall.thickness_m = wall.thickness_m || EXTERIOR_WALL_THICKNESS;
+        if (wall.thickness_m < 0.15) wall.thickness_m = EXTERIOR_WALL_THICKNESS; // correct too-thin exterior walls
+      } else {
+        wall.thickness_m = wall.thickness_m || INTERIOR_WALL_THICKNESS;
+        if (wall.thickness_m > 0.18) wall.thickness_m = INTERIOR_WALL_THICKNESS; // correct too-thick interior walls
+      }
+    });
+
+    // Enforce default door/window dimensions
+    (detectedElements.doors || []).forEach((door: any) => {
+      door.width_m = door.width_m || STANDARD_DOOR_WIDTH;
+      door.height_m = door.height_m || 2.1;
+    });
+    (detectedElements.windows || []).forEach((win: any) => {
+      win.width_m = win.width_m || 0.9;
+      win.height_m = win.height_m || 1.2;
+      win.sill_height_m = win.sill_height_m || 0.9;
+    });
+
+    // Post-analysis: determine visual draft status
+    const hasNumericalMeasurements = (detectedElements.rooms || []).some(
       (r: any) => r.original_dimension_text && r.original_dimension_text.trim() !== ''
     );
-
-    console.log(`Pre-flight validation: hasDimensions=${hasDimensions}, hasScale=${hasScale}, hasEstimatedScale=${hasEstimatedScale}, scaleSource=${scaleSource}, hasNumericalMeasurements=${hasNumericalMeasurements}`);
-
-    // FAILURE PROTOCOL: No dimensions at all, no scale, and no estimated scale → STOP
-    // Allow processing when: AI says dimensions_available=true, OR a scale (text/bar) exists, OR estimated scale exists
-    if (!hasDimensions && !hasScale && !hasEstimatedScale) {
-      console.warn('Pre-flight validation FAILED: No dimensions, no scale, and no estimated scale detected.');
-      return new Response(
-        JSON.stringify({
-          status: "validation_failed",
-          error: "Structural data missing. Please upload a plan containing numerical dimensions or a scale bar to ensure engineering-grade accuracy. Random estimations are disabled to prevent structural errors.",
-          validation: {
-            dimensions_found: false,
-            scale_found: false,
-            reason: "no_measurements_no_scale",
-          },
-        }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // EDGE-CASE: Scale (text/bar/estimated) but no individual room dimensions → Visual Draft with warning
     const isVisualDraftOnly = !hasNumericalMeasurements;
     if (isVisualDraftOnly) {
-      console.log(`Pre-flight: No individual room dimensions found. Proceeding as Visual Draft (scale_source=${scaleSource}).`);
+      console.log(`No individual room dimension text found. Marking as Visual Draft.`);
     }
 
     const timestamp = Date.now();
 
-    // Create blueprint_uploads record if needed
+    // ==================== STEP 4: PERSIST TO SUPABASE ====================
     let modelUploadId = existingUploadId;
     if (!modelUploadId) {
       const placeholderPath = `anonymous/${timestamp}_${file.name.replace(/[^a-z0-9.]/gi, '_')}`;
@@ -317,8 +429,8 @@ serve(async (req) => {
       modelUploadId = bpInsertErr ? crypto.randomUUID() : bpRow!.id;
     }
 
-    // Generate GLB with per-room color materials and wall classification
-    const glbData = generateGLBFromDetections(detectedElements, modelUploadId);
+    // ==================== STEP 5: GENERATE BIM-LEVEL GLB ====================
+    const glbData = generateBIMGLB(detectedElements, modelUploadId);
     const fileName = `${modelUploadId}/${timestamp}.glb`;
 
     const { error: uploadError } = await supabase.storage
@@ -337,29 +449,29 @@ serve(async (req) => {
       .from('generated_3d_models')
       .insert({
         upload_id: modelUploadId,
-        model_name: `${buildingType} - ${roomCount} Rooms`,
-        model_description: `AI-generated 3D model. ${roomCount} rooms detected with color-coded materials. Scale: ${detectedElements.scale_info?.scale_source || 'estimated'}. Units: ${detectedElements.scale_info?.unit_system || 'metric'}.`,
+        model_name: `${buildingType} - ${roomCount} Rooms (Geometric Reconstruction)`,
+        model_description: `Geometric Reconstruction Protocol. ${roomCount} rooms, OCR-anchored dimensions. Scale: ${detectedElements.scale_info?.scale_source || 'calibrated'} (${detectedElements.scale_info?.largest_dimension_text || 'auto'}). Walls: ext=${EXTERIOR_WALL_THICKNESS}m, int=${INTERIOR_WALL_THICKNESS}m. Origin: entrance-anchored.`,
         model_file_path: fileName,
         generation_status: 'completed',
         file_size: glbData.length,
-        generation_prompt: `AI floor plan analysis: ${roomCount} rooms, scale: ${detectedElements.scale_info?.scale_text || 'auto'}`,
+        generation_prompt: `Geometric Reconstruction: ${roomCount} rooms, ${detectedElements.walls?.length || 0} walls, ${detectedElements.doors?.length || 0} doors, ${detectedElements.windows?.length || 0} windows`,
         processing_time_ms: Date.now() - timestamp,
       })
       .select('id').single();
 
     const dimensionsAvailable = detectedElements.dimensions_available === true;
 
-    // Sanitize building_info — remove area values if no dimensions on plan
+    // Sanitize building_info if no dimensions
     if (!dimensionsAvailable && detectedElements.building_info) {
       detectedElements.building_info.total_area_sqft = 0;
       detectedElements.building_info.total_area_m2 = 0;
     }
 
-    // Build detections — only include dimensions if they actually exist on the plan
+    // Build detection results with material classes
     const detections = (detectedElements.rooms || []).map((room: any) => {
       const hasDims = dimensionsAvailable && room.original_dimension_text && room.original_dimension_text.trim() !== '';
       return {
-        class: `space_${room.label}`,
+        class: room.material_class || `space_${room.label}`,
         name: room.name,
         confidence: room.confidence,
         width_m: hasDims ? room.width_m?.toFixed(2) : null,
@@ -370,10 +482,10 @@ serve(async (req) => {
         original_dimension_text: hasDims ? room.original_dimension_text : '',
         bbox: room.bbox,
         label: room.label,
+        material_class: room.material_class || `space_${room.label}`,
       };
     });
 
-    // Build wall detections
     const wallDetections = (detectedElements.walls || []).map((wall: any) => ({
       wall_type: wall.wall_type,
       thickness_m: wall.thickness_m,
@@ -393,7 +505,7 @@ serve(async (req) => {
         dimensions_available: dimensionsAvailable,
         visual_draft_only: isVisualDraftOnly,
         visual_draft_warning: isVisualDraftOnly
-          ? 'Generated via Scale Bar only; internal room dimensions are estimated.'
+          ? 'Generated via Scale Bar / Door Calibration only; internal room dimensions are estimated.'
           : null,
         walls: wallDetections,
         building_info: detectedElements.building_info || {},
@@ -412,7 +524,16 @@ serve(async (req) => {
   }
 });
 
-// ==================== Room Color System ====================
+// ==================== Architectural Constants ====================
+
+const EXTERIOR_WALL_THICKNESS = 0.20; // 8 inches
+const INTERIOR_WALL_THICKNESS = 0.12; // 5 inches
+const STANDARD_DOOR_WIDTH = 0.9;      // 36 inches
+const STANDARD_DOOR_HEIGHT = 2.1;     // ~7 feet
+const STANDARD_WINDOW_HEIGHT = 1.2;
+const STANDARD_WINDOW_SILL = 0.9;
+
+// ==================== Room Color & Material System ====================
 
 const ROOM_COLORS: Record<string, [number, number, number]> = {
   bedroom:        [0.47, 0.71, 0.91],
@@ -439,6 +560,19 @@ const ROOM_COLORS: Record<string, [number, number, number]> = {
   powder_room:    [0.53, 0.80, 0.87],
 };
 
+// Material class colors for BIM semantic rendering
+const MATERIAL_CLASS_COLORS: Record<string, [number, number, number]> = {
+  space_toilet:      [0.22, 0.75, 0.80],  // Cyan-teal for wet rooms
+  space_bedroom:     [0.47, 0.71, 0.91],  // Soft blue
+  space_kitchen:     [0.95, 0.77, 0.18],  // Warm yellow
+  space_living_room: [0.35, 0.75, 0.51],  // Green
+  space_dining_room: [0.91, 0.50, 0.22],  // Orange
+  space_office:      [0.58, 0.44, 0.86],  // Purple
+  space_garage:      [0.60, 0.60, 0.62],  // Grey
+  space_hallway:     [0.82, 0.82, 0.80],  // Light grey
+  space_generic:     [0.75, 0.75, 0.75],  // Neutral
+};
+
 const ROOM_COLORS_HEX: Record<string, string> = {
   bedroom: '#78B6E8', master_bedroom: '#4582D1', bathroom: '#38C0CC',
   kitchen: '#F2C42E', living_room: '#59BF82', dining_room: '#E87F37',
@@ -450,14 +584,17 @@ const ROOM_COLORS_HEX: Record<string, string> = {
   powder_room: '#88CCDD',
 };
 
-// Wall type colors for GLB rendering
 const WALL_COLORS: Record<string, [number, number, number]> = {
-  exterior_wall:    [0.25, 0.25, 0.28],  // Dark structural grey
-  load_bearing_wall:[0.30, 0.28, 0.25],  // Dark brown-grey
-  interior_wall:    [0.85, 0.83, 0.80],  // Light partition white
+  exterior_wall:     [0.25, 0.25, 0.28],  // Dark structural
+  load_bearing_wall: [0.30, 0.28, 0.25],  // Dark brown-grey
+  interior_wall:     [0.85, 0.83, 0.80],  // Light partition
 };
 
-function getRoomColor(label: string): [number, number, number] {
+function getRoomColor(label: string, materialClass?: string): [number, number, number] {
+  // Prefer material class color for BIM accuracy
+  if (materialClass && MATERIAL_CLASS_COLORS[materialClass]) {
+    return MATERIAL_CLASS_COLORS[materialClass];
+  }
   const key = label.toLowerCase().replace(/\s+/g, '_');
   return ROOM_COLORS[key] || [0.75, 0.75, 0.75];
 }
@@ -465,49 +602,52 @@ function getRoomColor(label: string): [number, number, number] {
 function getRoomHeight(label: string): number {
   const l = label.toLowerCase();
   if (l.includes('garage')) return 3.0;
-  if (l.includes('bathroom') || l.includes('bath')) return 2.4;
+  if (l.includes('bathroom') || l.includes('bath') || l.includes('toilet') || l.includes('powder')) return 2.4;
   if (l.includes('living') || l.includes('great') || l.includes('lounge')) return 3.2;
   if (l.includes('foyer') || l.includes('porch') || l.includes('entry')) return 3.0;
   if (l.includes('storage') || l.includes('closet') || l.includes('pantry')) return 2.2;
   return 2.7;
 }
 
-// ==================== GLB Generation with Wall Classification ====================
+// ==================== Geometric Reconstruction GLB Generation ====================
 
-function generateGLBFromDetections(elements: any, uploadId: string): Uint8Array {
+function generateBIMGLB(elements: any, _uploadId: string): Uint8Array {
   const rooms = elements.rooms || [];
   const walls = elements.walls || [];
+  const doors = elements.doors || [];
+  const windows = elements.windows || [];
   const scaleInfo = elements.scale_info || {};
+  const entranceInfo = elements.entrance_info || {};
 
-  // Use real-world dimensions when available (snap-to-measurement)
-  // The AI returns width_m/depth_m based on OCR text (source of truth)
-  // We compute a scale factor from pixels to meters using room data
+  // Scale calibration: Use LARGEST dimension room for calibration (Geometric Truth)
   let pixelsPerMeter = scaleInfo.pixels_per_meter || 50;
 
-  // If we have rooms with both bbox and real dimensions, calibrate
   const calibrationRooms = rooms.filter((r: any) => r.bbox && r.width_m > 0 && r.depth_m > 0);
   if (calibrationRooms.length > 0) {
-    const scaleFactors = calibrationRooms.map((r: any) => {
-      const pxW = r.bbox.width;
-      const pxH = r.bbox.height;
-      const realW = r.width_m;
-      const realH = r.depth_m;
-      return ((pxW / realW) + (pxH / realH)) / 2;
+    // Find the room with the LARGEST area (most reliable calibration anchor)
+    const largestRoom = calibrationRooms.reduce((best: any, r: any) => {
+      const area = r.width_m * r.depth_m;
+      const bestArea = best.width_m * best.depth_m;
+      return area > bestArea ? r : best;
     });
-    pixelsPerMeter = scaleFactors.reduce((a: number, b: number) => a + b, 0) / scaleFactors.length;
+    // Calibrate from the largest dimension room
+    pixelsPerMeter = ((largestRoom.bbox.width / largestRoom.width_m) + (largestRoom.bbox.height / largestRoom.depth_m)) / 2;
+    console.log(`Scale calibrated from largest room "${largestRoom.name}": ${pixelsPerMeter.toFixed(1)} px/m (${largestRoom.original_dimension_text || 'N/A'})`);
   }
 
-  // Model scale: convert real-world meters to 3D scene units (1 unit = 1 meter)
   const modelScale = 1.0;
 
-  // Calculate center offset from real-world positions
+  // Entrance-Anchored Origin: use primary entrance as (0,0,0)
+  // All coordinates are offset so the entrance door center maps to origin
+  let anchorX: number, anchorY: number;
+  // Compute building footprint bounds for foundation slab
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   rooms.forEach((r: any) => {
     if (r.bbox) {
       const rX = r.bbox.x / pixelsPerMeter;
       const rY = r.bbox.y / pixelsPerMeter;
-      const rW = r.width_m || (r.bbox.width / pixelsPerMeter);
-      const rH = r.depth_m || (r.bbox.height / pixelsPerMeter);
+      const rW = r.width_m > 0 ? r.width_m : (r.bbox.width / pixelsPerMeter);
+      const rH = r.depth_m > 0 ? r.depth_m : (r.bbox.height / pixelsPerMeter);
       minX = Math.min(minX, rX);
       minY = Math.min(minY, rY);
       maxX = Math.max(maxX, rX + rW);
@@ -515,14 +655,24 @@ function generateGLBFromDetections(elements: any, uploadId: string): Uint8Array 
     }
   });
   if (!isFinite(minX)) { minX = 0; minY = 0; maxX = 20; maxY = 15; }
-  const centerOffsetX = (minX + maxX) / 2;
-  const centerOffsetY = (minY + maxY) / 2;
+
+  if (entranceInfo.entrance_x_px && entranceInfo.entrance_y_px) {
+    anchorX = entranceInfo.entrance_x_px / pixelsPerMeter;
+    anchorY = entranceInfo.entrance_y_px / pixelsPerMeter;
+    console.log(`Origin anchored to entrance: (${anchorX.toFixed(2)}, ${anchorY.toFixed(2)})m — "${entranceInfo.entrance_label || 'Front Door'}"`);
+  } else {
+    anchorX = (minX + maxX) / 2;
+    anchorY = (minY + maxY) / 2;
+    console.log(`No entrance detected — fallback to footprint center: (${anchorX.toFixed(2)}, ${anchorY.toFixed(2)})m`);
+  }
+  const centerOffsetX = anchorX;
+  const centerOffsetY = anchorY;
 
   const meshes: any[] = [];
   const materials: any[] = [];
   const accessors: any[] = [];
   const bufferViews: any[] = [];
-  const nodes: number[] = [];
+  const nodeList: number[] = [];
   const bufferChunks: Uint8Array[] = [];
   let bufferOffset = 0;
 
@@ -532,158 +682,21 @@ function generateGLBFromDetections(elements: any, uploadId: string): Uint8Array 
     bufferChunks.push(data);
     bufferOffset += data.byteLength;
     const pad = (4 - (data.byteLength % 4)) % 4;
-    if (pad > 0) {
-      bufferChunks.push(new Uint8Array(pad));
-      bufferOffset += pad;
-    }
+    if (pad > 0) { bufferChunks.push(new Uint8Array(pad)); bufferOffset += pad; }
     return idx;
   }
 
-  // Foundation slab
-  {
-    const bw = (maxX - minX) * modelScale + 2;
-    const bd = (maxY - minY) * modelScale + 2;
-    const verts = new Float32Array([
-      -bw/2, -0.25, -bd/2,   bw/2, -0.25, -bd/2,   bw/2, -0.25,  bd/2,  -bw/2, -0.25,  bd/2,
-      -bw/2,  0.00,  bd/2,   bw/2,  0.00,  bd/2,   bw/2,  0.00, -bd/2,  -bw/2,  0.00, -bd/2,
-    ]);
-    const norms = new Float32Array([
-      0,-1,0, 0,-1,0, 0,-1,0, 0,-1,0,
-      0,1,0, 0,1,0, 0,1,0, 0,1,0,
-    ]);
-    const idxs = new Uint16Array([0,1,2, 0,2,3, 4,5,6, 4,6,7]);
-    const vi = addBufferView(new Uint8Array(verts.buffer), 34962);
-    const ni = addBufferView(new Uint8Array(norms.buffer), 34962);
-    const ii = addBufferView(new Uint8Array(idxs.buffer), 34963);
-    const posAcc = accessors.length;
-    accessors.push({ bufferView: vi, componentType: 5126, count: 8, type: "VEC3" });
-    accessors.push({ bufferView: ni, componentType: 5126, count: 8, type: "VEC3" });
-    const idxAcc = accessors.length;
-    accessors.push({ bufferView: ii, componentType: 5123, count: 12, type: "SCALAR" });
-    const matIdx = materials.length;
-    materials.push({ name: "foundation", pbrMetallicRoughness: { baseColorFactor: [0.22, 0.22, 0.24, 1.0], metallicFactor: 0.1, roughnessFactor: 0.8 } });
-    const meshIdx = meshes.length;
-    meshes.push({ name: "foundation", primitives: [{ attributes: { POSITION: posAcc, NORMAL: posAcc+1 }, indices: idxAcc, material: matIdx }] });
-    nodes.push(meshIdx);
-  }
-
-  // Generate each room as separate mesh using REAL dimensions (snap-to-measurement)
-  rooms.forEach((room: any, i: number) => {
-    const bbox = room.bbox;
-    // Use real-world dimensions as source of truth
-    const w = (room.width_m || (bbox.width / pixelsPerMeter)) * modelScale;
-    const d = (room.depth_m || (bbox.height / pixelsPerMeter)) * modelScale;
-    const h = getRoomHeight(room.label);
-
-    // Position based on bbox center, converted to real-world coords
-    const cx = ((bbox.x + bbox.width / 2) / pixelsPerMeter - centerOffsetX) * modelScale;
-    const cz = ((bbox.y + bbox.height / 2) / pixelsPerMeter - centerOffsetY) * modelScale;
-
-    const color = getRoomColor(room.label);
-
+  function addBoxMesh(
+    name: string,
+    x0: number, y0: number, z0: number,
+    x1: number, y1: number, z1: number,
+    color: [number, number, number],
+    metallic: number, roughness: number
+  ) {
     const verts: number[] = [];
     const norms: number[] = [];
     const idxList: number[] = [];
-    let vertIdx = 0;
-
-    function addQuadLocal(
-      v0: [number,number,number], v1: [number,number,number],
-      v2: [number,number,number], v3: [number,number,number],
-      n: [number,number,number]
-    ) {
-      verts.push(...v0, ...v1, ...v2, ...v3);
-      norms.push(...n, ...n, ...n, ...n);
-      idxList.push(vertIdx, vertIdx+1, vertIdx+2, vertIdx, vertIdx+2, vertIdx+3);
-      vertIdx += 4;
-    }
-
-    const x0 = cx - w/2, x1 = cx + w/2;
-    const z0 = cz - d/2, z1 = cz + d/2;
-    const y0 = 0, y1 = h;
-
-    // Floor
-    addQuadLocal([x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1],[0,1,0]);
-    // Ceiling
-    addQuadLocal([x0,y1,z1],[x1,y1,z1],[x1,y1,z0],[x0,y1,z0],[0,-1,0]);
-    // Front wall
-    addQuadLocal([x0,y0,z0],[x1,y0,z0],[x1,y1,z0],[x0,y1,z0],[0,0,-1]);
-    // Back wall
-    addQuadLocal([x1,y0,z1],[x0,y0,z1],[x0,y1,z1],[x1,y1,z1],[0,0,1]);
-    // Right wall
-    addQuadLocal([x1,y0,z0],[x1,y0,z1],[x1,y1,z1],[x1,y1,z0],[1,0,0]);
-    // Left wall
-    addQuadLocal([x0,y0,z1],[x0,y0,z0],[x0,y1,z0],[x0,y1,z1],[-1,0,0]);
-
-    const vertsF32 = new Float32Array(verts);
-    const normsF32 = new Float32Array(norms);
-    const idxsU16 = new Uint16Array(idxList);
-
-    let minPx=Infinity,minPy=Infinity,minPz=Infinity,maxPx=-Infinity,maxPy=-Infinity,maxPz=-Infinity;
-    for (let k=0;k<verts.length;k+=3){
-      minPx=Math.min(minPx,verts[k]);minPy=Math.min(minPy,verts[k+1]);minPz=Math.min(minPz,verts[k+2]);
-      maxPx=Math.max(maxPx,verts[k]);maxPy=Math.max(maxPy,verts[k+1]);maxPz=Math.max(maxPz,verts[k+2]);
-    }
-
-    const bvVerts = addBufferView(new Uint8Array(vertsF32.buffer), 34962);
-    const bvNorms = addBufferView(new Uint8Array(normsF32.buffer), 34962);
-    const bvIdx   = addBufferView(new Uint8Array(idxsU16.buffer), 34963);
-
-    const posAcc = accessors.length;
-    accessors.push({ bufferView: bvVerts, componentType: 5126, count: vertsF32.length/3, type: "VEC3", min:[minPx,minPy,minPz], max:[maxPx,maxPy,maxPz] });
-    accessors.push({ bufferView: bvNorms, componentType: 5126, count: normsF32.length/3, type: "VEC3" });
-    const idxAcc = accessors.length;
-    accessors.push({ bufferView: bvIdx, componentType: 5123, count: idxsU16.length, type: "SCALAR" });
-
-    const matIdx = materials.length;
-    materials.push({
-      name: `room_${room.label}_${i}`,
-      pbrMetallicRoughness: {
-        baseColorFactor: [color[0], color[1], color[2], 1.0],
-        metallicFactor: 0.0,
-        roughnessFactor: 0.85,
-      },
-      doubleSided: true,
-    });
-
-    const meshIdx = meshes.length;
-    meshes.push({
-      name: room.name || room.label,
-      primitives: [{ attributes: { POSITION: posAcc, NORMAL: posAcc+1 }, indices: idxAcc, material: matIdx }]
-    });
-    nodes.push(meshIdx);
-  });
-
-  // Generate wall meshes with distinct materials (exterior=dark, interior=light)
-  walls.forEach((wall: any, i: number) => {
-    if (!wall.bbox) return;
-    const wallType = wall.wall_type || 'interior_wall';
-    const thickness = wall.thickness_m || (wallType === 'exterior_wall' ? 0.25 : 0.12);
-    const wallColor = WALL_COLORS[wallType] || WALL_COLORS.interior_wall;
-    const wallHeight = wallType === 'exterior_wall' ? 3.0 : 2.7;
-
-    const wX = (wall.bbox.x / pixelsPerMeter - centerOffsetX) * modelScale;
-    const wZ = (wall.bbox.y / pixelsPerMeter - centerOffsetY) * modelScale;
-    const wW = (wall.bbox.width / pixelsPerMeter) * modelScale;
-    const wD = (wall.bbox.height / pixelsPerMeter) * modelScale;
-
-    // Determine if wall is horizontal or vertical
-    const isHorizontal = wW > wD;
-    const wallLen = isHorizontal ? wW : wD;
-    const wallThick = thickness * modelScale;
-
-    const cx = wX + wW / 2;
-    const cz = wZ + wD / 2;
-
-    const x0 = isHorizontal ? cx - wallLen/2 : cx - wallThick/2;
-    const x1 = isHorizontal ? cx + wallLen/2 : cx + wallThick/2;
-    const z0 = isHorizontal ? cz - wallThick/2 : cz - wallLen/2;
-    const z1 = isHorizontal ? cz + wallThick/2 : cz + wallLen/2;
-    const y0 = 0, y1 = wallHeight;
-
-    const verts: number[] = [];
-    const norms: number[] = [];
-    const idxList: number[] = [];
-    let vertIdx = 0;
+    let vi = 0;
 
     function addQuad(
       v0: [number,number,number], v1: [number,number,number],
@@ -692,25 +705,31 @@ function generateGLBFromDetections(elements: any, uploadId: string): Uint8Array 
     ) {
       verts.push(...v0, ...v1, ...v2, ...v3);
       norms.push(...n, ...n, ...n, ...n);
-      idxList.push(vertIdx, vertIdx+1, vertIdx+2, vertIdx, vertIdx+2, vertIdx+3);
-      vertIdx += 4;
+      idxList.push(vi, vi+1, vi+2, vi, vi+2, vi+3);
+      vi += 4;
     }
 
+    // Bottom
     addQuad([x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1],[0,1,0]);
+    // Top
     addQuad([x0,y1,z1],[x1,y1,z1],[x1,y1,z0],[x0,y1,z0],[0,-1,0]);
+    // Front (-Z)
     addQuad([x0,y0,z0],[x1,y0,z0],[x1,y1,z0],[x0,y1,z0],[0,0,-1]);
+    // Back (+Z)
     addQuad([x1,y0,z1],[x0,y0,z1],[x0,y1,z1],[x1,y1,z1],[0,0,1]);
+    // Right (+X)
     addQuad([x1,y0,z0],[x1,y0,z1],[x1,y1,z1],[x1,y1,z0],[1,0,0]);
+    // Left (-X)
     addQuad([x0,y0,z1],[x0,y0,z0],[x0,y1,z0],[x0,y1,z1],[-1,0,0]);
 
     const vertsF32 = new Float32Array(verts);
     const normsF32 = new Float32Array(norms);
     const idxsU16 = new Uint16Array(idxList);
 
-    let minPx=Infinity,minPy=Infinity,minPz=Infinity,maxPx=-Infinity,maxPy=-Infinity,maxPz=-Infinity;
+    let mnx=Infinity,mny=Infinity,mnz=Infinity,mxx=-Infinity,mxy=-Infinity,mxz=-Infinity;
     for (let k=0;k<verts.length;k+=3){
-      minPx=Math.min(minPx,verts[k]);minPy=Math.min(minPy,verts[k+1]);minPz=Math.min(minPz,verts[k+2]);
-      maxPx=Math.max(maxPx,verts[k]);maxPy=Math.max(maxPy,verts[k+1]);maxPz=Math.max(maxPz,verts[k+2]);
+      mnx=Math.min(mnx,verts[k]);mny=Math.min(mny,verts[k+1]);mnz=Math.min(mnz,verts[k+2]);
+      mxx=Math.max(mxx,verts[k]);mxy=Math.max(mxy,verts[k+1]);mxz=Math.max(mxz,verts[k+2]);
     }
 
     const bvV = addBufferView(new Uint8Array(vertsF32.buffer), 34962);
@@ -718,31 +737,126 @@ function generateGLBFromDetections(elements: any, uploadId: string): Uint8Array 
     const bvI = addBufferView(new Uint8Array(idxsU16.buffer), 34963);
 
     const posAcc = accessors.length;
-    accessors.push({ bufferView: bvV, componentType: 5126, count: vertsF32.length/3, type: "VEC3", min:[minPx,minPy,minPz], max:[maxPx,maxPy,maxPz] });
+    accessors.push({ bufferView: bvV, componentType: 5126, count: vertsF32.length/3, type: "VEC3", min:[mnx,mny,mnz], max:[mxx,mxy,mxz] });
     accessors.push({ bufferView: bvN, componentType: 5126, count: normsF32.length/3, type: "VEC3" });
     const idxAcc = accessors.length;
     accessors.push({ bufferView: bvI, componentType: 5123, count: idxsU16.length, type: "SCALAR" });
 
     const matIdx = materials.length;
     materials.push({
-      name: `wall_${wallType}_${i}`,
-      pbrMetallicRoughness: {
-        baseColorFactor: [wallColor[0], wallColor[1], wallColor[2], 1.0],
-        metallicFactor: wallType === 'exterior_wall' ? 0.15 : 0.0,
-        roughnessFactor: wallType === 'exterior_wall' ? 0.6 : 0.9,
-      },
+      name: `mat_${name}`,
+      pbrMetallicRoughness: { baseColorFactor: [color[0], color[1], color[2], 1.0], metallicFactor: metallic, roughnessFactor: roughness },
       doubleSided: true,
     });
 
     const meshIdx = meshes.length;
-    meshes.push({
-      name: `${wallType}_${i}`,
-      primitives: [{ attributes: { POSITION: posAcc, NORMAL: posAcc+1 }, indices: idxAcc, material: matIdx }]
-    });
-    nodes.push(meshIdx);
+    meshes.push({ name, primitives: [{ attributes: { POSITION: posAcc, NORMAL: posAcc+1 }, indices: idxAcc, material: matIdx }] });
+    nodeList.push(meshIdx);
+  }
+
+  // Foundation slab
+  const bw = (maxX - minX) * modelScale + 2;
+  const bd = (maxY - minY) * modelScale + 2;
+  addBoxMesh("foundation", -bw/2, -0.25, -bd/2, bw/2, 0.0, bd/2, [0.22, 0.22, 0.24], 0.1, 0.8);
+
+  // Rooms — use OCR dimensions as absolute truth (Snap-to-Measurement)
+  rooms.forEach((room: any, i: number) => {
+    const bbox = room.bbox;
+    // OCR dimensions override pixel geometry
+    const w = (room.width_m > 0 ? room.width_m : (bbox.width / pixelsPerMeter)) * modelScale;
+    const d = (room.depth_m > 0 ? room.depth_m : (bbox.height / pixelsPerMeter)) * modelScale;
+    const h = getRoomHeight(room.label);
+    const cx = ((bbox.x + bbox.width / 2) / pixelsPerMeter - centerOffsetX) * modelScale;
+    const cz = ((bbox.y + bbox.height / 2) / pixelsPerMeter - centerOffsetY) * modelScale;
+    const color = getRoomColor(room.label, room.material_class);
+
+    addBoxMesh(
+      room.name || room.label,
+      cx - w/2, 0, cz - d/2,
+      cx + w/2, h, cz + d/2,
+      color, 0.0, 0.85
+    );
   });
 
-  // Combine all binary chunks
+  // Walls with enforced architectural thickness
+  walls.forEach((wall: any, i: number) => {
+    if (!wall.bbox) return;
+    const wallType = wall.wall_type || 'interior_wall';
+    const thickness = wall.thickness_m; // Already enforced in Step 3
+    const wallColor = WALL_COLORS[wallType] || WALL_COLORS.interior_wall;
+    const wallHeight = wallType === 'exterior_wall' || wallType === 'load_bearing_wall' ? 3.0 : 2.7;
+
+    const wX = (wall.bbox.x / pixelsPerMeter - centerOffsetX) * modelScale;
+    const wZ = (wall.bbox.y / pixelsPerMeter - centerOffsetY) * modelScale;
+    const wW = (wall.bbox.width / pixelsPerMeter) * modelScale;
+    const wD = (wall.bbox.height / pixelsPerMeter) * modelScale;
+
+    const isHorizontal = wW > wD;
+    const wallLen = isHorizontal ? wW : wD;
+    const wallThick = thickness * modelScale;
+    const cx = wX + wW / 2;
+    const cz = wZ + wD / 2;
+
+    addBoxMesh(
+      `${wallType}_${i}`,
+      isHorizontal ? cx - wallLen/2 : cx - wallThick/2,
+      0,
+      isHorizontal ? cz - wallThick/2 : cz - wallLen/2,
+      isHorizontal ? cx + wallLen/2 : cx + wallThick/2,
+      wallHeight,
+      isHorizontal ? cz + wallThick/2 : cz + wallLen/2,
+      wallColor,
+      wallType === 'exterior_wall' ? 0.15 : 0.0,
+      wallType === 'exterior_wall' ? 0.6 : 0.9
+    );
+  });
+
+  // Door openings — 3D geometry at exact center-points
+  doors.forEach((door: any, i: number) => {
+    if (!door.bbox) return;
+    const doorW = door.width_m || STANDARD_DOOR_WIDTH;
+    const doorH = door.height_m || STANDARD_DOOR_HEIGHT;
+    const centerPx = door.center_x_px || (door.bbox.x + door.bbox.width / 2);
+    const centerPy = door.center_y_px || (door.bbox.y + door.bbox.height / 2);
+
+    const cx = (centerPx / pixelsPerMeter - centerOffsetX) * modelScale;
+    const cz = (centerPy / pixelsPerMeter - centerOffsetY) * modelScale;
+    const halfW = (doorW / 2) * modelScale;
+    const depth = 0.05 * modelScale; // thin door slab
+
+    addBoxMesh(
+      `door_${door.door_type || 'single'}_${i}`,
+      cx - halfW, 0, cz - depth,
+      cx + halfW, doorH, cz + depth,
+      [0.55, 0.35, 0.15], // Wood brown
+      0.0, 0.7
+    );
+  });
+
+  // Window openings — 3D geometry at center-points with sill height
+  windows.forEach((win: any, i: number) => {
+    if (!win.bbox) return;
+    const winW = win.width_m || 0.9;
+    const winH = win.height_m || STANDARD_WINDOW_HEIGHT;
+    const sillH = win.sill_height_m || STANDARD_WINDOW_SILL;
+    const centerPx = win.center_x_px || (win.bbox.x + win.bbox.width / 2);
+    const centerPy = win.center_y_px || (win.bbox.y + win.bbox.height / 2);
+
+    const cx = (centerPx / pixelsPerMeter - centerOffsetX) * modelScale;
+    const cz = (centerPy / pixelsPerMeter - centerOffsetY) * modelScale;
+    const halfW = (winW / 2) * modelScale;
+    const depth = 0.03 * modelScale; // thin glass pane
+
+    addBoxMesh(
+      `window_${i}`,
+      cx - halfW, sillH, cz - depth,
+      cx + halfW, sillH + winH, cz + depth,
+      [0.53, 0.81, 0.92], // Light blue glass
+      0.3, 0.2
+    );
+  });
+
+  // Combine all binary chunks into GLB
   const totalBinarySize = bufferOffset;
   const combinedBuffer = new Uint8Array(totalBinarySize);
   let writeOffset = 0;
@@ -751,18 +865,15 @@ function generateGLBFromDetections(elements: any, uploadId: string): Uint8Array 
     writeOffset += chunk.byteLength;
   }
 
-  const sceneNodes = nodes.map((meshIdx, i) => ({ name: `node_${i}`, mesh: meshIdx }));
+  const sceneNodes = nodeList.map((meshIdx, i) => ({ name: `node_${i}`, mesh: meshIdx }));
   const nodeIndices = sceneNodes.map((_, i) => i);
 
   const gltfJson = {
-    asset: { version: "2.0", generator: "CitadelTwin AI v3" },
+    asset: { version: "2.0", generator: "CitadelTwin Geometric Reconstruction v5" },
     scene: 0,
-    scenes: [{ name: "CitadelTwin Floor Plan", nodes: nodeIndices }],
+    scenes: [{ name: "CitadelTwin Geometric Reconstruction", nodes: nodeIndices }],
     nodes: sceneNodes,
-    meshes,
-    materials,
-    accessors,
-    bufferViews,
+    meshes, materials, accessors, bufferViews,
     buffers: [{ byteLength: totalBinarySize }],
   };
 
@@ -770,7 +881,6 @@ function generateGLBFromDetections(elements: any, uploadId: string): Uint8Array 
   const jsonBuf = new TextEncoder().encode(jsonStr);
   const jsonPad = (4 - (jsonBuf.length % 4)) % 4;
   const jsonPaddedLen = jsonBuf.length + jsonPad;
-
   const headerSize = 12;
   const chunkHeaderSize = 8;
   const totalSize = headerSize + chunkHeaderSize + jsonPaddedLen + chunkHeaderSize + totalBinarySize;
@@ -780,17 +890,17 @@ function generateGLBFromDetections(elements: any, uploadId: string): Uint8Array 
   const bytes = new Uint8Array(glb);
 
   let off = 0;
-  view.setUint32(off, 0x46546C67, true); off += 4;
-  view.setUint32(off, 2, true); off += 4;
-  view.setUint32(off, totalSize, true); off += 4;
+  view.setUint32(off, 0x46546C67, true); off += 4; // magic
+  view.setUint32(off, 2, true); off += 4; // version
+  view.setUint32(off, totalSize, true); off += 4; // total length
 
-  view.setUint32(off, jsonPaddedLen, true); off += 4;
-  view.setUint32(off, 0x4E4F534A, true); off += 4;
+  view.setUint32(off, jsonPaddedLen, true); off += 4; // JSON chunk length
+  view.setUint32(off, 0x4E4F534A, true); off += 4; // JSON chunk type
   bytes.set(jsonBuf, off); off += jsonBuf.length;
   for (let i = 0; i < jsonPad; i++) bytes[off++] = 0x20;
 
-  view.setUint32(off, totalBinarySize, true); off += 4;
-  view.setUint32(off, 0x004E4942, true); off += 4;
+  view.setUint32(off, totalBinarySize, true); off += 4; // BIN chunk length
+  view.setUint32(off, 0x004E4942, true); off += 4; // BIN chunk type
   bytes.set(combinedBuffer, off);
 
   return new Uint8Array(glb);
@@ -844,8 +954,6 @@ function generateHTMLVisualization(elements: any): string {
   };
   const defaultColor = { bg: '#B0B0B0CC', border: '#808080', text: '#1a1a1a' };
 
-  const unitLabel = scaleInfo.unit_system === 'imperial' ? 'ft' : 'm';
-
   const roomDivs = rooms.map((room: any) => {
     const key = (room.label || '').toLowerCase().replace(/\s+/g, '_');
     const c = colors[key] || defaultColor;
@@ -854,25 +962,18 @@ function generateHTMLVisualization(elements: any): string {
     const lw = Math.max(Math.round(room.bbox.width * scaleFactor), 30);
     const lh = Math.max(Math.round(room.bbox.height * scaleFactor), 20);
     const shortName = (room.name || room.label).replace(/_/g, ' ');
-    
-    // Show original dimension text if available, else computed dims
-    const dimText = room.original_dimension_text || `${room.width_m?.toFixed(1)}×${room.depth_m?.toFixed(1)}m`;
-    const area = `${room.area_m2?.toFixed(1)}m²`;
+    const dimText = room.original_dimension_text || (room.width_m > 0 ? `${room.width_m?.toFixed(1)}×${room.depth_m?.toFixed(1)}m` : 'est.');
+    const area = room.area_m2 > 0 ? `${room.area_m2?.toFixed(1)}m²` : '';
     const fontSize = lw < 70 ? '8px' : lw < 100 ? '9px' : '10px';
     return `<div style="
-      position:absolute;
-      left:${lx}px;top:${ly}px;width:${lw}px;height:${lh}px;
-      background:${c.bg};
-      border:2px solid ${c.border};
-      border-radius:3px;
+      position:absolute;left:${lx}px;top:${ly}px;width:${lw}px;height:${lh}px;
+      background:${c.bg};border:2px solid ${c.border};border-radius:3px;
       display:flex;flex-direction:column;align-items:center;justify-content:center;
-      text-align:center;overflow:hidden;
-      box-shadow:0 1px 4px rgba(0,0,0,0.25);
-      cursor:default;
-    " title="${room.name}: ${dimText} (${area})">
+      text-align:center;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.25);cursor:default;
+    " title="${room.name}: ${dimText} ${area}">
       <div style="font-size:${fontSize};font-weight:700;color:${c.text};line-height:1.2;padding:2px;">${shortName}</div>
       <div style="font-size:8px;color:${c.text};opacity:0.85;">${dimText}</div>
-      <div style="font-size:8px;color:${c.text};opacity:0.7;">${area}</div>
+      ${area ? `<div style="font-size:8px;color:${c.text};opacity:0.7;">${area}</div>` : ''}
     </div>`;
   }).join('');
 
@@ -902,24 +1003,26 @@ function generateHTMLVisualization(elements: any): string {
   const extWalls = walls.filter((w: any) => w.wall_type === 'exterior_wall' || w.wall_type === 'load_bearing_wall').length;
   const intWalls = walls.filter((w: any) => w.wall_type === 'interior_wall').length;
 
-  const scaleInfoHtml = scaleInfo.scale_text
-    ? `<span style="font-size:11px;color:#94a3b8;margin-left:8px;">Scale: ${scaleInfo.scale_text} (${scaleInfo.unit_system || 'metric'})</span>`
+  const scaleLabel = scaleInfo.scale_source === 'door_calibration'
+    ? 'Scale: Door-calibrated (36"/0.9m ref)'
+    : scaleInfo.scale_text
+    ? `Scale: ${scaleInfo.scale_text}`
     : scaleInfo.unit_system
-    ? `<span style="font-size:11px;color:#94a3b8;margin-left:8px;">Units: ${scaleInfo.unit_system}</span>`
+    ? `Units: ${scaleInfo.unit_system}`
     : '';
 
   return `<div style="font-family:system-ui,sans-serif;background:#1a1a2e;padding:20px;border-radius:8px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
       <h3 style="margin:0;font-size:16px;font-weight:700;color:#e2e8f0;">
-        🏠 Floor Plan — ${rooms.length} rooms detected
+        🏠 Geometric Reconstruction — ${rooms.length} rooms
         ${elements.building_info?.total_area_sqft ? `<span style="font-size:12px;font-weight:400;color:#94a3b8;margin-left:8px;">${elements.building_info.total_area_sqft} sq ft</span>` : ''}
-        ${scaleInfoHtml}
+        ${scaleLabel ? `<span style="font-size:11px;color:#94a3b8;margin-left:8px;">${scaleLabel}</span>` : ''}
       </h3>
       <div style="display:flex;gap:12px;font-size:11px;color:#94a3b8;">
         ${doors.length > 0 ? `<span>🚪 ${doors.length} doors</span>` : ''}
         ${windows.length > 0 ? `<span>🪟 ${windows.length} windows</span>` : ''}
-        ${extWalls > 0 ? `<span>🧱 ${extWalls} ext. walls</span>` : ''}
-        ${intWalls > 0 ? `<span>📐 ${intWalls} int. walls</span>` : ''}
+        ${extWalls > 0 ? `<span>🧱 ${extWalls} ext (${EXTERIOR_WALL_THICKNESS}m)</span>` : ''}
+        ${intWalls > 0 ? `<span>📐 ${intWalls} int (${INTERIOR_WALL_THICKNESS}m)</span>` : ''}
       </div>
     </div>
 
@@ -928,7 +1031,6 @@ function generateHTMLVisualization(elements: any): string {
         ${roomDivs}
         ${doorDivs}
         ${windowDivs}
-        <div style="position:absolute;inset:0;pointer-events:none;"></div>
       </div>
     </div>
 
@@ -936,8 +1038,8 @@ function generateHTMLVisualization(elements: any): string {
       ${legendItems}
       ${doors.length > 0 ? `<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#ddd;"><div style="width:14px;height:14px;background:#8B4513;border-radius:2px;flex-shrink:0;"></div><span>door</span></div>` : ''}
       ${windows.length > 0 ? `<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#ddd;"><div style="width:14px;height:14px;background:#87CEEB;border:1px solid #4488AA;flex-shrink:0;"></div><span>window</span></div>` : ''}
-      ${extWalls > 0 ? `<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#ddd;"><div style="width:14px;height:14px;background:#40404acc;border:1px solid #303035;border-radius:2px;flex-shrink:0;"></div><span>exterior wall</span></div>` : ''}
-      ${intWalls > 0 ? `<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#ddd;"><div style="width:14px;height:14px;background:#d9d4cccc;border:1px solid #999;border-radius:2px;flex-shrink:0;"></div><span>interior wall</span></div>` : ''}
+      ${extWalls > 0 ? `<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#ddd;"><div style="width:14px;height:14px;background:#40404acc;border:1px solid #303035;border-radius:2px;flex-shrink:0;"></div><span>exterior wall (8")</span></div>` : ''}
+      ${intWalls > 0 ? `<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#ddd;"><div style="width:14px;height:14px;background:#d9d4cccc;border:1px solid #999;border-radius:2px;flex-shrink:0;"></div><span>interior wall (5")</span></div>` : ''}
     </div>
   </div>`;
 }
