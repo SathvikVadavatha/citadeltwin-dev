@@ -78,6 +78,9 @@ declare namespace google {
       setMap(map: Map | null): void;
       getPath(): any;
       getPaths(): any;
+      setOptions(options: any): void;
+      get(key: string): any;
+      set(key: string, value: any): void;
       addListener(event: string, handler: (...args: any[]) => void): MapsEventListener;
     }
 
