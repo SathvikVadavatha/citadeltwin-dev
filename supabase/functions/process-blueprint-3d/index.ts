@@ -366,8 +366,9 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
     if (!toolCall) throw new Error("AI did not return structured room data");
 
     const detectedElements = JSON.parse(toolCall.function.arguments);
-    console.log(`BIM analysis: ${detectedElements.rooms?.length || 0} rooms, ${detectedElements.walls?.length || 0} walls, ${detectedElements.doors?.length || 0} doors, ${detectedElements.windows?.length || 0} windows`);
-    console.log(`Scale: ${detectedElements.scale_info?.scale_source || 'unknown'}, px/m: ${detectedElements.scale_info?.pixels_per_meter || 0}`);
+    console.log(`Geometric Reconstruction: ${detectedElements.rooms?.length || 0} rooms, ${detectedElements.walls?.length || 0} walls, ${detectedElements.doors?.length || 0} doors, ${detectedElements.windows?.length || 0} windows`);
+    console.log(`Scale: ${detectedElements.scale_info?.scale_source || 'unknown'}, px/m: ${detectedElements.scale_info?.pixels_per_meter || 0}, largest_dim: ${detectedElements.scale_info?.largest_dimension_text || 'N/A'}`);
+    console.log(`Entrance anchor: (${detectedElements.entrance_info?.entrance_x_px || 'N/A'}, ${detectedElements.entrance_info?.entrance_y_px || 'N/A'}) — ${detectedElements.entrance_info?.entrance_label || 'auto-detected'}`);
 
     // ==================== STEP 3: ENFORCE ARCHITECTURAL DEFAULTS ====================
     // Enforce standard wall thicknesses
