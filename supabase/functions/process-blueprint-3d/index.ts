@@ -389,6 +389,10 @@ serve(async (req) => {
         html_view: htmlView,
         detections,
         dimensions_available: dimensionsAvailable,
+        visual_draft_only: isVisualDraftOnly,
+        visual_draft_warning: isVisualDraftOnly
+          ? 'Generated via Scale Bar only; internal room dimensions are estimated.'
+          : null,
         walls: wallDetections,
         building_info: detectedElements.building_info || {},
         scale_info: detectedElements.scale_info || {},

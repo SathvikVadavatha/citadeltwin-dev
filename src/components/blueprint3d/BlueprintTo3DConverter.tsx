@@ -8,6 +8,8 @@ export interface ProcessingResult {
   html_view: string;
   detections: any[];
   dimensions_available?: boolean;
+  visual_draft_only?: boolean;
+  visual_draft_warning?: string | null;
   walls?: any[];
   building_info?: {
     total_area_sqft?: number;
