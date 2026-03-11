@@ -284,10 +284,10 @@ serve(async (req) => {
       );
     }
 
-    // EDGE-CASE: Scale bar only, no individual room dimensions → Visual Draft with warning
-    const isVisualDraftOnly = hasScale && !hasNumericalMeasurements;
+    // EDGE-CASE: Scale (text/bar/estimated) but no individual room dimensions → Visual Draft with warning
+    const isVisualDraftOnly = !hasNumericalMeasurements;
     if (isVisualDraftOnly) {
-      console.log('Pre-flight: Scale bar detected but no individual room dimensions. Proceeding as Visual Draft.');
+      console.log(`Pre-flight: No individual room dimensions found. Proceeding as Visual Draft (scale_source=${scaleSource}).`);
     }
 
     const timestamp = Date.now();
