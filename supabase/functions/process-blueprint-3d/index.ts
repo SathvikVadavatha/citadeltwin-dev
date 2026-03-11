@@ -345,7 +345,7 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
                   required: ["entrance_x_px", "entrance_y_px"]
                 }
               },
-              required: ["dimensions_available", "rooms", "walls", "doors", "windows", "scale_info"]
+              required: ["dimensions_available", "rooms", "walls", "doors", "windows", "scale_info", "entrance_info"]
             }
           }
         }],
