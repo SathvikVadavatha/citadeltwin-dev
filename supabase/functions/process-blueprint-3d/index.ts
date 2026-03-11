@@ -120,16 +120,17 @@ serve(async (req) => {
               parameters: {
                 type: "object",
                 properties: {
+                  dimensions_available: { type: "boolean", description: "true ONLY if the plan has actual written dimension annotations (e.g., 14'-6\", 3.5m, 7000mm). false if no measurements are written anywhere on the plan." },
                   image_width_px: { type: "number", description: "Total image width in pixels" },
                   image_height_px: { type: "number", description: "Total image height in pixels" },
                   scale_info: {
                     type: "object",
                     description: "Detected scale information",
                     properties: {
-                      scale_text: { type: "string", description: "Original scale text found on plan, e.g. '1/4\" = 1'-0\"' or '1:100'" },
-                      scale_source: { type: "string", enum: ["text", "bar", "estimated"], description: "How the scale was determined" },
-                      pixels_per_meter: { type: "number", description: "Calculated pixels per meter" },
-                      unit_system: { type: "string", enum: ["imperial", "metric"], description: "Detected unit system on the plan" }
+                      scale_text: { type: "string", description: "Original scale text found on plan, e.g. '1/4\" = 1'-0\"' or '1:100'. Empty if none found." },
+                      scale_source: { type: "string", enum: ["text", "bar", "estimated", "none"], description: "How the scale was determined. 'none' if no scale or dimensions found." },
+                      pixels_per_meter: { type: "number", description: "Calculated pixels per meter. 0 if unknown." },
+                      unit_system: { type: "string", enum: ["imperial", "metric", "unknown"], description: "Detected unit system. 'unknown' if no dimensions on plan." }
                     },
                     required: ["scale_source", "pixels_per_meter", "unit_system"]
                   },
