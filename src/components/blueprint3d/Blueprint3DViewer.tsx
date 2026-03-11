@@ -16,11 +16,16 @@ interface Blueprint3DViewerProps {
 
 const ROOM_COLORS: Record<string, string> = {
   bedroom: '#78B6E8', master_bedroom: '#4582D1', bathroom: '#38C0CC',
-  kitchen: '#F2C42E', living_room: '#59BF82', dining_room: '#E87F37',
-  office: '#9470DB', garage: '#9999A0', hallway: '#D1D1CC',
-  foyer: '#E6C78E', pantry: '#CCAA59', closet: '#D9C7EB',
-  laundry: '#73D9E6', porch: '#8CD173', storage: '#B3AFA5',
-  utility: '#B8945B',
+  kitchen: '#F2C42E', living_room: '#59BF82', living: '#59BF82',
+  dining_room: '#E87F37', dining: '#E87F37',
+  office: '#9470DB', study: '#9470DB',
+  garage: '#9999A0', hallway: '#D1D1CC', corridor: '#D1D1CC',
+  foyer: '#E6C78E', entry: '#E6C78E', pantry: '#CCAA59',
+  closet: '#D9C7EB', walk_in_closet: '#C4A8E0', 'walk-in_closet': '#C4A8E0',
+  laundry: '#73D9E6', porch: '#8CD173', balcony: '#8CD173',
+  storage: '#B3AFA5', utility: '#B8945B', mechanical: '#B8945B',
+  mech: '#B8945B', den: '#C49A6C', sunroom: '#E6D44D',
+  mudroom: '#A0886B', powder_room: '#88CCDD', loft: '#CC9966',
 };
 
 function getRoomColor(label: string): string {
