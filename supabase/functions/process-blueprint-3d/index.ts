@@ -227,10 +227,11 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
                   type: "object",
                   properties: {
                     scale_text: { type: "string", description: "Scale text found, e.g. '1:100'. Empty if none." },
-                    scale_source: { type: "string", enum: ["text", "bar", "door_calibration", "none"], description: "How scale was determined. Use 'door_calibration' if using standard door width as reference." },
-                    pixels_per_meter: { type: "number", description: "Computed pixels per meter. If door_calibration, = door_symbol_width_px / 0.9" },
+                    scale_source: { type: "string", enum: ["largest_dimension", "text", "bar", "door_calibration", "none"], description: "How scale was determined. 'largest_dimension' if calibrated from the largest OCR dimension string." },
+                    pixels_per_meter: { type: "number", description: "Computed pixels per meter." },
                     unit_system: { type: "string", enum: ["imperial", "metric", "unknown"] },
-                    calibration_reference: { type: "string", description: "What was used to calibrate: 'scale_text', 'scale_bar', 'door_width_36in', or 'none'" }
+                    calibration_reference: { type: "string", description: "What was used to calibrate: 'largest_room_dimension', 'scale_text', 'scale_bar', 'door_width_36in', or 'none'" },
+                    largest_dimension_text: { type: "string", description: "The exact text of the largest dimension string used for calibration. Empty if not applicable." }
                   },
                   required: ["scale_source", "pixels_per_meter", "unit_system"]
                 },
