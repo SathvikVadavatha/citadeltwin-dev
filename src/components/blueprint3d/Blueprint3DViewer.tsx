@@ -4,7 +4,8 @@ import { OrbitControls, useGLTF, Environment, Grid, PerspectiveCamera, ContactSh
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, RotateCcw, Home, Maximize2, Box } from 'lucide-react';
+import { Loader2, RotateCcw, Home, Maximize2, Box, BedDouble, Bath, CookingPot, DoorOpen, Sofa, UtensilsCrossed, Briefcase, Car, LayoutGrid } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import type { ProcessingResult } from './BlueprintTo3DConverter';
 import * as THREE from 'three';
 

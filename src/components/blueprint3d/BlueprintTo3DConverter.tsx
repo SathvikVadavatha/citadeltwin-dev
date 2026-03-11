@@ -7,6 +7,12 @@ export interface ProcessingResult {
   glb_url: string;
   html_view: string;
   detections: any[];
+  building_info?: {
+    total_area_sqft?: number;
+    building_type?: string;
+    num_floors?: number;
+    wall_thickness_m?: number;
+  };
 }
 
 const STORAGE_KEY = 'citadeltwin_blueprint3d_result';
