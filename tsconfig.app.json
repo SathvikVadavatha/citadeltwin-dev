@@ -3,7 +3,6 @@
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
-    
     "lib": [
       "ES2020",
       "DOM",
@@ -28,6 +27,7 @@
     "useDefineForClassFields": true
   },
   "include": [
-    "src"
+    "src",
+    "src/types/**/*.d.ts"
   ]
 }
