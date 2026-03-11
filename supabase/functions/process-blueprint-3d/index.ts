@@ -53,38 +53,44 @@ serve(async (req) => {
             role: "system",
             content: `You are an expert architectural floor plan analyzer with civil engineering precision. Analyze the provided floor plan image following these CRITICAL rules:
 
-## 1. SCALE DETECTION (Priority Order)
+## 1. HONESTY ABOUT DIMENSIONS — MOST IMPORTANT RULE
+- **CRITICAL**: You MUST NOT fabricate, estimate, or invent room dimensions.
+- ONLY return width_m, depth_m, area_m2, width_ft, depth_ft values if there are ACTUAL dimension annotations written on the plan (e.g., "14'-6"", "3.5m", "7000", "12'x15'").
+- If a room has NO written dimension text on the plan, you MUST return width_m: 0, depth_m: 0, area_m2: 0, width_ft: 0, depth_ft: 0, and original_dimension_text: "".
+- Set dimensions_available to true ONLY if the plan contains at least one written dimension annotation. Otherwise set it to false.
+- Overall dimension annotations on the building exterior (like "7000" or "11725" in mm) count as dimensions_available: true, but only assign them to the building_info, NOT to individual rooms unless the room itself has its own annotation.
+
+## 2. SCALE DETECTION (Priority Order)
 - FIRST: Search for written scale text (e.g., "1" = 10'", "1:100", "Scale: 1/4" = 1'-0"").
 - SECOND: Look for a graphic scale bar and use it to calibrate pixel-to-unit ratio.
-- THIRD: If no scale is found, estimate using standard door widths (0.9m / 3ft) as reference.
-- Return the detected scale_source ("text", "bar", "estimated") and the unit system.
+- THIRD: If no scale or dimensions are found, mark scale_source as "none".
+- Return the detected scale_source ("text", "bar", "estimated", "none") and the unit system.
 
-## 2. DIMENSION TEXT IS SOURCE OF TRUTH
-- **CRITICAL**: Read ALL dimension strings written on the plan (e.g., "14'-6"", "3.5m", "12'x15'").
-- If a dimension text says a room is 14'-6" × 12'-0", those EXACT numbers must be returned as width and depth.
+## 3. DIMENSION TEXT IS SOURCE OF TRUTH
+- Read ALL dimension strings written on the plan (e.g., "14'-6"", "3.5m", "12'x15'").
+- If a dimension text says a room is 14'-6" × 12'-0", those EXACT numbers must be returned.
 - If visual pixel geometry conflicts with written dimension text, the WRITTEN TEXT MUST OVERRIDE.
-- Extract dimensions for EVERY room that has written measurements.
+- If NO dimension text exists on the plan, DO NOT estimate or guess dimensions.
 
-## 3. WALL CLASSIFICATION
+## 4. WALL CLASSIFICATION
 - Detect wall line thickness in the drawing.
 - Outer/Load-Bearing Walls: thickness > 0.2m (8 inches) — typically drawn with thicker/double lines.
 - Inner/Partition Walls: thickness < 0.15m (6 inches) — typically drawn with thinner single lines.
 - Return wall_type as "exterior_wall", "interior_wall", or "load_bearing_wall" with thickness_m.
 
-## 4. UNIT DETECTION
+## 5. UNIT DETECTION
 - Detect whether the plan uses Imperial (feet/inches, e.g., 14'-6") or Metric (meters, e.g., 4.4m).
-- Return the detected unit system. Convert ALL measurements to meters for width_m/depth_m fields.
+- If no dimensions exist, return unit_system as "unknown".
 
-## 5. ROOM DETECTION
+## 6. ROOM DETECTION
 - Detect ALL rooms with precise bounding boxes (x, y, width, height in pixels from top-left).
-- Include the original_dimension_text field with the EXACT text written on the plan for that room.
-- Calculate area_m2 from the real-world dimensions, NOT from pixel estimation.
+- Include the original_dimension_text field with the EXACT text written on the plan for that room. If none, use empty string.
 - Detect doors (swing arcs), windows, and all architectural elements.
 
-## 6. BUILDING CONTEXT
+## 7. BUILDING CONTEXT
 - Identify total building footprint, orientation, number of floors.
 - Note the building type (residential, commercial, etc.).
-- Calculate total_area_sqft from the sum of all room areas.`
+- Only calculate total_area_sqft if actual dimensions are available.`
           },
           {
             role: "user",
