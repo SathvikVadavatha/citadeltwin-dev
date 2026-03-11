@@ -153,12 +153,27 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
 
   return (
     <div className="space-y-4">
+      {/* No Dimensions Warning */}
+      {!dimensionsAvailable && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
+          <Info className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">No Dimensions Detected</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              This blueprint does not contain written dimension annotations. Room sizes, areas, and square footage 
+              cannot be accurately determined. Please submit a plan with dimensions (e.g., 14'-6" × 12'-0") to generate 
+              a precise analysis and accurate 3D model with real-world measurements.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">3D Model Generated</h2>
           <p className="text-muted-foreground text-sm mt-0.5">
-            {summaryLine} · {totalAreaSqft} sq ft · {buildingType} · {numFloors} {numFloors > 1 ? 'Floors' : 'Floor'}
+            {summaryLine} {dimensionsAvailable ? `· ${totalAreaSqft} sq ft` : ''} · {buildingType} · {numFloors} {numFloors > 1 ? 'Floors' : 'Floor'}
           </p>
         </div>
         <div className="flex items-center gap-2">
