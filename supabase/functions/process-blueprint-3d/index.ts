@@ -449,12 +449,12 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
       .from('generated_3d_models')
       .insert({
         upload_id: modelUploadId,
-        model_name: `${buildingType} - ${roomCount} Rooms (BIM Vector)`,
-        model_description: `BIM-Level Vector Reconstruction. ${roomCount} rooms, OCR-anchored dimensions. Scale: ${detectedElements.scale_info?.scale_source || 'calibrated'}. Walls: ext=${EXTERIOR_WALL_THICKNESS}m, int=${INTERIOR_WALL_THICKNESS}m.`,
+        model_name: `${buildingType} - ${roomCount} Rooms (Geometric Reconstruction)`,
+        model_description: `Geometric Reconstruction Protocol. ${roomCount} rooms, OCR-anchored dimensions. Scale: ${detectedElements.scale_info?.scale_source || 'calibrated'} (${detectedElements.scale_info?.largest_dimension_text || 'auto'}). Walls: ext=${EXTERIOR_WALL_THICKNESS}m, int=${INTERIOR_WALL_THICKNESS}m. Origin: entrance-anchored.`,
         model_file_path: fileName,
         generation_status: 'completed',
         file_size: glbData.length,
-        generation_prompt: `BIM Vector Reconstruction: ${roomCount} rooms, ${detectedElements.walls?.length || 0} walls, ${detectedElements.doors?.length || 0} doors, ${detectedElements.windows?.length || 0} windows`,
+        generation_prompt: `Geometric Reconstruction: ${roomCount} rooms, ${detectedElements.walls?.length || 0} walls, ${detectedElements.doors?.length || 0} doors, ${detectedElements.windows?.length || 0} windows`,
         processing_time_ms: Date.now() - timestamp,
       })
       .select('id').single();
