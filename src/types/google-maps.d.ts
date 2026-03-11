@@ -1,2 +1,7 @@
-// Ensure @types/google.maps types are available globally
-// The @types/google.maps package provides all Google Maps types
+// Declare google as a global variable so TypeScript doesn't error
+// The actual types come from the Google Maps JS API loaded at runtime
+declare const google: any;
+
+interface Window {
+  google: any;
+}
