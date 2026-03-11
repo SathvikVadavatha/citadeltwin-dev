@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Blueprint 3D processing started — BIM-Level Vector Reconstruction Protocol");
+    console.log("Blueprint 3D processing started — Geometric Reconstruction Protocol");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
