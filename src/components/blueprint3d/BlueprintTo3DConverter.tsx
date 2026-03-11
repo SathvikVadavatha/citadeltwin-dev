@@ -7,11 +7,24 @@ export interface ProcessingResult {
   glb_url: string;
   html_view: string;
   detections: any[];
+  walls?: any[];
   building_info?: {
     total_area_sqft?: number;
+    total_area_m2?: number;
     building_type?: string;
     num_floors?: number;
-    wall_thickness_m?: number;
+    exterior_wall_thickness_m?: number;
+    interior_wall_thickness_m?: number;
+    num_exterior_walls?: number;
+    num_interior_walls?: number;
+    num_doors?: number;
+    num_windows?: number;
+  };
+  scale_info?: {
+    scale_text?: string;
+    scale_source?: 'text' | 'bar' | 'estimated';
+    pixels_per_meter?: number;
+    unit_system?: 'imperial' | 'metric';
   };
 }
 
@@ -29,13 +42,12 @@ export const BlueprintTo3DConverter: React.FC = () => {
   });
   const [error, setError] = useState<string | null>(null);
 
-  // Persist result to localStorage whenever it changes
   useEffect(() => {
     if (result) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(result));
       } catch {
-        // localStorage full or unavailable — silently ignore
+        // localStorage full or unavailable
       }
     } else {
       localStorage.removeItem(STORAGE_KEY);
