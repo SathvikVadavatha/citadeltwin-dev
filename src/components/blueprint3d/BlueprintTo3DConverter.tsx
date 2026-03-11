@@ -7,6 +7,7 @@ export interface ProcessingResult {
   glb_url: string;
   html_view: string;
   detections: any[];
+  dimensions_available?: boolean;
   walls?: any[];
   building_info?: {
     total_area_sqft?: number;
@@ -22,9 +23,9 @@ export interface ProcessingResult {
   };
   scale_info?: {
     scale_text?: string;
-    scale_source?: 'text' | 'bar' | 'estimated';
+    scale_source?: 'text' | 'bar' | 'estimated' | 'none';
     pixels_per_meter?: number;
-    unit_system?: 'imperial' | 'metric';
+    unit_system?: 'imperial' | 'metric' | 'unknown';
   };
 }
 
