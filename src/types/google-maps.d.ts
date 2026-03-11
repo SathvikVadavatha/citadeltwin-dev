@@ -1,8 +1,32 @@
 // Declare the google namespace as available globally when loaded via @googlemaps/js-api-loader
-// This avoids TS2503/TS2304 errors for google.maps references
 
 declare namespace google {
   export namespace maps {
+    interface LatLngLiteral {
+      lat: number;
+      lng: number;
+    }
+
+    interface GeocoderResult {
+      address_components: any[];
+      formatted_address: string;
+      geometry: {
+        location: LatLng;
+        viewport: LatLngBounds;
+        location_type?: string;
+        bounds?: LatLngBounds;
+      };
+      place_id: string;
+      types: string[];
+    }
+
+    class Size {
+      constructor(width: number, height: number, widthUnit?: string, heightUnit?: string);
+      width: number;
+      height: number;
+      equals(other: Size): boolean;
+    }
+
     class Map {
       constructor(element: HTMLElement, options?: any);
       setCenter(latLng: any): void;
@@ -13,6 +37,7 @@ declare namespace google {
       addListener(event: string, handler: (...args: any[]) => void): MapsEventListener;
       fitBounds(bounds: LatLngBounds, padding?: number | any): void;
       getBounds(): LatLngBounds | undefined;
+      getDiv(): HTMLElement;
       data: Data;
       controls: any[];
     }
