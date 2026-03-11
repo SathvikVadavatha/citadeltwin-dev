@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Sparkles, Download, Eye, Settings, CheckCircle } from 'lucide-react';
+import { FileText, Sparkles, Download, Eye, Settings, CheckCircle, Edit2, RotateCcw } from 'lucide-react';
 import { useDocumentExports } from '@/hooks/useDocumentExports';
 import { useGeminiAI } from '@/hooks/useGeminiAI';
 
@@ -40,6 +40,13 @@ export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps>
   const [clientRequirements, setClientRequirements] = useState<string>('');
   const [generationProgress, setGenerationProgress] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [activeTab, setActiveTab] = useState('setup');
+  const [aiPreviewContent, setAiPreviewContent] = useState({
+    narrative: '',
+    compliance: '',
+    executiveSummary: ''
+  });
+  const [isPreviewReady, setIsPreviewReady] = useState(false);
   const [aiOptimizations, setAiOptimizations] = useState({
     enhanceNarrative: true,
     optimizeCompliance: true,
@@ -81,85 +88,85 @@ export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps>
     }
   ];
 
-  const handleAdvancedGeneration = async () => {
+  // Step 1: Run AI calls and populate the preview state
+  const handleGenerateAIContent = async () => {
     if (!selectedTemplateType || !documentTitle) return;
 
     setIsGenerating(true);
     setGenerationProgress(0);
+    setIsPreviewReady(false);
 
     try {
-      // Step 1: AI Content Generation (20%)
-      setGenerationProgress(20);
-      let aiEnhancedContent = '';
-      
-      if (aiOptimizations.enhanceNarrative) {
-        const narrativePrompt = `Generate a professional project narrative for: ${projectDescription}. Include technical details, scope, and objectives for a ${selectedTemplateType}.`;
-        const narrativeResult = await generateContent.mutateAsync({
-          prompt: narrativePrompt,
-          type: 'technical-consulting'
-        });
-        aiEnhancedContent += narrativeResult.result;
-      }
-
-      // Step 2: Compliance Analysis (40%)
-      setGenerationProgress(40);
-      let complianceAnalysis = '';
-      
-      if (aiOptimizations.optimizeCompliance && selectedJurisdiction) {
-        const compliancePrompt = `Analyze compliance requirements for jurisdiction ${selectedJurisdiction} for project: ${projectDescription}. Focus on ${selectedTemplateType} requirements.`;
-        const complianceResult = await generateContent.mutateAsync({
-          prompt: compliancePrompt,
-          type: 'technical-consulting'
-        });
-        complianceAnalysis = complianceResult.result;
-      }
-
-      // Step 3: Executive Summary (60%)
-      setGenerationProgress(60);
+      let narrative = '';
+      let compliance = '';
       let executiveSummary = '';
-      
-      if (aiOptimizations.generateExecutiveSummary) {
-        const summaryPrompt = `Create an executive summary for ${documentTitle}. Project: ${projectDescription}. Client requirements: ${clientRequirements}`;
-        const summaryResult = await generateContent.mutateAsync({
-          prompt: summaryPrompt,
+
+      if (aiOptimizations.enhanceNarrative) {
+        setGenerationProgress(20);
+        const result = await generateContent.mutateAsync({
+          prompt: `Generate a professional project narrative for: ${projectDescription}. Include technical details, scope, and objectives for a ${selectedTemplateType}.`,
           type: 'technical-consulting'
         });
-        executiveSummary = summaryResult.result;
+        narrative = result.result;
       }
 
-      // Step 4: Document Assembly (80%)
-      setGenerationProgress(80);
-      
-      const enhancedGenerationData = {
-        project_name: documentTitle,
-        project_description: projectDescription,
-        client_requirements: clientRequirements,
-        ai_enhanced_narrative: aiEnhancedContent,
-        ai_compliance_analysis: complianceAnalysis,
-        ai_executive_summary: executiveSummary,
-        jurisdiction: selectedJurisdiction,
-        ai_optimizations: aiOptimizations,
-        generation_timestamp: new Date().toISOString()
-      };
+      if (aiOptimizations.optimizeCompliance && selectedJurisdiction) {
+        setGenerationProgress(50);
+        const result = await generateContent.mutateAsync({
+          prompt: `Analyze compliance requirements for jurisdiction ${selectedJurisdiction} for project: ${projectDescription}. Focus on ${selectedTemplateType} requirements.`,
+          type: 'technical-consulting'
+        });
+        compliance = result.result;
+      }
 
-      // Step 5: Final Generation (100%)
+      if (aiOptimizations.generateExecutiveSummary) {
+        setGenerationProgress(80);
+        const result = await generateContent.mutateAsync({
+          prompt: `Create an executive summary for ${documentTitle}. Project: ${projectDescription}. Client requirements: ${clientRequirements}`,
+          type: 'technical-consulting'
+        });
+        executiveSummary = result.result;
+      }
+
       setGenerationProgress(100);
-      
-      await generateDocument.mutateAsync({
-        templateId: selectedTemplateType,
-        uploadId,
-        documentType: selectedTemplateType,
-        title: documentTitle,
-        formatType: 'pdf',
-        generationData: enhancedGenerationData
-      });
+      setAiPreviewContent({ narrative, compliance, executiveSummary });
+      setIsPreviewReady(true);
+      setActiveTab('preview');
 
     } catch (error) {
-      console.error('Advanced document generation failed:', error);
+      console.error('AI content generation failed:', error);
     } finally {
       setIsGenerating(false);
       setGenerationProgress(0);
     }
+  };
+
+  // Step 2: Export the (possibly edited) AI content as a document
+  const handleFinalExport = async () => {
+    await generateDocument.mutateAsync({
+      templateId: selectedTemplateType,
+      uploadId,
+      documentType: selectedTemplateType,
+      title: documentTitle,
+      formatType: 'pdf',
+      generationData: {
+        project_name: documentTitle,
+        project_description: projectDescription,
+        client_requirements: clientRequirements,
+        ai_enhanced_narrative: aiPreviewContent.narrative,
+        ai_compliance_analysis: aiPreviewContent.compliance,
+        ai_executive_summary: aiPreviewContent.executiveSummary,
+        jurisdiction: selectedJurisdiction,
+        ai_optimizations: aiOptimizations,
+        generation_timestamp: new Date().toISOString()
+      }
+    });
+  };
+
+  const handleResetPreview = () => {
+    setIsPreviewReady(false);
+    setAiPreviewContent({ narrative: '', compliance: '', executiveSummary: '' });
+    setActiveTab('generate');
   };
 
   return (
@@ -175,12 +182,15 @@ export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps>
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="setup" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="setup">Setup</TabsTrigger>
               <TabsTrigger value="content">Content</TabsTrigger>
               <TabsTrigger value="optimization">AI Optimization</TabsTrigger>
               <TabsTrigger value="generate">Generate</TabsTrigger>
+              <TabsTrigger value="preview" disabled={!isPreviewReady}>
+                Preview & Edit
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="setup" className="space-y-4">
@@ -285,25 +295,28 @@ export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps>
 
             <TabsContent value="generate" className="space-y-4">
               <div className="text-center">
-                <h4 className="font-medium mb-2">Ready to Generate</h4>
+                <h4 className="font-medium mb-2">Generate AI Content</h4>
                 <p className="text-sm text-gray-400 mb-4">
                   {selectedTemplateType && documentTitle
-                    ? `Generate: ${documentTypes.find(t => t.id === selectedTemplateType)?.name} - "${documentTitle}"`
+                    ? `AI will draft content for: ${documentTypes.find(t => t.id === selectedTemplateType)?.name} — "${documentTitle}"`
                     : 'Please complete setup and content tabs first'
                   }
                 </p>
-                
+                <p className="text-xs text-gray-500 mb-4">
+                  You will be able to review and edit the AI output before the document is exported.
+                </p>
+
                 {isGenerating && (
                   <div className="mb-4">
                     <Progress value={generationProgress} className="mb-2" />
                     <p className="text-sm text-gray-400">
-                      Generating document... {generationProgress}%
+                      Generating AI content... {generationProgress}%
                     </p>
                   </div>
                 )}
 
                 <Button
-                  onClick={handleAdvancedGeneration}
+                  onClick={handleGenerateAIContent}
                   disabled={!selectedTemplateType || !documentTitle || isGenerating}
                   className="w-full"
                   size="lg"
@@ -311,16 +324,98 @@ export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps>
                   {isGenerating ? (
                     <>
                       <Sparkles className="h-4 w-4 mr-2 animate-spin" />
-                      Generating with AI...
+                      Generating AI Content...
                     </>
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4 mr-2" />
-                      Generate Advanced Document
+                      Generate AI Content
                     </>
                   )}
                 </Button>
               </div>
+            </TabsContent>
+
+            <TabsContent value="preview" className="space-y-4">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h4 className="font-medium">Review & Edit AI Output</h4>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Edit the sections below before exporting the final document.
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleResetPreview}>
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Regenerate
+                </Button>
+              </div>
+
+              {aiOptimizations.enhanceNarrative && (
+                <div className="space-y-1">
+                  <Label className="flex items-center gap-2">
+                    <Edit2 className="h-3 w-3 text-cyan-400" />
+                    Project Narrative
+                  </Label>
+                  <Textarea
+                    value={aiPreviewContent.narrative}
+                    onChange={(e) => setAiPreviewContent(prev => ({ ...prev, narrative: e.target.value }))}
+                    rows={6}
+                    className="text-sm"
+                    placeholder="AI-generated project narrative will appear here..."
+                  />
+                </div>
+              )}
+
+              {aiOptimizations.optimizeCompliance && selectedJurisdiction && (
+                <div className="space-y-1">
+                  <Label className="flex items-center gap-2">
+                    <Edit2 className="h-3 w-3 text-cyan-400" />
+                    Compliance Analysis
+                  </Label>
+                  <Textarea
+                    value={aiPreviewContent.compliance}
+                    onChange={(e) => setAiPreviewContent(prev => ({ ...prev, compliance: e.target.value }))}
+                    rows={6}
+                    className="text-sm"
+                    placeholder="AI-generated compliance analysis will appear here..."
+                  />
+                </div>
+              )}
+
+              {aiOptimizations.generateExecutiveSummary && (
+                <div className="space-y-1">
+                  <Label className="flex items-center gap-2">
+                    <Edit2 className="h-3 w-3 text-cyan-400" />
+                    Executive Summary
+                  </Label>
+                  <Textarea
+                    value={aiPreviewContent.executiveSummary}
+                    onChange={(e) => setAiPreviewContent(prev => ({ ...prev, executiveSummary: e.target.value }))}
+                    rows={5}
+                    className="text-sm"
+                    placeholder="AI-generated executive summary will appear here..."
+                  />
+                </div>
+              )}
+
+              <Button
+                onClick={handleFinalExport}
+                disabled={generateDocument.isPending}
+                className="w-full"
+                size="lg"
+              >
+                {generateDocument.isPending ? (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2 animate-spin" />
+                    Exporting Document...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Confirm & Export Document
+                  </>
+                )}
+              </Button>
             </TabsContent>
           </Tabs>
         </CardContent>

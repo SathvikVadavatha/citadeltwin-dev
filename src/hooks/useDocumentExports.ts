@@ -13,6 +13,7 @@ interface DocumentExport {
   error_message?: string;
   template_id?: string;
   generated_at: string;
+  ai_generated_content?: any;
 }
 
 export const useDocumentExports = (uploadId?: string) => {
@@ -45,7 +46,8 @@ export const useDocumentExports = (uploadId?: string) => {
         status: item.status,
         error_message: item.error_message,
         template_id: item.template_id,
-        generated_at: item.generated_at
+        generated_at: item.generated_at,
+        ai_generated_content: item.ai_generated_content
       })) as DocumentExport[];
     },
     enabled: !!user,

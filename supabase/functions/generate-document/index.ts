@@ -30,8 +30,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let requestBody: any;
   try {
-    const { exportId, templateId, uploadId, formatType, generationData } = await req.json();
+    requestBody = await req.json();
+    const { exportId, templateId, uploadId, formatType, generationData } = requestBody;
 
     console.log('Starting document generation:', { exportId, templateId, formatType });
 
@@ -95,7 +97,7 @@ serve(async (req) => {
         Please provide professional, technical content appropriate for ${template.template_type} documentation.`;
 
         try {
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`, {
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${geminiApiKey}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -177,8 +179,8 @@ serve(async (req) => {
     console.error('Document generation error:', error);
     
     // Update export record with error
-    if (req.body) {
-      const { exportId } = await req.json();
+    if (requestBody?.exportId) {
+      const { exportId } = requestBody;
       await supabase
         .from('document_exports')
         .update({
