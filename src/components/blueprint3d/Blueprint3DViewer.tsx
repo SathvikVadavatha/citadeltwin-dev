@@ -51,37 +51,62 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
 
   const totalArea = result.detections.reduce((sum, d) => sum + (parseFloat(d.area_m2) || 0), 0);
 
-  // Build room type counts
+  // Normalize room type labels for counting
+  const normalizeRoomType = (label: string): string => {
+    const l = (label || '').toLowerCase().replace(/[\s-]+/g, '_');
+    if (/master.*bed|bed.*room|bedroom/.test(l)) return 'bedroom';
+    if (/bath|powder_room/.test(l)) return 'bathroom';
+    if (/kitchen|kit/.test(l)) return 'kitchen';
+    if (/living|lounge|family/.test(l)) return 'living';
+    if (/dining/.test(l)) return 'dining';
+    if (/office|study|den/.test(l)) return 'office';
+    if (/garage|carport/.test(l)) return 'garage';
+    if (/walk.*in.*closet/.test(l)) return 'walk_in_closet';
+    if (/closet/.test(l)) return 'closet';
+    if (/laundry/.test(l)) return 'laundry';
+    if (/balcony|porch|deck|patio/.test(l)) return 'balcony';
+    if (/hallway|corridor|hall/.test(l)) return 'hallway';
+    if (/foyer|entry|vestibule|mudroom/.test(l)) return 'foyer';
+    if (/pantry/.test(l)) return 'pantry';
+    if (/mech|utility|mechanical/.test(l)) return 'utility';
+    if (/storage/.test(l)) return 'storage';
+    if (/sunroom|loft/.test(l)) return l;
+    return l;
+  };
+
   const roomCounts: Record<string, number> = {};
+  const roomDimensions: Record<string, string[]> = {};
   result.detections.forEach((d) => {
-    const type = (d.label || '').toLowerCase().replace(/[\s]+/g, '_');
+    const type = normalizeRoomType(d.label || d.class || '');
     roomCounts[type] = (roomCounts[type] || 0) + 1;
+    if (!roomDimensions[type]) roomDimensions[type] = [];
+    const dim = d.width_m && d.depth_m ? `${d.width_m}×${d.depth_m}m` : '';
+    if (dim) roomDimensions[type].push(dim);
   });
 
-  const bedrooms = (roomCounts['bedroom'] || 0) + (roomCounts['master_bedroom'] || 0);
+  const bedrooms = roomCounts['bedroom'] || 0;
   const bathrooms = roomCounts['bathroom'] || 0;
   const kitchens = roomCounts['kitchen'] || 0;
-  const livingRooms = roomCounts['living_room'] || 0;
-  const diningRooms = roomCounts['dining_room'] || 0;
+  const livingRooms = roomCounts['living'] || 0;
+  const diningRooms = roomCounts['dining'] || 0;
   const garages = roomCounts['garage'] || 0;
   const offices = roomCounts['office'] || 0;
+  const closets = (roomCounts['closet'] || 0) + (roomCounts['walk_in_closet'] || 0);
+  const laundry = roomCounts['laundry'] || 0;
+  const balconies = roomCounts['balcony'] || 0;
+  const hallways = roomCounts['hallway'] || 0;
+  const foyers = roomCounts['foyer'] || 0;
+  const utilities = roomCounts['utility'] || 0;
+  const pantries = roomCounts['pantry'] || 0;
+  const storage = roomCounts['storage'] || 0;
 
-  const totalAreaSqft = result.building_info?.total_area_sqft
-    ? result.building_info.total_area_sqft
-    : Math.round(totalArea * 10.764);
-
-  const buildingType = result.building_info?.building_type || 'Residential';
-  const numFloors = result.building_info?.num_floors || 1;
-
-  const summaryParts: string[] = [];
-  if (bedrooms > 0) summaryParts.push(`${bedrooms} Bed`);
-  if (bathrooms > 0) summaryParts.push(`${bathrooms} Bath`);
-  if (kitchens > 0) summaryParts.push(`${kitchens} Kitchen`);
-  const summaryLine = summaryParts.length > 0 ? summaryParts.join(' · ') : `${result.detections.length} Rooms`;
-
-  const otherRoomTypes = Object.entries(roomCounts).filter(
-    ([type]) => !['bedroom', 'master_bedroom', 'bathroom', 'kitchen', 'living_room', 'dining_room', 'office', 'garage'].includes(type)
-  );
+  // Room types already handled with dedicated slots
+  const handledTypes = new Set([
+    'bedroom', 'bathroom', 'kitchen', 'living', 'dining', 'office', 'garage',
+    'closet', 'walk_in_closet', 'laundry', 'balcony', 'hallway', 'foyer',
+    'utility', 'pantry', 'storage'
+  ]);
+  const otherRoomTypes = Object.entries(roomCounts).filter(([type]) => !handledTypes.has(type));
 
   return (
     <div className="space-y-4">
