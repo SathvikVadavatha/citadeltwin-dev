@@ -68,9 +68,16 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComple
       const data = await response.json();
       if (data.status === 'success') {
         setModel3DUrl(data.glb_url);
+        // Store the AI detections with precise OCR dimensions
+        if (data.detections?.length > 0) {
+          setAiDetections(data.detections);
+        }
+        if (data.scale_info) setAiScaleInfo(data.scale_info);
+        if (data.building_info) setAiBuildingInfo(data.building_info);
+        if (data.walls) setAiWalls(data.walls);
         toast({
           title: '3D Model Ready',
-          description: `Generated ${data.detections?.length || 0} rooms. Switch to "3D View" tab to view it.`,
+          description: `Generated ${data.detections?.length || 0} rooms with precise dimensions.`,
         });
         if (onUploadComplete) onUploadComplete(uploadId);
       }
