@@ -215,8 +215,8 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
         tools: [{
           type: "function",
           function: {
-            name: "detect_floor_plan_elements",
-            description: "BIM-Level Vector Reconstruction of all architectural elements",
+            name: "reconstruct_floor_plan_geometry",
+            description: "Geometric Reconstruction of all architectural elements with entrance-anchored origin",
             parameters: {
               type: "object",
               properties: {
