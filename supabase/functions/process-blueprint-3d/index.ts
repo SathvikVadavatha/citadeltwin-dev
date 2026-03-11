@@ -311,20 +311,25 @@ serve(async (req) => {
       })
       .select('id').single();
 
-    // Build detections with enhanced metadata
-    const detections = (detectedElements.rooms || []).map((room: any) => ({
-      class: `space_${room.label}`,
-      name: room.name,
-      confidence: room.confidence,
-      width_m: room.width_m?.toFixed(2),
-      depth_m: room.depth_m?.toFixed(2),
-      area_m2: room.area_m2?.toFixed(2),
-      width_ft: room.width_ft?.toFixed(1),
-      depth_ft: room.depth_ft?.toFixed(1),
-      original_dimension_text: room.original_dimension_text || '',
-      bbox: room.bbox,
-      label: room.label,
-    }));
+    const dimensionsAvailable = detectedElements.dimensions_available === true;
+
+    // Build detections — only include dimensions if they actually exist on the plan
+    const detections = (detectedElements.rooms || []).map((room: any) => {
+      const hasDims = dimensionsAvailable && room.original_dimension_text && room.original_dimension_text.trim() !== '';
+      return {
+        class: `space_${room.label}`,
+        name: room.name,
+        confidence: room.confidence,
+        width_m: hasDims ? room.width_m?.toFixed(2) : null,
+        depth_m: hasDims ? room.depth_m?.toFixed(2) : null,
+        area_m2: hasDims ? room.area_m2?.toFixed(2) : null,
+        width_ft: hasDims ? room.width_ft?.toFixed(1) : null,
+        depth_ft: hasDims ? room.depth_ft?.toFixed(1) : null,
+        original_dimension_text: hasDims ? room.original_dimension_text : '',
+        bbox: room.bbox,
+        label: room.label,
+      };
+    });
 
     // Build wall detections
     const wallDetections = (detectedElements.walls || []).map((wall: any) => ({
@@ -343,6 +348,7 @@ serve(async (req) => {
         glb_url: glbUrl,
         html_view: htmlView,
         detections,
+        dimensions_available: dimensionsAvailable,
         walls: wallDetections,
         building_info: detectedElements.building_info || {},
         scale_info: detectedElements.scale_info || {},
