@@ -350,39 +350,13 @@ You must be STRICT. Decorative numbers, room numbers, or page numbers do NOT cou
     console.log(`Scale: ${detectedElements.scale_info?.scale_source || 'unknown'}, Units: ${detectedElements.scale_info?.unit_system || 'unknown'}`);
     console.log(`Dimensions available: ${detectedElements.dimensions_available}`);
 
-    // ==================== PRE-FLIGHT DATA VALIDATION ====================
-    const hasDimensions = detectedElements.dimensions_available === true;
-    const scaleSource = detectedElements.scale_info?.scale_source || 'none';
-    const hasScale = scaleSource === 'text' || scaleSource === 'bar';
-    const hasEstimatedScale = scaleSource === 'estimated';
-    const hasNumericalMeasurements = hasDimensions && (detectedElements.rooms || []).some(
+    // Post-analysis: determine visual draft status based on individual room dimensions
+    const hasNumericalMeasurements = (detectedElements.rooms || []).some(
       (r: any) => r.original_dimension_text && r.original_dimension_text.trim() !== ''
     );
-
-    console.log(`Pre-flight validation: hasDimensions=${hasDimensions}, hasScale=${hasScale}, hasEstimatedScale=${hasEstimatedScale}, scaleSource=${scaleSource}, hasNumericalMeasurements=${hasNumericalMeasurements}`);
-
-    // FAILURE PROTOCOL: No dimensions at all, no scale, and no estimated scale → STOP
-    // Allow processing when: AI says dimensions_available=true, OR a scale (text/bar) exists, OR estimated scale exists
-    if (!hasDimensions && !hasScale && !hasEstimatedScale) {
-      console.warn('Pre-flight validation FAILED: No dimensions, no scale, and no estimated scale detected.');
-      return new Response(
-        JSON.stringify({
-          status: "validation_failed",
-          error: "Structural data missing. Please upload a plan containing numerical dimensions or a scale bar to ensure engineering-grade accuracy. Random estimations are disabled to prevent structural errors.",
-          validation: {
-            dimensions_found: false,
-            scale_found: false,
-            reason: "no_measurements_no_scale",
-          },
-        }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // EDGE-CASE: Scale (text/bar/estimated) but no individual room dimensions → Visual Draft with warning
     const isVisualDraftOnly = !hasNumericalMeasurements;
     if (isVisualDraftOnly) {
-      console.log(`Pre-flight: No individual room dimensions found. Proceeding as Visual Draft (scale_source=${scaleSource}).`);
+      console.log(`No individual room dimension text found. Proceeding as Visual Draft.`);
     }
 
     const timestamp = Date.now();
