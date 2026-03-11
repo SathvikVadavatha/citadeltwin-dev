@@ -141,23 +141,34 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
   const processingMethod = uploadResult.processingMethod === 'ai' ? 'Gemini AI' : 'Enhanced Analysis';
 
   // Compute room counts using normalization
-  const { roomCounts, totalAreaM2 } = useMemo(() => {
+  const { roomCounts, totalAreaM2, totalAreaSqft: computedSqft } = useMemo(() => {
     const counts: Record<string, number> = {};
-    let area = 0;
+    let areaM2 = 0;
+    let areaSqft = 0;
     (uploadResult.detectedObjects || []).forEach((obj) => {
       const rawLabel = obj.label || (obj.class ? obj.class.replace(/^space_/, '') : '') || obj.type || '';
       const type = normalizeRoomType(rawLabel);
       counts[type] = (counts[type] || 0) + 1;
-      area += getArea(obj);
+      // If imperial area available, use it
+      if (obj.width_ft && obj.depth_ft) {
+        areaSqft += parseFloat(obj.width_ft) * parseFloat(obj.depth_ft);
+      }
+      areaM2 += getArea(obj);
     });
-    console.log('Normalized room counts:', counts);
-    return { roomCounts: counts, totalAreaM2: area };
+    return { roomCounts: counts, totalAreaM2: areaM2, totalAreaSqft: areaSqft };
   }, [uploadResult.detectedObjects]);
 
   const bedrooms = roomCounts['bedroom'] || 0;
   const bathrooms = roomCounts['bathroom'] || 0;
   const kitchens = roomCounts['kitchen'] || 0;
-  const totalSqft = Math.round(totalAreaM2 * 10.764);
+  // Prefer the building_info total or computed sqft from imperial dims
+  const totalSqft = uploadResult.buildingInfo?.total_area_sqft
+    ? Math.round(uploadResult.buildingInfo.total_area_sqft)
+    : computedSqft > 0
+    ? Math.round(computedSqft)
+    : Math.round(totalAreaM2 * 10.764);
+
+  const unitSystem = uploadResult.scaleInfo?.unit_system || (computedSqft > 0 ? 'imperial' : 'metric');
 
   const coreMetrics = [
     { count: bedrooms, label: 'Bedrooms', color: '#4582D1' },
