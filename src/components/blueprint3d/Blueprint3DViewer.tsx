@@ -361,7 +361,7 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
 
         <Separator className="my-3" />
         <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary" className="text-xs">{totalArea.toFixed(0)} m²</Badge>
+          {dimensionsAvailable && <Badge variant="secondary" className="text-xs">{totalArea.toFixed(0)} m²</Badge>}
           <Badge variant="secondary" className="text-xs">{buildingType}</Badge>
           <Badge variant="secondary" className="text-xs">{numFloors} {numFloors > 1 ? 'Floors' : 'Floor'}</Badge>
           {result.building_info?.exterior_wall_thickness_m && (
@@ -372,7 +372,12 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
           <Badge variant="secondary" className="text-xs">
             {result.detections.length} Total Rooms
           </Badge>
-          {scaleInfo?.scale_source && (
+          {!dimensionsAvailable && (
+            <Badge variant="outline" className="text-xs text-amber-600 border-amber-500/30">
+              ⚠ No dimensions on plan
+            </Badge>
+          )}
+          {dimensionsAvailable && scaleInfo?.scale_source && (
             <Badge variant="outline" className="text-xs">
               Scale: {scaleInfo.scale_source}
             </Badge>
