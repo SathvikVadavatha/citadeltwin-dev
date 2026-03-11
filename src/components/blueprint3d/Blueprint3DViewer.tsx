@@ -98,97 +98,72 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
 
       {/* Room Breakdown Summary */}
       <div className="bg-card border border-border rounded-xl p-4">
-        <h3 className="font-semibold text-sm mb-3">Room Summary</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-          {bedrooms > 0 && (
-            <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2.5">
-              <BedDouble className="h-4 w-4 text-[#4582D1] flex-shrink-0" />
-              <div>
-                <div className="text-sm font-semibold">{bedrooms}</div>
-                <div className="text-xs text-muted-foreground">{bedrooms === 1 ? 'Bedroom' : 'Bedrooms'}</div>
-              </div>
-            </div>
-          )}
-          {bathrooms > 0 && (
-            <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2.5">
-              <Bath className="h-4 w-4 text-[#38C0CC] flex-shrink-0" />
-              <div>
-                <div className="text-sm font-semibold">{bathrooms}</div>
-                <div className="text-xs text-muted-foreground">{bathrooms === 1 ? 'Bathroom' : 'Bathrooms'}</div>
-              </div>
-            </div>
-          )}
-          {kitchens > 0 && (
-            <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2.5">
-              <CookingPot className="h-4 w-4 text-[#F2C42E] flex-shrink-0" />
-              <div>
-                <div className="text-sm font-semibold">{kitchens}</div>
-                <div className="text-xs text-muted-foreground">{kitchens === 1 ? 'Kitchen' : 'Kitchens'}</div>
-              </div>
-            </div>
-          )}
-          {livingRooms > 0 && (
-            <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2.5">
-              <Sofa className="h-4 w-4 text-[#59BF82] flex-shrink-0" />
-              <div>
-                <div className="text-sm font-semibold">{livingRooms}</div>
-                <div className="text-xs text-muted-foreground">{livingRooms === 1 ? 'Living Room' : 'Living Rooms'}</div>
-              </div>
-            </div>
-          )}
-          {diningRooms > 0 && (
-            <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2.5">
-              <UtensilsCrossed className="h-4 w-4 text-[#E87F37] flex-shrink-0" />
-              <div>
-                <div className="text-sm font-semibold">{diningRooms}</div>
-                <div className="text-xs text-muted-foreground">{diningRooms === 1 ? 'Dining Room' : 'Dining Rooms'}</div>
-              </div>
-            </div>
-          )}
-          {offices > 0 && (
-            <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2.5">
-              <Briefcase className="h-4 w-4 text-[#9470DB] flex-shrink-0" />
-              <div>
-                <div className="text-sm font-semibold">{offices}</div>
-                <div className="text-xs text-muted-foreground">{offices === 1 ? 'Office' : 'Offices'}</div>
-              </div>
-            </div>
-          )}
-          {garages > 0 && (
-            <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2.5">
-              <Car className="h-4 w-4 text-[#9999A0] flex-shrink-0" />
-              <div>
-                <div className="text-sm font-semibold">{garages}</div>
-                <div className="text-xs text-muted-foreground">{garages === 1 ? 'Garage' : 'Garages'}</div>
-              </div>
-            </div>
-          )}
-          {otherRoomTypes.map(([type, count]) => (
-            <div key={type} className="flex items-center gap-2 bg-muted/50 rounded-lg p-2.5">
-              <DoorOpen className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <div>
-                <div className="text-sm font-semibold">{count}</div>
-                <div className="text-xs text-muted-foreground capitalize">{type.replace(/_/g, ' ')}</div>
-              </div>
-            </div>
-          ))}
+        <h3 className="font-semibold text-sm mb-1">Room Summary</h3>
+        <p className="text-xs text-muted-foreground mb-4">Overview of detected room types and total area</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {/* Always-visible core metrics */}
+          <div className="text-center">
+            <div className="text-2xl font-bold text-[#4582D1]">{bedrooms}</div>
+            <div className="text-xs text-muted-foreground">Bedrooms</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-[#38C0CC]">{bathrooms}</div>
+            <div className="text-xs text-muted-foreground">Bathrooms</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-[#F2C42E]">{kitchens}</div>
+            <div className="text-xs text-muted-foreground">Kitchens</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-[#59BF82]">{totalAreaSqft}</div>
+            <div className="text-xs text-muted-foreground">Total sq ft</div>
+          </div>
         </div>
+
+        {/* Additional rooms if detected */}
+        {(livingRooms > 0 || diningRooms > 0 || offices > 0 || garages > 0 || otherRoomTypes.length > 0) && (
+          <>
+            <Separator className="my-3" />
+            <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 gap-3">
+              {livingRooms > 0 && (
+                <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
+                  <Sofa className="h-3.5 w-3.5 text-[#59BF82] flex-shrink-0" />
+                  <div><div className="text-xs font-semibold">{livingRooms}</div><div className="text-[10px] text-muted-foreground">Living</div></div>
+                </div>
+              )}
+              {diningRooms > 0 && (
+                <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
+                  <UtensilsCrossed className="h-3.5 w-3.5 text-[#E87F37] flex-shrink-0" />
+                  <div><div className="text-xs font-semibold">{diningRooms}</div><div className="text-[10px] text-muted-foreground">Dining</div></div>
+                </div>
+              )}
+              {offices > 0 && (
+                <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
+                  <Briefcase className="h-3.5 w-3.5 text-[#9470DB] flex-shrink-0" />
+                  <div><div className="text-xs font-semibold">{offices}</div><div className="text-[10px] text-muted-foreground">Office</div></div>
+                </div>
+              )}
+              {garages > 0 && (
+                <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
+                  <Car className="h-3.5 w-3.5 text-[#9999A0] flex-shrink-0" />
+                  <div><div className="text-xs font-semibold">{garages}</div><div className="text-[10px] text-muted-foreground">Garage</div></div>
+                </div>
+              )}
+              {otherRoomTypes.map(([type, count]) => (
+                <div key={type} className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
+                  <DoorOpen className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                  <div><div className="text-xs font-semibold">{count}</div><div className="text-[10px] text-muted-foreground capitalize">{type.replace(/_/g, ' ')}</div></div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
 
         <Separator className="my-3" />
         <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary" className="text-xs">
-            <LayoutGrid className="h-3 w-3 mr-1" />
-            {totalAreaSqft} sq ft
-          </Badge>
-          <Badge variant="secondary" className="text-xs">
-            {totalArea.toFixed(0)} m²
-          </Badge>
-          <Badge variant="secondary" className="text-xs">
-            {buildingType}
-          </Badge>
-          <Badge variant="secondary" className="text-xs">
-            {numFloors} {numFloors > 1 ? 'Floors' : 'Floor'}
-          </Badge>
+          <Badge variant="secondary" className="text-xs">{totalArea.toFixed(0)} m²</Badge>
+          <Badge variant="secondary" className="text-xs">{buildingType}</Badge>
+          <Badge variant="secondary" className="text-xs">{numFloors} {numFloors > 1 ? 'Floors' : 'Floor'}</Badge>
           {result.building_info?.wall_thickness_m && (
             <Badge variant="secondary" className="text-xs">
               Wall: {(result.building_info.wall_thickness_m * 100).toFixed(0)}cm thick
