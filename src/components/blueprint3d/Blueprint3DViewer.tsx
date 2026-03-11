@@ -63,16 +63,39 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
     return sum + (parseFloat(d.area_m2) || 0);
   }, 0);
 
-  return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">3D Model Generated</h2>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            {result.detections.length} rooms · {totalArea.toFixed(0)} m² total floor area
-          </p>
-        </div>
+  // Build room type counts
+  const roomCounts: Record<string, number> = {};
+  result.detections.forEach((d) => {
+    const type = (d.label || '').toLowerCase().replace(/[\s]+/g, '_');
+    roomCounts[type] = (roomCounts[type] || 0) + 1;
+  });
+
+  const bedrooms = (roomCounts['bedroom'] || 0) + (roomCounts['master_bedroom'] || 0);
+  const bathrooms = roomCounts['bathroom'] || 0;
+  const kitchens = roomCounts['kitchen'] || 0;
+  const livingRooms = roomCounts['living_room'] || 0;
+  const diningRooms = roomCounts['dining_room'] || 0;
+  const garages = roomCounts['garage'] || 0;
+  const offices = roomCounts['office'] || 0;
+
+  const totalAreaSqft = result.building_info?.total_area_sqft
+    ? result.building_info.total_area_sqft
+    : (totalArea * 10.764).toFixed(0);
+
+  const buildingType = result.building_info?.building_type || 'Residential';
+  const numFloors = result.building_info?.num_floors || 1;
+
+  // Build a concise summary line
+  const summaryParts: string[] = [];
+  if (bedrooms > 0) summaryParts.push(`${bedrooms} Bed`);
+  if (bathrooms > 0) summaryParts.push(`${bathrooms} Bath`);
+  if (kitchens > 0) summaryParts.push(`${kitchens} Kitchen`);
+  const summaryLine = summaryParts.length > 0 ? summaryParts.join(' · ') : `${result.detections.length} Rooms`;
+
+  // Other rooms not in the main summary
+  const otherRoomTypes = Object.entries(roomCounts).filter(
+    ([type]) => !['bedroom', 'master_bedroom', 'bathroom', 'kitchen'].includes(type)
+  );
         <div className="flex items-center gap-2">
           <Button onClick={onReset} variant="outline" size="sm">
             <RotateCcw className="h-4 w-4 mr-1.5" />
