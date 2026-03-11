@@ -8,6 +8,8 @@ export interface ProcessingResult {
   html_view: string;
   detections: any[];
   dimensions_available?: boolean;
+  visual_draft_only?: boolean;
+  visual_draft_warning?: string | null;
   walls?: any[];
   building_info?: {
     total_area_sqft?: number;
@@ -73,6 +75,10 @@ export const BlueprintTo3DConverter: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
+        // Handle pre-flight validation failure (422) with specific messaging
+        if (response.status === 422 && errorData.status === 'validation_failed') {
+          throw new Error(errorData.error || 'Structural data missing. Please upload a plan with dimensions or a scale bar.');
+        }
         throw new Error(errorData.error || 'Processing failed');
       }
 

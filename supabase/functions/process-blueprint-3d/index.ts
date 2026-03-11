@@ -253,6 +253,40 @@ serve(async (req) => {
     const detectedElements = JSON.parse(toolCall.function.arguments);
     console.log(`AI detected: ${detectedElements.rooms?.length || 0} rooms, ${detectedElements.walls?.length || 0} walls`);
     console.log(`Scale: ${detectedElements.scale_info?.scale_source || 'unknown'}, Units: ${detectedElements.scale_info?.unit_system || 'unknown'}`);
+    console.log(`Dimensions available: ${detectedElements.dimensions_available}`);
+
+    // ==================== PRE-FLIGHT DATA VALIDATION ====================
+    const hasDimensions = detectedElements.dimensions_available === true;
+    const scaleSource = detectedElements.scale_info?.scale_source || 'none';
+    const hasScale = scaleSource === 'text' || scaleSource === 'bar';
+    const hasNumericalMeasurements = hasDimensions && (detectedElements.rooms || []).some(
+      (r: any) => r.original_dimension_text && r.original_dimension_text.trim() !== ''
+    );
+
+    console.log(`Pre-flight validation: hasDimensions=${hasDimensions}, hasScale=${hasScale}, scaleSource=${scaleSource}, hasNumericalMeasurements=${hasNumericalMeasurements}`);
+
+    // FAILURE PROTOCOL: No measurements AND no scale → STOP immediately
+    if (!hasNumericalMeasurements && !hasScale) {
+      console.warn('Pre-flight validation FAILED: No numerical dimensions and no scale information detected.');
+      return new Response(
+        JSON.stringify({
+          status: "validation_failed",
+          error: "Structural data missing. Please upload a plan containing numerical dimensions or a scale bar to ensure engineering-grade accuracy. Random estimations are disabled to prevent structural errors.",
+          validation: {
+            dimensions_found: false,
+            scale_found: false,
+            reason: "no_measurements_no_scale",
+          },
+        }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // EDGE-CASE: Scale bar only, no individual room dimensions → Visual Draft with warning
+    const isVisualDraftOnly = hasScale && !hasNumericalMeasurements;
+    if (isVisualDraftOnly) {
+      console.log('Pre-flight: Scale bar detected but no individual room dimensions. Proceeding as Visual Draft.');
+    }
 
     const timestamp = Date.now();
 
@@ -355,6 +389,10 @@ serve(async (req) => {
         html_view: htmlView,
         detections,
         dimensions_available: dimensionsAvailable,
+        visual_draft_only: isVisualDraftOnly,
+        visual_draft_warning: isVisualDraftOnly
+          ? 'Generated via Scale Bar only; internal room dimensions are estimated.'
+          : null,
         walls: wallDetections,
         building_info: detectedElements.building_info || {},
         scale_info: detectedElements.scale_info || {},
