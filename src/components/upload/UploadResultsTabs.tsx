@@ -19,6 +19,9 @@ interface UploadResult {
   model3DGenerated?: boolean;
   generating3D?: boolean;
   enhancedRoomData?: any[];
+  scaleInfo?: any;
+  buildingInfo?: any;
+  walls?: any[];
 }
 
 interface UploadResultsTabsProps {
@@ -59,10 +62,21 @@ function getArea(obj: any): number {
 }
 
 // Get dimensions string from a detection object
-function getDimensions(obj: any): { width: string; depth: string; area: string; units: string } | null {
+function getDimensions(obj: any): { width: string; depth: string; area: string; units: string; originalText?: string } | null {
+  // AI detections with precise OCR-based dimensions (width_m, depth_m, width_ft, depth_ft)
   if (obj.width_m && obj.depth_m) {
     const area = obj.area_m2 || (parseFloat(obj.width_m) * parseFloat(obj.depth_m)).toFixed(1);
-    return { width: obj.width_m, depth: obj.depth_m, area: String(area), units: 'm' };
+    // If imperial dimensions are available, show those
+    if (obj.width_ft && obj.depth_ft) {
+      return {
+        width: formatFeetInches(parseFloat(obj.width_ft)),
+        depth: formatFeetInches(parseFloat(obj.depth_ft)),
+        area: String(Math.round(parseFloat(obj.width_ft) * parseFloat(obj.depth_ft))),
+        units: 'ft',
+        originalText: obj.original_dimension_text || undefined,
+      };
+    }
+    return { width: obj.width_m, depth: obj.depth_m, area: String(area), units: 'm', originalText: obj.original_dimension_text || undefined };
   }
   if (obj.dimensions) {
     return {
@@ -73,6 +87,15 @@ function getDimensions(obj: any): { width: string; depth: string; area: string; 
     };
   }
   return null;
+}
+
+// Format decimal feet to feet-inches string (e.g., 14.5 -> 14'-6")
+function formatFeetInches(decimalFeet: number): string {
+  const feet = Math.floor(decimalFeet);
+  const inches = Math.round((decimalFeet - feet) * 12);
+  if (inches === 0) return `${feet}'`;
+  if (inches === 12) return `${feet + 1}'`;
+  return `${feet}'-${inches}"`;
 }
 
 const ROOM_TYPE_META: Record<string, { icon: any; color: string; label: string }> = {
@@ -118,23 +141,34 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
   const processingMethod = uploadResult.processingMethod === 'ai' ? 'Gemini AI' : 'Enhanced Analysis';
 
   // Compute room counts using normalization
-  const { roomCounts, totalAreaM2 } = useMemo(() => {
+  const { roomCounts, totalAreaM2, totalAreaSqft: computedSqft } = useMemo(() => {
     const counts: Record<string, number> = {};
-    let area = 0;
+    let areaM2 = 0;
+    let areaSqft = 0;
     (uploadResult.detectedObjects || []).forEach((obj) => {
       const rawLabel = obj.label || (obj.class ? obj.class.replace(/^space_/, '') : '') || obj.type || '';
       const type = normalizeRoomType(rawLabel);
       counts[type] = (counts[type] || 0) + 1;
-      area += getArea(obj);
+      // If imperial area available, use it
+      if (obj.width_ft && obj.depth_ft) {
+        areaSqft += parseFloat(obj.width_ft) * parseFloat(obj.depth_ft);
+      }
+      areaM2 += getArea(obj);
     });
-    console.log('Normalized room counts:', counts);
-    return { roomCounts: counts, totalAreaM2: area };
+    return { roomCounts: counts, totalAreaM2: areaM2, totalAreaSqft: areaSqft };
   }, [uploadResult.detectedObjects]);
 
   const bedrooms = roomCounts['bedroom'] || 0;
   const bathrooms = roomCounts['bathroom'] || 0;
   const kitchens = roomCounts['kitchen'] || 0;
-  const totalSqft = Math.round(totalAreaM2 * 10.764);
+  // Prefer the building_info total or computed sqft from imperial dims
+  const totalSqft = uploadResult.buildingInfo?.total_area_sqft
+    ? Math.round(uploadResult.buildingInfo.total_area_sqft)
+    : computedSqft > 0
+    ? Math.round(computedSqft)
+    : Math.round(totalAreaM2 * 10.764);
+
+  const unitSystem = uploadResult.scaleInfo?.unit_system || (computedSqft > 0 ? 'imperial' : 'metric');
 
   const coreMetrics = [
     { count: bedrooms, label: 'Bedrooms', color: '#4582D1' },
@@ -280,9 +314,14 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
                             <span className="font-medium capitalize">
                               {obj.name || rawLabel.replace(/_/g, ' ') || `Room ${idx + 1}`}
                             </span>
-                            {dims && (
+                            {dims?.originalText && (
+                              <Badge variant="secondary" className="ml-1 text-[9px] px-1 py-0 font-mono">
+                                {dims.originalText}
+                              </Badge>
+                            )}
+                            {dims && !dims.originalText && (
                               <span className="text-muted-foreground ml-1">
-                                {dims.width}×{dims.depth}{dims.units === 'm' ? 'm' : "'"} ({dims.area} {dims.units === 'm' ? 'm²' : 'sq ft'})
+                                {dims.width} × {dims.depth} ({dims.area} {dims.units === 'm' ? 'm²' : 'sq ft'})
                               </span>
                             )}
                           </div>
@@ -293,6 +332,47 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
                 </details>
               </CardContent>
             </Card>
+          )}
+
+          {/* Scale & Wall Classification */}
+          {(uploadResult.scaleInfo || uploadResult.walls?.length) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {uploadResult.scaleInfo && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Scale & Units</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1">
+                    <p className="text-sm"><span className="text-muted-foreground">Unit System:</span> <span className="font-medium capitalize">{uploadResult.scaleInfo.unit_system}</span></p>
+                    <p className="text-sm"><span className="text-muted-foreground">Scale Source:</span> <span className="font-medium capitalize">{uploadResult.scaleInfo.scale_source}</span></p>
+                    {uploadResult.scaleInfo.scale_text && (
+                      <p className="text-sm"><span className="text-muted-foreground">Scale Text:</span> <code className="text-xs bg-muted px-1 rounded">{uploadResult.scaleInfo.scale_text}</code></p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+              {uploadResult.walls && uploadResult.walls.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Wall Classification</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1">
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Exterior Walls:</span>{' '}
+                      <span className="font-medium">{uploadResult.walls.filter((w: any) => w.wall_type === 'exterior_wall').length}</span>
+                    </p>
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Interior Walls:</span>{' '}
+                      <span className="font-medium">{uploadResult.walls.filter((w: any) => w.wall_type === 'interior_wall').length}</span>
+                    </p>
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Load-Bearing:</span>{' '}
+                      <span className="font-medium">{uploadResult.walls.filter((w: any) => w.wall_type === 'load_bearing_wall').length}</span>
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           )}
 
           {uploadResult.errorMessage && (
@@ -358,24 +438,32 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
                         </div>
                         
                         {dims && (
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-3 bg-muted/50 rounded-md">
-                            <div>
-                              <p className="text-sm text-muted-foreground">Dimensions</p>
-                              <p className="font-medium">
-                                {dims.width} × {dims.depth} {dims.units === 'm' ? 'm' : 'ft'}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">Area</p>
-                              <p className="font-medium">
-                                {dims.area} {dims.units === 'm' ? 'm²' : 'sq ft'}
-                              </p>
-                            </div>
-                            <div className="hidden md:block">
-                              <p className="text-sm text-muted-foreground">Position</p>
-                              <p className="font-medium text-xs">
-                                ({Math.round(room.bbox?.x || 0)}, {Math.round(room.bbox?.y || 0)})
-                              </p>
+                          <div className="space-y-2">
+                            {dims.originalText && (
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="font-mono text-xs">📐 {dims.originalText}</Badge>
+                                <span className="text-[10px] text-muted-foreground">Source of Truth (OCR)</span>
+                              </div>
+                            )}
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-3 bg-muted/50 rounded-md">
+                              <div>
+                                <p className="text-sm text-muted-foreground">Dimensions</p>
+                                <p className="font-medium">
+                                  {dims.width} × {dims.depth} {dims.units === 'm' ? 'm' : ''}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-muted-foreground">Area</p>
+                                <p className="font-medium">
+                                  {dims.area} {dims.units === 'm' ? 'm²' : 'sq ft'}
+                                </p>
+                              </div>
+                              <div className="hidden md:block">
+                                <p className="text-sm text-muted-foreground">Position</p>
+                                <p className="font-medium text-xs">
+                                  ({Math.round(room.bbox?.x || 0)}, {Math.round(room.bbox?.y || 0)})
+                                </p>
+                              </div>
                             </div>
                           </div>
                         )}
