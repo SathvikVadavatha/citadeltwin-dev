@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, RotateCcw, Home, Maximize2, Box, BedDouble, Bath, CookingPot, DoorOpen, Sofa, UtensilsCrossed, Briefcase, Car, LayoutGrid } from 'lucide-react';
+import { Loader2, RotateCcw, Home, Maximize2, Box, BedDouble, Bath, CookingPot, DoorOpen, Sofa, UtensilsCrossed, Briefcase, Car, LayoutGrid, ShowerHead, WashingMachine, TreePine, Warehouse, Wrench, Archive, Square } from 'lucide-react';
 import type { ProcessingResult } from './BlueprintTo3DConverter';
 import * as THREE from 'three';
 
