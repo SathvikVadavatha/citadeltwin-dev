@@ -108,6 +108,37 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
   ]);
   const otherRoomTypes = Object.entries(roomCounts).filter(([type]) => !handledTypes.has(type));
 
+  const totalAreaSqft = result.building_info?.total_area_sqft
+    ? result.building_info.total_area_sqft
+    : Math.round(totalArea * 10.764);
+
+  const buildingType = result.building_info?.building_type || 'Residential';
+  const numFloors = result.building_info?.num_floors || 1;
+
+  const summaryParts: string[] = [];
+  if (bedrooms > 0) summaryParts.push(`${bedrooms} Bed`);
+  if (bathrooms > 0) summaryParts.push(`${bathrooms} Bath`);
+  if (kitchens > 0) summaryParts.push(`${kitchens} Kitchen`);
+  if (livingRooms > 0) summaryParts.push(`${livingRooms} Living`);
+  if (closets > 0) summaryParts.push(`${closets} Closet`);
+  if (laundry > 0) summaryParts.push(`${laundry} Laundry`);
+  if (balconies > 0) summaryParts.push(`${balconies} Balcony`);
+  const summaryLine = summaryParts.length > 0 ? summaryParts.join(' · ') : `${result.detections.length} Rooms`;
+
+  // Helper to render a room chip
+  const RoomChip = ({ count, label, icon: Icon, color }: { count: number; label: string; icon: any; color: string }) => {
+    if (count === 0) return null;
+    return (
+      <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
+        <Icon className="h-3.5 w-3.5 flex-shrink-0" style={{ color }} />
+        <div>
+          <div className="text-xs font-semibold">{count}</div>
+          <div className="text-[10px] text-muted-foreground">{label}</div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -129,9 +160,8 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
       {/* Room Breakdown Summary */}
       <div className="bg-card border border-border rounded-xl p-4">
         <h3 className="font-semibold text-sm mb-1">Room Summary</h3>
-        <p className="text-xs text-muted-foreground mb-4">Overview of detected room types and total area</p>
+        <p className="text-xs text-muted-foreground mb-4">Complete overview of all detected spaces and areas</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {/* Always-visible core metrics */}
           <div className="text-center">
             <div className="text-2xl font-bold text-[#4582D1]">{bedrooms}</div>
             <div className="text-xs text-muted-foreground">Bedrooms</div>
@@ -150,42 +180,60 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
           </div>
         </div>
 
-        {/* Additional rooms if detected */}
-        {(livingRooms > 0 || diningRooms > 0 || offices > 0 || garages > 0 || otherRoomTypes.length > 0) && (
+        {/* All additional detected spaces */}
+        <Separator className="my-3" />
+        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 gap-3">
+          <RoomChip count={livingRooms} label="Living" icon={Sofa} color="#59BF82" />
+          <RoomChip count={diningRooms} label="Dining" icon={UtensilsCrossed} color="#E87F37" />
+          <RoomChip count={offices} label="Office" icon={Briefcase} color="#9470DB" />
+          <RoomChip count={garages} label="Garage" icon={Car} color="#9999A0" />
+          <RoomChip count={closets} label="Closets" icon={Archive} color="#D9C7EB" />
+          <RoomChip count={laundry} label="Laundry" icon={WashingMachine} color="#73D9E6" />
+          <RoomChip count={balconies} label="Balcony" icon={TreePine} color="#8CD173" />
+          <RoomChip count={hallways} label="Hallway" icon={DoorOpen} color="#D1D1CC" />
+          <RoomChip count={foyers} label="Foyer" icon={Home} color="#E6C78E" />
+          <RoomChip count={utilities} label="Utility" icon={Wrench} color="#B8945B" />
+          <RoomChip count={pantries} label="Pantry" icon={CookingPot} color="#CCAA59" />
+          <RoomChip count={storage} label="Storage" icon={Warehouse} color="#B3AFA5" />
+          {otherRoomTypes.map(([type, count]) => (
+            <div key={type} className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
+              <Square className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              <div>
+                <div className="text-xs font-semibold">{count}</div>
+                <div className="text-[10px] text-muted-foreground capitalize">{type.replace(/_/g, ' ')}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Room dimensions detail */}
+        {result.detections.length > 0 && (
           <>
             <Separator className="my-3" />
-            <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-7 gap-3">
-              {livingRooms > 0 && (
-                <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
-                  <Sofa className="h-3.5 w-3.5 text-[#59BF82] flex-shrink-0" />
-                  <div><div className="text-xs font-semibold">{livingRooms}</div><div className="text-[10px] text-muted-foreground">Living</div></div>
-                </div>
-              )}
-              {diningRooms > 0 && (
-                <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
-                  <UtensilsCrossed className="h-3.5 w-3.5 text-[#E87F37] flex-shrink-0" />
-                  <div><div className="text-xs font-semibold">{diningRooms}</div><div className="text-[10px] text-muted-foreground">Dining</div></div>
-                </div>
-              )}
-              {offices > 0 && (
-                <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
-                  <Briefcase className="h-3.5 w-3.5 text-[#9470DB] flex-shrink-0" />
-                  <div><div className="text-xs font-semibold">{offices}</div><div className="text-[10px] text-muted-foreground">Office</div></div>
-                </div>
-              )}
-              {garages > 0 && (
-                <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
-                  <Car className="h-3.5 w-3.5 text-[#9999A0] flex-shrink-0" />
-                  <div><div className="text-xs font-semibold">{garages}</div><div className="text-[10px] text-muted-foreground">Garage</div></div>
-                </div>
-              )}
-              {otherRoomTypes.map(([type, count]) => (
-                <div key={type} className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
-                  <DoorOpen className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                  <div><div className="text-xs font-semibold">{count}</div><div className="text-[10px] text-muted-foreground capitalize">{type.replace(/_/g, ' ')}</div></div>
-                </div>
-              ))}
-            </div>
+            <details className="group">
+              <summary className="text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                📐 View individual room dimensions ({result.detections.length} spaces)
+              </summary>
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {result.detections.map((d, idx) => {
+                  const roomType = normalizeRoomType(d.label || d.class || '');
+                  const color = getRoomColor(roomType);
+                  return (
+                    <div key={idx} className="flex items-center gap-2 bg-muted/30 rounded-md px-2 py-1.5">
+                      <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0 border border-black/10" style={{ backgroundColor: color }} />
+                      <div className="text-xs min-w-0">
+                        <span className="font-medium">{d.name || (d.label || roomType).replace(/_/g, ' ')}</span>
+                        {d.width_m && d.depth_m && (
+                          <span className="text-muted-foreground ml-1">
+                            {d.width_m}×{d.depth_m}m ({d.area_m2} m²)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </details>
           </>
         )}
 
