@@ -609,7 +609,7 @@ function getRoomHeight(label: string): number {
   return 2.7;
 }
 
-// ==================== BIM-Level GLB Generation ====================
+// ==================== Geometric Reconstruction GLB Generation ====================
 
 function generateBIMGLB(elements: any, _uploadId: string): Uint8Array {
   const rooms = elements.rooms || [];
@@ -617,23 +617,57 @@ function generateBIMGLB(elements: any, _uploadId: string): Uint8Array {
   const doors = elements.doors || [];
   const windows = elements.windows || [];
   const scaleInfo = elements.scale_info || {};
+  const entranceInfo = elements.entrance_info || {};
 
-  // Scale calibration: OCR dimensions > scale text > scale bar > door calibration
+  // Scale calibration: Use LARGEST dimension room for calibration (Geometric Truth)
   let pixelsPerMeter = scaleInfo.pixels_per_meter || 50;
 
-  // If we have rooms with both bbox and real dimensions, refine calibration
   const calibrationRooms = rooms.filter((r: any) => r.bbox && r.width_m > 0 && r.depth_m > 0);
   if (calibrationRooms.length > 0) {
-    const scaleFactors = calibrationRooms.map((r: any) => {
-      return ((r.bbox.width / r.width_m) + (r.bbox.height / r.depth_m)) / 2;
+    // Find the room with the LARGEST area (most reliable calibration anchor)
+    const largestRoom = calibrationRooms.reduce((best: any, r: any) => {
+      const area = r.width_m * r.depth_m;
+      const bestArea = best.width_m * best.depth_m;
+      return area > bestArea ? r : best;
     });
-    pixelsPerMeter = scaleFactors.reduce((a: number, b: number) => a + b, 0) / scaleFactors.length;
-    console.log(`Scale calibrated from ${calibrationRooms.length} rooms: ${pixelsPerMeter.toFixed(1)} px/m`);
+    // Calibrate from the largest dimension room
+    pixelsPerMeter = ((largestRoom.bbox.width / largestRoom.width_m) + (largestRoom.bbox.height / largestRoom.depth_m)) / 2;
+    console.log(`Scale calibrated from largest room "${largestRoom.name}": ${pixelsPerMeter.toFixed(1)} px/m (${largestRoom.original_dimension_text || 'N/A'})`);
   }
 
   const modelScale = 1.0;
 
-  // Zero-Drift Anchoring: compute building bounds for origin centering
+  // Entrance-Anchored Origin: use primary entrance as (0,0,0)
+  // All coordinates are offset so the entrance door center maps to origin
+  let anchorX: number, anchorY: number;
+  if (entranceInfo.entrance_x_px && entranceInfo.entrance_y_px) {
+    anchorX = entranceInfo.entrance_x_px / pixelsPerMeter;
+    anchorY = entranceInfo.entrance_y_px / pixelsPerMeter;
+    console.log(`Origin anchored to entrance: (${anchorX.toFixed(2)}, ${anchorY.toFixed(2)})m — "${entranceInfo.entrance_label || 'Front Door'}"`);
+  } else {
+    // Fallback: use building footprint center if no entrance detected
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    rooms.forEach((r: any) => {
+      if (r.bbox) {
+        const rX = r.bbox.x / pixelsPerMeter;
+        const rY = r.bbox.y / pixelsPerMeter;
+        const rW = r.width_m > 0 ? r.width_m : (r.bbox.width / pixelsPerMeter);
+        const rH = r.depth_m > 0 ? r.depth_m : (r.bbox.height / pixelsPerMeter);
+        minX = Math.min(minX, rX);
+        minY = Math.min(minY, rY);
+        maxX = Math.max(maxX, rX + rW);
+        maxY = Math.max(maxY, rY + rH);
+      }
+    });
+    if (!isFinite(minX)) { minX = 0; minY = 0; maxX = 20; maxY = 15; }
+    anchorX = (minX + maxX) / 2;
+    anchorY = (minY + maxY) / 2;
+    console.log(`No entrance detected — fallback to footprint center: (${anchorX.toFixed(2)}, ${anchorY.toFixed(2)})m`);
+  }
+  const centerOffsetX = anchorX;
+  const centerOffsetY = anchorY;
+
+  // Compute building bounds for foundation slab
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   rooms.forEach((r: any) => {
     if (r.bbox) {
