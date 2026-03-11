@@ -62,10 +62,21 @@ function getArea(obj: any): number {
 }
 
 // Get dimensions string from a detection object
-function getDimensions(obj: any): { width: string; depth: string; area: string; units: string } | null {
+function getDimensions(obj: any): { width: string; depth: string; area: string; units: string; originalText?: string } | null {
+  // AI detections with precise OCR-based dimensions (width_m, depth_m, width_ft, depth_ft)
   if (obj.width_m && obj.depth_m) {
     const area = obj.area_m2 || (parseFloat(obj.width_m) * parseFloat(obj.depth_m)).toFixed(1);
-    return { width: obj.width_m, depth: obj.depth_m, area: String(area), units: 'm' };
+    // If imperial dimensions are available, show those
+    if (obj.width_ft && obj.depth_ft) {
+      return {
+        width: formatFeetInches(parseFloat(obj.width_ft)),
+        depth: formatFeetInches(parseFloat(obj.depth_ft)),
+        area: String(Math.round(parseFloat(obj.width_ft) * parseFloat(obj.depth_ft))),
+        units: 'ft',
+        originalText: obj.original_dimension_text || undefined,
+      };
+    }
+    return { width: obj.width_m, depth: obj.depth_m, area: String(area), units: 'm', originalText: obj.original_dimension_text || undefined };
   }
   if (obj.dimensions) {
     return {
@@ -76,6 +87,15 @@ function getDimensions(obj: any): { width: string; depth: string; area: string; 
     };
   }
   return null;
+}
+
+// Format decimal feet to feet-inches string (e.g., 14.5 -> 14'-6")
+function formatFeetInches(decimalFeet: number): string {
+  const feet = Math.floor(decimalFeet);
+  const inches = Math.round((decimalFeet - feet) * 12);
+  if (inches === 0) return `${feet}'`;
+  if (inches === 12) return `${feet + 1}'`;
+  return `${feet}'-${inches}"`;
 }
 
 const ROOM_TYPE_META: Record<string, { icon: any; color: string; label: string }> = {
