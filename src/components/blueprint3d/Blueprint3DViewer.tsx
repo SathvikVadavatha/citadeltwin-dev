@@ -241,8 +241,17 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
             <div className="text-xs text-muted-foreground">Kitchens</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-[#59BF82]">{totalAreaSqft}</div>
-            <div className="text-xs text-muted-foreground">Total sq ft</div>
+            {dimensionsAvailable ? (
+              <>
+                <div className="text-2xl font-bold text-[#59BF82]">{totalAreaSqft}</div>
+                <div className="text-xs text-muted-foreground">Total sq ft</div>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-muted-foreground">—</div>
+                <div className="text-xs text-muted-foreground">No dimensions</div>
+              </>
+            )}
           </div>
         </div>
 
