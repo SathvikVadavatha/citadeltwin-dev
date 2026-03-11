@@ -886,9 +886,9 @@ function generateBIMGLB(elements: any, _uploadId: string): Uint8Array {
   const nodeIndices = sceneNodes.map((_, i) => i);
 
   const gltfJson = {
-    asset: { version: "2.0", generator: "CitadelTwin BIM Vector v4" },
+    asset: { version: "2.0", generator: "CitadelTwin Geometric Reconstruction v5" },
     scene: 0,
-    scenes: [{ name: "CitadelTwin BIM Reconstruction", nodes: nodeIndices }],
+    scenes: [{ name: "CitadelTwin Geometric Reconstruction", nodes: nodeIndices }],
     nodes: sceneNodes,
     meshes, materials, accessors, bufferViews,
     buffers: [{ byteLength: totalBinarySize }],
