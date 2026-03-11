@@ -112,12 +112,16 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComple
           uploadResult={{
             id: uploadResult.id,
             filename: uploadResult.filename,
-            detectedObjects: uploadResult.detectedObjects || [],
+            // Use AI detections (with OCR dimensions) when available, fallback to client-side
+            detectedObjects: aiDetections || uploadResult.detectedObjects || [],
             imageUrl: uploadResult.imageUrl,
-            processingMethod: 'fallback',
+            processingMethod: aiDetections ? 'ai' : 'fallback',
             enhancedRoomData: uploadResult.enhancedRoomData,
             model3DUrl: model3DUrl || undefined,
             model3DGenerated: !!model3DUrl,
+            scaleInfo: aiScaleInfo,
+            buildingInfo: aiBuildingInfo,
+            walls: aiWalls,
           }}
           onReset={handleReset}
         />
