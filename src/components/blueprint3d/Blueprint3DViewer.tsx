@@ -168,6 +168,19 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
         </div>
       )}
 
+      {/* Visual Draft Warning — scale bar found but no individual room dimensions */}
+      {result.visual_draft_only && (
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 flex items-start gap-3">
+          <Info className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">Visual Draft Mode</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {result.visual_draft_warning || 'Generated via Scale Bar only; internal room dimensions are estimated.'}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
