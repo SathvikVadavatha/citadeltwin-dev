@@ -124,10 +124,10 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
       );
     }
 
-    console.log(`Pre-flight PASSED. Proceeding to BIM-Level Vector Reconstruction...`);
+    console.log(`Pre-flight PASSED. Proceeding to Geometric Reconstruction...`);
 
-    // ==================== STEP 2: FULL BIM ANALYSIS ====================
-    console.log("STEP 2: Full BIM-Level analysis via Gemini Vision...");
+    // ==================== STEP 2: FULL GEOMETRIC RECONSTRUCTION ANALYSIS ====================
+    console.log("STEP 2: Geometric Reconstruction analysis via Gemini Vision...");
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
