@@ -348,7 +348,7 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
               {result.detections.map((d, idx) => {
-                const roomType = (d.label || d.class || '').replace('space_', '');
+                const roomType = normalizeRoomType(d.label || d.class || '');
                 const color = getRoomColor(roomType);
                 return (
                   <div key={idx} className="flex items-start gap-2 min-w-0">
