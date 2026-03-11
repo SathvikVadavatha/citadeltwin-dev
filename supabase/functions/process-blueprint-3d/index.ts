@@ -196,13 +196,14 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
             content: [
               {
                 type: "text",
-                text: `Perform BIM-Level Vector Reconstruction on this floor plan:
-1. OCR every dimension string — these are absolute truth for mesh generation.
-2. Classify all walls as exterior (thick lines, ~8"/0.2m) or interior (thin lines, ~5"/0.12m).
-3. Detect every door swing symbol and window glass line with center-point positions.
-4. Calibrate scale: use text ratio > scale bar > door-width fallback (0.9m).
+                text: `Perform Geometric Reconstruction on this floor plan:
+1. OCR every dimension string — these are absolute truth for mesh generation. Snap wall intersections to labeled dimensions.
+2. Classify all walls: Outer/perimeter walls (thickest lines, ~8"/0.2m) vs Interior partition walls (thinner lines, ~5"/0.12m).
+3. Detect every door swing symbol and window glass line with exact center-point positions.
+4. Calibrate scale using the LARGEST dimension string found. Report which dimension was used.
 5. Assign room material types based on text labels.
-6. Return precise bounding boxes for all elements.`
+6. Identify the PRIMARY ENTRANCE (front door) — this is the origin anchor (0,0,0).
+7. Return precise bounding boxes for all elements.`
               },
               {
                 type: "image_url",
