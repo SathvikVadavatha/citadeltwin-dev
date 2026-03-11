@@ -640,26 +640,27 @@ function generateBIMGLB(elements: any, _uploadId: string): Uint8Array {
   // Entrance-Anchored Origin: use primary entrance as (0,0,0)
   // All coordinates are offset so the entrance door center maps to origin
   let anchorX: number, anchorY: number;
+  // Compute building footprint bounds for foundation slab
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  rooms.forEach((r: any) => {
+    if (r.bbox) {
+      const rX = r.bbox.x / pixelsPerMeter;
+      const rY = r.bbox.y / pixelsPerMeter;
+      const rW = r.width_m > 0 ? r.width_m : (r.bbox.width / pixelsPerMeter);
+      const rH = r.depth_m > 0 ? r.depth_m : (r.bbox.height / pixelsPerMeter);
+      minX = Math.min(minX, rX);
+      minY = Math.min(minY, rY);
+      maxX = Math.max(maxX, rX + rW);
+      maxY = Math.max(maxY, rY + rH);
+    }
+  });
+  if (!isFinite(minX)) { minX = 0; minY = 0; maxX = 20; maxY = 15; }
+
   if (entranceInfo.entrance_x_px && entranceInfo.entrance_y_px) {
     anchorX = entranceInfo.entrance_x_px / pixelsPerMeter;
     anchorY = entranceInfo.entrance_y_px / pixelsPerMeter;
     console.log(`Origin anchored to entrance: (${anchorX.toFixed(2)}, ${anchorY.toFixed(2)})m — "${entranceInfo.entrance_label || 'Front Door'}"`);
   } else {
-    // Fallback: use building footprint center if no entrance detected
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    rooms.forEach((r: any) => {
-      if (r.bbox) {
-        const rX = r.bbox.x / pixelsPerMeter;
-        const rY = r.bbox.y / pixelsPerMeter;
-        const rW = r.width_m > 0 ? r.width_m : (r.bbox.width / pixelsPerMeter);
-        const rH = r.depth_m > 0 ? r.depth_m : (r.bbox.height / pixelsPerMeter);
-        minX = Math.min(minX, rX);
-        minY = Math.min(minY, rY);
-        maxX = Math.max(maxX, rX + rW);
-        maxY = Math.max(maxY, rY + rH);
-      }
-    });
-    if (!isFinite(minX)) { minX = 0; minY = 0; maxX = 20; maxY = 15; }
     anchorX = (minX + maxX) / 2;
     anchorY = (minY + maxY) / 2;
     console.log(`No entrance detected — fallback to footprint center: (${anchorX.toFixed(2)}, ${anchorY.toFixed(2)})m`);
