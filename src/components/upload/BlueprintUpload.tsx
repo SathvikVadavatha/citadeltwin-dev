@@ -14,6 +14,10 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComple
   const { toast } = useToast();
   const [generating3D, setGenerating3D] = useState(false);
   const [model3DUrl, setModel3DUrl] = useState<string | null>(null);
+  const [aiDetections, setAiDetections] = useState<any[] | null>(null);
+  const [aiScaleInfo, setAiScaleInfo] = useState<any>(null);
+  const [aiBuildingInfo, setAiBuildingInfo] = useState<any>(null);
+  const [aiWalls, setAiWalls] = useState<any[] | null>(null);
 
   const {
     uploading,
