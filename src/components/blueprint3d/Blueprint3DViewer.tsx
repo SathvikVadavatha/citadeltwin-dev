@@ -46,6 +46,7 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
   const [activeTab, setActiveTab] = useState<'3d' | '2d'>('3d');
   const [bgMode, setBgMode] = useState<'dark' | 'light'>('dark');
   const orbitRef = useRef<any>(null);
+  const dimensionsAvailable = result.dimensions_available !== false;
 
   const resetCamera = () => { orbitRef.current?.reset(); };
 
