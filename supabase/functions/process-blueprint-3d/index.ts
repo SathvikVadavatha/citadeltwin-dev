@@ -38,6 +38,101 @@ serve(async (req) => {
     const base64Image = btoa(binary);
     const mimeType = file.type || 'image/png';
 
+    // ==================== HARD VALIDATION GATE (FIRST STEP) ====================
+    // Use Gemini Vision to scan for numerical dimension strings BEFORE any processing
+    console.log("Running pre-flight dimension scan via Gemini Vision...");
+
+    const preFlightResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content: `You are a dimension detection specialist. Your ONLY job is to determine if this architectural plan contains ANY numerical dimension annotations. Look for:
+- Feet/inch marks: e.g. 10', 12'-0", 14'-6", 8'6"
+- Metric dimensions: e.g. 3.5m, 3500mm, 4400, 7000
+- Combined dimension strings: e.g. 12'x15', 4.4m x 3.7m
+- Scale ratios: e.g. 1:100, 1/4" = 1'-0", 1" = 20'
+- Any text containing ', ", m, mm, ft, feet, inches, meters symbols adjacent to numbers
+
+You must be STRICT. Decorative numbers, room numbers, or page numbers do NOT count. Only actual measurement annotations count.`
+          },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Scan this floor plan image. Does it contain ANY numerical dimension annotations (feet, inches, meters, millimeters)? Return your findings."
+              },
+              {
+                type: "image_url",
+                image_url: { url: `data:${mimeType};base64,${base64Image}` }
+              }
+            ]
+          }
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "report_dimension_scan",
+              description: "Report whether numerical dimensions were found on the plan",
+              parameters: {
+                type: "object",
+                properties: {
+                  has_numerical_dimensions: { type: "boolean", description: "true ONLY if actual measurement annotations (with unit symbols like ', \", m, mm, ft) are found. false if no dimension text exists." },
+                  dimension_examples: { type: "array", items: { type: "string" }, description: "Up to 5 examples of dimension strings found, e.g. [\"14'-6\\\"\", \"3.5m\", \"1:100\"]. Empty array if none." },
+                  has_scale: { type: "boolean", description: "true if a scale ratio or scale bar is detected" },
+                  scan_notes: { type: "string", description: "Brief note about what was or wasn't found" }
+                },
+                required: ["has_numerical_dimensions", "dimension_examples", "has_scale", "scan_notes"]
+              }
+            }
+          }
+        ],
+        tool_choice: { type: "function", function: { name: "report_dimension_scan" } },
+      }),
+    });
+
+    if (!preFlightResponse.ok) {
+      const errText = await preFlightResponse.text();
+      console.error("Pre-flight scan failed:", preFlightResponse.status, errText);
+      throw new Error(`Pre-flight dimension scan failed: ${preFlightResponse.status}`);
+    }
+
+    const preFlightData = await preFlightResponse.json();
+    const preFlightToolCall = preFlightData.choices?.[0]?.message?.tool_calls?.[0];
+    if (!preFlightToolCall) throw new Error("Pre-flight scan did not return structured data");
+
+    const scanResult = JSON.parse(preFlightToolCall.function.arguments);
+    console.log(`Pre-flight scan result: has_dimensions=${scanResult.has_numerical_dimensions}, has_scale=${scanResult.has_scale}, examples=${JSON.stringify(scanResult.dimension_examples)}, notes=${scanResult.scan_notes}`);
+
+    // HARD STOP: If NO numerical dimensions found → reject immediately
+    if (!scanResult.has_numerical_dimensions) {
+      console.warn('HARD VALIDATION GATE TRIGGERED: No numerical dimensions detected. Stopping pipeline.');
+      return new Response(
+        JSON.stringify({
+          status: "validation_failed",
+          error: "Structural data missing. Please upload a plan with numerical dimensions. Automatic estimation is disabled to ensure 100% engineering accuracy.",
+          validation: {
+            dimensions_found: false,
+            scale_found: scanResult.has_scale || false,
+            reason: "no_measurements_no_scale",
+            scan_notes: scanResult.scan_notes || "",
+          },
+        }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`Pre-flight PASSED. Dimensions confirmed: ${scanResult.dimension_examples.join(', ')}. Proceeding to full analysis...`);
+    // ==================== END HARD VALIDATION GATE ====================
+
     console.log("Sending image to Lovable AI for detailed room detection...");
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -255,39 +350,13 @@ serve(async (req) => {
     console.log(`Scale: ${detectedElements.scale_info?.scale_source || 'unknown'}, Units: ${detectedElements.scale_info?.unit_system || 'unknown'}`);
     console.log(`Dimensions available: ${detectedElements.dimensions_available}`);
 
-    // ==================== PRE-FLIGHT DATA VALIDATION ====================
-    const hasDimensions = detectedElements.dimensions_available === true;
-    const scaleSource = detectedElements.scale_info?.scale_source || 'none';
-    const hasScale = scaleSource === 'text' || scaleSource === 'bar';
-    const hasEstimatedScale = scaleSource === 'estimated';
-    const hasNumericalMeasurements = hasDimensions && (detectedElements.rooms || []).some(
+    // Post-analysis: determine visual draft status based on individual room dimensions
+    const hasNumericalMeasurements = (detectedElements.rooms || []).some(
       (r: any) => r.original_dimension_text && r.original_dimension_text.trim() !== ''
     );
-
-    console.log(`Pre-flight validation: hasDimensions=${hasDimensions}, hasScale=${hasScale}, hasEstimatedScale=${hasEstimatedScale}, scaleSource=${scaleSource}, hasNumericalMeasurements=${hasNumericalMeasurements}`);
-
-    // FAILURE PROTOCOL: No dimensions at all, no scale, and no estimated scale → STOP
-    // Allow processing when: AI says dimensions_available=true, OR a scale (text/bar) exists, OR estimated scale exists
-    if (!hasDimensions && !hasScale && !hasEstimatedScale) {
-      console.warn('Pre-flight validation FAILED: No dimensions, no scale, and no estimated scale detected.');
-      return new Response(
-        JSON.stringify({
-          status: "validation_failed",
-          error: "Structural data missing. Please upload a plan containing numerical dimensions or a scale bar to ensure engineering-grade accuracy. Random estimations are disabled to prevent structural errors.",
-          validation: {
-            dimensions_found: false,
-            scale_found: false,
-            reason: "no_measurements_no_scale",
-          },
-        }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // EDGE-CASE: Scale (text/bar/estimated) but no individual room dimensions → Visual Draft with warning
     const isVisualDraftOnly = !hasNumericalMeasurements;
     if (isVisualDraftOnly) {
-      console.log(`Pre-flight: No individual room dimensions found. Proceeding as Visual Draft (scale_source=${scaleSource}).`);
+      console.log(`No individual room dimension text found. Proceeding as Visual Draft.`);
     }
 
     const timestamp = Date.now();
