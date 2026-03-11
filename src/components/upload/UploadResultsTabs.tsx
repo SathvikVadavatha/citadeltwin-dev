@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Download, RefreshCw, Image, Layers, Box } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Download, RefreshCw, Image, Layers, Box, BedDouble, Bath, CookingPot, Sofa, UtensilsCrossed, Briefcase, Car, DoorOpen, Home, WashingMachine, TreePine, Warehouse, Wrench, Archive, Square } from "lucide-react";
 import { RealTime3DGenerator } from "@/components/3d/RealTime3DGenerator";
 
 interface UploadResult {
@@ -25,24 +26,83 @@ interface UploadResultsTabsProps {
   onReset: () => void;
 }
 
+// Normalize any room label to a standard category
+function normalizeRoomType(label: string): string {
+  const l = (label || '').toLowerCase().replace(/^space_/, '').replace(/[\s-]+/g, '_');
+  if (/master.*bed|bed.*room|bedroom|master_bed/.test(l)) return 'bedroom';
+  if (/bath|powder_room|shower|toilet/.test(l)) return 'bathroom';
+  if (/kitchen|kitchenette/.test(l)) return 'kitchen';
+  if (/living|lounge|family|great_room/.test(l)) return 'living';
+  if (/dining/.test(l)) return 'dining';
+  if (/office|study|den|work/.test(l)) return 'office';
+  if (/garage|carport/.test(l)) return 'garage';
+  if (/walk.*in.*closet|wic/.test(l)) return 'walk_in_closet';
+  if (/closet|wardrobe/.test(l)) return 'closet';
+  if (/laundry|wash/.test(l)) return 'laundry';
+  if (/balcony|porch|deck|patio|terrace|veranda/.test(l)) return 'balcony';
+  if (/hallway|corridor|hall|passage/.test(l)) return 'hallway';
+  if (/foyer|entry|vestibule|mudroom|lobby/.test(l)) return 'foyer';
+  if (/pantry/.test(l)) return 'pantry';
+  if (/mech|utility|mechanical|furnace|hvac/.test(l)) return 'utility';
+  if (/storage|store/.test(l)) return 'storage';
+  return l;
+}
+
+// Get area from a detection object (handles multiple data shapes)
+function getArea(obj: any): number {
+  if (obj.area_m2) return parseFloat(obj.area_m2);
+  if (obj.dimensions?.area) return obj.dimensions.area;
+  if (obj.area) return obj.area;
+  if (obj.width_m && obj.depth_m) return parseFloat(obj.width_m) * parseFloat(obj.depth_m);
+  if (obj.bbox?.width && obj.bbox?.height) return (obj.bbox.width * obj.bbox.height) / 10000;
+  return 0;
+}
+
+// Get dimensions string from a detection object
+function getDimensions(obj: any): { width: string; depth: string; area: string; units: string } | null {
+  if (obj.width_m && obj.depth_m) {
+    const area = obj.area_m2 || (parseFloat(obj.width_m) * parseFloat(obj.depth_m)).toFixed(1);
+    return { width: obj.width_m, depth: obj.depth_m, area: String(area), units: 'm' };
+  }
+  if (obj.dimensions) {
+    return {
+      width: String(obj.dimensions.width || '?'),
+      depth: String(obj.dimensions.length || obj.dimensions.depth || '?'),
+      area: String(obj.dimensions.area || '?'),
+      units: obj.dimensions.units || 'ft',
+    };
+  }
+  return null;
+}
+
+const ROOM_TYPE_META: Record<string, { icon: any; color: string; label: string }> = {
+  bedroom:        { icon: BedDouble, color: '#4582D1', label: 'Bedrooms' },
+  bathroom:       { icon: Bath, color: '#38C0CC', label: 'Bathrooms' },
+  kitchen:        { icon: CookingPot, color: '#F2C42E', label: 'Kitchens' },
+  living:         { icon: Sofa, color: '#59BF82', label: 'Living Rooms' },
+  dining:         { icon: UtensilsCrossed, color: '#E87F37', label: 'Dining Rooms' },
+  office:         { icon: Briefcase, color: '#9470DB', label: 'Offices' },
+  garage:         { icon: Car, color: '#9999A0', label: 'Garages' },
+  closet:         { icon: Archive, color: '#D9C7EB', label: 'Closets' },
+  walk_in_closet: { icon: Archive, color: '#C4A8E0', label: 'Walk-in Closets' },
+  laundry:        { icon: WashingMachine, color: '#73D9E6', label: 'Laundry' },
+  balcony:        { icon: TreePine, color: '#8CD173', label: 'Balconies' },
+  hallway:        { icon: DoorOpen, color: '#D1D1CC', label: 'Hallways' },
+  foyer:          { icon: Home, color: '#E6C78E', label: 'Foyers' },
+  utility:        { icon: Wrench, color: '#B8945B', label: 'Utility' },
+  pantry:         { icon: CookingPot, color: '#CCAA59', label: 'Pantries' },
+  storage:        { icon: Warehouse, color: '#B3AFA5', label: 'Storage' },
+};
+
 export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
   uploadResult,
   onReset
 }) => {
-  // Debug logging for 3D data
   useEffect(() => {
-    console.log('3D Preview - enhancedRoomData:', uploadResult.enhancedRoomData);
-    if (uploadResult.enhancedRoomData && Array.isArray(uploadResult.enhancedRoomData)) {
-      console.log('Room data for 3D:', uploadResult.enhancedRoomData.length, 'rooms');
-      uploadResult.enhancedRoomData.forEach((room, i) => {
-        console.log(`Room ${i}:`, { 
-          type: room.type, 
-          points: room.points?.length,
-          dimensions: room.realWorldDimensions 
-        });
-      });
-    }
-  }, [uploadResult.enhancedRoomData]);
+    console.log('Detected objects sample:', uploadResult.detectedObjects?.[0]);
+    console.log('All detected objects:', uploadResult.detectedObjects);
+  }, [uploadResult.detectedObjects]);
+
   const handleDownload = () => {
     if (uploadResult.imageUrl) {
       const link = document.createElement('a');
@@ -57,13 +117,50 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
   const objectCount = uploadResult.detectedObjects?.length || 0;
   const processingMethod = uploadResult.processingMethod === 'ai' ? 'Gemini AI' : 'Enhanced Analysis';
 
+  // Compute room counts using normalization
+  const { roomCounts, totalAreaM2 } = useMemo(() => {
+    const counts: Record<string, number> = {};
+    let area = 0;
+    (uploadResult.detectedObjects || []).forEach((obj) => {
+      const rawLabel = obj.label || (obj.class ? obj.class.replace(/^space_/, '') : '') || obj.type || '';
+      const type = normalizeRoomType(rawLabel);
+      counts[type] = (counts[type] || 0) + 1;
+      area += getArea(obj);
+    });
+    console.log('Normalized room counts:', counts);
+    return { roomCounts: counts, totalAreaM2: area };
+  }, [uploadResult.detectedObjects]);
+
+  const bedrooms = roomCounts['bedroom'] || 0;
+  const bathrooms = roomCounts['bathroom'] || 0;
+  const kitchens = roomCounts['kitchen'] || 0;
+  const totalSqft = Math.round(totalAreaM2 * 10.764);
+
+  const coreMetrics = [
+    { count: bedrooms, label: 'Bedrooms', color: '#4582D1' },
+    { count: bathrooms, label: 'Bathrooms', color: '#38C0CC' },
+    { count: kitchens, label: 'Kitchens', color: '#F2C42E' },
+    { count: totalSqft, label: 'Total sq ft', color: '#59BF82' },
+  ];
+
+  const coreTypes = new Set(['bedroom', 'bathroom', 'kitchen']);
+  const additionalTypes = Object.entries(roomCounts)
+    .filter(([type, count]) => !coreTypes.has(type) && count > 0)
+    .sort(([, a], [, b]) => b - a);
+
+  const summaryParts: string[] = [];
+  if (bedrooms > 0) summaryParts.push(`${bedrooms} Bed`);
+  if (bathrooms > 0) summaryParts.push(`${bathrooms} Bath`);
+  if (kitchens > 0) summaryParts.push(`${kitchens} Kitchen`);
+  const summaryLine = summaryParts.length > 0 ? summaryParts.join(' · ') : `${objectCount} Rooms`;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Analysis Complete</h2>
           <p className="text-muted-foreground">
-            {uploadResult.filename} • Processed with {processingMethod}
+            {uploadResult.filename} • {summaryLine} • {totalSqft > 0 ? `${totalSqft} sq ft` : `${objectCount} spaces`}
           </p>
         </div>
         <div className="flex gap-2">
@@ -95,12 +192,9 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{objectCount}</div>
-                <p className="text-xs text-muted-foreground">
-                  Rooms identified and analyzed
-                </p>
+                <p className="text-xs text-muted-foreground">Rooms identified and analyzed</p>
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Processing Method</CardTitle>
@@ -108,12 +202,9 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{processingMethod}</div>
-                <p className="text-xs text-muted-foreground">
-                  Analysis engine used
-                </p>
+                <p className="text-xs text-muted-foreground">Analysis engine used</p>
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">3D Model</CardTitle>
@@ -124,8 +215,7 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
                   {uploadResult.model3DGenerated ? '✓' : uploadResult.generating3D ? '...' : '✗'}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {uploadResult.model3DGenerated ? 'Generated' : 
-                   uploadResult.generating3D ? 'Generating' : 'Not available'}
+                  {uploadResult.model3DGenerated ? 'Generated' : uploadResult.generating3D ? 'Generating' : 'Not available'}
                 </p>
               </CardContent>
             </Card>
@@ -136,37 +226,71 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
             <Card>
               <CardHeader>
                 <CardTitle>Room Summary</CardTitle>
-                <CardDescription>
-                  Overview of detected room types and total area
-                </CardDescription>
+                <CardDescription>Overview of detected room types and total area</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">
-                      {uploadResult.detectedObjects.filter(obj => obj.label === 'bedroom').length}
+                  {coreMetrics.map((m) => (
+                    <div key={m.label} className="text-center">
+                      <div className="text-2xl font-bold" style={{ color: m.color }}>{m.count}</div>
+                      <p className="text-sm text-muted-foreground">{m.label}</p>
                     </div>
-                    <p className="text-sm text-muted-foreground">Bedrooms</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
-                      {uploadResult.detectedObjects.filter(obj => obj.label === 'bathroom' || obj.label === 'toilet').length}
-                    </div>
-                    <p className="text-sm text-muted-foreground">Bathrooms</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">
-                      {uploadResult.detectedObjects.filter(obj => obj.label === 'kitchen').length}
-                    </div>
-                    <p className="text-sm text-muted-foreground">Kitchens</p>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">
-                      {uploadResult.detectedObjects.reduce((sum, obj) => sum + (obj.area || 0), 0).toFixed(0)}
-                    </div>
-                    <p className="text-sm text-muted-foreground">Total sq ft</p>
-                  </div>
+                  ))}
                 </div>
+
+                {additionalTypes.length > 0 && (
+                  <>
+                    <Separator />
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                      {additionalTypes.map(([type, count]) => {
+                        const meta = ROOM_TYPE_META[type];
+                        const Icon = meta?.icon || Square;
+                        const color = meta?.color || '#A0A0A0';
+                        const displayLabel = meta?.label || type.replace(/_/g, ' ');
+                        return (
+                          <div key={type} className="flex items-center gap-2 bg-muted/50 rounded-lg p-2">
+                            <Icon className="h-3.5 w-3.5 flex-shrink-0" style={{ color }} />
+                            <div>
+                              <div className="text-xs font-semibold">{count}</div>
+                              <div className="text-[10px] text-muted-foreground capitalize">{displayLabel}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+
+                <Separator />
+                <details className="group">
+                  <summary className="text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                    📐 View individual room dimensions ({objectCount} spaces)
+                  </summary>
+                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {uploadResult.detectedObjects?.map((obj, idx) => {
+                      const rawLabel = obj.label || (obj.class ? obj.class.replace(/^space_/, '') : '') || obj.type || '';
+                      const type = normalizeRoomType(rawLabel);
+                      const dims = getDimensions(obj);
+                      const meta = ROOM_TYPE_META[type];
+                      const color = meta?.color || '#A0A0A0';
+                      return (
+                        <div key={idx} className="flex items-center gap-2 bg-muted/30 rounded-md px-2 py-1.5">
+                          <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0 border border-black/10" style={{ backgroundColor: color }} />
+                          <div className="text-xs min-w-0">
+                            <span className="font-medium capitalize">
+                              {obj.name || rawLabel.replace(/_/g, ' ') || `Room ${idx + 1}`}
+                            </span>
+                            {dims && (
+                              <span className="text-muted-foreground ml-1">
+                                {dims.width}×{dims.depth}{dims.units === 'm' ? 'm' : "'"} ({dims.area} {dims.units === 'm' ? 'm²' : 'sq ft'})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </details>
               </CardContent>
             </Card>
           )}
@@ -177,9 +301,7 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
                 <CardTitle className="text-destructive">Processing Warning</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  {uploadResult.errorMessage}
-                </p>
+                <p className="text-sm text-muted-foreground">{uploadResult.errorMessage}</p>
               </CardContent>
             </Card>
           )}
@@ -189,9 +311,7 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
           <Card>
             <CardHeader>
               <CardTitle>Original Blueprint</CardTitle>
-              <CardDescription>
-                The uploaded blueprint image used for analysis
-              </CardDescription>
+              <CardDescription>The uploaded blueprint image used for analysis</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex justify-center">
@@ -209,60 +329,66 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
           <Card>
             <CardHeader>
               <CardTitle>Room Analysis</CardTitle>
-              <CardDescription>
-                Detailed analysis of rooms with dimensions and specifications
-              </CardDescription>
+              <CardDescription>Detailed analysis of rooms with dimensions and specifications</CardDescription>
             </CardHeader>
             <CardContent>
               {objectCount > 0 ? (
                 <div className="space-y-4">
-                  {uploadResult.detectedObjects?.map((room, index) => (
-                    <div key={index} className="p-4 border rounded-lg bg-card space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Badge variant="outline" className="capitalize">
-                            {room.label || 'Unknown'}
-                          </Badge>
-                          <h3 className="font-medium text-lg">
-                            {room.name || `${room.label || 'Room'} ${index + 1}`}
-                          </h3>
+                  {uploadResult.detectedObjects?.map((room, index) => {
+                    const rawLabel = room.label || (room.class ? room.class.replace(/^space_/, '') : '') || room.type || '';
+                    const type = normalizeRoomType(rawLabel);
+                    const dims = getDimensions(room);
+                    const meta = ROOM_TYPE_META[type];
+                    const color = meta?.color || '#A0A0A0';
+                    return (
+                      <div key={index} className="p-4 border rounded-lg bg-card space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: color }} />
+                            <Badge variant="outline" className="capitalize">
+                              {type.replace(/_/g, ' ')}
+                            </Badge>
+                            <h3 className="font-medium text-lg">
+                              {room.name || `${rawLabel.replace(/_/g, ' ')} ${index + 1}`}
+                            </h3>
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            {Math.round((room.confidence || 0) * 100)}% confidence
+                          </span>
                         </div>
-                        <span className="text-sm text-muted-foreground">
-                          {Math.round((room.confidence || 0) * 100)}% confidence
-                        </span>
+                        
+                        {dims && (
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-3 bg-muted/50 rounded-md">
+                            <div>
+                              <p className="text-sm text-muted-foreground">Dimensions</p>
+                              <p className="font-medium">
+                                {dims.width} × {dims.depth} {dims.units === 'm' ? 'm' : 'ft'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">Area</p>
+                              <p className="font-medium">
+                                {dims.area} {dims.units === 'm' ? 'm²' : 'sq ft'}
+                              </p>
+                            </div>
+                            <div className="hidden md:block">
+                              <p className="text-sm text-muted-foreground">Position</p>
+                              <p className="font-medium text-xs">
+                                ({Math.round(room.bbox?.x || 0)}, {Math.round(room.bbox?.y || 0)})
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {!dims && room.bbox && (
+                          <div className="text-xs text-muted-foreground">
+                            Position: ({Math.round(room.bbox.x)}, {Math.round(room.bbox.y)}) - 
+                            Size: {Math.round(room.bbox.width)}×{Math.round(room.bbox.height)} px
+                          </div>
+                        )}
                       </div>
-                      
-                      {room.dimensions && (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-3 bg-muted/50 rounded-md">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Dimensions</p>
-                            <p className="font-medium">
-                              {room.dimensions.width}' × {room.dimensions.length}'
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Area</p>
-                            <p className="font-medium">
-                              {room.dimensions.area} sq {room.dimensions.units}
-                            </p>
-                          </div>
-                          <div className="hidden md:block">
-                            <p className="text-sm text-muted-foreground">Position</p>
-                            <p className="font-medium text-xs">
-                              ({Math.round(room.bbox?.x || 0)}, {Math.round(room.bbox?.y || 0)})
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {!room.dimensions && room.bbox && (
-                        <div className="text-xs text-muted-foreground">
-                          Position: ({Math.round(room.bbox.x)}, {Math.round(room.bbox.y)}) - 
-                          Size: {Math.round(room.bbox.width)}×{Math.round(room.bbox.height)} px
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
@@ -275,7 +401,6 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
         </TabsContent>
 
         <TabsContent value="3d-preview" className="space-y-4">
-          {/* Try enhancedRoomData first, fallback to detectedObjects */}
           {(() => {
             const roomData = uploadResult.enhancedRoomData && Array.isArray(uploadResult.enhancedRoomData) && uploadResult.enhancedRoomData.length > 0
               ? uploadResult.enhancedRoomData
@@ -293,9 +418,7 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
               <Card>
                 <CardHeader>
                   <CardTitle>3D Preview</CardTitle>
-                  <CardDescription>
-                    Real-time 3D visualization from room analysis
-                  </CardDescription>
+                  <CardDescription>Real-time 3D visualization from room analysis</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center py-8 text-muted-foreground">
