@@ -349,7 +349,7 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
             }
           }
         }],
-        tool_choice: { type: "function", function: { name: "detect_floor_plan_elements" } },
+        tool_choice: { type: "function", function: { name: "reconstruct_floor_plan_geometry" } },
       }),
     });
 
