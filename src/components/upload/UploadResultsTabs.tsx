@@ -314,9 +314,14 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
                             <span className="font-medium capitalize">
                               {obj.name || rawLabel.replace(/_/g, ' ') || `Room ${idx + 1}`}
                             </span>
-                            {dims && (
+                            {dims?.originalText && (
+                              <Badge variant="secondary" className="ml-1 text-[9px] px-1 py-0 font-mono">
+                                {dims.originalText}
+                              </Badge>
+                            )}
+                            {dims && !dims.originalText && (
                               <span className="text-muted-foreground ml-1">
-                                {dims.width}×{dims.depth}{dims.units === 'm' ? 'm' : "'"} ({dims.area} {dims.units === 'm' ? 'm²' : 'sq ft'})
+                                {dims.width} × {dims.depth} ({dims.area} {dims.units === 'm' ? 'm²' : 'sq ft'})
                               </span>
                             )}
                           </div>
