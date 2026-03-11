@@ -50,7 +50,7 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
 
   const resetCamera = () => { orbitRef.current?.reset(); };
 
-  const totalArea = result.detections.reduce((sum, d) => sum + (parseFloat(d.area_m2) || 0), 0);
+  const totalArea = dimensionsAvailable ? result.detections.reduce((sum, d) => sum + (parseFloat(d.area_m2) || 0), 0) : 0;
 
   const normalizeRoomType = (label: string): string => {
     let l = (label || '').toLowerCase().replace(/^space_/, '').replace(/[\s-]+/g, '_');

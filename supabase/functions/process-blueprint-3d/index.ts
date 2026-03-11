@@ -313,6 +313,12 @@ serve(async (req) => {
 
     const dimensionsAvailable = detectedElements.dimensions_available === true;
 
+    // Sanitize building_info — remove area values if no dimensions on plan
+    if (!dimensionsAvailable && detectedElements.building_info) {
+      detectedElements.building_info.total_area_sqft = 0;
+      detectedElements.building_info.total_area_m2 = 0;
+    }
+
     // Build detections — only include dimensions if they actually exist on the plan
     const detections = (detectedElements.rooms || []).map((room: any) => {
       const hasDims = dimensionsAvailable && room.original_dimension_text && room.original_dimension_text.trim() !== '';
