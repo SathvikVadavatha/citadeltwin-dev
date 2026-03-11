@@ -333,6 +333,16 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
                     num_doors: { type: "number" },
                     num_windows: { type: "number" }
                   }
+                },
+                entrance_info: {
+                  type: "object",
+                  properties: {
+                    entrance_x_px: { type: "number", description: "X pixel coordinate of primary entrance center" },
+                    entrance_y_px: { type: "number", description: "Y pixel coordinate of primary entrance center" },
+                    entrance_label: { type: "string", description: "Label of the entrance door, e.g. 'Front Door'" },
+                    entrance_door_index: { type: "number", description: "Index into doors array for the primary entrance" }
+                  },
+                  required: ["entrance_x_px", "entrance_y_px"]
                 }
               },
               required: ["dimensions_available", "rooms", "walls", "doors", "windows", "scale_info"]
