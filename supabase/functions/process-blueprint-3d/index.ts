@@ -229,7 +229,7 @@ serve(async (req) => {
                     }
                   }
                 },
-                required: ["rooms", "walls", "doors", "windows", "scale_info"]
+                required: ["dimensions_available", "rooms", "walls", "doors", "windows", "scale_info"]
               }
             }
           }
