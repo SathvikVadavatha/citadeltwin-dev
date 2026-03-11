@@ -280,14 +280,14 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
           ))}
         </div>
 
-        {/* Room dimensions detail with original measurement text */}
+        {/* Room list — show names only when no dimensions, show full details when dimensions exist */}
         {result.detections.length > 0 && (
           <>
             <Separator className="my-3" />
             <details className="group" open>
               <summary className="text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
-                📐 Individual room dimensions ({result.detections.length} spaces)
-                {scaleInfo?.scale_source === 'text' && (
+                {dimensionsAvailable ? '📐 Individual room dimensions' : '🏠 Detected rooms'} ({result.detections.length} spaces)
+                {dimensionsAvailable && scaleInfo?.scale_source === 'text' && (
                   <Badge variant="outline" className="ml-2 text-[10px] h-4">OCR-calibrated</Badge>
                 )}
               </summary>
@@ -295,7 +295,7 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
                 {result.detections.map((d, idx) => {
                   const roomType = normalizeRoomType(d.label || d.class || '');
                   const color = getRoomColor(roomType);
-                  const dims = formatDimensions(d);
+                  const dims = dimensionsAvailable ? formatDimensions(d) : '';
                   return (
                     <div key={idx} className="flex items-center gap-2 bg-muted/30 rounded-md px-2 py-1.5">
                       <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0 border border-black/10" style={{ backgroundColor: color }} />
@@ -304,11 +304,11 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
                         {dims && (
                           <span className="text-muted-foreground ml-1">{dims}</span>
                         )}
-                        {d.area_m2 && (
+                        {dimensionsAvailable && d.area_m2 && (
                           <span className="text-muted-foreground/70 ml-1">({d.area_m2} m²)</span>
                         )}
                       </div>
-                      {d.original_dimension_text && (
+                      {dimensionsAvailable && d.original_dimension_text && (
                         <Badge variant="secondary" className="text-[9px] h-4 px-1 flex-shrink-0">
                           {d.original_dimension_text}
                         </Badge>
