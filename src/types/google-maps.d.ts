@@ -223,6 +223,10 @@ declare namespace google {
         function decodePath(encodedPath: string): LatLng[];
         function encodePath(path: any[] | any): string;
       }
+      namespace poly {
+        function containsLocation(point: LatLng | LatLngLiteral, polygon: Polygon): boolean;
+        function isLocationOnEdge(point: LatLng | LatLngLiteral, poly: Polygon | Polyline, tolerance?: number): boolean;
+      }
     }
 
     const ControlPosition: {
