@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Blueprint 3D processing started — BIM-Level Vector Reconstruction Protocol");
+    console.log("Blueprint 3D processing started — Geometric Reconstruction Protocol");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -124,10 +124,10 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
       );
     }
 
-    console.log(`Pre-flight PASSED. Proceeding to BIM-Level Vector Reconstruction...`);
+    console.log(`Pre-flight PASSED. Proceeding to Geometric Reconstruction...`);
 
-    // ==================== STEP 2: FULL BIM ANALYSIS ====================
-    console.log("STEP 2: Full BIM-Level analysis via Gemini Vision...");
+    // ==================== STEP 2: FULL GEOMETRIC RECONSTRUCTION ANALYSIS ====================
+    console.log("STEP 2: Geometric Reconstruction analysis via Gemini Vision...");
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -140,33 +140,38 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
         messages: [
           {
             role: "system",
-            content: `You are a BIM-Level Vector Reconstruction engine. Analyze the floor plan with these STRICT rules:
+            content: `You are a Geometric Reconstruction engine for architectural floor plans. Analyze with these STRICT rules:
 
 ## RULE 1: GEOMETRIC TRUTH — OCR IS ABSOLUTE
-- Do NOT estimate distances from pixels. Use OCR to find EVERY numerical dimension string (e.g., "12' 6\" x 11' 6\"", "3.5m × 4.2m").
+- Use OCR to find EVERY numerical dimension string (e.g., "12' 6\" x 11' 6\"", "3.5m × 4.2m").
 - If a room is labeled with dimensions, those EXACT numbers define the 3D mesh geometry, overriding any visual/pixel data.
+- Maintain the exact unit footprint by snapping wall intersections to the labels provided in the plan.
 - If a room has NO written dimension text, set width_m=0, depth_m=0, area_m2=0 — do NOT guess.
 - Set dimensions_available=true ONLY if actual dimension annotations exist on the plan.
 
-## RULE 2: WALL DIFFERENTIATION & THICKNESS
-- Identify Outer/Exterior Walls vs Interior/Partition Walls by measuring parallel line gaps in the drawing.
-- Standard architectural offsets (use unless plan labels different values):
-  - Exterior Walls: 8 inches (0.2032m) → round to 0.20m
-  - Interior Walls: 5 inches (0.127m) → round to 0.12m
+## RULE 2: STRUCTURAL DIFFERENTIATION (OUTER vs INNER WALLS)
+- Outer Walls: Identify the THICKEST perimeter lines. These are solid, opaque structural elements.
+  - Standard thickness: 8 inches (0.20m) unless labeled otherwise.
+- Inner Partition Walls: Identify interior dividing lines separating individual rooms.
+  - Standard thickness: 5 inches (0.12m) unless labeled otherwise.
 - Return wall_type as "exterior_wall", "interior_wall", or "load_bearing_wall".
 
 ## RULE 3: COMPONENT PLACEMENT — DOORS & WINDOWS
-- Identify door swing arc symbols. Return door center-point (bbox center) and width.
-- Identify window glass lines. Return window center-point and width.
-- Standard door width: 36 inches (0.9144m) ≈ 0.9m unless labeled otherwise.
+- Detect door swing arc symbols. Return door center-point (bbox center) and width.
+- Detect window glass lines. Return window center-point and width.
+- Generate 3D openings at the EXACT center-points indicated in the 2D plan.
+- Standard door width: 36 inches (0.9m) unless labeled otherwise.
 - Standard window width: 36 inches (0.9m) unless labeled otherwise.
 - Assign door_type: "single", "double", "sliding", "pocket", "french", "garage".
 
-## RULE 4: SCALE CALIBRATION
-- Priority 1: Use scale text ratio if found (e.g., "1:100", "1/4\" = 1'-0\"").
-- Priority 2: Use graphic scale bar if found.
-- Priority 3: If NEITHER found, use a standard door width (36 inches / 0.9m) as the calibration reference. Measure the door symbol width in pixels and compute pixels_per_meter = door_width_px / 0.9.
-- Return scale_source: "text", "bar", "door_calibration".
+## RULE 4: SCALE CALIBRATION (LARGEST DIMENSION)
+- Calibrate the pixel-to-meter ratio based on the LARGEST identified dimension string in the plan.
+- Priority 1: Use the LARGEST room dimension string found by OCR as the calibration anchor.
+- Priority 2: Use scale text ratio if found (e.g., "1:100").
+- Priority 3: Use graphic scale bar if found.
+- Priority 4: If NONE found, use a standard door width (36"/0.9m) as fallback.
+- Return scale_source: "largest_dimension", "text", "bar", "door_calibration".
+- Return largest_dimension_text: the exact text of the largest dimension used for calibration.
 
 ## RULE 5: ROOM MATERIAL CLASSIFICATION
 - Based on room text labels, assign semantic material types:
@@ -180,22 +185,25 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
   - Hallway/Corridor → "space_hallway"
   - Other → "space_generic"
 
-## RULE 6: ZERO-DRIFT ANCHORING
-- All geometry must be anchored to origin (0,0,0). The bottom-left corner of the building footprint = origin.
-- Return all bounding boxes in pixels from top-left of image.`
+## RULE 6: ENTRANCE-ANCHORED ORIGIN
+- Identify the PRIMARY ENTRANCE (front door) of the building.
+- This entrance is the absolute origin (0,0,0) for all geometry.
+- Return entrance_x_px and entrance_y_px for the entrance center-point in pixels.
+- All coordinates are relative to the entrance anchor to prevent coordinate drift.`
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: `Perform BIM-Level Vector Reconstruction on this floor plan:
-1. OCR every dimension string — these are absolute truth for mesh generation.
-2. Classify all walls as exterior (thick lines, ~8"/0.2m) or interior (thin lines, ~5"/0.12m).
-3. Detect every door swing symbol and window glass line with center-point positions.
-4. Calibrate scale: use text ratio > scale bar > door-width fallback (0.9m).
+                text: `Perform Geometric Reconstruction on this floor plan:
+1. OCR every dimension string — these are absolute truth for mesh generation. Snap wall intersections to labeled dimensions.
+2. Classify all walls: Outer/perimeter walls (thickest lines, ~8"/0.2m) vs Interior partition walls (thinner lines, ~5"/0.12m).
+3. Detect every door swing symbol and window glass line with exact center-point positions.
+4. Calibrate scale using the LARGEST dimension string found. Report which dimension was used.
 5. Assign room material types based on text labels.
-6. Return precise bounding boxes for all elements.`
+6. Identify the PRIMARY ENTRANCE (front door) — this is the origin anchor (0,0,0).
+7. Return precise bounding boxes for all elements.`
               },
               {
                 type: "image_url",
@@ -207,8 +215,8 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
         tools: [{
           type: "function",
           function: {
-            name: "detect_floor_plan_elements",
-            description: "BIM-Level Vector Reconstruction of all architectural elements",
+            name: "reconstruct_floor_plan_geometry",
+            description: "Geometric Reconstruction of all architectural elements with entrance-anchored origin",
             parameters: {
               type: "object",
               properties: {
@@ -219,10 +227,11 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
                   type: "object",
                   properties: {
                     scale_text: { type: "string", description: "Scale text found, e.g. '1:100'. Empty if none." },
-                    scale_source: { type: "string", enum: ["text", "bar", "door_calibration", "none"], description: "How scale was determined. Use 'door_calibration' if using standard door width as reference." },
-                    pixels_per_meter: { type: "number", description: "Computed pixels per meter. If door_calibration, = door_symbol_width_px / 0.9" },
+                    scale_source: { type: "string", enum: ["largest_dimension", "text", "bar", "door_calibration", "none"], description: "How scale was determined. 'largest_dimension' if calibrated from the largest OCR dimension string." },
+                    pixels_per_meter: { type: "number", description: "Computed pixels per meter." },
                     unit_system: { type: "string", enum: ["imperial", "metric", "unknown"] },
-                    calibration_reference: { type: "string", description: "What was used to calibrate: 'scale_text', 'scale_bar', 'door_width_36in', or 'none'" }
+                    calibration_reference: { type: "string", description: "What was used to calibrate: 'largest_room_dimension', 'scale_text', 'scale_bar', 'door_width_36in', or 'none'" },
+                    largest_dimension_text: { type: "string", description: "The exact text of the largest dimension string used for calibration. Empty if not applicable." }
                   },
                   required: ["scale_source", "pixels_per_meter", "unit_system"]
                 },
@@ -324,13 +333,23 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
                     num_doors: { type: "number" },
                     num_windows: { type: "number" }
                   }
+                },
+                entrance_info: {
+                  type: "object",
+                  properties: {
+                    entrance_x_px: { type: "number", description: "X pixel coordinate of primary entrance center" },
+                    entrance_y_px: { type: "number", description: "Y pixel coordinate of primary entrance center" },
+                    entrance_label: { type: "string", description: "Label of the entrance door, e.g. 'Front Door'" },
+                    entrance_door_index: { type: "number", description: "Index into doors array for the primary entrance" }
+                  },
+                  required: ["entrance_x_px", "entrance_y_px"]
                 }
               },
-              required: ["dimensions_available", "rooms", "walls", "doors", "windows", "scale_info"]
+              required: ["dimensions_available", "rooms", "walls", "doors", "windows", "scale_info", "entrance_info"]
             }
           }
         }],
-        tool_choice: { type: "function", function: { name: "detect_floor_plan_elements" } },
+        tool_choice: { type: "function", function: { name: "reconstruct_floor_plan_geometry" } },
       }),
     });
 
@@ -347,8 +366,9 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
     if (!toolCall) throw new Error("AI did not return structured room data");
 
     const detectedElements = JSON.parse(toolCall.function.arguments);
-    console.log(`BIM analysis: ${detectedElements.rooms?.length || 0} rooms, ${detectedElements.walls?.length || 0} walls, ${detectedElements.doors?.length || 0} doors, ${detectedElements.windows?.length || 0} windows`);
-    console.log(`Scale: ${detectedElements.scale_info?.scale_source || 'unknown'}, px/m: ${detectedElements.scale_info?.pixels_per_meter || 0}`);
+    console.log(`Geometric Reconstruction: ${detectedElements.rooms?.length || 0} rooms, ${detectedElements.walls?.length || 0} walls, ${detectedElements.doors?.length || 0} doors, ${detectedElements.windows?.length || 0} windows`);
+    console.log(`Scale: ${detectedElements.scale_info?.scale_source || 'unknown'}, px/m: ${detectedElements.scale_info?.pixels_per_meter || 0}, largest_dim: ${detectedElements.scale_info?.largest_dimension_text || 'N/A'}`);
+    console.log(`Entrance anchor: (${detectedElements.entrance_info?.entrance_x_px || 'N/A'}, ${detectedElements.entrance_info?.entrance_y_px || 'N/A'}) — ${detectedElements.entrance_info?.entrance_label || 'auto-detected'}`);
 
     // ==================== STEP 3: ENFORCE ARCHITECTURAL DEFAULTS ====================
     // Enforce standard wall thicknesses
@@ -429,12 +449,12 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
       .from('generated_3d_models')
       .insert({
         upload_id: modelUploadId,
-        model_name: `${buildingType} - ${roomCount} Rooms (BIM Vector)`,
-        model_description: `BIM-Level Vector Reconstruction. ${roomCount} rooms, OCR-anchored dimensions. Scale: ${detectedElements.scale_info?.scale_source || 'calibrated'}. Walls: ext=${EXTERIOR_WALL_THICKNESS}m, int=${INTERIOR_WALL_THICKNESS}m.`,
+        model_name: `${buildingType} - ${roomCount} Rooms (Geometric Reconstruction)`,
+        model_description: `Geometric Reconstruction Protocol. ${roomCount} rooms, OCR-anchored dimensions. Scale: ${detectedElements.scale_info?.scale_source || 'calibrated'} (${detectedElements.scale_info?.largest_dimension_text || 'auto'}). Walls: ext=${EXTERIOR_WALL_THICKNESS}m, int=${INTERIOR_WALL_THICKNESS}m. Origin: entrance-anchored.`,
         model_file_path: fileName,
         generation_status: 'completed',
         file_size: glbData.length,
-        generation_prompt: `BIM Vector Reconstruction: ${roomCount} rooms, ${detectedElements.walls?.length || 0} walls, ${detectedElements.doors?.length || 0} doors, ${detectedElements.windows?.length || 0} windows`,
+        generation_prompt: `Geometric Reconstruction: ${roomCount} rooms, ${detectedElements.walls?.length || 0} walls, ${detectedElements.doors?.length || 0} doors, ${detectedElements.windows?.length || 0} windows`,
         processing_time_ms: Date.now() - timestamp,
       })
       .select('id').single();
@@ -589,7 +609,7 @@ function getRoomHeight(label: string): number {
   return 2.7;
 }
 
-// ==================== BIM-Level GLB Generation ====================
+// ==================== Geometric Reconstruction GLB Generation ====================
 
 function generateBIMGLB(elements: any, _uploadId: string): Uint8Array {
   const rooms = elements.rooms || [];
@@ -597,23 +617,57 @@ function generateBIMGLB(elements: any, _uploadId: string): Uint8Array {
   const doors = elements.doors || [];
   const windows = elements.windows || [];
   const scaleInfo = elements.scale_info || {};
+  const entranceInfo = elements.entrance_info || {};
 
-  // Scale calibration: OCR dimensions > scale text > scale bar > door calibration
+  // Scale calibration: Use LARGEST dimension room for calibration (Geometric Truth)
   let pixelsPerMeter = scaleInfo.pixels_per_meter || 50;
 
-  // If we have rooms with both bbox and real dimensions, refine calibration
   const calibrationRooms = rooms.filter((r: any) => r.bbox && r.width_m > 0 && r.depth_m > 0);
   if (calibrationRooms.length > 0) {
-    const scaleFactors = calibrationRooms.map((r: any) => {
-      return ((r.bbox.width / r.width_m) + (r.bbox.height / r.depth_m)) / 2;
+    // Find the room with the LARGEST area (most reliable calibration anchor)
+    const largestRoom = calibrationRooms.reduce((best: any, r: any) => {
+      const area = r.width_m * r.depth_m;
+      const bestArea = best.width_m * best.depth_m;
+      return area > bestArea ? r : best;
     });
-    pixelsPerMeter = scaleFactors.reduce((a: number, b: number) => a + b, 0) / scaleFactors.length;
-    console.log(`Scale calibrated from ${calibrationRooms.length} rooms: ${pixelsPerMeter.toFixed(1)} px/m`);
+    // Calibrate from the largest dimension room
+    pixelsPerMeter = ((largestRoom.bbox.width / largestRoom.width_m) + (largestRoom.bbox.height / largestRoom.depth_m)) / 2;
+    console.log(`Scale calibrated from largest room "${largestRoom.name}": ${pixelsPerMeter.toFixed(1)} px/m (${largestRoom.original_dimension_text || 'N/A'})`);
   }
 
   const modelScale = 1.0;
 
-  // Zero-Drift Anchoring: compute building bounds for origin centering
+  // Entrance-Anchored Origin: use primary entrance as (0,0,0)
+  // All coordinates are offset so the entrance door center maps to origin
+  let anchorX: number, anchorY: number;
+  if (entranceInfo.entrance_x_px && entranceInfo.entrance_y_px) {
+    anchorX = entranceInfo.entrance_x_px / pixelsPerMeter;
+    anchorY = entranceInfo.entrance_y_px / pixelsPerMeter;
+    console.log(`Origin anchored to entrance: (${anchorX.toFixed(2)}, ${anchorY.toFixed(2)})m — "${entranceInfo.entrance_label || 'Front Door'}"`);
+  } else {
+    // Fallback: use building footprint center if no entrance detected
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    rooms.forEach((r: any) => {
+      if (r.bbox) {
+        const rX = r.bbox.x / pixelsPerMeter;
+        const rY = r.bbox.y / pixelsPerMeter;
+        const rW = r.width_m > 0 ? r.width_m : (r.bbox.width / pixelsPerMeter);
+        const rH = r.depth_m > 0 ? r.depth_m : (r.bbox.height / pixelsPerMeter);
+        minX = Math.min(minX, rX);
+        minY = Math.min(minY, rY);
+        maxX = Math.max(maxX, rX + rW);
+        maxY = Math.max(maxY, rY + rH);
+      }
+    });
+    if (!isFinite(minX)) { minX = 0; minY = 0; maxX = 20; maxY = 15; }
+    anchorX = (minX + maxX) / 2;
+    anchorY = (minY + maxY) / 2;
+    console.log(`No entrance detected — fallback to footprint center: (${anchorX.toFixed(2)}, ${anchorY.toFixed(2)})m`);
+  }
+  const centerOffsetX = anchorX;
+  const centerOffsetY = anchorY;
+
+  // Compute building bounds for foundation slab
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   rooms.forEach((r: any) => {
     if (r.bbox) {
@@ -832,9 +886,9 @@ function generateBIMGLB(elements: any, _uploadId: string): Uint8Array {
   const nodeIndices = sceneNodes.map((_, i) => i);
 
   const gltfJson = {
-    asset: { version: "2.0", generator: "CitadelTwin BIM Vector v4" },
+    asset: { version: "2.0", generator: "CitadelTwin Geometric Reconstruction v5" },
     scene: 0,
-    scenes: [{ name: "CitadelTwin BIM Reconstruction", nodes: nodeIndices }],
+    scenes: [{ name: "CitadelTwin Geometric Reconstruction", nodes: nodeIndices }],
     nodes: sceneNodes,
     meshes, materials, accessors, bufferViews,
     buffers: [{ byteLength: totalBinarySize }],
@@ -977,7 +1031,7 @@ function generateHTMLVisualization(elements: any): string {
   return `<div style="font-family:system-ui,sans-serif;background:#1a1a2e;padding:20px;border-radius:8px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
       <h3 style="margin:0;font-size:16px;font-weight:700;color:#e2e8f0;">
-        🏠 BIM Vector Reconstruction — ${rooms.length} rooms
+        🏠 Geometric Reconstruction — ${rooms.length} rooms
         ${elements.building_info?.total_area_sqft ? `<span style="font-size:12px;font-weight:400;color:#94a3b8;margin-left:8px;">${elements.building_info.total_area_sqft} sq ft</span>` : ''}
         ${scaleLabel ? `<span style="font-size:11px;color:#94a3b8;margin-left:8px;">${scaleLabel}</span>` : ''}
       </h3>
