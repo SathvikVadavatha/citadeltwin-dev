@@ -667,24 +667,6 @@ function generateBIMGLB(elements: any, _uploadId: string): Uint8Array {
   const centerOffsetX = anchorX;
   const centerOffsetY = anchorY;
 
-  // Compute building bounds for foundation slab
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  rooms.forEach((r: any) => {
-    if (r.bbox) {
-      const rX = r.bbox.x / pixelsPerMeter;
-      const rY = r.bbox.y / pixelsPerMeter;
-      const rW = r.width_m > 0 ? r.width_m : (r.bbox.width / pixelsPerMeter);
-      const rH = r.depth_m > 0 ? r.depth_m : (r.bbox.height / pixelsPerMeter);
-      minX = Math.min(minX, rX);
-      minY = Math.min(minY, rY);
-      maxX = Math.max(maxX, rX + rW);
-      maxY = Math.max(maxY, rY + rH);
-    }
-  });
-  if (!isFinite(minX)) { minX = 0; minY = 0; maxX = 20; maxY = 15; }
-  const centerOffsetX = (minX + maxX) / 2;
-  const centerOffsetY = (minY + maxY) / 2;
-
   const meshes: any[] = [];
   const materials: any[] = [];
   const accessors: any[] = [];
