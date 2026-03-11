@@ -334,6 +334,47 @@ export const UploadResultsTabs: React.FC<UploadResultsTabsProps> = ({
             </Card>
           )}
 
+          {/* Scale & Wall Classification */}
+          {(uploadResult.scaleInfo || uploadResult.walls?.length) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {uploadResult.scaleInfo && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Scale & Units</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1">
+                    <p className="text-sm"><span className="text-muted-foreground">Unit System:</span> <span className="font-medium capitalize">{uploadResult.scaleInfo.unit_system}</span></p>
+                    <p className="text-sm"><span className="text-muted-foreground">Scale Source:</span> <span className="font-medium capitalize">{uploadResult.scaleInfo.scale_source}</span></p>
+                    {uploadResult.scaleInfo.scale_text && (
+                      <p className="text-sm"><span className="text-muted-foreground">Scale Text:</span> <code className="text-xs bg-muted px-1 rounded">{uploadResult.scaleInfo.scale_text}</code></p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+              {uploadResult.walls && uploadResult.walls.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Wall Classification</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-1">
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Exterior Walls:</span>{' '}
+                      <span className="font-medium">{uploadResult.walls.filter((w: any) => w.wall_type === 'exterior_wall').length}</span>
+                    </p>
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Interior Walls:</span>{' '}
+                      <span className="font-medium">{uploadResult.walls.filter((w: any) => w.wall_type === 'interior_wall').length}</span>
+                    </p>
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Load-Bearing:</span>{' '}
+                      <span className="font-medium">{uploadResult.walls.filter((w: any) => w.wall_type === 'load_bearing_wall').length}</span>
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
           {uploadResult.errorMessage && (
             <Card className="border-destructive">
               <CardHeader>
