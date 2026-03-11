@@ -3,7 +3,7 @@
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
-    "types": ["google.maps"],
+    "types": ["vite/client", "google.maps"],
     "lib": [
       "ES2020",
       "DOM",
