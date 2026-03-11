@@ -13,6 +13,9 @@ interface UploadResult {
   model3DGenerated?: boolean;
   generating3D?: boolean;
   enhancedRoomData?: any[];
+  scaleInfo?: any;
+  buildingInfo?: any;
+  walls?: any[];
 }
 
 interface UploadResultsProps {
