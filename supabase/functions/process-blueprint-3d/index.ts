@@ -754,106 +754,290 @@ function generateBIMGLB(elements: any, _uploadId: string): Uint8Array {
     nodeList.push(meshIdx);
   }
 
-  // Foundation slab
-  const bw = (maxX - minX) * modelScale + 2;
-  const bd = (maxY - minY) * modelScale + 2;
-  addBoxMesh("foundation", -bw/2, -0.25, -bd/2, bw/2, 0.0, bd/2, [0.22, 0.22, 0.24], 0.1, 0.8);
-
-  // Rooms — use OCR dimensions as absolute truth (Snap-to-Measurement)
-  rooms.forEach((room: any, i: number) => {
+  // ===== Compute room rectangles in meters (OCR-snapped) =====
+  interface RoomRect {
+    x0: number; z0: number; x1: number; z1: number;
+    w: number; d: number; h: number; label: string; name: string;
+    color: [number, number, number]; materialClass: string;
+  }
+  const roomRects: RoomRect[] = rooms.map((room: any) => {
     const bbox = room.bbox;
-    // OCR dimensions override pixel geometry
     const w = (room.width_m > 0 ? room.width_m : (bbox.width / pixelsPerMeter)) * modelScale;
     const d = (room.depth_m > 0 ? room.depth_m : (bbox.height / pixelsPerMeter)) * modelScale;
     const h = getRoomHeight(room.label);
     const cx = ((bbox.x + bbox.width / 2) / pixelsPerMeter - centerOffsetX) * modelScale;
     const cz = ((bbox.y + bbox.height / 2) / pixelsPerMeter - centerOffsetY) * modelScale;
-    const color = getRoomColor(room.label, room.material_class);
+    return {
+      x0: cx - w / 2, z0: cz - d / 2, x1: cx + w / 2, z1: cz + d / 2,
+      w, d, h, label: room.label, name: room.name || room.label,
+      color: getRoomColor(room.label, room.material_class),
+      materialClass: room.material_class || `space_${room.label}`,
+    };
+  });
 
+  // Building footprint for foundation
+  let footMinX = Infinity, footMinZ = Infinity, footMaxX = -Infinity, footMaxZ = -Infinity;
+  roomRects.forEach(r => {
+    footMinX = Math.min(footMinX, r.x0); footMinZ = Math.min(footMinZ, r.z0);
+    footMaxX = Math.max(footMaxX, r.x1); footMaxZ = Math.max(footMaxZ, r.z1);
+  });
+  if (!isFinite(footMinX)) { footMinX = -10; footMinZ = -8; footMaxX = 10; footMaxZ = 8; }
+
+  // Foundation slab (extends 0.3m beyond building footprint)
+  const PAD = 0.3;
+  addBoxMesh("foundation",
+    footMinX - PAD, -0.15, footMinZ - PAD,
+    footMaxX + PAD, 0.0, footMaxZ + PAD,
+    [0.22, 0.22, 0.24], 0.1, 0.8
+  );
+
+  // ===== Room floor slabs (thin, colored) =====
+  const FLOOR_THICKNESS = 0.02;
+  roomRects.forEach((r, i) => {
     addBoxMesh(
-      room.name || room.label,
-      cx - w/2, 0, cz - d/2,
-      cx + w/2, h, cz + d/2,
-      color, 0.0, 0.85
+      `floor_${r.name}`,
+      r.x0, 0.0, r.z0,
+      r.x1, FLOOR_THICKNESS, r.z1,
+      r.color, 0.0, 0.85
     );
   });
 
-  // Walls with enforced architectural thickness
-  walls.forEach((wall: any, i: number) => {
-    if (!wall.bbox) return;
-    const wallType = wall.wall_type || 'interior_wall';
-    const thickness = wall.thickness_m; // Already enforced in Step 3
-    const wallColor = WALL_COLORS[wallType] || WALL_COLORS.interior_wall;
-    const wallHeight = wallType === 'exterior_wall' || wallType === 'load_bearing_wall' ? 3.0 : 2.7;
+  // ===== Helper: check if a room edge is on the building perimeter =====
+  function isPerimeterEdge(
+    edgeAxis: 'x' | 'z', edgeVal: number,
+    perpStart: number, perpEnd: number, side: 'min' | 'max', roomIdx: number
+  ): boolean {
+    const SNAP = 0.15; // tolerance for adjacency
+    for (let j = 0; j < roomRects.length; j++) {
+      if (j === roomIdx) continue;
+      const other = roomRects[j];
+      if (edgeAxis === 'x') {
+        // Check if another room is adjacent on this X edge
+        const otherEdge = side === 'min' ? other.x1 : other.x0;
+        if (Math.abs(otherEdge - edgeVal) < SNAP) {
+          // Check Z overlap
+          const overlapStart = Math.max(perpStart, other.z0);
+          const overlapEnd = Math.min(perpEnd, other.z1);
+          if (overlapEnd - overlapStart > SNAP) return false; // has neighbor → interior
+        }
+      } else {
+        const otherEdge = side === 'min' ? other.z1 : other.z0;
+        if (Math.abs(otherEdge - edgeVal) < SNAP) {
+          const overlapStart = Math.max(perpStart, other.x0);
+          const overlapEnd = Math.min(perpEnd, other.x1);
+          if (overlapEnd - overlapStart > SNAP) return false;
+        }
+      }
+    }
+    return true; // no neighbor found → perimeter
+  }
 
-    const wX = (wall.bbox.x / pixelsPerMeter - centerOffsetX) * modelScale;
-    const wZ = (wall.bbox.y / pixelsPerMeter - centerOffsetY) * modelScale;
-    const wW = (wall.bbox.width / pixelsPerMeter) * modelScale;
-    const wD = (wall.bbox.height / pixelsPerMeter) * modelScale;
-
-    const isHorizontal = wW > wD;
-    const wallLen = isHorizontal ? wW : wD;
-    const wallThick = thickness * modelScale;
-    const cx = wX + wW / 2;
-    const cz = wZ + wD / 2;
-
-    addBoxMesh(
-      `${wallType}_${i}`,
-      isHorizontal ? cx - wallLen/2 : cx - wallThick/2,
-      0,
-      isHorizontal ? cz - wallThick/2 : cz - wallLen/2,
-      isHorizontal ? cx + wallLen/2 : cx + wallThick/2,
-      wallHeight,
-      isHorizontal ? cz + wallThick/2 : cz + wallLen/2,
-      wallColor,
-      wallType === 'exterior_wall' ? 0.15 : 0.0,
-      wallType === 'exterior_wall' ? 0.6 : 0.9
-    );
-  });
-
-  // Door openings — 3D geometry at exact center-points
-  doors.forEach((door: any, i: number) => {
-    if (!door.bbox) return;
-    const doorW = door.width_m || STANDARD_DOOR_WIDTH;
-    const doorH = door.height_m || STANDARD_DOOR_HEIGHT;
+  // ===== Helper: check if a door/window overlaps a wall segment =====
+  interface Opening { cx: number; cz: number; halfW: number; isHorizontal: boolean; }
+  const doorOpenings: (Opening & { doorH: number; doorW: number })[] = doors.map((door: any) => {
     const centerPx = door.center_x_px || (door.bbox.x + door.bbox.width / 2);
     const centerPy = door.center_y_px || (door.bbox.y + door.bbox.height / 2);
-
     const cx = (centerPx / pixelsPerMeter - centerOffsetX) * modelScale;
     const cz = (centerPy / pixelsPerMeter - centerOffsetY) * modelScale;
-    const halfW = (doorW / 2) * modelScale;
-    const depth = 0.05 * modelScale; // thin door slab
-
-    addBoxMesh(
-      `door_${door.door_type || 'single'}_${i}`,
-      cx - halfW, 0, cz - depth,
-      cx + halfW, doorH, cz + depth,
-      [0.55, 0.35, 0.15], // Wood brown
-      0.0, 0.7
-    );
+    const doorW = (door.width_m || STANDARD_DOOR_WIDTH) * modelScale;
+    // Determine orientation from bbox
+    const bboxW = door.bbox.width / pixelsPerMeter;
+    const bboxH = door.bbox.height / pixelsPerMeter;
+    return { cx, cz, halfW: doorW / 2, isHorizontal: bboxW >= bboxH, doorH: door.height_m || STANDARD_DOOR_HEIGHT, doorW };
   });
 
-  // Window openings — 3D geometry at center-points with sill height
-  windows.forEach((win: any, i: number) => {
-    if (!win.bbox) return;
-    const winW = win.width_m || 0.9;
-    const winH = win.height_m || STANDARD_WINDOW_HEIGHT;
-    const sillH = win.sill_height_m || STANDARD_WINDOW_SILL;
+  const windowOpenings: (Opening & { winW: number; winH: number; sillH: number })[] = windows.map((win: any) => {
     const centerPx = win.center_x_px || (win.bbox.x + win.bbox.width / 2);
     const centerPy = win.center_y_px || (win.bbox.y + win.bbox.height / 2);
-
     const cx = (centerPx / pixelsPerMeter - centerOffsetX) * modelScale;
     const cz = (centerPy / pixelsPerMeter - centerOffsetY) * modelScale;
-    const halfW = (winW / 2) * modelScale;
-    const depth = 0.03 * modelScale; // thin glass pane
+    const winW = (win.width_m || 0.9) * modelScale;
+    const bboxW = win.bbox.width / pixelsPerMeter;
+    const bboxH = win.bbox.height / pixelsPerMeter;
+    return {
+      cx, cz, halfW: winW / 2, isHorizontal: bboxW >= bboxH,
+      winW, winH: win.height_m || STANDARD_WINDOW_HEIGHT,
+      sillH: win.sill_height_m || STANDARD_WINDOW_SILL,
+    };
+  });
 
-    addBoxMesh(
-      `window_${i}`,
-      cx - halfW, sillH, cz - depth,
-      cx + halfW, sillH + winH, cz + depth,
-      [0.53, 0.81, 0.92], // Light blue glass
-      0.3, 0.2
-    );
+  function getOverlappingDoor(
+    wallStart: number, wallEnd: number, wallPerp: number,
+    isHorizontalWall: boolean, tolerance: number
+  ): (Opening & { doorH: number; doorW: number })[] {
+    return doorOpenings.filter(d => {
+      if (d.isHorizontal !== isHorizontalWall) return false;
+      const perpCoord = isHorizontalWall ? d.cz : d.cx;
+      const mainCoord = isHorizontalWall ? d.cx : d.cz;
+      return Math.abs(perpCoord - wallPerp) < tolerance &&
+             mainCoord - d.halfW < wallEnd && mainCoord + d.halfW > wallStart;
+    });
+  }
+
+  function getOverlappingWindows(
+    wallStart: number, wallEnd: number, wallPerp: number,
+    isHorizontalWall: boolean, tolerance: number
+  ): (Opening & { winW: number; winH: number; sillH: number })[] {
+    return windowOpenings.filter(w => {
+      if (w.isHorizontal !== isHorizontalWall) return false;
+      const perpCoord = isHorizontalWall ? w.cz : w.cx;
+      const mainCoord = isHorizontalWall ? w.cx : w.cz;
+      return Math.abs(perpCoord - wallPerp) < tolerance &&
+             mainCoord - w.halfW < wallEnd && mainCoord + w.halfW > wallStart;
+    });
+  }
+
+  // ===== Generate walls from room perimeters =====
+  let wallIdx = 0;
+  roomRects.forEach((r, ri) => {
+    // 4 edges: left (x0), right (x1), top/front (z0), bottom/back (z1)
+    const edges: { axis: 'x' | 'z'; val: number; start: number; end: number; side: 'min' | 'max'; isHorizontal: boolean }[] = [
+      { axis: 'x', val: r.x0, start: r.z0, end: r.z1, side: 'min', isHorizontal: false }, // left wall (vertical)
+      { axis: 'x', val: r.x1, start: r.z0, end: r.z1, side: 'max', isHorizontal: false }, // right wall
+      { axis: 'z', val: r.z0, start: r.x0, end: r.x1, side: 'min', isHorizontal: true },  // front wall (horizontal)
+      { axis: 'z', val: r.z1, start: r.x0, end: r.x1, side: 'max', isHorizontal: true },  // back wall
+    ];
+
+    edges.forEach(edge => {
+      const isExt = isPerimeterEdge(edge.axis, edge.val, edge.start, edge.end, edge.side, ri);
+      const thickness = isExt ? EXTERIOR_WALL_THICKNESS : INTERIOR_WALL_THICKNESS;
+      const wallHeight = isExt ? 3.0 : r.h;
+      const wallColor = isExt ? WALL_COLORS.exterior_wall : WALL_COLORS.interior_wall;
+      const halfT = thickness / 2;
+
+      // Check for door/window openings on this edge
+      const tolerance = isExt ? thickness + 0.3 : thickness + 0.2;
+      const overlappingDoors = getOverlappingDoor(edge.start, edge.end, edge.val, edge.isHorizontal, tolerance);
+      const overlappingWins = getOverlappingWindows(edge.start, edge.end, edge.val, edge.isHorizontal, tolerance);
+
+      // Collect cut ranges along the wall's main axis
+      type CutRange = { start: number; end: number; type: 'door' | 'window'; doorH?: number; sillH?: number; winH?: number };
+      const cuts: CutRange[] = [];
+      overlappingDoors.forEach(d => {
+        const main = edge.isHorizontal ? d.cx : d.cz;
+        cuts.push({ start: main - d.halfW, end: main + d.halfW, type: 'door', doorH: d.doorH });
+      });
+      overlappingWins.forEach(w => {
+        const main = edge.isHorizontal ? w.cx : w.cz;
+        cuts.push({ start: main - w.halfW, end: main + w.halfW, type: 'window', sillH: w.sillH, winH: w.winH });
+      });
+      cuts.sort((a, b) => a.start - b.start);
+
+      // Generate wall segments with cuts
+      let cursor = edge.start;
+      const segments: { s: number; e: number }[] = [];
+      cuts.forEach(cut => {
+        const clampedStart = Math.max(cut.start, edge.start);
+        const clampedEnd = Math.min(cut.end, edge.end);
+        if (clampedStart > cursor + 0.05) {
+          segments.push({ s: cursor, e: clampedStart });
+        }
+        // For doors: add wall above door (lintel)
+        if (cut.type === 'door' && cut.doorH && cut.doorH < wallHeight) {
+          if (edge.isHorizontal) {
+            addBoxMesh(`lintel_${wallIdx}`,
+              clampedStart, cut.doorH, edge.val - halfT,
+              clampedEnd, wallHeight, edge.val + halfT,
+              wallColor, isExt ? 0.15 : 0.0, isExt ? 0.6 : 0.9);
+          } else {
+            addBoxMesh(`lintel_${wallIdx}`,
+              edge.val - halfT, cut.doorH, clampedStart,
+              edge.val + halfT, wallHeight, clampedEnd,
+              wallColor, isExt ? 0.15 : 0.0, isExt ? 0.6 : 0.9);
+          }
+          wallIdx++;
+        }
+        // For windows: add wall below sill + above window + glass pane
+        if (cut.type === 'window') {
+          const sill = cut.sillH || STANDARD_WINDOW_SILL;
+          const winH = cut.winH || STANDARD_WINDOW_HEIGHT;
+          // Wall below sill
+          if (sill > 0.05) {
+            if (edge.isHorizontal) {
+              addBoxMesh(`sill_wall_${wallIdx}`,
+                clampedStart, 0, edge.val - halfT,
+                clampedEnd, sill, edge.val + halfT,
+                wallColor, isExt ? 0.15 : 0.0, isExt ? 0.6 : 0.9);
+            } else {
+              addBoxMesh(`sill_wall_${wallIdx}`,
+                edge.val - halfT, 0, clampedStart,
+                edge.val + halfT, sill, clampedEnd,
+                wallColor, isExt ? 0.15 : 0.0, isExt ? 0.6 : 0.9);
+            }
+            wallIdx++;
+          }
+          // Wall above window
+          if (sill + winH < wallHeight - 0.05) {
+            if (edge.isHorizontal) {
+              addBoxMesh(`header_${wallIdx}`,
+                clampedStart, sill + winH, edge.val - halfT,
+                clampedEnd, wallHeight, edge.val + halfT,
+                wallColor, isExt ? 0.15 : 0.0, isExt ? 0.6 : 0.9);
+            } else {
+              addBoxMesh(`header_${wallIdx}`,
+                edge.val - halfT, sill + winH, clampedStart,
+                edge.val + halfT, wallHeight, clampedEnd,
+                wallColor, isExt ? 0.15 : 0.0, isExt ? 0.6 : 0.9);
+            }
+            wallIdx++;
+          }
+          // Glass pane
+          const glassThin = 0.02;
+          if (edge.isHorizontal) {
+            addBoxMesh(`glass_${wallIdx}`,
+              clampedStart, sill, edge.val - glassThin,
+              clampedEnd, sill + winH, edge.val + glassThin,
+              [0.53, 0.81, 0.92], 0.3, 0.2);
+          } else {
+            addBoxMesh(`glass_${wallIdx}`,
+              edge.val - glassThin, sill, clampedStart,
+              edge.val + glassThin, sill + winH, clampedEnd,
+              [0.53, 0.81, 0.92], 0.3, 0.2);
+          }
+          wallIdx++;
+        }
+        // Door slab geometry
+        if (cut.type === 'door') {
+          const doorThin = 0.04;
+          const dH = cut.doorH || STANDARD_DOOR_HEIGHT;
+          if (edge.isHorizontal) {
+            addBoxMesh(`door_panel_${wallIdx}`,
+              clampedStart, 0, edge.val - doorThin,
+              clampedEnd, dH, edge.val + doorThin,
+              [0.55, 0.35, 0.15], 0.0, 0.7);
+          } else {
+            addBoxMesh(`door_panel_${wallIdx}`,
+              edge.val - doorThin, 0, clampedStart,
+              edge.val + doorThin, dH, clampedEnd,
+              [0.55, 0.35, 0.15], 0.0, 0.7);
+          }
+          wallIdx++;
+        }
+        cursor = clampedEnd;
+      });
+      if (cursor < edge.end - 0.05) {
+        segments.push({ s: cursor, e: edge.end });
+      }
+      if (cuts.length === 0) {
+        segments.push({ s: edge.start, e: edge.end });
+      }
+
+      // Render solid wall segments
+      segments.forEach(seg => {
+        if (edge.isHorizontal) {
+          addBoxMesh(`wall_${wallIdx}`,
+            seg.s, 0, edge.val - halfT,
+            seg.e, wallHeight, edge.val + halfT,
+            wallColor, isExt ? 0.15 : 0.0, isExt ? 0.6 : 0.9);
+        } else {
+          addBoxMesh(`wall_${wallIdx}`,
+            edge.val - halfT, 0, seg.s,
+            edge.val + halfT, wallHeight, seg.e,
+            wallColor, isExt ? 0.15 : 0.0, isExt ? 0.6 : 0.9);
+        }
+        wallIdx++;
+      });
+    });
   });
 
   // Combine all binary chunks into GLB
