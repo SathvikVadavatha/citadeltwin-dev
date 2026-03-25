@@ -752,19 +752,123 @@ function generateBIMGLB(elements: any, _uploadId: string): Uint8Array {
     w: number; d: number; h: number; label: string; name: string;
     color: [number, number, number]; materialClass: string;
   }
-  const roomRects: RoomRect[] = rooms.map((room: any) => {
+
+  // --- Room layout reconstruction (reliable dims; bbox x/y only for row grouping) ---
+  const reconstructedPositions = new Map<number, { newX: number; newZ: number }>();
+  let layoutTotalWidthM = 0;
+  let layoutTotalHeightM = 0;
+
+  let minRoomBboxY = Infinity;
+  let maxRoomBboxBottom = -Infinity;
+  rooms.forEach((r: any) => {
+    if (r.bbox) {
+      minRoomBboxY = Math.min(minRoomBboxY, r.bbox.y);
+      maxRoomBboxBottom = Math.max(maxRoomBboxBottom, r.bbox.y + r.bbox.height);
+    }
+  });
+  const totalBuildingHeightForRows = maxRoomBboxBottom - minRoomBboxY;
+  const rowYThreshold =
+    isFinite(totalBuildingHeightForRows) && totalBuildingHeightForRows > 0
+      ? totalBuildingHeightForRows * 0.25
+      : 0;
+
+  type IndexedRoom = { room: any; idx: number };
+  const indexedWithBbox: IndexedRoom[] = rooms
+    .map((r: any, idx: number) => ({ room: r, idx }))
+    .filter((x: IndexedRoom) => x.room.bbox);
+
+  indexedWithBbox.sort((a, b) => a.room.bbox.y - b.room.bbox.y);
+
+  const layoutRows: IndexedRoom[][] = [];
+  for (const item of indexedWithBbox) {
+    if (layoutRows.length === 0) {
+      layoutRows.push([item]);
+    } else {
+      const curRow = layoutRows[layoutRows.length - 1];
+      const rowMinY = curRow[0].room.bbox.y;
+      if (item.room.bbox.y - rowMinY <= rowYThreshold) {
+        curRow.push(item);
+      } else {
+        layoutRows.push([item]);
+      }
+    }
+  }
+
+  layoutRows.sort((ra, rb) => ra[0].room.bbox.y - rb[0].room.bbox.y);
+  for (const row of layoutRows) {
+    row.sort((a, b) => a.room.bbox.x - b.room.bbox.x);
+  }
+
+  console.log('Layout rows detected:', layoutRows.length);
+  layoutRows.forEach((row, i) => {
+    console.log('Row', i, ':', row.map(r => r.room.name || r.room.label).join(', '));
+  });
+
+  function roomWidthMeters(r: any): number {
+    return r.width_m > 0 ? r.width_m : r.bbox.width / pixelsPerMeter;
+  }
+  function roomDepthMeters(r: any): number {
+    return r.depth_m > 0 ? r.depth_m : r.bbox.height / pixelsPerMeter;
+  }
+
+  const rowHeightsM: number[] = layoutRows.map(row =>
+    Math.max(...row.map(({ room }) => roomDepthMeters(room)))
+  );
+  layoutTotalHeightM = rowHeightsM.reduce((a, b) => a + b, 0);
+  for (const row of layoutRows) {
+    const rowSumW = row.reduce((sum, { room }) => sum + roomWidthMeters(room), 0);
+    layoutTotalWidthM = Math.max(layoutTotalWidthM, rowSumW);
+  }
+
+  let accumRowStartZ = 0;
+  for (let ri = 0; ri < layoutRows.length; ri++) {
+    const row = layoutRows[ri];
+    let roomStartX = 0;
+    for (const { room, idx } of row) {
+      reconstructedPositions.set(idx, { newX: roomStartX, newZ: accumRowStartZ });
+      roomStartX += roomWidthMeters(room);
+    }
+    accumRowStartZ += rowHeightsM[ri];
+  }
+
+  const roomRects: RoomRect[] = rooms.map((room: any, roomIndex: number) => {
     const bbox = room.bbox;
     const w = (room.width_m > 0 ? room.width_m : (bbox.width / pixelsPerMeter)) * modelScale;
     const d = (room.depth_m > 0 ? room.depth_m : (bbox.height / pixelsPerMeter)) * modelScale;
     const h = getRoomHeight(room.label);
-    const cx = ((bbox.x + bbox.width / 2) / pixelsPerMeter - centerOffsetX) * modelScale;
-    const cz = ((bbox.y + bbox.height / 2) / pixelsPerMeter - centerOffsetY) * modelScale;
+    const rwM = room.width_m > 0 ? room.width_m : bbox.width / pixelsPerMeter;
+    const rdM = room.depth_m > 0 ? room.depth_m : bbox.height / pixelsPerMeter;
+    const recon = reconstructedPositions.get(roomIndex);
+    let cx: number;
+    let cz: number;
+    if (recon) {
+      cx = (recon.newX + rwM / 2 - layoutTotalWidthM / 2) * modelScale;
+      cz = (recon.newZ + rdM / 2 - layoutTotalHeightM / 2) * modelScale;
+    } else {
+      cx = ((bbox.x + bbox.width / 2) / pixelsPerMeter - centerOffsetX) * modelScale;
+      cz = ((bbox.y + bbox.height / 2) / pixelsPerMeter - centerOffsetY) * modelScale;
+    }
     return {
       x0: cx - w / 2, z0: cz - d / 2, x1: cx + w / 2, z1: cz + d / 2,
       w, d, h, label: room.label, name: room.name || room.label,
       color: getRoomColor(room.label, room.material_class),
       materialClass: room.material_class || `space_${room.label}`,
     };
+  });
+
+  console.log('Reconstructed room positions:');
+  roomRects.forEach(r => {
+    console.log(
+      r.name,
+      '→ x0:',
+      r.x0.toFixed(2),
+      'z0:',
+      r.z0.toFixed(2),
+      'x1:',
+      r.x1.toFixed(2),
+      'z1:',
+      r.z1.toFixed(2)
+    );
   });
 
   // Building footprint for foundation
