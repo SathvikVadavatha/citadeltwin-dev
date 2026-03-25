@@ -97,11 +97,16 @@ export function loadOpenCV(): Promise<void> {
     script.async = true;
     
     script.onload = () => {
-      // Wait for OpenCV to be ready
+      // Wait for OpenCV to be ready with a 30s timeout
+      let attempts = 0;
+      const maxAttempts = 300; // 30 seconds at 100ms intervals
       const checkOpenCV = () => {
         if (window.cv && window.cv.Mat) {
           resolve();
+        } else if (attempts >= maxAttempts) {
+          reject(new Error('OpenCV.js timed out during initialization — CSP may be blocking WebAssembly eval'));
         } else {
+          attempts++;
           setTimeout(checkOpenCV, 100);
         }
       };

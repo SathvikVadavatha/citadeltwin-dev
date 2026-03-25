@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BlueprintUploadBox } from './BlueprintUploadBox';
 import { Blueprint3DViewer } from './Blueprint3DViewer';
 import { ProcessingStatus } from './ProcessingStatus';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface ProcessingResult {
   glb_url: string;
@@ -65,13 +66,28 @@ export const BlueprintTo3DConverter: React.FC = () => {
       const formData = new FormData();
       formData.append('file', file);
 
+      // Get auth token for the edge function
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
+      // Abort if the request takes longer than 120 seconds
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120_000);
+
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-blueprint-3d`,
         {
           method: 'POST',
+          headers,
           body: formData,
+          signal: controller.signal,
         }
       );
+
+      clearTimeout(timeout);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -91,7 +107,11 @@ export const BlueprintTo3DConverter: React.FC = () => {
       }
     } catch (err) {
       console.error('Blueprint processing error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred during processing');
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setError('Processing timed out after 2 minutes. The AI service may be overloaded — please try again.');
+      } else {
+        setError(err instanceof Error ? err.message : 'An error occurred during processing');
+      }
     } finally {
       setIsProcessing(false);
     }
