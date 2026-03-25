@@ -79,22 +79,22 @@ export const FEALoadsManager = ({ analysisId, loads, onRefresh }: FEALoadsManage
   };
 
   return (
-    <Card className="bg-gray-900 border-gray-700">
+    <Card className="bg-card border-border">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-cyan-300 flex items-center gap-2">
+            <CardTitle className="text-primary flex items-center gap-2">
               <Zap className="w-5 h-5" />
               Loads & Forces
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Define forces and loads acting on the structure
             </CardDescription>
           </div>
           <Button
             size="sm"
             onClick={() => setIsCreating(!isCreating)}
-            className="bg-cyan-600 hover:bg-cyan-700"
+            className="bg-primary hover:bg-primary/90"
           >
             <Plus className="w-4 h-4 mr-1" />
             Add Load
@@ -105,30 +105,30 @@ export const FEALoadsManager = ({ analysisId, loads, onRefresh }: FEALoadsManage
         
         {/* Create New Load Form */}
         {isCreating && (
-          <div className="bg-gray-800 p-4 rounded-lg space-y-4">
-            <h4 className="font-medium text-gray-200">Create New Load</h4>
+          <div className="bg-muted p-4 rounded-lg space-y-4">
+            <h4 className="font-medium text-foreground">Create New Load</h4>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-gray-200">Load Name</Label>
+                <Label className="text-foreground">Load Name</Label>
                 <Input
                   value={newLoad.name}
                   onChange={(e) => setNewLoad({ ...newLoad, name: e.target.value })}
                   placeholder="Enter load name"
-                  className="bg-gray-700 border-gray-600 text-gray-100"
+                  className="bg-secondary border-border text-foreground"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label className="text-gray-200">Load Type</Label>
+                <Label className="text-foreground">Load Type</Label>
                 <Select 
                   value={newLoad.load_type} 
                   onValueChange={(value: any) => setNewLoad({ ...newLoad, load_type: value })}
                 >
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-gray-100">
+                  <SelectTrigger className="bg-secondary border-border text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-700 border-gray-600">
+                  <SelectContent className="bg-secondary border-border">
                     <SelectItem value="point_load">Point Load</SelectItem>
                     <SelectItem value="distributed_load">Distributed Load</SelectItem>
                     <SelectItem value="moment">Moment</SelectItem>
@@ -142,17 +142,17 @@ export const FEALoadsManager = ({ analysisId, loads, onRefresh }: FEALoadsManage
 
             <div className="grid grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label className="text-gray-200">Magnitude (N)</Label>
+                <Label className="text-foreground">Magnitude (N)</Label>
                 <Input
                   type="number"
                   value={newLoad.magnitude}
                   onChange={(e) => setNewLoad({ ...newLoad, magnitude: parseFloat(e.target.value) || 0 })}
-                  className="bg-gray-700 border-gray-600 text-gray-100"
+                  className="bg-secondary border-border text-foreground"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label className="text-gray-200">Dir X</Label>
+                <Label className="text-foreground">Dir X</Label>
                 <Input
                   type="number"
                   step="0.1"
@@ -161,12 +161,12 @@ export const FEALoadsManager = ({ analysisId, loads, onRefresh }: FEALoadsManage
                     ...newLoad, 
                     direction: { ...newLoad.direction!, x: parseFloat(e.target.value) || 0 }
                   })}
-                  className="bg-gray-700 border-gray-600 text-gray-100"
+                  className="bg-secondary border-border text-foreground"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label className="text-gray-200">Dir Y</Label>
+                <Label className="text-foreground">Dir Y</Label>
                 <Input
                   type="number"
                   step="0.1"
@@ -175,12 +175,12 @@ export const FEALoadsManager = ({ analysisId, loads, onRefresh }: FEALoadsManage
                     ...newLoad, 
                     direction: { ...newLoad.direction!, y: parseFloat(e.target.value) || 0 }
                   })}
-                  className="bg-gray-700 border-gray-600 text-gray-100"
+                  className="bg-secondary border-border text-foreground"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label className="text-gray-200">Dir Z</Label>
+                <Label className="text-foreground">Dir Z</Label>
                 <Input
                   type="number"
                   step="0.1"
@@ -189,14 +189,14 @@ export const FEALoadsManager = ({ analysisId, loads, onRefresh }: FEALoadsManage
                     ...newLoad, 
                     direction: { ...newLoad.direction!, z: parseFloat(e.target.value) || 0 }
                   })}
-                  className="bg-gray-700 border-gray-600 text-gray-100"
+                  className="bg-secondary border-border text-foreground"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label className="text-gray-200">Position X (m)</Label>
+                <Label className="text-foreground">Position X (m)</Label>
                 <Input
                   type="number"
                   step="0.1"
@@ -205,12 +205,12 @@ export const FEALoadsManager = ({ analysisId, loads, onRefresh }: FEALoadsManage
                     ...newLoad, 
                     location: { ...newLoad.location!, x: parseFloat(e.target.value) || 0 }
                   })}
-                  className="bg-gray-700 border-gray-600 text-gray-100"
+                  className="bg-secondary border-border text-foreground"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label className="text-gray-200">Position Y (m)</Label>
+                <Label className="text-foreground">Position Y (m)</Label>
                 <Input
                   type="number"
                   step="0.1"
@@ -219,12 +219,12 @@ export const FEALoadsManager = ({ analysisId, loads, onRefresh }: FEALoadsManage
                     ...newLoad, 
                     location: { ...newLoad.location!, y: parseFloat(e.target.value) || 0 }
                   })}
-                  className="bg-gray-700 border-gray-600 text-gray-100"
+                  className="bg-secondary border-border text-foreground"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label className="text-gray-200">Position Z (m)</Label>
+                <Label className="text-foreground">Position Z (m)</Label>
                 <Input
                   type="number"
                   step="0.1"
@@ -233,7 +233,7 @@ export const FEALoadsManager = ({ analysisId, loads, onRefresh }: FEALoadsManage
                     ...newLoad, 
                     location: { ...newLoad.location!, z: parseFloat(e.target.value) || 0 }
                   })}
-                  className="bg-gray-700 border-gray-600 text-gray-100"
+                  className="bg-secondary border-border text-foreground"
                 />
               </div>
             </div>
@@ -249,7 +249,7 @@ export const FEALoadsManager = ({ analysisId, loads, onRefresh }: FEALoadsManage
               <Button 
                 variant="outline"
                 onClick={() => setIsCreating(false)}
-                className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                className="border-border text-foreground hover:bg-muted"
               >
                 Cancel
               </Button>
@@ -259,17 +259,17 @@ export const FEALoadsManager = ({ analysisId, loads, onRefresh }: FEALoadsManage
 
         {/* Existing Loads */}
         {loads.length === 0 ? (
-          <div className="text-center text-gray-400 py-4">
+          <div className="text-center text-muted-foreground py-4">
             No loads defined. Add loads to perform structural analysis.
           </div>
         ) : (
           <div className="space-y-3">
             {loads.map((load) => (
-              <div key={load.id} className="bg-gray-800 p-3 rounded-lg">
+              <div key={load.id} className="bg-muted p-3 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">{getLoadTypeIcon(load.load_type)}</span>
-                    <span className="font-medium text-gray-200">{load.name}</span>
+                    <span className="font-medium text-foreground">{load.name}</span>
                     <Badge variant="outline" className="capitalize">
                       {load.load_type.replace('_', ' ')}
                     </Badge>
@@ -279,7 +279,7 @@ export const FEALoadsManager = ({ analysisId, loads, onRefresh }: FEALoadsManage
                   </Button>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4 text-sm text-gray-400">
+                <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
                   <div>
                     <span className="font-medium">Magnitude:</span> {load.magnitude} N
                   </div>

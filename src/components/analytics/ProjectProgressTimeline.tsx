@@ -40,7 +40,7 @@ export const ProjectProgressTimeline: React.FC<ProjectProgressTimelineProps> = (
       case 'completed': return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'in-progress': return <Play className="h-4 w-4 text-blue-600" />;
       case 'delayed': return <AlertTriangle className="h-4 w-4 text-red-600" />;
-      default: return <Clock className="h-4 w-4 text-gray-400" />;
+      default: return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
 

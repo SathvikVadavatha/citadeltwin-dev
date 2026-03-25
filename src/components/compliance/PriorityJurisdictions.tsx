@@ -25,9 +25,9 @@ export const PriorityJurisdictions: React.FC<PriorityJurisdictionsProps> = ({
 
   const getClimateIcon = (stateCode: string) => {
     switch (stateCode) {
-      case 'OH': return <Snowflake className="w-3 h-3 text-blue-400" />;
-      case 'FL': return <Waves className="w-3 h-3 text-cyan-400" />;
-      case 'TX': case 'CA': return <Wind className="w-3 h-3 text-yellow-400" />;
+      case 'OH': return <Snowflake className="w-3 h-3 text-blue-600" />;
+      case 'FL': return <Waves className="w-3 h-3 text-primary" />;
+      case 'TX': case 'CA': return <Wind className="w-3 h-3 text-yellow-600" />;
       default: return null;
     }
   };
@@ -42,13 +42,13 @@ export const PriorityJurisdictions: React.FC<PriorityJurisdictionsProps> = ({
 
   return (
     <div>
-      <h4 className="font-semibold text-cyan-400 mb-3">Priority Jurisdictions - Enhanced Coverage</h4>
+      <h4 className="font-semibold text-primary mb-3">Priority Jurisdictions - Enhanced Coverage</h4>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {priorityJurisdictions.map((priority) => (
           <Card
             key={`${priority.state}-${priority.name}`}
-            className={`cursor-pointer transition-colors border border-cyan-700 hover:bg-cyan-900/20 ${
-              selectedJurisdiction === `${priority.state}-${priority.type}` ? 'bg-cyan-900/30' : ''
+            className={`cursor-pointer transition-colors border border-primary hover:bg-primary/20 ${
+              selectedJurisdiction === `${priority.state}-${priority.type}` ? 'bg-primary/10' : ''
             }`}
             onClick={() => onJurisdictionSelect(`${priority.state}-${priority.type}`)}
           >
@@ -67,7 +67,7 @@ export const PriorityJurisdictions: React.FC<PriorityJurisdictionsProps> = ({
                 {(priority.state === 'OH' || priority.state === 'FL') && (
                   <Tooltip>
                     <TooltipTrigger>
-                      <AlertTriangle className="w-4 h-4 text-green-400" />
+                      <AlertTriangle className="w-4 h-4 text-green-600" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Comprehensive Coverage</p>
@@ -76,10 +76,10 @@ export const PriorityJurisdictions: React.FC<PriorityJurisdictionsProps> = ({
                 )}
               </div>
               <div className="mt-2">
-                <p className="text-xs text-gray-400 mb-1">Special Requirements:</p>
+                <p className="text-xs text-muted-foreground mb-1">Special Requirements:</p>
                 <div className="flex flex-wrap gap-1">
                   {priority.specialties.map((spec, idx) => (
-                    <Badge key={idx} variant="outline" className="text-xs border-gray-600 text-gray-300">
+                    <Badge key={idx} variant="outline" className="text-xs border-border text-foreground">
                       {spec}
                     </Badge>
                   ))}

@@ -36,11 +36,11 @@ export const EstimationDetailsView = ({ estimation, lineItems, onBack }: Estimat
 
   const getStatusColor = (status: string) => {
     const colors = {
-      draft: 'bg-gray-500/20 text-gray-400 border-gray-400/50',
-      in_progress: 'bg-blue-500/20 text-blue-400 border-blue-400/50',
-      completed: 'bg-green-500/20 text-green-400 border-green-400/50',
+      draft: 'bg-gray-500/20 text-muted-foreground border-gray-400/50',
+      in_progress: 'bg-blue-500/20 text-blue-600 border-blue-600/50',
+      completed: 'bg-green-500/20 text-green-600 border-green-600/50',
       approved: 'bg-emerald-500/20 text-emerald-400 border-emerald-400/50',
-      rejected: 'bg-red-500/20 text-red-400 border-red-400/50',
+      rejected: 'bg-red-500/20 text-destructive border-destructive/50',
     };
     return colors[status as keyof typeof colors] || colors.draft;
   };
@@ -50,12 +50,12 @@ export const EstimationDetailsView = ({ estimation, lineItems, onBack }: Estimat
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" onClick={onBack} className="cyber-button">
+          <Button variant="ghost" onClick={onBack} className="skeuo-button">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
           <div>
-            <h2 className="text-2xl font-bold glow-cyan">{estimation.name}</h2>
+            <h2 className="text-2xl font-bold shadow-sm">{estimation.name}</h2>
             <div className="flex items-center space-x-4 mt-1">
               <Badge className={getStatusColor(estimation.status)}>
                 {estimation.status.replace('_', ' ')}
@@ -67,11 +67,11 @@ export const EstimationDetailsView = ({ estimation, lineItems, onBack }: Estimat
           </div>
         </div>
         <div className="flex space-x-2">
-          <Button variant="outline" className="cyber-button">
+          <Button variant="outline" className="skeuo-button">
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          <Button onClick={() => setShowAddLineItem(true)} className="cyber-button">
+          <Button onClick={() => setShowAddLineItem(true)} className="skeuo-button">
             <Plus className="w-4 h-4 mr-2" />
             Add Line Item
           </Button>
@@ -86,7 +86,7 @@ export const EstimationDetailsView = ({ estimation, lineItems, onBack }: Estimat
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold glow-cyan">
+            <div className="text-2xl font-bold shadow-sm">
               ${costSummary.totalCost.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">

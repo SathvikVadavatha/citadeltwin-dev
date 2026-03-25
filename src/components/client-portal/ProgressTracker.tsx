@@ -15,7 +15,7 @@ export const ProgressTracker: React.FC = () => {
       case 'completed': return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'in_progress': return <Clock className="h-4 w-4 text-blue-500" />;
       case 'on_hold': return <AlertCircle className="h-4 w-4 text-yellow-500" />;
-      default: return <Clock className="h-4 w-4 text-gray-500" />;
+      default: return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
 

@@ -10,13 +10,13 @@ interface ElementsSummaryProps {
 export const ElementsSummary = ({ elements }: ElementsSummaryProps) => {
   const getElementTypeColor = (elementType: string) => {
     const colors = {
-      wall: 'bg-blue-500/20 text-blue-400 border-blue-400/50',
-      beam: 'bg-yellow-500/20 text-yellow-400 border-yellow-400/50',
-      column: 'bg-green-500/20 text-green-400 border-green-400/50',
-      slab: 'bg-purple-500/20 text-purple-400 border-purple-400/50',
+      wall: 'bg-blue-500/20 text-blue-600 border-blue-600/50',
+      beam: 'bg-yellow-500/20 text-yellow-600 border-yellow-600/50',
+      column: 'bg-green-500/20 text-green-600 border-green-600/50',
+      slab: 'bg-purple-500/20 text-purple-600 border-purple-600/50',
       foundation: 'bg-orange-500/20 text-orange-400 border-orange-400/50',
     };
-    return colors[elementType as keyof typeof colors] || 'bg-gray-500/20 text-gray-400 border-gray-400/50';
+    return colors[elementType as keyof typeof colors] || 'bg-gray-500/20 text-muted-foreground border-gray-400/50';
   };
 
   return (

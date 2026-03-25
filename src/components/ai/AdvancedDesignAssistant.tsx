@@ -401,9 +401,9 @@ Provide a comprehensive analysis covering all aspects: design improvements, pote
                   />
                   <label htmlFor="file-upload" className="cursor-pointer">
                     <div className="flex flex-col items-center gap-2">
-                      <Upload className="h-8 w-8 text-gray-400" />
+                      <Upload className="h-8 w-8 text-muted-foreground" />
                       <span className="text-sm text-gray-600">Click to upload drawings, images, or documents</span>
-                      <span className="text-xs text-gray-400">PDF, DWG, PNG, JPG supported</span>
+                      <span className="text-xs text-muted-foreground">PDF, DWG, PNG, JPG supported</span>
                     </div>
                   </label>
                 </div>

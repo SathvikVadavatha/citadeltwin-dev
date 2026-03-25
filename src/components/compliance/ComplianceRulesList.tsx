@@ -27,18 +27,18 @@ export const ComplianceRulesList: React.FC<ComplianceRulesListProps> = ({
       case 'structural':
         return 'bg-purple-900 text-purple-300 border-purple-700';
       case 'occupancy':
-        return 'bg-cyan-900 text-cyan-300 border-cyan-700';
+        return 'bg-primary/20 text-primary border-primary';
       default:
-        return 'bg-gray-900 text-gray-300 border-gray-700';
+        return 'bg-card text-foreground border-border';
     }
   };
 
   if (isLoading) {
     return (
-      <Card className="cyber-tool-palette">
+      <Card className="skeuo-panel">
         <CardContent className="p-6">
           <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             <span className="ml-2">Loading rules...</span>
           </div>
         </CardContent>
@@ -48,10 +48,10 @@ export const ComplianceRulesList: React.FC<ComplianceRulesListProps> = ({
 
   return (
     <div className="space-y-4">
-      <Card className="cyber-tool-palette">
+      <Card className="skeuo-panel">
         <CardHeader>
           <div className="flex items-center space-x-2">
-            <Book className="w-5 h-5 text-cyan-400" />
+            <Book className="w-5 h-5 text-primary" />
             <CardTitle>Building Code Rules Database</CardTitle>
           </div>
           <CardDescription>
@@ -61,7 +61,7 @@ export const ComplianceRulesList: React.FC<ComplianceRulesListProps> = ({
       </Card>
 
       {rules.map((rule) => (
-        <Card key={rule.id} className="cyber-tool-palette">
+        <Card key={rule.id} className="skeuo-panel">
           <CardHeader>
             <div className="flex items-start justify-between">
               <div className="space-y-2">
@@ -70,18 +70,18 @@ export const ComplianceRulesList: React.FC<ComplianceRulesListProps> = ({
                   <Badge className={getRuleTypeColor(rule.rule_type)}>
                     {rule.rule_type.replace('_', ' ')}
                   </Badge>
-                  <Badge variant="outline" className="border-cyan-700 text-cyan-300">
+                  <Badge variant="outline" className="border-primary text-primary">
                     {rule.jurisdiction}
                   </Badge>
                 </div>
-                <div className="flex items-center space-x-2 text-sm text-gray-400">
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                   <span>Section: {rule.code_section}</span>
                   {rule.is_active && (
                     <>
                       <span>•</span>
                       <div className="flex items-center space-x-1">
-                        <CheckCircle className="w-3 h-3 text-green-400" />
-                        <span className="text-green-400">Active</span>
+                        <CheckCircle className="w-3 h-3 text-green-600" />
+                        <span className="text-green-600">Active</span>
                       </div>
                     </>
                   )}
@@ -90,16 +90,16 @@ export const ComplianceRulesList: React.FC<ComplianceRulesListProps> = ({
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-300 mb-4">{rule.description}</p>
+            <p className="text-foreground mb-4">{rule.description}</p>
             
             <div>
-              <h4 className="font-semibold text-cyan-400 mb-2">Rule Logic</h4>
-              <pre className="text-sm bg-gray-900 p-3 rounded border border-gray-700 overflow-x-auto">
+              <h4 className="font-semibold text-primary mb-2">Rule Logic</h4>
+              <pre className="text-sm bg-card p-3 rounded border border-border overflow-x-auto">
                 {JSON.stringify(rule.rule_logic, null, 2)}
               </pre>
             </div>
 
-            <div className="mt-4 text-xs text-gray-500">
+            <div className="mt-4 text-xs text-muted-foreground">
               Last updated: {new Date(rule.updated_at).toLocaleString()}
             </div>
           </CardContent>

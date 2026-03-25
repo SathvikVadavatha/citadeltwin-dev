@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { AuthLayout } from "./AuthLayout";
-import { Eye, EyeOff, Chrome, Building, Shield } from "lucide-react";
+import { Eye, EyeOff, Chrome, Building, Shield, Mail } from "lucide-react";
 import { useAuth } from "@/providers/AuthProvider";
 import { toast } from "@/components/ui/use-toast";
 
@@ -17,6 +17,7 @@ interface SignupPageProps {
 
 export const SignupPage = ({ onNavigateToLogin }: SignupPageProps) => {
   const [showPassword, setShowPassword] = useState(false);
+  const [signupComplete, setSignupComplete] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -27,11 +28,12 @@ export const SignupPage = ({ onNavigateToLogin }: SignupPageProps) => {
     acceptTerms: false,
   });
   const [loading, setLoading] = useState(false);
-  const { signUp } = useAuth();
+  const { signUp, signInWithOAuth } = useAuth();
+  const [oauthLoading, setOauthLoading] = useState<string | null>(null);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.acceptTerms) {
       toast({
         title: "Terms Required",
@@ -41,10 +43,10 @@ export const SignupPage = ({ onNavigateToLogin }: SignupPageProps) => {
       return;
     }
 
-    if (formData.password.length < 6) {
+    if (formData.password.length < 8 || !/[A-Z]/.test(formData.password) || !/[a-z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
       toast({
-        title: "Password Too Short",
-        description: "Password must be at least 6 characters long.",
+        title: "Weak Password",
+        description: "Password must be at least 8 characters with uppercase, lowercase, and a number.",
         variant: "destructive",
       });
       return;
@@ -52,32 +54,19 @@ export const SignupPage = ({ onNavigateToLogin }: SignupPageProps) => {
 
     setLoading(true);
     try {
-      const { error } = await signUp(formData.email, formData.password, {
+      const result = await signUp(formData.email, formData.password, {
         full_name: `${formData.firstName} ${formData.lastName}`,
         company: formData.company,
         role: formData.role,
       });
 
-      if (error) {
-        if (error.message.includes('User already registered')) {
-          toast({
-            title: "Account Exists",
-            description: "An account with this email already exists. Please sign in instead.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Signup Failed",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
+      if (result.error) {
+        // Error toasts are already shown by AuthProvider
+      } else if (result.needsConfirmation) {
+        // Show email confirmation screen
+        setSignupComplete(true);
       } else {
-        // Success case is handled in AuthProvider
-        // Switch to login view after successful signup
-        setTimeout(() => {
-          onNavigateToLogin();
-        }, 2000);
+        // Auto-confirmed — user is already logged in, redirect happens via AuthProvider
       }
     } catch (error) {
       console.error("Signup error:", error);
@@ -95,6 +84,39 @@ export const SignupPage = ({ onNavigateToLogin }: SignupPageProps) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  if (signupComplete) {
+    return (
+      <AuthLayout
+        title="Check Your Email"
+        subtitle="We've sent a verification link to your email"
+      >
+        <div className="text-center space-y-6">
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+            <Mail className="w-8 h-8 text-primary" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-muted-foreground">
+              We've sent a verification link to:
+            </p>
+            <p className="font-medium text-foreground">{formData.email}</p>
+          </div>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              You must verify your email before you can sign in. Check your spam folder if you don't see it.
+            </p>
+            <Button
+              variant="outline"
+              onClick={onNavigateToLogin}
+              className="w-full border-border hover:bg-secondary/20"
+            >
+              Go to Sign In
+            </Button>
+          </div>
+        </div>
+      </AuthLayout>
+    );
+  }
+
   return (
     <AuthLayout
       title="Create Account"
@@ -103,102 +125,92 @@ export const SignupPage = ({ onNavigateToLogin }: SignupPageProps) => {
       <form onSubmit={handleSignup} className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="firstName" style={{ color: 'hsl(210 40% 98%)' }}>First Name</Label>
+            <Label htmlFor="firstName">First Name</Label>
             <Input
               id="firstName"
               placeholder="John"
               value={formData.firstName}
               onChange={(e) => updateFormData("firstName", e.target.value)}
-              style={{ 
-                backgroundColor: 'hsl(222.2 84% 4.9%)',
-                border: '1px solid hsl(217.2 32.6% 17.5%)',
-                color: 'hsl(210 40% 98%)'
-              }}
-              className="focus:ring-2 focus:ring-cyan-500"
+              className="skeuo-input"
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastName" style={{ color: 'hsl(210 40% 98%)' }}>Last Name</Label>
+            <Label htmlFor="lastName">Last Name</Label>
             <Input
               id="lastName"
               placeholder="Doe"
               value={formData.lastName}
               onChange={(e) => updateFormData("lastName", e.target.value)}
-              style={{ 
-                backgroundColor: 'hsl(222.2 84% 4.9%)',
-                border: '1px solid hsl(217.2 32.6% 17.5%)',
-                color: 'hsl(210 40% 98%)'
-              }}
-              className="focus:ring-2 focus:ring-cyan-500"
+              className="skeuo-input"
               required
             />
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-foreground">Email</Label>
+          <Label htmlFor="email">Email</Label>
           <Input
             id="email"
             type="email"
             placeholder="engineer@company.com"
             value={formData.email}
             onChange={(e) => updateFormData("email", e.target.value)}
-            className="bg-background border-border text-foreground"
+            className="skeuo-input"
             required
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="company" className="text-foreground">Company</Label>
+          <Label htmlFor="company">Company</Label>
           <Input
             id="company"
             placeholder="Your Company Name"
             value={formData.company}
             onChange={(e) => updateFormData("company", e.target.value)}
-            className="bg-background border-border text-foreground"
+            className="skeuo-input"
             required
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="role" className="text-foreground">Role</Label>
+          <Label htmlFor="role">Role</Label>
           <Select value={formData.role} onValueChange={(value) => updateFormData("role", value)}>
-            <SelectTrigger className="bg-background border-border text-foreground">
+            <SelectTrigger className="skeuo-input">
               <SelectValue placeholder="Select your role" />
             </SelectTrigger>
-            <SelectContent className="bg-card border-border">
-              <SelectItem value="admin">Admin</SelectItem>
+            <SelectContent>
               <SelectItem value="engineer">Engineer</SelectItem>
               <SelectItem value="reviewer">Reviewer</SelectItem>
+              <SelectItem value="viewer">Viewer</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-foreground">Password</Label>
+          <Label htmlFor="password">Password</Label>
           <div className="relative">
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
-              placeholder="Create a strong password (min. 6 characters)"
+              placeholder="Create a strong password (min. 8 characters, mixed case + number)"
               value={formData.password}
               onChange={(e) => updateFormData("password", e.target.value)}
-              className="bg-background border-border text-foreground pr-10"
+              className="skeuo-input pr-10"
               required
-              minLength={6}
+              minLength={8}
             />
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+              className="absolute right-0 top-0 h-full px-3 hover:bg-transparent text-muted-foreground"
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? (
-                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                <EyeOff className="h-4 w-4" />
               ) : (
-                <Eye className="h-4 w-4 text-muted-foreground" />
+                <Eye className="h-4 w-4" />
               )}
             </Button>
           </div>
@@ -212,19 +224,15 @@ export const SignupPage = ({ onNavigateToLogin }: SignupPageProps) => {
           />
           <Label htmlFor="terms" className="text-sm text-muted-foreground">
             I agree to the{" "}
-            <a href="#" className="text-primary hover:underline">Terms of Service</a>
+            <a href="#" className="text-accent hover:underline">Terms of Service</a>
             {" "}and{" "}
-            <a href="#" className="text-primary hover:underline">Privacy Policy</a>
+            <a href="#" className="text-accent hover:underline">Privacy Policy</a>
           </Label>
         </div>
 
-        <Button 
-          type="submit" 
-          className="w-full"
-          style={{ 
-            backgroundColor: 'hsl(194.4 95.3% 60.4%)',
-            color: 'hsl(222.2 84% 4.9%)'
-          }}
+        <Button
+          type="submit"
+          className="w-full skeuo-button-primary text-white font-semibold py-2.5"
           disabled={loading}
         >
           {loading ? "Creating account..." : "Create Account"}
@@ -240,17 +248,35 @@ export const SignupPage = ({ onNavigateToLogin }: SignupPageProps) => {
         </div>
 
         <div className="space-y-3">
-          <Button variant="outline" className="w-full border-border hover:bg-secondary/20">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-border text-foreground hover:bg-secondary"
+            disabled={!!oauthLoading}
+            onClick={async () => { setOauthLoading('google'); await signInWithOAuth('google'); setOauthLoading(null); }}
+          >
             <Chrome className="h-4 w-4 mr-2" />
-            Continue with Google
+            {oauthLoading === 'google' ? 'Redirecting...' : 'Continue with Google'}
           </Button>
-          <Button variant="outline" className="w-full border-border hover:bg-secondary/20">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-border text-foreground hover:bg-secondary"
+            disabled={!!oauthLoading}
+            onClick={async () => { setOauthLoading('azure'); await signInWithOAuth('azure'); setOauthLoading(null); }}
+          >
             <Building className="h-4 w-4 mr-2" />
-            Continue with Azure AD
+            {oauthLoading === 'azure' ? 'Redirecting...' : 'Continue with Azure AD'}
           </Button>
-          <Button variant="outline" className="w-full border-border hover:bg-secondary/20">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-border text-foreground hover:bg-secondary"
+            disabled={!!oauthLoading}
+            onClick={async () => { setOauthLoading('okta'); await signInWithOAuth('okta'); setOauthLoading(null); }}
+          >
             <Shield className="h-4 w-4 mr-2" />
-            Continue with Okta
+            {oauthLoading === 'okta' ? 'Redirecting...' : 'Continue with Okta'}
           </Button>
         </div>
 
@@ -260,7 +286,7 @@ export const SignupPage = ({ onNavigateToLogin }: SignupPageProps) => {
           </span>
           <Button
             variant="link"
-            className="px-0 text-sm text-primary hover:text-primary/80"
+            className="px-0 text-sm text-accent hover:text-accent/80"
             onClick={onNavigateToLogin}
           >
             Sign in

@@ -107,7 +107,7 @@ export const FEAAnalysisManager: React.FC<FEAAnalysisManagerProps> = ({ elementI
                       <Button 
                         size="sm" 
                         onClick={() => runAnalysis(analysis.id)}
-                        className="cyber-button"
+                        className="skeuo-button"
                       >
                         Run
                       </Button>

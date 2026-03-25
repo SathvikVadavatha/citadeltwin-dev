@@ -1,22 +1,24 @@
 
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { 
-  Building2, 
-  LayoutDashboard, 
-  Upload, 
-  FileText, 
-  Shield, 
-  BarChart3, 
-  Users, 
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  Building2,
+  LayoutDashboard,
+  Upload,
+  FileText,
+  Shield,
+  BarChart3,
+  Users,
   Settings,
   TestTube,
   Zap,
   Share2,
   Map,
-  Box
+  Box,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/providers/AuthProvider';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -35,22 +37,21 @@ const navigation = [
 ];
 
 export const AppSidebar: React.FC = () => {
-  console.log('AppSidebar rendering...');
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut, user } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/auth/login', { replace: true });
+  };
 
   return (
-    <div 
-      className="flex h-full w-64 flex-col border-r"
-      style={{ 
-        backgroundColor: 'hsl(240, 20%, 8%)', 
-        borderColor: 'hsl(240, 20%, 15%)',
-        color: 'hsl(224, 71%, 85%)'
-      }}
-    >
-      <div className="flex h-16 items-center px-6 border-b">
+    <div className="flex h-full w-64 flex-col border-r border-border bg-card text-card-foreground">
+      <div className="flex h-16 items-center px-6 border-b border-border">
         <Link to="/dashboard" className="flex items-center space-x-2">
           <Building2 className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold">CitadelTwin</span>
+          <span className="text-xl font-bold text-foreground">CitadelTwin</span>
         </Link>
       </div>
       <nav className="flex-1 space-y-1 px-2 py-4">
@@ -78,6 +79,23 @@ export const AppSidebar: React.FC = () => {
           );
         })}
       </nav>
+      <div className="border-t border-border px-2 py-4">
+        {user && (
+          <div className="px-2 mb-2 text-xs text-muted-foreground truncate">
+            {user.email}
+          </div>
+        )}
+        <button
+          onClick={handleLogout}
+          className={cn(
+            'group flex w-full items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
+            'text-muted-foreground hover:bg-destructive/10 hover:text-destructive'
+          )}
+        >
+          <LogOut className="mr-3 h-5 w-5 flex-shrink-0" />
+          Sign Out
+        </button>
+      </div>
     </div>
   );
 };

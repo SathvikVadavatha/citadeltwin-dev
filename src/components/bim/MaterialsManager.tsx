@@ -87,15 +87,15 @@ export const MaterialsManager = () => {
 
   const getMaterialTypeColor = (type: string) => {
     const colors: Record<string, string> = {
-      concrete: 'bg-gray-500/20 text-gray-400 border-gray-400/50',
+      concrete: 'bg-gray-500/20 text-muted-foreground border-gray-400/50',
       steel: 'bg-slate-500/20 text-slate-400 border-slate-400/50',
       wood: 'bg-amber-500/20 text-amber-400 border-amber-400/50',
-      glass: 'bg-blue-500/20 text-blue-400 border-blue-400/50',
+      glass: 'bg-blue-500/20 text-blue-600 border-blue-600/50',
       aluminum: 'bg-zinc-500/20 text-zinc-400 border-zinc-400/50',
-      brick: 'bg-red-500/20 text-red-400 border-red-400/50',
+      brick: 'bg-red-500/20 text-destructive border-destructive/50',
       stone: 'bg-stone-500/20 text-stone-400 border-stone-400/50',
-      composite: 'bg-purple-500/20 text-purple-400 border-purple-400/50',
-      insulation: 'bg-yellow-500/20 text-yellow-400 border-yellow-400/50',
+      composite: 'bg-purple-500/20 text-purple-600 border-purple-600/50',
+      insulation: 'bg-yellow-500/20 text-yellow-600 border-yellow-600/50',
       drywall: 'bg-neutral-500/20 text-neutral-400 border-neutral-400/50',
     };
     return colors[type] || colors.concrete;
@@ -116,7 +116,7 @@ export const MaterialsManager = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-xl font-semibold glow-cyan">Material Library</h3>
+          <h3 className="text-xl font-semibold shadow-sm">Material Library</h3>
           <p className="text-muted-foreground">Manage building materials and their properties</p>
         </div>
       </div>
@@ -137,14 +137,14 @@ export const MaterialsManager = () => {
           <div className="flex justify-end">
             <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
               <DialogTrigger asChild>
-                <Button className="cyber-button" onClick={() => { resetForm(); setEditingMaterial(null); }}>
+                <Button className="skeuo-button" onClick={() => { resetForm(); setEditingMaterial(null); }}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add Material
                 </Button>
               </DialogTrigger>
               <DialogContent className="gradient-border">
                 <DialogHeader>
-                  <DialogTitle className="glow-cyan">
+                  <DialogTitle className="shadow-sm">
                     {editingMaterial ? 'Edit Material' : 'Create Material'}
                   </DialogTitle>
                 </DialogHeader>
@@ -157,7 +157,7 @@ export const MaterialsManager = () => {
                         id="name"
                         value={formData.name}
                         onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        className="cyber-button"
+                        className="skeuo-button"
                         required
                       />
                     </div>
@@ -170,7 +170,7 @@ export const MaterialsManager = () => {
                           setFormData(prev => ({ ...prev, material_type: value }))
                         }
                       >
-                        <SelectTrigger className="cyber-button">
+                        <SelectTrigger className="skeuo-button">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -193,7 +193,7 @@ export const MaterialsManager = () => {
                         step="0.01"
                         value={formData.cost_per_unit}
                         onChange={(e) => setFormData(prev => ({ ...prev, cost_per_unit: parseFloat(e.target.value) || 0 }))}
-                        className="cyber-button"
+                        className="skeuo-button"
                       />
                     </div>
 
@@ -203,7 +203,7 @@ export const MaterialsManager = () => {
                         id="unit"
                         value={formData.unit}
                         onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
-                        className="cyber-button"
+                        className="skeuo-button"
                         placeholder="m3, m2, kg, etc."
                       />
                     </div>
@@ -214,7 +214,7 @@ export const MaterialsManager = () => {
                         id="supplier"
                         value={formData.supplier}
                         onChange={(e) => setFormData(prev => ({ ...prev, supplier: e.target.value }))}
-                        className="cyber-button"
+                        className="skeuo-button"
                       />
                     </div>
                   </div>
@@ -224,14 +224,14 @@ export const MaterialsManager = () => {
                       type="button"
                       variant="outline"
                       onClick={() => setShowCreateModal(false)}
-                      className="cyber-button"
+                      className="skeuo-button"
                     >
                       Cancel
                     </Button>
                     <Button
                       type="submit"
                       disabled={creating || updating}
-                      className="cyber-button bg-primary text-primary-foreground"
+                      className="skeuo-button bg-primary text-primary-foreground"
                     >
                       {editingMaterial ? 'Update' : 'Create'} Material
                     </Button>
@@ -254,7 +254,7 @@ export const MaterialsManager = () => {
           ) : (
             <div className="grid gap-4">
               {materials.map((material) => (
-                <Card key={material.id} className="gradient-border glow-cyan">
+                <Card key={material.id} className="gradient-border shadow-sm">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
@@ -273,7 +273,7 @@ export const MaterialsManager = () => {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleEdit(material)}
-                          className="cyber-button"
+                          className="skeuo-button"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -282,7 +282,7 @@ export const MaterialsManager = () => {
                           variant="ghost"
                           onClick={() => handleDelete(material.id)}
                           disabled={deleting}
-                          className="cyber-button hover:bg-destructive/20"
+                          className="skeuo-button hover:bg-destructive/20"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>

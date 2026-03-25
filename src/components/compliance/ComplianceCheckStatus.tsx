@@ -12,11 +12,11 @@ export const ComplianceCheckStatus: React.FC<ComplianceCheckStatusProps> = ({ la
   if (!latestCheck) return null;
 
   return (
-    <Card className="cyber-tool-palette">
+    <Card className="skeuo-panel">
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-400">Last Compliance Check</p>
+            <p className="text-sm text-muted-foreground">Last Compliance Check</p>
             <div className="flex items-center space-x-2 mt-1">
               <Badge 
                 variant={latestCheck.status === 'completed' ? 'default' : 'destructive'}
@@ -24,14 +24,14 @@ export const ComplianceCheckStatus: React.FC<ComplianceCheckStatusProps> = ({ la
               >
                 {latestCheck.status}
               </Badge>
-              <span className="text-sm text-gray-300">
+              <span className="text-sm text-foreground">
                 {new Date(latestCheck.started_at).toLocaleString()}
               </span>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm text-gray-400">Rules Checked: {latestCheck.rules_checked}</p>
-            <p className="text-sm text-gray-400">Violations Found: {latestCheck.violations_found}</p>
+            <p className="text-sm text-muted-foreground">Rules Checked: {latestCheck.rules_checked}</p>
+            <p className="text-sm text-muted-foreground">Violations Found: {latestCheck.violations_found}</p>
           </div>
         </div>
       </CardContent>

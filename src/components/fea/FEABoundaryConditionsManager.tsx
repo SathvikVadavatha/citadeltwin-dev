@@ -91,22 +91,22 @@ export const FEABoundaryConditionsManager = ({
   };
 
   return (
-    <Card className="bg-gray-900 border-gray-700">
+    <Card className="bg-card border-border">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-cyan-300 flex items-center gap-2">
+            <CardTitle className="text-primary flex items-center gap-2">
               <Anchor className="w-5 h-5" />
               Boundary Conditions
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Define support conditions and constraints
             </CardDescription>
           </div>
           <Button
             size="sm"
             onClick={() => setIsCreating(!isCreating)}
-            className="bg-cyan-600 hover:bg-cyan-700"
+            className="bg-primary hover:bg-primary/90"
           >
             <Plus className="w-4 h-4 mr-1" />
             Add Constraint
@@ -117,30 +117,30 @@ export const FEABoundaryConditionsManager = ({
         
         {/* Create New Boundary Condition Form */}
         {isCreating && (
-          <div className="bg-gray-800 p-4 rounded-lg space-y-4">
-            <h4 className="font-medium text-gray-200">Create New Boundary Condition</h4>
+          <div className="bg-muted p-4 rounded-lg space-y-4">
+            <h4 className="font-medium text-foreground">Create New Boundary Condition</h4>
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-gray-200">Constraint Name</Label>
+                <Label className="text-foreground">Constraint Name</Label>
                 <Input
                   value={newBC.name}
                   onChange={(e) => setNewBC({ ...newBC, name: e.target.value })}
                   placeholder="Enter constraint name"
-                  className="bg-gray-700 border-gray-600 text-gray-100"
+                  className="bg-secondary border-border text-foreground"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label className="text-gray-200">Condition Type</Label>
+                <Label className="text-foreground">Condition Type</Label>
                 <Select 
                   value={newBC.condition_type} 
                   onValueChange={(value: any) => setNewBC({ ...newBC, condition_type: value })}
                 >
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-gray-100">
+                  <SelectTrigger className="bg-secondary border-border text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-700 border-gray-600">
+                  <SelectContent className="bg-secondary border-border">
                     <SelectItem value="fixed">Fixed</SelectItem>
                     <SelectItem value="pinned">Pinned</SelectItem>
                     <SelectItem value="roller">Roller</SelectItem>
@@ -153,7 +153,7 @@ export const FEABoundaryConditionsManager = ({
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label className="text-gray-200">Position X (m)</Label>
+                <Label className="text-foreground">Position X (m)</Label>
                 <Input
                   type="number"
                   step="0.1"
@@ -162,12 +162,12 @@ export const FEABoundaryConditionsManager = ({
                     ...newBC, 
                     location: { ...newBC.location!, x: parseFloat(e.target.value) || 0 }
                   })}
-                  className="bg-gray-700 border-gray-600 text-gray-100"
+                  className="bg-secondary border-border text-foreground"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label className="text-gray-200">Position Y (m)</Label>
+                <Label className="text-foreground">Position Y (m)</Label>
                 <Input
                   type="number"
                   step="0.1"
@@ -176,12 +176,12 @@ export const FEABoundaryConditionsManager = ({
                     ...newBC, 
                     location: { ...newBC.location!, y: parseFloat(e.target.value) || 0 }
                   })}
-                  className="bg-gray-700 border-gray-600 text-gray-100"
+                  className="bg-secondary border-border text-foreground"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label className="text-gray-200">Position Z (m)</Label>
+                <Label className="text-foreground">Position Z (m)</Label>
                 <Input
                   type="number"
                   step="0.1"
@@ -190,16 +190,16 @@ export const FEABoundaryConditionsManager = ({
                     ...newBC, 
                     location: { ...newBC.location!, z: parseFloat(e.target.value) || 0 }
                   })}
-                  className="bg-gray-700 border-gray-600 text-gray-100"
+                  className="bg-secondary border-border text-foreground"
                 />
               </div>
             </div>
 
             <div className="space-y-3">
-              <Label className="text-gray-200">Constrained Degrees of Freedom</Label>
+              <Label className="text-foreground">Constrained Degrees of Freedom</Label>
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm text-gray-300">Translation</Label>
+                  <Label className="text-sm text-foreground">Translation</Label>
                   <div className="space-y-2">
                     {['x', 'y', 'z'].map((axis) => (
                       <div key={axis} className="flex items-center space-x-2">
@@ -211,7 +211,7 @@ export const FEABoundaryConditionsManager = ({
                             constraints: { ...newBC.constraints!, [axis]: checked }
                           })}
                         />
-                        <Label htmlFor={`trans-${axis}`} className="text-sm text-gray-300">
+                        <Label htmlFor={`trans-${axis}`} className="text-sm text-foreground">
                           {axis.toUpperCase()}
                         </Label>
                       </div>
@@ -220,7 +220,7 @@ export const FEABoundaryConditionsManager = ({
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-sm text-gray-300">Rotation</Label>
+                  <Label className="text-sm text-foreground">Rotation</Label>
                   <div className="space-y-2">
                     {['rx', 'ry', 'rz'].map((axis) => (
                       <div key={axis} className="flex items-center space-x-2">
@@ -232,7 +232,7 @@ export const FEABoundaryConditionsManager = ({
                             constraints: { ...newBC.constraints!, [axis]: checked }
                           })}
                         />
-                        <Label htmlFor={`rot-${axis}`} className="text-sm text-gray-300">
+                        <Label htmlFor={`rot-${axis}`} className="text-sm text-foreground">
                           {axis.toUpperCase()}
                         </Label>
                       </div>
@@ -253,7 +253,7 @@ export const FEABoundaryConditionsManager = ({
               <Button 
                 variant="outline"
                 onClick={() => setIsCreating(false)}
-                className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                className="border-border text-foreground hover:bg-muted"
               >
                 Cancel
               </Button>
@@ -263,17 +263,17 @@ export const FEABoundaryConditionsManager = ({
 
         {/* Existing Boundary Conditions */}
         {boundaryConditions.length === 0 ? (
-          <div className="text-center text-gray-400 py-4">
+          <div className="text-center text-muted-foreground py-4">
             No boundary conditions defined. Add constraints to define support conditions.
           </div>
         ) : (
           <div className="space-y-3">
             {boundaryConditions.map((bc) => (
-              <div key={bc.id} className="bg-gray-800 p-3 rounded-lg">
+              <div key={bc.id} className="bg-muted p-3 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">{getBCTypeIcon(bc.condition_type)}</span>
-                    <span className="font-medium text-gray-200">{bc.name}</span>
+                    <span className="font-medium text-foreground">{bc.name}</span>
                     <Badge variant="outline" className="capitalize">
                       {bc.condition_type}
                     </Badge>
@@ -283,7 +283,7 @@ export const FEABoundaryConditionsManager = ({
                   </Button>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4 text-sm text-gray-400">
+                <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
                   <div>
                     <span className="font-medium">Position:</span> (
                     {getJsonValue(bc.location, 'x', 0)}, {getJsonValue(bc.location, 'y', 0)}, {getJsonValue(bc.location, 'z', 0)})

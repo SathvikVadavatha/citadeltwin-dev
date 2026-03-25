@@ -11,9 +11,11 @@ export const AuthPage: React.FC = () => {
   // Check URL hash for password recovery
   useEffect(() => {
     const hash = window.location.hash;
-    if (hash.includes('type=recovery') || hash.includes('access_token')) {
-      console.log('Password recovery detected in URL');
-      setCurrentView('reset-password');
+    if (hash) {
+      const params = new URLSearchParams(hash.substring(1));
+      if (params.get('type') === 'recovery' || params.has('access_token')) {
+        setCurrentView('reset-password');
+      }
     }
   }, []);
 

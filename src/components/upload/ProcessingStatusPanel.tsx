@@ -33,7 +33,7 @@ export const ProcessingStatusPanel: React.FC<ProcessingStatusPanelProps> = ({
     if (hasError) return { icon: XCircle, color: 'text-red-500', bgColor: 'bg-red-50' };
     if (stepActive) return { icon: Clock, color: 'text-blue-500', bgColor: 'bg-blue-50' };
     if (stepCompleted) return { icon: CheckCircle, color: 'text-green-500', bgColor: 'bg-green-50' };
-    return { icon: Clock, color: 'text-gray-400', bgColor: 'bg-gray-50' };
+    return { icon: Clock, color: 'text-muted-foreground', bgColor: 'bg-gray-50' };
   };
 
   const uploadCompleted = !uploading && (processing || !!processingMethod);

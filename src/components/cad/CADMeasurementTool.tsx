@@ -74,10 +74,10 @@ export const CADMeasurementTool = ({
 
   const getMeasurementColor = (type: string) => {
     switch (type) {
-      case "distance": return "bg-blue-500/20 text-blue-400 border-blue-400/50";
-      case "area": return "bg-green-500/20 text-green-400 border-green-400/50";
-      case "angle": return "bg-purple-500/20 text-purple-400 border-purple-400/50";
-      default: return "bg-gray-500/20 text-gray-400 border-gray-400/50";
+      case "distance": return "bg-blue-500/20 text-blue-600 border-blue-600/50";
+      case "area": return "bg-green-500/20 text-green-600 border-green-600/50";
+      case "angle": return "bg-purple-500/20 text-purple-600 border-purple-600/50";
+      default: return "bg-gray-500/20 text-muted-foreground border-gray-400/50";
     }
   };
 

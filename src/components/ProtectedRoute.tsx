@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,13 +11,10 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  console.log('ProtectedRoute rendering...');
   const { user, loading, error, clearError } = useAuth();
   const location = useLocation();
   const [retryCount, setRetryCount] = useState(0);
   const [showError, setShowError] = useState(false);
-  
-  console.log('Auth state:', { user: !!user, loading, error, showError });
 
   // Show error after a delay to avoid flashing
   useEffect(() => {
@@ -40,16 +37,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   // Show loading state
   if (loading && !showError) {
-    console.log('Showing loading state');
     return (
-      <div 
-        className="flex items-center justify-center min-h-screen"
-        style={{ 
-          backgroundColor: 'hsl(240, 20%, 4%)', 
-          color: 'hsl(224, 71%, 85%)',
-          minHeight: '100vh'
-        }}
-      >
+      <div className="flex items-center justify-center min-h-screen bg-background text-foreground">
         <Card className="w-full max-w-md mx-auto">
           <CardContent className="flex items-center justify-center p-8">
             <div className="flex flex-col items-center space-y-4">
@@ -69,16 +58,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   // Show error state with retry option
   if (error && showError) {
-    console.log('Showing error state');
     return (
-      <div 
-        className="flex items-center justify-center min-h-screen"
-        style={{ 
-          backgroundColor: 'hsl(240, 20%, 4%)', 
-          color: 'hsl(224, 71%, 85%)',
-          minHeight: '100vh'
-        }}
-      >
+      <div className="flex items-center justify-center min-h-screen bg-background text-foreground">
         <Card className="w-full max-w-md mx-auto">
           <CardContent className="flex items-center justify-center p-8">
             <div className="flex flex-col items-center space-y-4 text-center">
@@ -93,7 +74,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
                   Retry
                 </Button>
                 <Button asChild size="sm">
-                  <Navigate to="/auth/login" replace />
+                  <Link to="/auth/login">Sign In</Link>
                 </Button>
               </div>
             </div>
@@ -115,6 +96,5 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   // Render protected content
-  console.log('Rendering protected content');
   return <>{children}</>;
 };

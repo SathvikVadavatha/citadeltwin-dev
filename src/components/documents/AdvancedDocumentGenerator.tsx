@@ -174,7 +174,7 @@ export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-cyan-400" />
+            <Sparkles className="h-5 w-5 text-primary" />
             Advanced Document Generator
           </CardTitle>
           <CardDescription>
@@ -202,17 +202,17 @@ export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps>
                       key={type.id}
                       className={`cursor-pointer transition-colors ${
                         selectedTemplateType === type.id
-                          ? 'border-cyan-500 bg-cyan-900/20'
-                          : 'border-gray-700 hover:border-gray-600'
+                          ? 'border-primary bg-primary/20/20'
+                          : 'border-border hover:border-border'
                       }`}
                       onClick={() => setSelectedTemplateType(type.id)}
                     >
                       <CardContent className="p-4">
                         <h4 className="font-medium mb-2">{type.name}</h4>
-                        <p className="text-sm text-gray-400 mb-3">{type.description}</p>
+                        <p className="text-sm text-muted-foreground mb-3">{type.description}</p>
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <Sparkles className="h-3 w-3 text-cyan-400" />
+                            <Sparkles className="h-3 w-3 text-primary" />
                             <span className="text-xs">AI Features:</span>
                           </div>
                           <div className="flex flex-wrap gap-1">
@@ -222,7 +222,7 @@ export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps>
                               </Badge>
                             ))}
                           </div>
-                          <p className="text-xs text-gray-500">Est. time: {type.estimatedTime}</p>
+                          <p className="text-xs text-muted-foreground">Est. time: {type.estimatedTime}</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -273,7 +273,7 @@ export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps>
                         <Label className="font-medium">
                           {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
                         </Label>
-                        <p className="text-sm text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                           {key === 'enhanceNarrative' && 'AI-enhanced project descriptions and technical narratives'}
                           {key === 'optimizeCompliance' && 'Automated compliance analysis and code verification'}
                           {key === 'generateExecutiveSummary' && 'AI-generated executive summaries and abstracts'}
@@ -295,8 +295,8 @@ export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps>
 
             <TabsContent value="generate" className="space-y-4">
               <div className="text-center">
-                <h4 className="font-medium mb-2">Generate AI Content</h4>
-                <p className="text-sm text-gray-400 mb-4">
+                <h4 className="font-medium mb-2">Ready to Generate</h4>
+                <p className="text-sm text-muted-foreground mb-4">
                   {selectedTemplateType && documentTitle
                     ? `AI will draft content for: ${documentTypes.find(t => t.id === selectedTemplateType)?.name} — "${documentTitle}"`
                     : 'Please complete setup and content tabs first'
@@ -310,7 +310,7 @@ export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps>
                   <div className="mb-4">
                     <Progress value={generationProgress} className="mb-2" />
                     <p className="text-sm text-gray-400">
-                      Generating AI content... {generationProgress}%
+                      Generating document... {generationProgress}%
                     </p>
                   </div>
                 )}
@@ -435,7 +435,7 @@ export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps>
                     <FileText className="h-8 w-8 text-blue-500" />
                     <div>
                       <h4 className="font-medium">{exportItem.title}</h4>
-                      <p className="text-sm text-gray-400">
+                      <p className="text-sm text-muted-foreground">
                         {exportItem.document_type} • {exportItem.format_type.toUpperCase()} •{' '}
                         {new Date(exportItem.generated_at).toLocaleDateString()}
                       </p>

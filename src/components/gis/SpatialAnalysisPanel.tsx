@@ -91,7 +91,7 @@ export const SpatialAnalysisPanel = () => {
                         value={fetchParams.city}
                         onChange={(e) => setFetchParams(prev => ({ ...prev, city: e.target.value }))}
                         placeholder="e.g., San Francisco"
-                        className="cyber-button"
+                        className="skeuo-button"
                       />
                     </div>
                     <div className="space-y-2">
@@ -101,7 +101,7 @@ export const SpatialAnalysisPanel = () => {
                         value={fetchParams.state}
                         onChange={(e) => setFetchParams(prev => ({ ...prev, state: e.target.value }))}
                         placeholder="e.g., CA"
-                        className="cyber-button"
+                        className="skeuo-button"
                       />
                     </div>
                   </div>
@@ -113,7 +113,7 @@ export const SpatialAnalysisPanel = () => {
                         value={fetchParams.dataType}
                         onValueChange={(value: any) => setFetchParams(prev => ({ ...prev, dataType: value }))}
                       >
-                        <SelectTrigger className="cyber-button">
+                        <SelectTrigger className="skeuo-button">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -132,7 +132,7 @@ export const SpatialAnalysisPanel = () => {
                           value={fetchParams.utilityType}
                           onValueChange={(value) => setFetchParams(prev => ({ ...prev, utilityType: value }))}
                         >
-                          <SelectTrigger className="cyber-button">
+                          <SelectTrigger className="skeuo-button">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -149,7 +149,7 @@ export const SpatialAnalysisPanel = () => {
                   <Button 
                     onClick={handleFetchRealData}
                     disabled={isLoading || !fetchParams.city || !fetchParams.state}
-                    className="cyber-button w-full"
+                    className="skeuo-button w-full"
                   >
                     {isLoading ? 'Fetching Data...' : 'Fetch Real GIS Data'}
                   </Button>
@@ -203,13 +203,13 @@ export const SpatialAnalysisPanel = () => {
                         type="number"
                         value={bufferDistance}
                         onChange={(e) => setBufferDistance(Number(e.target.value))}
-                        className="cyber-button"
+                        className="skeuo-button"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label>Units</Label>
                       <Select value={bufferUnits} onValueChange={setBufferUnits}>
-                        <SelectTrigger className="cyber-button">
+                        <SelectTrigger className="skeuo-button">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -222,7 +222,7 @@ export const SpatialAnalysisPanel = () => {
                     <Button 
                       onClick={() => runBufferAnalysis(selectedLayers, bufferDistance, bufferUnits)}
                       disabled={selectedLayers.length === 0 || isLoading}
-                      className="cyber-button w-full"
+                      className="skeuo-button w-full"
                     >
                       Run Buffer Analysis
                     </Button>
@@ -240,13 +240,13 @@ export const SpatialAnalysisPanel = () => {
                         type="number"
                         value={proximityDistance}
                         onChange={(e) => setProximityDistance(Number(e.target.value))}
-                        className="cyber-button"
+                        className="skeuo-button"
                       />
                     </div>
                     <Button 
                       onClick={() => runProximityAnalysis(selectedLayers, proximityDistance)}
                       disabled={selectedLayers.length < 2 || isLoading}
-                      className="cyber-button w-full"
+                      className="skeuo-button w-full"
                     >
                       Run Proximity Analysis
                     </Button>
@@ -263,7 +263,7 @@ export const SpatialAnalysisPanel = () => {
                     <Button 
                       onClick={() => runIntersectionAnalysis(selectedLayers)}
                       disabled={selectedLayers.length < 2 || isLoading}
-                      className="cyber-button w-full"
+                      className="skeuo-button w-full"
                     >
                       Find Intersections
                     </Button>
@@ -278,7 +278,7 @@ export const SpatialAnalysisPanel = () => {
                     <div className="space-y-2">
                       <Label>Operation</Label>
                       <Select value={overlayOperation} onValueChange={setOverlayOperation}>
-                        <SelectTrigger className="cyber-button">
+                        <SelectTrigger className="skeuo-button">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -291,7 +291,7 @@ export const SpatialAnalysisPanel = () => {
                     <Button 
                       onClick={() => runOverlayAnalysis(selectedLayers, overlayOperation)}
                       disabled={selectedLayers.length < 2 || isLoading}
-                      className="cyber-button w-full"
+                      className="skeuo-button w-full"
                     >
                       Run Overlay
                     </Button>
@@ -325,7 +325,7 @@ export const SpatialAnalysisPanel = () => {
                                   {new Date(result.created_at).toLocaleString()}
                                 </p>
                               </div>
-                              <Button variant="outline" size="sm" className="cyber-button">
+                              <Button variant="outline" size="sm" className="skeuo-button">
                                 <Download className="h-4 w-4 mr-2" />
                                 Export
                               </Button>

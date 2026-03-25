@@ -294,16 +294,16 @@ export const AutomatedTestRunner: React.FC<AutomatedTestRunnerProps> = ({
       case 'completed': return <CheckCircle className="w-4 h-4 text-green-500" />;
       case 'failed': return <XCircle className="w-4 h-4 text-red-500" />;
       case 'running': return <Clock className="w-4 h-4 text-blue-500 animate-pulse" />;
-      default: return <Clock className="w-4 h-4 text-gray-400" />;
+      default: return <Clock className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-500/20 text-green-400 border-green-400/50';
-      case 'failed': return 'bg-red-500/20 text-red-400 border-red-400/50';
-      case 'running': return 'bg-blue-500/20 text-blue-400 border-blue-400/50';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-400/50';
+      case 'completed': return 'bg-green-500/20 text-green-600 border-green-600/50';
+      case 'failed': return 'bg-red-500/20 text-destructive border-destructive/50';
+      case 'running': return 'bg-blue-500/20 text-blue-600 border-blue-600/50';
+      default: return 'bg-gray-500/20 text-muted-foreground border-gray-400/50';
     }
   };
 

@@ -73,8 +73,8 @@ export const ScheduledReports: React.FC = () => {
     <Card className="h-full">
       <CardHeader>
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-cyan-400/10 border border-cyan-400/20">
-            <Calendar className="h-5 w-5 text-cyan-400" />
+          <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+            <Calendar className="h-5 w-5 text-primary" />
           </div>
           <div>
             <CardTitle className="text-xl font-semibold">Scheduled Reports</CardTitle>

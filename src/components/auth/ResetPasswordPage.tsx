@@ -20,7 +20,7 @@ export const ResetPasswordPage = ({ onNavigateToLogin }: ResetPasswordPageProps)
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (password !== confirmPassword) {
       toast({
         title: "Error",
@@ -30,10 +30,10 @@ export const ResetPasswordPage = ({ onNavigateToLogin }: ResetPasswordPageProps)
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
       toast({
-        title: "Error",
-        description: "Password must be at least 6 characters long.",
+        title: "Weak Password",
+        description: "Password must be at least 8 characters with uppercase, lowercase, and a number.",
         variant: "destructive",
       });
       return;
@@ -78,7 +78,7 @@ export const ResetPasswordPage = ({ onNavigateToLogin }: ResetPasswordPageProps)
     >
       <form onSubmit={handleUpdatePassword} className="space-y-6">
         <div className="space-y-2">
-          <Label htmlFor="password" style={{ color: 'hsl(210 40% 98%)' }}>New Password</Label>
+          <Label htmlFor="password">New Password</Label>
           <div className="relative">
             <Input
               id="password"
@@ -86,33 +86,28 @@ export const ResetPasswordPage = ({ onNavigateToLogin }: ResetPasswordPageProps)
               placeholder="Enter your new password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={{ 
-                backgroundColor: 'hsl(222.2 84% 4.9%)',
-                border: '1px solid hsl(217.2 32.6% 17.5%)',
-                color: 'hsl(210 40% 98%)'
-              }}
-              className="pr-10 focus:ring-2 focus:ring-cyan-500"
+              className="skeuo-input pr-10"
               required
-              minLength={6}
+              minLength={8}
             />
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? (
-                <EyeOff className="h-4 w-4" style={{ color: 'hsl(215.4 16.3% 46.9%)' }} />
+                <EyeOff className="h-4 w-4" />
               ) : (
-                <Eye className="h-4 w-4" style={{ color: 'hsl(215.4 16.3% 46.9%)' }} />
+                <Eye className="h-4 w-4" />
               )}
             </Button>
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword" className="text-foreground">Confirm New Password</Label>
+          <Label htmlFor="confirmPassword">Confirm New Password</Label>
           <div className="relative">
             <Input
               id="confirmPassword"
@@ -120,7 +115,7 @@ export const ResetPasswordPage = ({ onNavigateToLogin }: ResetPasswordPageProps)
               placeholder="Confirm your new password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="bg-background border-border text-foreground pr-10"
+              className="skeuo-input pr-10"
               required
               minLength={6}
             />
@@ -128,7 +123,7 @@ export const ResetPasswordPage = ({ onNavigateToLogin }: ResetPasswordPageProps)
               type="button"
               variant="ghost"
               size="sm"
-              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
             >
               {showConfirmPassword ? (
@@ -140,9 +135,9 @@ export const ResetPasswordPage = ({ onNavigateToLogin }: ResetPasswordPageProps)
           </div>
         </div>
 
-        <Button 
-          type="submit" 
-          className="w-full bg-primary hover:bg-primary/90"
+        <Button
+          type="submit"
+          className="w-full skeuo-button-primary text-white font-semibold"
           disabled={loading}
         >
           {loading ? "Updating..." : "Update Password"}
@@ -152,7 +147,7 @@ export const ResetPasswordPage = ({ onNavigateToLogin }: ResetPasswordPageProps)
       <div className="mt-8 text-center">
         <Button
           variant="link"
-          className="text-primary hover:text-primary/80"
+          className="text-accent hover:text-accent/80"
           onClick={onNavigateToLogin}
         >
           <ArrowLeft className="w-4 h-4 mr-2" />

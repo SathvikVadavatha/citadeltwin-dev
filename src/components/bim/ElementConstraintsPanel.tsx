@@ -80,10 +80,10 @@ export const ElementConstraintsPanel = ({ elementId }: ElementConstraintsPanelPr
 
   const getConstraintTypeColor = (type: string) => {
     const colors: Record<string, string> = {
-      dimensional: 'bg-blue-500/20 text-blue-400 border-blue-400/50',
-      geometric: 'bg-green-500/20 text-green-400 border-green-400/50',
-      material: 'bg-purple-500/20 text-purple-400 border-purple-400/50',
-      structural: 'bg-red-500/20 text-red-400 border-red-400/50',
+      dimensional: 'bg-blue-500/20 text-blue-600 border-blue-600/50',
+      geometric: 'bg-green-500/20 text-green-600 border-green-600/50',
+      material: 'bg-purple-500/20 text-purple-600 border-purple-600/50',
+      structural: 'bg-red-500/20 text-destructive border-destructive/50',
       thermal: 'bg-orange-500/20 text-orange-400 border-orange-400/50',
     };
     return colors[type] || colors.dimensional;
@@ -120,21 +120,21 @@ export const ElementConstraintsPanel = ({ elementId }: ElementConstraintsPanelPr
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-xl font-semibold glow-cyan">Element Constraints</h3>
+          <h3 className="text-xl font-semibold shadow-sm">Element Constraints</h3>
           <p className="text-muted-foreground">
             Managing constraints for: <span className="text-primary">{selectedElement?.name}</span>
           </p>
         </div>
         <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
           <DialogTrigger asChild>
-            <Button className="cyber-button" onClick={resetForm}>
+            <Button className="skeuo-button" onClick={resetForm}>
               <Plus className="w-4 h-4 mr-2" />
               Add Constraint
             </Button>
           </DialogTrigger>
           <DialogContent className="gradient-border">
             <DialogHeader>
-              <DialogTitle className="glow-cyan">Create Constraint</DialogTitle>
+              <DialogTitle className="shadow-sm">Create Constraint</DialogTitle>
             </DialogHeader>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -146,7 +146,7 @@ export const ElementConstraintsPanel = ({ elementId }: ElementConstraintsPanelPr
                     setFormData(prev => ({ ...prev, constraint_type: value }))
                   }
                 >
-                  <SelectTrigger className="cyber-button">
+                  <SelectTrigger className="skeuo-button">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -165,7 +165,7 @@ export const ElementConstraintsPanel = ({ elementId }: ElementConstraintsPanelPr
                   value={formData.target_element_id}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, target_element_id: value }))}
                 >
-                  <SelectTrigger className="cyber-button">
+                  <SelectTrigger className="skeuo-button">
                     <SelectValue placeholder="Select target element" />
                   </SelectTrigger>
                   <SelectContent>
@@ -195,7 +195,7 @@ export const ElementConstraintsPanel = ({ elementId }: ElementConstraintsPanelPr
                       // Invalid JSON, keep current state
                     }
                   }}
-                  className="cyber-button"
+                  className="skeuo-button"
                 />
               </div>
 
@@ -213,14 +213,14 @@ export const ElementConstraintsPanel = ({ elementId }: ElementConstraintsPanelPr
                   type="button"
                   variant="outline"
                   onClick={() => setShowCreateModal(false)}
-                  className="cyber-button"
+                  className="skeuo-button"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={creating}
-                  className="cyber-button bg-primary text-primary-foreground"
+                  className="skeuo-button bg-primary text-primary-foreground"
                 >
                   Create Constraint
                 </Button>
@@ -243,7 +243,7 @@ export const ElementConstraintsPanel = ({ elementId }: ElementConstraintsPanelPr
       ) : (
         <div className="grid gap-4">
           {constraints.map((constraint) => (
-            <Card key={constraint.id} className="gradient-border glow-cyan">
+            <Card key={constraint.id} className="gradient-border shadow-sm">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -252,11 +252,11 @@ export const ElementConstraintsPanel = ({ elementId }: ElementConstraintsPanelPr
                     </Badge>
                     <div className="flex items-center space-x-2">
                       {constraint.is_active ? (
-                        <ToggleRight className="w-5 h-5 text-green-400" />
+                        <ToggleRight className="w-5 h-5 text-green-600" />
                       ) : (
-                        <ToggleLeft className="w-5 h-5 text-gray-400" />
+                        <ToggleLeft className="w-5 h-5 text-muted-foreground" />
                       )}
-                      <span className={constraint.is_active ? 'text-green-400' : 'text-gray-400'}>
+                      <span className={constraint.is_active ? 'text-green-600' : 'text-muted-foreground'}>
                         {constraint.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </div>
@@ -267,7 +267,7 @@ export const ElementConstraintsPanel = ({ elementId }: ElementConstraintsPanelPr
                       variant="ghost"
                       onClick={() => toggleConstraint(constraint.id)}
                       disabled={updating}
-                      className="cyber-button"
+                      className="skeuo-button"
                     >
                       {constraint.is_active ? 'Deactivate' : 'Activate'}
                     </Button>
@@ -276,7 +276,7 @@ export const ElementConstraintsPanel = ({ elementId }: ElementConstraintsPanelPr
                       variant="ghost"
                       onClick={() => handleDelete(constraint.id)}
                       disabled={deleting}
-                      className="cyber-button hover:bg-destructive/20"
+                      className="skeuo-button hover:bg-destructive/20"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>

@@ -64,9 +64,9 @@ export const CostValidationDashboard = ({ projectId }: CostValidationDashboardPr
   };
 
   const getStatusBadge = (score: number) => {
-    if (score >= 90) return <Badge className="bg-green-500/20 text-green-400">Excellent</Badge>;
-    if (score >= 70) return <Badge className="bg-yellow-500/20 text-yellow-400">Good</Badge>;
-    return <Badge className="bg-red-500/20 text-red-400">Needs Review</Badge>;
+    if (score >= 90) return <Badge className="bg-green-500/20 text-green-600">Excellent</Badge>;
+    if (score >= 70) return <Badge className="bg-yellow-500/20 text-yellow-600">Good</Badge>;
+    return <Badge className="bg-red-500/20 text-destructive">Needs Review</Badge>;
   };
 
   return (
@@ -81,7 +81,7 @@ export const CostValidationDashboard = ({ projectId }: CostValidationDashboardPr
         <Button
           onClick={runValidation}
           disabled={validating || loading || estimations.length === 0}
-          className="cyber-button"
+          className="skeuo-button"
         >
           {validating ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -171,7 +171,7 @@ export const CostValidationDashboard = ({ projectId }: CostValidationDashboardPr
                         <div key={index} className="flex items-start space-x-2 p-2 bg-red-500/10 rounded border border-red-500/20">
                           <XCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
                           <div className="flex-1">
-                            <p className="text-sm text-red-400">{error.message}</p>
+                            <p className="text-sm text-destructive">{error.message}</p>
                             {error.suggestion && (
                               <p className="text-xs text-muted-foreground mt-1">{error.suggestion}</p>
                             )}
@@ -193,7 +193,7 @@ export const CostValidationDashboard = ({ projectId }: CostValidationDashboardPr
                         <div key={index} className="flex items-start space-x-2 p-2 bg-yellow-500/10 rounded border border-yellow-500/20">
                           <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
                           <div className="flex-1">
-                            <p className="text-sm text-yellow-400">{warning.message}</p>
+                            <p className="text-sm text-yellow-600">{warning.message}</p>
                             <p className="text-xs text-muted-foreground mt-1">{warning.suggestion}</p>
                           </div>
                           <Badge variant="outline" className="text-xs">

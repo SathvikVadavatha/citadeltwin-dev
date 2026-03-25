@@ -200,7 +200,7 @@ export const ModelValidationPanel: React.FC<ModelValidationPanelProps> = ({ uplo
                     )}
                     <span className="font-medium">Item {index + 1}</span>
                   </div>
-                  <Badge className={validation.isValid ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}>
+                  <Badge className={validation.isValid ? 'bg-green-500/20 text-green-600' : 'bg-red-500/20 text-destructive'}>
                     Score: {validation.score}%
                   </Badge>
                 </div>
@@ -209,10 +209,10 @@ export const ModelValidationPanel: React.FC<ModelValidationPanelProps> = ({ uplo
                   <div className="mt-3">
                     <h4 className="text-sm font-medium text-red-500 mb-2">Errors:</h4>
                     {validation.errors.map((error, errorIndex) => (
-                      <div key={errorIndex} className="text-sm text-red-400 mb-1">
+                      <div key={errorIndex} className="text-sm text-destructive mb-1">
                         • {error.message}
                         {error.suggestion && (
-                          <div className="text-xs text-gray-400 ml-2">
+                          <div className="text-xs text-muted-foreground ml-2">
                             Suggestion: {error.suggestion}
                           </div>
                         )}
@@ -225,9 +225,9 @@ export const ModelValidationPanel: React.FC<ModelValidationPanelProps> = ({ uplo
                   <div className="mt-3">
                     <h4 className="text-sm font-medium text-yellow-500 mb-2">Warnings:</h4>
                     {validation.warnings.map((warning, warningIndex) => (
-                      <div key={warningIndex} className="text-sm text-yellow-400 mb-1">
+                      <div key={warningIndex} className="text-sm text-yellow-600 mb-1">
                         • {warning.message}
-                        <div className="text-xs text-gray-400 ml-2">
+                        <div className="text-xs text-muted-foreground ml-2">
                           Suggestion: {warning.suggestion}
                         </div>
                       </div>

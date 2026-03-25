@@ -177,7 +177,7 @@ export const RealFEAPanel = () => {
                     value={selectedAnalysisId}
                     onChange={(e) => setSelectedAnalysisId(e.target.value)}
                     placeholder="Enter analysis ID"
-                    className="cyber-button"
+                    className="skeuo-button"
                   />
                 </div>
                 <div className="space-y-2">
@@ -186,7 +186,7 @@ export const RealFEAPanel = () => {
                     value={parameters.elementId}
                     onValueChange={(value) => setParameters(prev => ({ ...prev, elementId: value }))}
                   >
-                    <SelectTrigger className="cyber-button">
+                    <SelectTrigger className="skeuo-button">
                       <SelectValue placeholder="Select element" />
                     </SelectTrigger>
                     <SelectContent>
@@ -207,7 +207,7 @@ export const RealFEAPanel = () => {
                     value={parameters.materialId}
                     onValueChange={(value) => setParameters(prev => ({ ...prev, materialId: value }))}
                   >
-                    <SelectTrigger className="cyber-button">
+                    <SelectTrigger className="skeuo-button">
                       <SelectValue placeholder="Select material" />
                     </SelectTrigger>
                     <SelectContent>
@@ -225,7 +225,7 @@ export const RealFEAPanel = () => {
                     value={parameters.analysisType}
                     onValueChange={(value: any) => setParameters(prev => ({ ...prev, analysisType: value }))}
                   >
-                    <SelectTrigger className="cyber-button">
+                    <SelectTrigger className="skeuo-button">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -244,7 +244,7 @@ export const RealFEAPanel = () => {
                     type="number"
                     value={parameters.numberOfModes}
                     onChange={(e) => setParameters(prev => ({ ...prev, numberOfModes: Number(e.target.value) }))}
-                    className="cyber-button"
+                    className="skeuo-button"
                   />
                 </div>
               )}
@@ -253,15 +253,15 @@ export const RealFEAPanel = () => {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <Label>Forces</Label>
-                    <Button onClick={addForce} size="sm" className="cyber-button">
+                    <Button onClick={addForce} size="sm" className="skeuo-button">
                       Add Force
                     </Button>
                   </div>
                   {parameters.forces.map((force, index) => (
                     <div key={index} className="grid grid-cols-3 gap-2 p-2 border rounded">
-                      <Input placeholder="Node Set" className="cyber-button" />
-                      <Input type="number" placeholder="Direction" className="cyber-button" />
-                      <Input type="number" placeholder="Magnitude" className="cyber-button" />
+                      <Input placeholder="Node Set" className="skeuo-button" />
+                      <Input type="number" placeholder="Direction" className="skeuo-button" />
+                      <Input type="number" placeholder="Magnitude" className="skeuo-button" />
                     </div>
                   ))}
                 </div>
@@ -269,14 +269,14 @@ export const RealFEAPanel = () => {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <Label>Constraints</Label>
-                    <Button onClick={addConstraint} size="sm" className="cyber-button">
+                    <Button onClick={addConstraint} size="sm" className="skeuo-button">
                       Add Constraint
                     </Button>
                   </div>
                   {parameters.constraints.map((constraint, index) => (
                     <div key={index} className="grid grid-cols-2 gap-2 p-2 border rounded">
-                      <Input placeholder="Node Set" className="cyber-button" />
-                      <Input placeholder="DOF (e.g., 1,6)" className="cyber-button" />
+                      <Input placeholder="Node Set" className="skeuo-button" />
+                      <Input placeholder="DOF (e.g., 1,6)" className="skeuo-button" />
                     </div>
                   ))}
                 </div>
@@ -296,13 +296,13 @@ export const RealFEAPanel = () => {
                       step="0.01"
                       value={parameters.meshSize}
                       onChange={(e) => setParameters(prev => ({ ...prev, meshSize: Number(e.target.value) }))}
-                      className="cyber-button"
+                      className="skeuo-button"
                     />
                   </div>
                   <Button 
                     onClick={handleGenerateMesh}
                     disabled={!selectedAnalysisId || !parameters.elementId || isGeneratingMesh}
-                    className="cyber-button w-full"
+                    className="skeuo-button w-full"
                   >
                     {isGeneratingMesh ? 'Generating Mesh...' : 'Generate Mesh'}
                   </Button>
@@ -317,7 +317,7 @@ export const RealFEAPanel = () => {
                   <Button 
                     onClick={handleValidateModel}
                     disabled={!selectedAnalysisId || isValidating}
-                    className="cyber-button w-full"
+                    className="skeuo-button w-full"
                   >
                     {isValidating ? 'Validating...' : 'Validate Model'}
                   </Button>
@@ -371,7 +371,7 @@ export const RealFEAPanel = () => {
                   <Button 
                     onClick={handleRunAnalysis}
                     disabled={!selectedAnalysisId || !parameters.elementId || isRunningAnalysis}
-                    className="cyber-button w-full"
+                    className="skeuo-button w-full"
                   >
                     <Play className="h-4 w-4 mr-2" />
                     {isRunningAnalysis ? 'Running Analysis...' : `Run ${parameters.analysisType} Analysis`}

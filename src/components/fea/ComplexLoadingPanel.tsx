@@ -93,7 +93,7 @@ export const ComplexLoadingPanel: React.FC<ComplexLoadingPanelProps> = ({
                       <div className="space-y-2">
                         <Label>Load Type</Label>
                         <Select defaultValue="force">
-                          <SelectTrigger className="cyber-button">
+                          <SelectTrigger className="skeuo-button">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -110,14 +110,14 @@ export const ComplexLoadingPanel: React.FC<ComplexLoadingPanelProps> = ({
                         <Input 
                           type="number" 
                           defaultValue={load.magnitude}
-                          className="cyber-button" 
+                          className="skeuo-button" 
                         />
                       </div>
                       
                       <div className="space-y-2">
                         <Label>Direction</Label>
                         <Select defaultValue={load.direction}>
-                          <SelectTrigger className="cyber-button">
+                          <SelectTrigger className="skeuo-button">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -137,7 +137,7 @@ export const ComplexLoadingPanel: React.FC<ComplexLoadingPanelProps> = ({
                           <div className="space-y-2">
                             <Label>Function Type</Label>
                             <Select defaultValue="sine">
-                              <SelectTrigger className="cyber-button">
+                              <SelectTrigger className="skeuo-button">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -151,7 +151,7 @@ export const ComplexLoadingPanel: React.FC<ComplexLoadingPanelProps> = ({
                           </div>
                           <div className="space-y-2">
                             <Label>Frequency (Hz)</Label>
-                            <Input type="number" defaultValue="1.0" className="cyber-button" />
+                            <Input type="number" defaultValue="1.0" className="skeuo-button" />
                           </div>
                         </div>
                       </div>
@@ -162,7 +162,7 @@ export const ComplexLoadingPanel: React.FC<ComplexLoadingPanelProps> = ({
                 <Button 
                   variant="outline" 
                   onClick={addLoad}
-                  className="cyber-button w-full"
+                  className="skeuo-button w-full"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Load
@@ -175,7 +175,7 @@ export const ComplexLoadingPanel: React.FC<ComplexLoadingPanelProps> = ({
                 <div className="space-y-2">
                   <Label>Dynamic Load Type</Label>
                   <Select defaultValue="harmonic">
-                    <SelectTrigger className="cyber-button">
+                    <SelectTrigger className="skeuo-button">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -191,18 +191,18 @@ export const ComplexLoadingPanel: React.FC<ComplexLoadingPanelProps> = ({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Amplitude</Label>
-                    <Input type="number" defaultValue="1000" className="cyber-button" />
+                    <Input type="number" defaultValue="1000" className="skeuo-button" />
                   </div>
                   <div className="space-y-2">
                     <Label>Frequency (Hz)</Label>
-                    <Input type="number" defaultValue="10" className="cyber-button" />
+                    <Input type="number" defaultValue="10" className="skeuo-button" />
                   </div>
                 </div>
 
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded">
                   <h4 className="font-medium mb-2">Load History Input</h4>
                   <div className="space-y-2">
-                    <Button variant="outline" size="sm" className="cyber-button">
+                    <Button variant="outline" size="sm" className="skeuo-button">
                       <Upload className="h-4 w-4 mr-2" />
                       Import Time History
                     </Button>
@@ -219,7 +219,7 @@ export const ComplexLoadingPanel: React.FC<ComplexLoadingPanelProps> = ({
                 <div className="space-y-2">
                   <Label>Thermal Load Type</Label>
                   <Select defaultValue="temperature">
-                    <SelectTrigger className="cyber-button">
+                    <SelectTrigger className="skeuo-button">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -234,11 +234,11 @@ export const ComplexLoadingPanel: React.FC<ComplexLoadingPanelProps> = ({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Temperature (°C)</Label>
-                    <Input type="number" defaultValue="100" className="cyber-button" />
+                    <Input type="number" defaultValue="100" className="skeuo-button" />
                   </div>
                   <div className="space-y-2">
                     <Label>Reference Temp (°C)</Label>
-                    <Input type="number" defaultValue="20" className="cyber-button" />
+                    <Input type="number" defaultValue="20" className="skeuo-button" />
                   </div>
                 </div>
 
@@ -259,7 +259,7 @@ export const ComplexLoadingPanel: React.FC<ComplexLoadingPanelProps> = ({
                 <div className="space-y-2">
                   <Label>Pressure Type</Label>
                   <Select defaultValue="uniform">
-                    <SelectTrigger className="cyber-button">
+                    <SelectTrigger className="skeuo-button">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -274,12 +274,12 @@ export const ComplexLoadingPanel: React.FC<ComplexLoadingPanelProps> = ({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Pressure Value (Pa)</Label>
-                    <Input type="number" defaultValue="1000" className="cyber-button" />
+                    <Input type="number" defaultValue="1000" className="skeuo-button" />
                   </div>
                   <div className="space-y-2">
                     <Label>Application Surface</Label>
                     <Select defaultValue="top">
-                      <SelectTrigger className="cyber-button">
+                      <SelectTrigger className="skeuo-button">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -307,11 +307,11 @@ export const ComplexLoadingPanel: React.FC<ComplexLoadingPanelProps> = ({
           </Tabs>
 
           <div className="flex gap-2 mt-6">
-            <Button className="cyber-button">
+            <Button className="skeuo-button">
               <BarChart3 className="h-4 w-4 mr-2" />
               Apply Loads
             </Button>
-            <Button variant="outline" className="cyber-button">
+            <Button variant="outline" className="skeuo-button">
               <Clock className="h-4 w-4 mr-2" />
               Preview Time History
             </Button>

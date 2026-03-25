@@ -112,18 +112,18 @@ export const IFCElementPropertiesPanel = ({
 
   const getClassificationColor = (category: string) => {
     const colors: Record<string, string> = {
-      structural: 'bg-blue-500/20 text-blue-400 border-blue-400/50',
-      architectural: 'bg-green-500/20 text-green-400 border-green-400/50',
-      mep: 'bg-purple-500/20 text-purple-400 border-purple-400/50',
+      structural: 'bg-blue-500/20 text-blue-600 border-blue-600/50',
+      architectural: 'bg-green-500/20 text-green-600 border-green-600/50',
+      mep: 'bg-purple-500/20 text-purple-600 border-purple-600/50',
       site: 'bg-orange-500/20 text-orange-400 border-orange-400/50',
-      other: 'bg-gray-500/20 text-gray-400 border-gray-400/50'
+      other: 'bg-gray-500/20 text-muted-foreground border-gray-400/50'
     };
     return colors[category] || colors.other;
   };
 
   if (!element) {
     return (
-      <Card className="cyber-tool-palette h-full">
+      <Card className="skeuo-panel h-full">
         <CardContent className="p-8 text-center">
           <Info className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium mb-2">No Element Selected</h3>
@@ -136,7 +136,7 @@ export const IFCElementPropertiesPanel = ({
   }
 
   return (
-    <Card className="cyber-tool-palette h-full">
+    <Card className="skeuo-panel h-full">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -186,16 +186,16 @@ export const IFCElementPropertiesPanel = ({
                       id="element-name"
                       value={editedName}
                       onChange={(e) => setEditedName(e.target.value)}
-                      className="cyber-input flex-1"
+                      className="skeuo-input flex-1"
                     />
-                    <Button size="sm" onClick={handleSaveChanges} className="cyber-button">
+                    <Button size="sm" onClick={handleSaveChanges} className="skeuo-button">
                       <Save className="w-4 h-4" />
                     </Button>
                     <Button 
                       size="sm" 
                       variant="ghost" 
                       onClick={() => setIsEditing(false)}
-                      className="cyber-button"
+                      className="skeuo-button"
                     >
                       <X className="w-4 h-4" />
                     </Button>
@@ -207,7 +207,7 @@ export const IFCElementPropertiesPanel = ({
                       size="sm" 
                       variant="ghost" 
                       onClick={() => setIsEditing(true)}
-                      className="cyber-button"
+                      className="skeuo-button"
                     >
                       <Edit3 className="w-4 h-4" />
                     </Button>
@@ -336,7 +336,7 @@ export const IFCElementPropertiesPanel = ({
                   <div>
                     <Label htmlFor="material-select">Assign Material (Optional)</Label>
                     <Select value={selectedMaterial} onValueChange={setSelectedMaterial}>
-                      <SelectTrigger className="cyber-button">
+                      <SelectTrigger className="skeuo-button">
                         <SelectValue placeholder="Select material" />
                       </SelectTrigger>
                       <SelectContent>
@@ -353,7 +353,7 @@ export const IFCElementPropertiesPanel = ({
                 <Button 
                   onClick={handleCreateBIMElement}
                   disabled={isCreatingBIM}
-                  className="cyber-button w-full"
+                  className="skeuo-button w-full"
                 >
                   {isCreatingBIM ? (
                     <>

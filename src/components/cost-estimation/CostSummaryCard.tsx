@@ -21,11 +21,11 @@ export const CostSummaryCard = ({ estimations }: CostSummaryCardProps) => {
 
   const getStatusColor = (status: string) => {
     const colors = {
-      draft: 'bg-gray-500/20 text-gray-400 border-gray-400/50',
-      in_progress: 'bg-blue-500/20 text-blue-400 border-blue-400/50',
-      completed: 'bg-green-500/20 text-green-400 border-green-400/50',
+      draft: 'bg-gray-500/20 text-muted-foreground border-gray-400/50',
+      in_progress: 'bg-blue-500/20 text-blue-600 border-blue-600/50',
+      completed: 'bg-green-500/20 text-green-600 border-green-600/50',
       approved: 'bg-emerald-500/20 text-emerald-400 border-emerald-400/50',
-      rejected: 'bg-red-500/20 text-red-400 border-red-400/50',
+      rejected: 'bg-red-500/20 text-destructive border-destructive/50',
     };
     return colors[status as keyof typeof colors] || colors.draft;
   };
@@ -44,7 +44,7 @@ export const CostSummaryCard = ({ estimations }: CostSummaryCardProps) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
               <DollarSign className="w-8 h-8 mx-auto text-primary mb-2" />
-              <p className="text-2xl font-bold glow-cyan">${totalProjectCost.toLocaleString()}</p>
+              <p className="text-2xl font-bold shadow-sm">${totalProjectCost.toLocaleString()}</p>
               <p className="text-sm text-muted-foreground">Total Project Cost</p>
             </div>
             <div className="text-center">

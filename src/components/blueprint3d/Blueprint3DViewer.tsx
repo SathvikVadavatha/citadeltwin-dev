@@ -9,6 +9,32 @@ import { Loader2, RotateCcw, Home, Maximize2, Box, BedDouble, Bath, CookingPot, 
 import type { ProcessingResult } from './BlueprintTo3DConverter';
 import * as THREE from 'three';
 
+// Security: Sanitize HTML to prevent XSS from API responses
+const sanitizeHtml = (html: string): string => {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  // Remove all script tags, event handlers, and dangerous elements
+  const scripts = doc.querySelectorAll('script, iframe, object, embed, form, link[rel="import"]');
+  scripts.forEach(el => el.remove());
+  // Remove event handler attributes from all elements
+  const allElements = doc.querySelectorAll('*');
+  allElements.forEach(el => {
+    const attrs = Array.from(el.attributes);
+    attrs.forEach(attr => {
+      if (attr.name.startsWith('on') || attr.value.startsWith('javascript:')) {
+        el.removeAttribute(attr.name);
+      }
+    });
+    // Remove dangerous href/src values
+    if (el.hasAttribute('href') && el.getAttribute('href')?.toLowerCase().startsWith('javascript:')) {
+      el.removeAttribute('href');
+    }
+    if (el.hasAttribute('src') && el.getAttribute('src')?.toLowerCase().startsWith('javascript:')) {
+      el.removeAttribute('src');
+    }
+  });
+  return doc.body.innerHTML;
+};
+
 interface Blueprint3DViewerProps {
   result: ProcessingResult;
   onReset: () => void;
@@ -517,9 +543,9 @@ export const Blueprint3DViewer: React.FC<Blueprint3DViewerProps> = ({ result, on
         </TabsContent>
 
         <TabsContent value="2d" className="mt-3">
-          <div className="rounded-xl overflow-auto border border-border bg-[#1a1a2e]">
+          <div className="rounded-xl overflow-auto border border-border bg-card">
             <div
-              dangerouslySetInnerHTML={{ __html: result.html_view }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(result.html_view) }}
               className="min-h-[500px]"
             />
           </div>

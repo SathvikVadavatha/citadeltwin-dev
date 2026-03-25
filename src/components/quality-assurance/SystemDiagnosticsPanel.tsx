@@ -66,11 +66,11 @@ export const SystemDiagnosticsPanel = () => {
   const getOverallBadge = (status: SystemHealth['overallStatus']) => {
     switch (status) {
       case 'healthy':
-        return <Badge className="bg-green-500/20 text-green-400">Healthy</Badge>;
+        return <Badge className="bg-green-500/20 text-green-600">Healthy</Badge>;
       case 'warning':
-        return <Badge className="bg-yellow-500/20 text-yellow-400">Warning</Badge>;
+        return <Badge className="bg-yellow-500/20 text-yellow-600">Warning</Badge>;
       case 'error':
-        return <Badge className="bg-red-500/20 text-red-400">Critical</Badge>;
+        return <Badge className="bg-red-500/20 text-destructive">Critical</Badge>;
     }
   };
 
@@ -86,7 +86,7 @@ export const SystemDiagnosticsPanel = () => {
         <Button
           onClick={runDiagnostics}
           disabled={running}
-          className="cyber-button"
+          className="skeuo-button"
         >
           {running ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -194,7 +194,7 @@ export const SystemDiagnosticsPanel = () => {
               {systemHealth.recommendations.map((recommendation, index) => (
                 <div key={index} className="flex items-start space-x-2 p-3 bg-blue-500/10 rounded border border-blue-500/20">
                   <AlertTriangle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-blue-400">{recommendation}</p>
+                  <p className="text-sm text-blue-600">{recommendation}</p>
                 </div>
               ))}
             </div>
@@ -210,7 +210,7 @@ export const SystemDiagnosticsPanel = () => {
             <p className="text-muted-foreground mb-4">
               Run comprehensive system diagnostics to check health and performance
             </p>
-            <Button onClick={runDiagnostics} className="cyber-button">
+            <Button onClick={runDiagnostics} className="skeuo-button">
               <Activity className="w-4 h-4 mr-2" />
               Start Diagnostics
             </Button>

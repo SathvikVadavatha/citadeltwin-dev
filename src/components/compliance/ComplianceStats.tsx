@@ -23,49 +23,49 @@ export const ComplianceStats: React.FC<ComplianceStatsProps> = ({ violations }) 
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <Card className="cyber-tool-palette">
+      <Card className="skeuo-panel">
         <CardContent className="p-4">
           <div className="flex items-center space-x-2">
-            <XCircle className="w-5 h-5 text-red-400" />
+            <XCircle className="w-5 h-5 text-destructive" />
             <div>
-              <p className="text-sm text-gray-400">Critical</p>
-              <p className="text-xl font-bold text-red-400">{stats.critical}</p>
+              <p className="text-sm text-muted-foreground">Critical</p>
+              <p className="text-xl font-bold text-destructive">{stats.critical}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="cyber-tool-palette">
+      <Card className="skeuo-panel">
         <CardContent className="p-4">
           <div className="flex items-center space-x-2">
-            <AlertTriangle className="w-5 h-5 text-yellow-400" />
+            <AlertTriangle className="w-5 h-5 text-yellow-600" />
             <div>
-              <p className="text-sm text-gray-400">Major</p>
-              <p className="text-xl font-bold text-yellow-400">{stats.major}</p>
+              <p className="text-sm text-muted-foreground">Major</p>
+              <p className="text-xl font-bold text-yellow-600">{stats.major}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="cyber-tool-palette">
+      <Card className="skeuo-panel">
         <CardContent className="p-4">
           <div className="flex items-center space-x-2">
-            <Clock className="w-5 h-5 text-cyan-400" />
+            <Clock className="w-5 h-5 text-primary" />
             <div>
-              <p className="text-sm text-gray-400">Minor</p>
-              <p className="text-xl font-bold text-cyan-400">{stats.minor}</p>
+              <p className="text-sm text-muted-foreground">Minor</p>
+              <p className="text-xl font-bold text-primary">{stats.minor}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="cyber-tool-palette">
+      <Card className="skeuo-panel">
         <CardContent className="p-4">
           <div className="flex items-center space-x-2">
-            <CheckCircle className="w-5 h-5 text-green-400" />
+            <CheckCircle className="w-5 h-5 text-green-600" />
             <div>
-              <p className="text-sm text-gray-400">Warnings</p>
-              <p className="text-xl font-bold text-green-400">{stats.warning}</p>
+              <p className="text-sm text-muted-foreground">Warnings</p>
+              <p className="text-xl font-bold text-green-600">{stats.warning}</p>
             </div>
           </div>
         </CardContent>

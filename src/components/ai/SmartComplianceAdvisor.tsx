@@ -63,7 +63,7 @@ export const SmartComplianceAdvisor: React.FC = () => {
       case 'review-needed':
         return <Clock className="h-5 w-5 text-yellow-500" />;
       case 'not-applicable':
-        return <AlertTriangle className="h-5 w-5 text-gray-400" />;
+        return <AlertTriangle className="h-5 w-5 text-muted-foreground" />;
       default:
         return <Shield className="h-5 w-5 text-blue-500" />;
     }

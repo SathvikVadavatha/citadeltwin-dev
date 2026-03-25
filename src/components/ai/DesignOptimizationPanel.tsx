@@ -124,7 +124,7 @@ Format your response as a structured analysis with clear sections for each optim
       case 'high': return 'text-green-500';
       case 'medium': return 'text-yellow-500';
       case 'low': return 'text-blue-500';
-      default: return 'text-gray-500';
+      default: return 'text-muted-foreground';
     }
   };
 
@@ -133,7 +133,7 @@ Format your response as a structured analysis with clear sections for each optim
       case 'simple': return 'text-green-500';
       case 'moderate': return 'text-yellow-500';
       case 'complex': return 'text-red-500';
-      default: return 'text-gray-500';
+      default: return 'text-muted-foreground';
     }
   };
 

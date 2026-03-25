@@ -284,12 +284,7 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    console.log(
-      "✅ GEMINI_API_KEY found, length:",
-      GEMINI_API_KEY.length,
-      "first 4 chars:",
-      GEMINI_API_KEY.substring(0, 4),
-    );
+    console.log('✅ GEMINI_API_KEY found and configured');
 
     // Get user ID from authorization header for rate limiting
     const authHeader = req.headers.get("authorization");
@@ -345,7 +340,7 @@ serve(async (req) => {
       ? `${systemPrompt}\n\nContext: ${context}\n\nUser Request: ${prompt}`
       : `${systemPrompt}\n\nUser Request: ${prompt}`;
 
-    console.log(`Gemini AI request - Type: ${type}, User: ${userId}, HasImage: ${!!imageData}`);
+    console.log(`Gemini AI request - Type: ${type}, HasImage: ${!!imageData}`);
 
     // gemini-1.5-flash is deprecated, using gemini-2.5-flash
     const model = "gemini-2.5-flash";

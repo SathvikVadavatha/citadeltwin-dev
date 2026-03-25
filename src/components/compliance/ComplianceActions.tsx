@@ -82,7 +82,7 @@ export const ComplianceActions: React.FC<ComplianceActionsProps> = ({
       <Button
         onClick={handleRunMultiJurisdictionCheck}
         disabled={!uploadId || !selectedJurisdiction || isRunningCheck}
-        className="cyber-button"
+        className="skeuo-button"
         size="lg"
       >
         {isRunningCheck ? (
@@ -99,10 +99,10 @@ export const ComplianceActions: React.FC<ComplianceActionsProps> = ({
       </Button>
       
       <Select value={reportFormat} onValueChange={(value: 'pdf' | 'docx') => setReportFormat(value)}>
-        <SelectTrigger className="w-24 bg-gray-900 border-gray-700">
+        <SelectTrigger className="w-24 bg-card border-border">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent className="bg-gray-900 border-gray-700">
+        <SelectContent className="bg-card border-border">
           <SelectItem value="pdf">PDF</SelectItem>
           <SelectItem value="docx">DOCX</SelectItem>
         </SelectContent>
@@ -111,7 +111,7 @@ export const ComplianceActions: React.FC<ComplianceActionsProps> = ({
       <Button
         onClick={generateComplianceReport}
         disabled={!uploadId || !selectedJurisdiction || isGeneratingReport || violations.length === 0}
-        className="cyber-button"
+        className="skeuo-button"
         size="lg"
       >
         {isGeneratingReport ? (

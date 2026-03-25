@@ -41,7 +41,7 @@ export const BudgetTrackingPanel = ({ projectId, estimations }: BudgetTrackingPa
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold glow-cyan">
+            <div className="text-2xl font-bold shadow-sm">
               ${mockBudgetData.approvedBudget.toLocaleString()}
             </div>
           </CardContent>
@@ -50,10 +50,10 @@ export const BudgetTrackingPanel = ({ projectId, estimations }: BudgetTrackingPa
         <Card className="gradient-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Spent to Date</CardTitle>
-            <TrendingDown className="h-4 w-4 text-red-400" />
+            <TrendingDown className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-400">
+            <div className="text-2xl font-bold text-destructive">
               ${mockBudgetData.spentToDate.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -65,10 +65,10 @@ export const BudgetTrackingPanel = ({ projectId, estimations }: BudgetTrackingPa
         <Card className="gradient-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Committed</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-yellow-400" />
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-400">
+            <div className="text-2xl font-bold text-yellow-600">
               ${mockBudgetData.committed.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -80,10 +80,10 @@ export const BudgetTrackingPanel = ({ projectId, estimations }: BudgetTrackingPa
         <Card className="gradient-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Remaining</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-400" />
+            <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${remainingBudget > 0 ? 'text-green-400' : 'text-red-400'}`}>
+            <div className={`text-2xl font-bold ${remainingBudget > 0 ? 'text-green-600' : 'text-destructive'}`}>
               ${remainingBudget.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -98,7 +98,7 @@ export const BudgetTrackingPanel = ({ projectId, estimations }: BudgetTrackingPa
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             Budget vs Estimates
-            <Badge className={isOverBudget ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}>
+            <Badge className={isOverBudget ? 'bg-red-500/20 text-destructive' : 'bg-green-500/20 text-green-600'}>
               {isOverBudget ? 'Over Budget' : 'Within Budget'}
             </Badge>
           </CardTitle>
@@ -118,7 +118,7 @@ export const BudgetTrackingPanel = ({ projectId, estimations }: BudgetTrackingPa
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Budget Variance:</p>
-                <p className={`text-lg font-semibold ${isOverBudget ? 'text-red-400' : 'text-green-400'}`}>
+                <p className={`text-lg font-semibold ${isOverBudget ? 'text-destructive' : 'text-green-600'}`}>
                   {isOverBudget ? '+' : ''}${(totalEstimated - mockBudgetData.approvedBudget).toLocaleString()}
                 </p>
               </div>
@@ -144,12 +144,12 @@ export const BudgetTrackingPanel = ({ projectId, estimations }: BudgetTrackingPa
                   <div className="flex justify-between items-center">
                     <span className="font-medium">{category.category}</span>
                     <div className="flex items-center space-x-2">
-                      <Badge className={isOverBudget ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}>
+                      <Badge className={isOverBudget ? 'bg-red-500/20 text-destructive' : 'bg-green-500/20 text-green-600'}>
                         {utilization.toFixed(1)}%
                       </Badge>
                       {isOverBudget ? 
-                        <AlertTriangle className="w-4 h-4 text-red-400" /> : 
-                        <CheckCircle className="w-4 h-4 text-green-400" />
+                        <AlertTriangle className="w-4 h-4 text-destructive" /> : 
+                        <CheckCircle className="w-4 h-4 text-green-600" />
                       }
                     </div>
                   </div>
@@ -182,16 +182,16 @@ export const BudgetTrackingPanel = ({ projectId, estimations }: BudgetTrackingPa
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
-            <Button variant="outline" className="cyber-button">
+            <Button variant="outline" className="skeuo-button">
               Export Budget Report
             </Button>
-            <Button variant="outline" className="cyber-button">
+            <Button variant="outline" className="skeuo-button">
               Adjust Budget
             </Button>
-            <Button variant="outline" className="cyber-button">
+            <Button variant="outline" className="skeuo-button">
               Create Change Order
             </Button>
-            <Button variant="outline" className="cyber-button">
+            <Button variant="outline" className="skeuo-button">
               Budget Forecast
             </Button>
           </div>
@@ -200,9 +200,9 @@ export const BudgetTrackingPanel = ({ projectId, estimations }: BudgetTrackingPa
 
       {/* Budget Alerts */}
       {(isOverBudget || budgetUtilization > 90) && (
-        <Card className="gradient-border border-red-400/50">
+        <Card className="gradient-border border-destructive/50">
           <CardHeader>
-            <CardTitle className="text-red-400 flex items-center">
+            <CardTitle className="text-destructive flex items-center">
               <AlertTriangle className="w-5 h-5 mr-2" />
               Budget Alerts
             </CardTitle>
@@ -210,13 +210,13 @@ export const BudgetTrackingPanel = ({ projectId, estimations }: BudgetTrackingPa
           <CardContent>
             <div className="space-y-2">
               {isOverBudget && (
-                <div className="flex items-center space-x-2 text-red-400">
+                <div className="flex items-center space-x-2 text-destructive">
                   <AlertTriangle className="w-4 h-4" />
                   <span>Project estimates exceed approved budget by ${(totalEstimated - mockBudgetData.approvedBudget).toLocaleString()}</span>
                 </div>
               )}
               {budgetUtilization > 90 && (
-                <div className="flex items-center space-x-2 text-yellow-400">
+                <div className="flex items-center space-x-2 text-yellow-600">
                   <AlertTriangle className="w-4 h-4" />
                   <span>Budget utilization is at {budgetUtilization.toFixed(1)}% - consider review</span>
                 </div>

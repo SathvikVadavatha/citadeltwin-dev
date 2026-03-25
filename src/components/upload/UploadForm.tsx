@@ -112,7 +112,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
     if (processing) return (
       <div className="relative">
         <Search className="h-8 w-8 mx-auto text-purple-500" />
-        <Cpu className="h-4 w-4 absolute -top-1 -right-1 animate-spin text-purple-400" />
+        <Cpu className="h-4 w-4 absolute -top-1 -right-1 animate-spin text-purple-600" />
       </div>
     );
     return <Loader2 className="h-8 w-8 mx-auto animate-spin text-primary" />;
@@ -136,7 +136,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({
         };
         return { 
           icon: <div className="h-4 w-4 rounded-full border-2 border-current" />, 
-          color: 'text-gray-400',
+          color: 'text-muted-foreground',
           style: baseStyle
         };
       
@@ -148,19 +148,19 @@ export const UploadForm: React.FC<UploadFormProps> = ({
         };
         if (uploading) return { 
           icon: <div className="h-4 w-4 rounded-full border-2 border-current" />, 
-          color: 'text-gray-400',
+          color: 'text-muted-foreground',
           style: baseStyle
         };
         return { 
           icon: <div className="h-4 w-4 rounded-full border-2 border-current" />, 
-          color: 'text-gray-400',
+          color: 'text-muted-foreground',
           style: baseStyle
         };
       
       default:
         return { 
           icon: <div className="h-4 w-4 rounded-full border-2 border-current" />, 
-          color: 'text-gray-400',
+          color: 'text-muted-foreground',
           style: baseStyle
         };
     }

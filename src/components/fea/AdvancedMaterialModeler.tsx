@@ -42,21 +42,21 @@ export const AdvancedMaterialModeler: React.FC<AdvancedMaterialModelerProps> = (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Young's Modulus (Pa)</Label>
-                  <Input type="number" defaultValue="200e9" className="cyber-button" />
+                  <Input type="number" defaultValue="200e9" className="skeuo-button" />
                 </div>
                 <div className="space-y-2">
                   <Label>Poisson's Ratio</Label>
-                  <Input type="number" defaultValue="0.3" step="0.01" className="cyber-button" />
+                  <Input type="number" defaultValue="0.3" step="0.01" className="skeuo-button" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Density (kg/m³)</Label>
-                  <Input type="number" defaultValue="7850" className="cyber-button" />
+                  <Input type="number" defaultValue="7850" className="skeuo-button" />
                 </div>
                 <div className="space-y-2">
                   <Label>Yield Strength (Pa)</Label>
-                  <Input type="number" defaultValue="250e6" className="cyber-button" />
+                  <Input type="number" defaultValue="250e6" className="skeuo-button" />
                 </div>
               </div>
             </TabsContent>
@@ -65,7 +65,7 @@ export const AdvancedMaterialModeler: React.FC<AdvancedMaterialModelerProps> = (
               <div className="space-y-2">
                 <Label>Constitutive Model</Label>
                 <Select defaultValue="bilinear">
-                  <SelectTrigger className="cyber-button">
+                  <SelectTrigger className="skeuo-button">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -81,18 +81,18 @@ export const AdvancedMaterialModeler: React.FC<AdvancedMaterialModelerProps> = (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Hardening Modulus (Pa)</Label>
-                  <Input type="number" defaultValue="2e9" className="cyber-button" />
+                  <Input type="number" defaultValue="2e9" className="skeuo-button" />
                 </div>
                 <div className="space-y-2">
                   <Label>Ultimate Strength (Pa)</Label>
-                  <Input type="number" defaultValue="400e6" className="cyber-button" />
+                  <Input type="number" defaultValue="400e6" className="skeuo-button" />
                 </div>
               </div>
 
               <div className="p-4 bg-muted rounded-lg">
                 <h4 className="font-medium mb-2">Stress-Strain Curve Data</h4>
                 <div className="space-y-2">
-                  <Button variant="outline" size="sm" className="cyber-button">
+                  <Button variant="outline" size="sm" className="skeuo-button">
                     Import Curve Data
                   </Button>
                   <div className="text-xs text-muted-foreground">
@@ -106,7 +106,7 @@ export const AdvancedMaterialModeler: React.FC<AdvancedMaterialModelerProps> = (
               <div className="space-y-2">
                 <Label>Composite Type</Label>
                 <Select defaultValue="laminate">
-                  <SelectTrigger className="cyber-button">
+                  <SelectTrigger className="skeuo-button">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -121,15 +121,15 @@ export const AdvancedMaterialModeler: React.FC<AdvancedMaterialModelerProps> = (
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>E11 (Pa)</Label>
-                  <Input type="number" defaultValue="150e9" className="cyber-button" />
+                  <Input type="number" defaultValue="150e9" className="skeuo-button" />
                 </div>
                 <div className="space-y-2">
                   <Label>E22 (Pa)</Label>
-                  <Input type="number" defaultValue="10e9" className="cyber-button" />
+                  <Input type="number" defaultValue="10e9" className="skeuo-button" />
                 </div>
                 <div className="space-y-2">
                   <Label>G12 (Pa)</Label>
-                  <Input type="number" defaultValue="5e9" className="cyber-button" />
+                  <Input type="number" defaultValue="5e9" className="skeuo-button" />
                 </div>
               </div>
 
@@ -142,7 +142,7 @@ export const AdvancedMaterialModeler: React.FC<AdvancedMaterialModelerProps> = (
                       <Input 
                         type="number" 
                         value={angle} 
-                        className="w-20 cyber-button" 
+                        className="w-20 skeuo-button" 
                         placeholder="Angle"
                       />
                       <span>°</span>
@@ -150,14 +150,14 @@ export const AdvancedMaterialModeler: React.FC<AdvancedMaterialModelerProps> = (
                         type="number" 
                         defaultValue="0.125" 
                         step="0.001"
-                        className="w-24 cyber-button" 
+                        className="w-24 skeuo-button" 
                         placeholder="Thickness"
                       />
                       <span>mm</span>
                     </div>
                   ))}
                 </div>
-                <Button variant="outline" size="sm" className="cyber-button">
+                <Button variant="outline" size="sm" className="skeuo-button">
                   <Layers className="h-4 w-4 mr-2" />
                   Add Layer
                 </Button>
@@ -176,22 +176,22 @@ export const AdvancedMaterialModeler: React.FC<AdvancedMaterialModelerProps> = (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Thermal Conductivity (W/m·K)</Label>
-                  <Input type="number" defaultValue="50" className="cyber-button" />
+                  <Input type="number" defaultValue="50" className="skeuo-button" />
                 </div>
                 <div className="space-y-2">
                   <Label>Specific Heat (J/kg·K)</Label>
-                  <Input type="number" defaultValue="460" className="cyber-button" />
+                  <Input type="number" defaultValue="460" className="skeuo-button" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Thermal Expansion (1/K)</Label>
-                  <Input type="number" defaultValue="12e-6" step="1e-6" className="cyber-button" />
+                  <Input type="number" defaultValue="12e-6" step="1e-6" className="skeuo-button" />
                 </div>
                 <div className="space-y-2">
                   <Label>Reference Temperature (°C)</Label>
-                  <Input type="number" defaultValue="20" className="cyber-button" />
+                  <Input type="number" defaultValue="20" className="skeuo-button" />
                 </div>
               </div>
 
@@ -199,7 +199,7 @@ export const AdvancedMaterialModeler: React.FC<AdvancedMaterialModelerProps> = (
                 <div className="p-4 bg-muted rounded-lg">
                   <h4 className="font-medium mb-2">Temperature-Dependent Data</h4>
                   <div className="space-y-2">
-                    <Button variant="outline" size="sm" className="cyber-button">
+                    <Button variant="outline" size="sm" className="skeuo-button">
                       <Thermometer className="h-4 w-4 mr-2" />
                       Import Temperature Curves
                     </Button>
@@ -213,11 +213,11 @@ export const AdvancedMaterialModeler: React.FC<AdvancedMaterialModelerProps> = (
           </Tabs>
 
           <div className="flex gap-2 mt-6">
-            <Button className="cyber-button">
+            <Button className="skeuo-button">
               <Package className="h-4 w-4 mr-2" />
               Save Material
             </Button>
-            <Button variant="outline" className="cyber-button">
+            <Button variant="outline" className="skeuo-button">
               Load from Library
             </Button>
           </div>

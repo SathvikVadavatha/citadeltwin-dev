@@ -101,9 +101,9 @@ export const GISExportPanel: React.FC<GISExportPanelProps> = ({
   };
 
   return (
-    <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2" style={{ color: 'hsl(0 0% 98%)' }}>
+        <CardTitle className="flex items-center gap-2 text-foreground">
           <Download className="w-5 h-5" />
           Export Options
         </CardTitle>
@@ -111,7 +111,7 @@ export const GISExportPanel: React.FC<GISExportPanelProps> = ({
       <CardContent className="space-y-4">
         {/* Map Export Section */}
         <div className="space-y-3">
-          <h4 className="text-sm font-medium" style={{ color: 'hsl(210 40% 98%)' }}>
+          <h4 className="text-sm font-medium text-foreground">
             Map Export
           </h4>
           
@@ -138,14 +138,14 @@ export const GISExportPanel: React.FC<GISExportPanelProps> = ({
             </Button>
           </div>
           
-          <p className="text-xs" style={{ color: 'hsl(240 5% 64.9%)' }}>
+          <p className="text-xs text-muted-foreground">
             Export current map view as an image file
           </p>
         </div>
 
         {/* Analysis Export Section */}
         <div className="space-y-3">
-          <h4 className="text-sm font-medium" style={{ color: 'hsl(210 40% 98%)' }}>
+          <h4 className="text-sm font-medium text-foreground">
             Analysis Export
           </h4>
           
@@ -173,8 +173,8 @@ export const GISExportPanel: React.FC<GISExportPanelProps> = ({
             </Button>
           </div>
           
-          <p className="text-xs" style={{ color: 'hsl(240 5% 64.9%)' }}>
-            {hasAnalysisData 
+          <p className="text-xs text-muted-foreground">
+            {hasAnalysisData
               ? 'Export analysis results in various formats'
               : 'Select a property and run analysis to enable exports'
             }
@@ -183,9 +183,9 @@ export const GISExportPanel: React.FC<GISExportPanelProps> = ({
 
         {/* Export Status */}
         {isExporting && (
-          <div className="flex items-center gap-2 p-2 rounded-md" style={{ backgroundColor: 'hsl(240 51% 15%)', border: '1px solid hsl(240 51% 25%)' }}>
+          <div className="flex items-center gap-2 p-2 rounded-md bg-blue-100 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700">
             <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-            <span className="text-sm" style={{ color: 'hsl(240 51% 75%)' }}>
+            <span className="text-sm text-blue-700 dark:text-blue-400">
               Exporting...
             </span>
           </div>
@@ -193,11 +193,11 @@ export const GISExportPanel: React.FC<GISExportPanelProps> = ({
 
         {/* Export Summary */}
         {hasAnalysisData && (
-          <div className="p-3 rounded-md" style={{ backgroundColor: 'hsl(142 51% 15%)', border: '1px solid hsl(142 51% 25%)' }}>
-            <h5 className="text-sm font-medium mb-2" style={{ color: 'hsl(142 51% 95%)' }}>
+          <div className="p-3 rounded-md bg-green-100 dark:bg-green-900/20 border border-green-300 dark:border-green-700">
+            <h5 className="text-sm font-medium mb-2 text-green-900 dark:text-green-100">
               Export Summary
             </h5>
-            <div className="text-xs space-y-1" style={{ color: 'hsl(142 51% 75%)' }}>
+            <div className="text-xs space-y-1 text-green-700 dark:text-green-400">
               <div>Property: {selectedProperty?.place.name || selectedProperty?.place.formatted_address || 'Unknown'}</div>
               <div>Region: {selectedRegion}</div>
               <div>Active Layers: {layers.filter(l => l.enabled).length}</div>

@@ -13,9 +13,9 @@ export const getJurisdictionIcon = (type: string) => {
 
 export const getClimateIcon = (stateCode: string) => {
   switch (stateCode) {
-    case 'OH': return <Snowflake className="w-3 h-3 text-blue-400" />;
-    case 'FL': return <Waves className="w-3 h-3 text-cyan-400" />;
-    case 'TX': case 'CA': return <Wind className="w-3 h-3 text-yellow-400" />;
+    case 'OH': return <Snowflake className="w-3 h-3 text-blue-600" />;
+    case 'FL': return <Waves className="w-3 h-3 text-primary" />;
+    case 'TX': case 'CA': return <Wind className="w-3 h-3 text-yellow-600" />;
     default: return null;
   }
 };
@@ -25,6 +25,6 @@ export const getJurisdictionColor = (type: string) => {
     case 'state': return 'bg-blue-900 text-blue-300';
     case 'county': return 'bg-green-900 text-green-300';
     case 'city': return 'bg-purple-900 text-purple-300';
-    default: return 'bg-gray-900 text-gray-300';
+    default: return 'bg-card text-foreground';
   }
 };

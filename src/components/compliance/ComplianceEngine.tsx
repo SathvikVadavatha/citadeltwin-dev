@@ -74,11 +74,11 @@ export const ComplianceEngine: React.FC<ComplianceEngineProps> = ({ uploadId }) 
 
       {/* Tabs for different views */}
       <Tabs defaultValue="violations" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-gray-900">
-          <TabsTrigger value="violations" className="data-[state=active]:bg-cyan-900">
+        <TabsList className="grid w-full grid-cols-2 bg-card">
+          <TabsTrigger value="violations" className="data-[state=active]:bg-primary/20">
             Violations
           </TabsTrigger>
-          <TabsTrigger value="rules" className="data-[state=active]:bg-cyan-900">
+          <TabsTrigger value="rules" className="data-[state=active]:bg-primary/20">
             Rules Database
           </TabsTrigger>
         </TabsList>

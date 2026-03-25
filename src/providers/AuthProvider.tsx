@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { User, Session, Provider } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 
@@ -10,7 +10,8 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, metadata?: any) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, metadata?: any) => Promise<{ error: any; needsConfirmation?: boolean }>;
+  signInWithOAuth: (provider: Provider) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updatePassword: (password: string) => Promise<{ error: any }>;
   clearError: () => void;
@@ -37,13 +38,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clearError = () => setError(null);
 
   const handleAuthStateChange = (event: string, session: Session | null) => {
-    console.log('Auth state change:', event, session?.user?.id);
     setSession(session);
     setUser(session?.user || null);
-    
+
     // Handle password recovery flow
     if (event === 'PASSWORD_RECOVERY') {
-      console.log('Password recovery detected');
       // The session will contain the recovery tokens
     }
     
@@ -123,20 +122,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        setError(error.message);
+        // Provide user-friendly error messages for common auth failures
+        let userMessage = error.message;
+        if (error.message.includes('Email not confirmed')) {
+          userMessage = "Your email has not been verified. Please check your inbox (and spam folder) for the verification link.";
+        } else if (error.message.includes('Invalid login credentials')) {
+          userMessage = "Invalid email or password. Please check your credentials and try again.";
+        }
+
+        setError(userMessage);
         toast({
           title: "Sign In Failed",
-          description: error.message,
+          description: userMessage,
           variant: "destructive",
         });
-      } else {
-        toast({
-          title: "Welcome back!",
-          description: "You have been signed in successfully.",
-        });
+        return { error: { ...error, message: userMessage } };
       }
 
-      return { error };
+      toast({
+        title: "Welcome back!",
+        description: "You have been signed in successfully.",
+      });
+
+      return { error: null };
     } catch (error: any) {
       const errorMessage = "An unexpected error occurred. Please try again.";
       setError(errorMessage);
@@ -152,11 +160,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, metadata?: any) => {
     try {
       setError(null);
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/auth/login`,
           data: metadata,
         },
       });
@@ -168,14 +176,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: error.message,
           variant: "destructive",
         });
-      } else {
+        return { error };
+      }
+
+      // Detect fake success: user already exists (Supabase returns empty identities)
+      if (data?.user && data.user.identities?.length === 0) {
+        const existsError = { message: "An account with this email already exists. Please sign in instead." };
+        setError(existsError.message);
+        toast({
+          title: "Account Exists",
+          description: existsError.message,
+          variant: "destructive",
+        });
+        return { error: existsError };
+      }
+
+      // If session is null, email confirmation is required
+      if (data?.user && !data.session) {
         toast({
           title: "Account Created!",
-          description: "Please check your email to verify your account.",
+          description: "Please check your email for a verification link. You must verify your email before signing in.",
+        });
+      } else {
+        // Session exists = auto-confirmed, user is logged in
+        toast({
+          title: "Welcome!",
+          description: "Your account has been created and you're now signed in.",
         });
       }
 
-      return { error };
+      return { error: null, needsConfirmation: !data.session };
     } catch (error: any) {
       const errorMessage = "An unexpected error occurred. Please try again.";
       setError(errorMessage);
@@ -222,6 +252,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signInWithOAuth = async (provider: Provider) => {
+    try {
+      setError(null);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/login`,
+        },
+      });
+
+      if (error) {
+        setError(error.message);
+        toast({
+          title: "SSO Sign In Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return { error };
+      }
+
+      return { error: null };
+    } catch (error: any) {
+      const errorMessage = "Failed to initiate SSO sign in. Please try again.";
+      setError(errorMessage);
+      toast({
+        title: "SSO Sign In Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return { error };
+    }
+  };
+
   const signOut = async () => {
     try {
       setError(null);
@@ -237,16 +300,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      session, 
-      loading, 
-      error, 
-      signIn, 
-      signUp, 
-      signOut, 
+    <AuthContext.Provider value={{
+      user,
+      session,
+      loading,
+      error,
+      signIn,
+      signUp,
+      signInWithOAuth,
+      signOut,
       updatePassword,
-      clearError 
+      clearError
     }}>
       {children}
     </AuthContext.Provider>

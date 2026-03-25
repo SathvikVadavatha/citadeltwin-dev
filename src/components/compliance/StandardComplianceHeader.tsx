@@ -16,19 +16,19 @@ export const StandardComplianceHeader: React.FC<StandardComplianceHeaderProps> =
   onRunComplianceCheck
 }) => {
   return (
-    <Card className="cyber-tool-palette">
+    <Card className="skeuo-panel">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-cyan-400">Standard Building Code Compliance Engine</CardTitle>
-            <CardDescription className="text-gray-300">
+            <CardTitle className="text-primary">Standard Building Code Compliance Engine</CardTitle>
+            <CardDescription className="text-foreground">
               IBC 2021 compliance checking with basic remediation suggestions
             </CardDescription>
           </div>
           <Button
             onClick={onRunComplianceCheck}
             disabled={!uploadId || isRunningCheck}
-            className="cyber-button"
+            className="skeuo-button"
           >
             {isRunningCheck ? (
               <>

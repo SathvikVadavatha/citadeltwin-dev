@@ -44,10 +44,10 @@ export const ModelHealthChecker = () => {
   };
 
   const getStatusBadge = (score: number) => {
-    if (score >= 95) return <Badge className="bg-green-500/20 text-green-400">Excellent</Badge>;
-    if (score >= 80) return <Badge className="bg-blue-500/20 text-blue-400">Good</Badge>;
-    if (score >= 60) return <Badge className="bg-yellow-500/20 text-yellow-400">Fair</Badge>;
-    return <Badge className="bg-red-500/20 text-red-400">Poor</Badge>;
+    if (score >= 95) return <Badge className="bg-green-500/20 text-green-600">Excellent</Badge>;
+    if (score >= 80) return <Badge className="bg-blue-500/20 text-blue-600">Good</Badge>;
+    if (score >= 60) return <Badge className="bg-yellow-500/20 text-yellow-600">Fair</Badge>;
+    return <Badge className="bg-red-500/20 text-destructive">Poor</Badge>;
   };
 
   const overallHealth = getOverallHealth();
@@ -64,7 +64,7 @@ export const ModelHealthChecker = () => {
         <Button
           onClick={runHealthCheck}
           disabled={checking || loading || elements.length === 0}
-          className="cyber-button"
+          className="skeuo-button"
         >
           {checking ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -158,7 +158,7 @@ export const ModelHealthChecker = () => {
                             <li key={errorIndex} className="flex items-start space-x-2 text-sm">
                               <XCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
                               <div>
-                                <span className="text-red-400">{error.message}</span>
+                                <span className="text-destructive">{error.message}</span>
                                 {error.suggestion && (
                                   <p className="text-muted-foreground mt-1">{error.suggestion}</p>
                                 )}
@@ -177,7 +177,7 @@ export const ModelHealthChecker = () => {
                             <li key={warningIndex} className="flex items-start space-x-2 text-sm">
                               <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
                               <div>
-                                <span className="text-yellow-400">{warning.message}</span>
+                                <span className="text-yellow-600">{warning.message}</span>
                                 <p className="text-muted-foreground mt-1">{warning.suggestion}</p>
                               </div>
                             </li>

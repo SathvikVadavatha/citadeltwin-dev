@@ -33,11 +33,7 @@ serve(async (req) => {
       )
     }
 
-    console.log('✅ GEMINI_API_KEY found:', {
-      length: GEMINI_API_KEY.length,
-      first4: GEMINI_API_KEY.substring(0, 4),
-      last4: GEMINI_API_KEY.substring(GEMINI_API_KEY.length - 4)
-    })
+    console.log('✅ GEMINI_API_KEY found and configured')
 
     // Test with minimal Gemini API call
     console.log('🚀 Making test API call to Gemini...')

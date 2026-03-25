@@ -24,13 +24,13 @@ export const ComplianceViolationsList: React.FC<ComplianceViolationsListProps> =
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case 'critical':
-        return <XCircle className="w-4 h-4 text-red-400" />;
+        return <XCircle className="w-4 h-4 text-destructive" />;
       case 'major':
-        return <AlertTriangle className="w-4 h-4 text-yellow-400" />;
+        return <AlertTriangle className="w-4 h-4 text-yellow-600" />;
       case 'minor':
-        return <Clock className="w-4 h-4 text-cyan-400" />;
+        return <Clock className="w-4 h-4 text-primary" />;
       case 'warning':
-        return <CheckCircle className="w-4 h-4 text-green-400" />;
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
       default:
         return <Eye className="w-4 h-4" />;
     }
@@ -43,11 +43,11 @@ export const ComplianceViolationsList: React.FC<ComplianceViolationsListProps> =
       case 'major':
         return 'bg-yellow-900 text-yellow-300 border-yellow-700';
       case 'minor':
-        return 'bg-cyan-900 text-cyan-300 border-cyan-700';
+        return 'bg-primary/20 text-primary border-primary';
       case 'warning':
         return 'bg-green-900 text-green-300 border-green-700';
       default:
-        return 'bg-gray-900 text-gray-300 border-gray-700';
+        return 'bg-card text-foreground border-border';
     }
   };
 
@@ -90,10 +90,10 @@ export const ComplianceViolationsList: React.FC<ComplianceViolationsListProps> =
 
   if (isLoading) {
     return (
-      <Card className="cyber-tool-palette">
+      <Card className="skeuo-panel">
         <CardContent className="p-6">
           <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             <span className="ml-2">Loading violations...</span>
           </div>
         </CardContent>
@@ -103,12 +103,12 @@ export const ComplianceViolationsList: React.FC<ComplianceViolationsListProps> =
 
   if (violations.length === 0) {
     return (
-      <Card className="cyber-tool-palette">
+      <Card className="skeuo-panel">
         <CardContent className="p-6">
           <div className="text-center">
-            <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-green-400">No Violations Found</h3>
-            <p className="text-gray-400">Your project complies with all checked building codes.</p>
+            <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-green-600">No Violations Found</h3>
+            <p className="text-muted-foreground">Your project complies with all checked building codes.</p>
           </div>
         </CardContent>
       </Card>
@@ -118,7 +118,7 @@ export const ComplianceViolationsList: React.FC<ComplianceViolationsListProps> =
   return (
     <div className="space-y-4">
       {violations.map((violation) => (
-        <Card key={violation.id} className="cyber-tool-palette">
+        <Card key={violation.id} className="skeuo-panel">
           <CardHeader>
             <div className="flex items-start justify-between">
               <div className="space-y-2">
@@ -128,11 +128,11 @@ export const ComplianceViolationsList: React.FC<ComplianceViolationsListProps> =
                   <Badge className={getSeverityColor(violation.severity)}>
                     {violation.severity}
                   </Badge>
-                  <Badge variant="outline" className="border-cyan-700 text-cyan-300">
+                  <Badge variant="outline" className="border-primary text-primary">
                     {violation.status}
                   </Badge>
                 </div>
-                <CardDescription className="text-gray-300">
+                <CardDescription className="text-foreground">
                   {violation.description}
                 </CardDescription>
               </div>
@@ -142,7 +142,7 @@ export const ComplianceViolationsList: React.FC<ComplianceViolationsListProps> =
                   variant="outline"
                   onClick={() => handleGenerateAISuggestions(violation)}
                   disabled={aiLoading}
-                  className="border-cyan-700 text-cyan-300 hover:bg-cyan-900"
+                  className="border-primary text-primary hover:bg-primary/20"
                 >
                   <Zap className="w-4 h-4 mr-1" />
                   AI Suggestions
@@ -151,7 +151,7 @@ export const ComplianceViolationsList: React.FC<ComplianceViolationsListProps> =
                   <Button
                     size="sm"
                     onClick={() => updateViolationStatus({ violationId: violation.id, status: 'acknowledged' })}
-                    className="cyber-button"
+                    className="skeuo-button"
                   >
                     Acknowledge
                   </Button>
@@ -162,14 +162,14 @@ export const ComplianceViolationsList: React.FC<ComplianceViolationsListProps> =
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <h4 className="font-semibold text-cyan-400 mb-2">Current Condition</h4>
-                <pre className="text-sm bg-gray-900 p-3 rounded border border-gray-700">
+                <h4 className="font-semibold text-primary mb-2">Current Condition</h4>
+                <pre className="text-sm bg-card p-3 rounded border border-border">
                   {JSON.stringify(violation.current_value, null, 2)}
                 </pre>
               </div>
               <div>
-                <h4 className="font-semibold text-cyan-400 mb-2">Required Condition</h4>
-                <pre className="text-sm bg-gray-900 p-3 rounded border border-gray-700">
+                <h4 className="font-semibold text-primary mb-2">Required Condition</h4>
+                <pre className="text-sm bg-card p-3 rounded border border-border">
                   {JSON.stringify(violation.required_value, null, 2)}
                 </pre>
               </div>
@@ -177,8 +177,8 @@ export const ComplianceViolationsList: React.FC<ComplianceViolationsListProps> =
             
             {violation.remediation_suggestions && violation.remediation_suggestions.length > 0 && (
               <div className="mt-4">
-                <h4 className="font-semibold text-cyan-400 mb-2">Remediation Suggestions</h4>
-                <ul className="list-disc list-inside space-y-1 text-sm text-gray-300">
+                <h4 className="font-semibold text-primary mb-2">Remediation Suggestions</h4>
+                <ul className="list-disc list-inside space-y-1 text-sm text-foreground">
                   {violation.remediation_suggestions.map((suggestion, index) => (
                     <li key={index}>{suggestion}</li>
                   ))}
@@ -186,7 +186,7 @@ export const ComplianceViolationsList: React.FC<ComplianceViolationsListProps> =
               </div>
             )}
 
-            <div className="mt-4 text-xs text-gray-500">
+            <div className="mt-4 text-xs text-muted-foreground">
               Detected: {new Date(violation.detected_at).toLocaleString()}
             </div>
           </CardContent>

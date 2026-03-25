@@ -41,7 +41,7 @@ export const PerformanceDashboard: React.FC = () => {
       case 'excellent': return 'text-green-500';
       case 'good': return 'text-yellow-500';
       case 'needs-improvement': return 'text-red-500';
-      default: return 'text-gray-500';
+      default: return 'text-muted-foreground';
     }
   };
 
@@ -84,7 +84,7 @@ export const PerformanceDashboard: React.FC = () => {
             />
             <span className="text-sm">Live Monitoring</span>
           </div>
-          <Badge className={isMonitoring ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}>
+          <Badge className={isMonitoring ? 'bg-green-500/20 text-green-600' : 'bg-gray-500/20 text-muted-foreground'}>
             {isMonitoring ? 'Monitoring Active' : 'Monitoring Inactive'}
           </Badge>
         </div>
@@ -239,28 +239,28 @@ export const PerformanceDashboard: React.FC = () => {
         <CardContent>
           <div className="space-y-2">
             {!isMonitoring && (
-              <div className="flex items-start gap-2 p-3 bg-blue-500/10 rounded text-blue-400">
+              <div className="flex items-start gap-2 p-3 bg-blue-500/10 rounded text-blue-600">
                 <Activity className="h-4 w-4 mt-0.5 flex-shrink-0" />
                 <p className="text-sm">Enable monitoring to see real-time performance metrics and recommendations.</p>
               </div>
             )}
             
             {isMonitoring && metrics.frameRate < 30 && (
-              <div className="flex items-start gap-2 p-3 bg-red-500/10 rounded text-red-400">
+              <div className="flex items-start gap-2 p-3 bg-red-500/10 rounded text-destructive">
                 <Zap className="h-4 w-4 mt-0.5 flex-shrink-0" />
                 <p className="text-sm">Low frame rate detected. Consider reducing 3D complexity or enabling performance mode.</p>
               </div>
             )}
             
             {cacheStats.totalEntries > 80 && (
-              <div className="flex items-start gap-2 p-3 bg-yellow-500/10 rounded text-yellow-400">
+              <div className="flex items-start gap-2 p-3 bg-yellow-500/10 rounded text-yellow-600">
                 <Database className="h-4 w-4 mt-0.5 flex-shrink-0" />
                 <p className="text-sm">Cache is getting full ({cacheStats.totalEntries} entries). Consider cleaning expired entries.</p>
               </div>
             )}
             
             {isMonitoring && metrics.frameRate >= 50 && metrics.memoryUsage < 100 && metrics.cacheHitRatio > 85 && (
-              <div className="flex items-start gap-2 p-3 bg-green-500/10 rounded text-green-400">
+              <div className="flex items-start gap-2 p-3 bg-green-500/10 rounded text-green-600">
                 <TrendingUp className="h-4 w-4 mt-0.5 flex-shrink-0" />
                 <p className="text-sm">Excellent performance! All metrics are within optimal ranges.</p>
               </div>

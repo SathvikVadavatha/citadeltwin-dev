@@ -145,7 +145,7 @@ Provide confidence level (1-100%) for the analysis.
       case 'critical': return 'text-red-500 bg-red-50 dark:bg-red-900/20';
       case 'major': return 'text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20';
       case 'minor': return 'text-blue-500 bg-blue-50 dark:bg-blue-900/20';
-      default: return 'text-gray-500 bg-gray-50 dark:bg-gray-900/20';
+      default: return 'text-muted-foreground bg-gray-50 dark:bg-card/20';
     }
   };
 

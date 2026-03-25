@@ -63,12 +63,12 @@ export const CostEstimationDashboard = ({ projectId }: CostEstimationDashboardPr
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold glow-cyan">Cost Estimation</h2>
+          <h2 className="text-2xl font-bold shadow-sm">Cost Estimation</h2>
           <p className="text-muted-foreground">
             Manage project cost estimations and budget tracking
           </p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)} className="cyber-button">
+        <Button onClick={() => setShowCreateModal(true)} className="skeuo-button">
           <Plus className="w-4 h-4 mr-2" />
           New Estimation
         </Button>

@@ -81,8 +81,6 @@ serve(async (req) => {
       console.log('Environment check:');
       console.log('- SUPABASE_URL exists:', !!supabaseUrl);
       console.log('- SUPABASE_SERVICE_ROLE_KEY exists:', !!supabaseKey);
-      console.log('- URL length:', supabaseUrl?.length || 0);
-      console.log('- Key length:', supabaseKey?.length || 0);
       throw new Error('Supabase configuration incomplete - missing URL or service key');
     }
     
