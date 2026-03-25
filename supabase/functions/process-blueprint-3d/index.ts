@@ -14,8 +14,8 @@ serve(async (req) => {
   try {
     console.log("Blueprint 3D processing started — Geometric Reconstruction Protocol");
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -42,54 +42,53 @@ serve(async (req) => {
     // Pre-flight scan for numerical dimensions AND scale bar
     console.log("STEP 1: Pre-flight dimension & scale scan via Gemini Vision...");
 
-    const preFlightResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `You are a dimension detection specialist for architectural blueprints. Your ONLY job is to determine if this plan contains ANY of the following:
+    const preFlightResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: `You are a dimension detection specialist for architectural blueprints. Your ONLY job is to determine if this plan contains ANY of the following:
 1. Numerical dimension annotations with unit symbols: e.g. 10', 12'-0", 14'-6", 3.5m, 3500mm, 4400, 7000
 2. Scale ratios: e.g. 1:100, 1/4" = 1'-0", 1" = 20'
 3. Graphic scale bars with marked distances
 4. Combined dimension strings: e.g. 12'x15', 4.4m x 3.7m
 
-Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only actual measurement annotations count.`
+Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only actual measurement annotations count.` }]
           },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: "Scan this floor plan. Does it contain numerical dimension annotations or a scale bar? Report findings." },
-              { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Image}` } }
+          contents: [{
+            parts: [
+              { text: "Scan this floor plan. Does it contain numerical dimension annotations or a scale bar? Report findings." },
+              { inlineData: { mimeType, data: base64Image } }
             ]
-          }
-        ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "report_dimension_scan",
-            description: "Report whether numerical dimensions were found on the plan",
-            parameters: {
-              type: "object",
-              properties: {
-                has_numerical_dimensions: { type: "boolean", description: "true ONLY if actual measurement annotations (with unit symbols like ', \", m, mm, ft) are found." },
-                dimension_examples: { type: "array", items: { type: "string" }, description: "Up to 5 examples of dimension strings found. Empty if none." },
-                has_scale_bar: { type: "boolean", description: "true if a graphic scale bar is detected" },
-                has_scale_text: { type: "boolean", description: "true if a scale ratio text is detected (e.g. 1:100)" },
-                scan_notes: { type: "string", description: "Brief note about findings" }
-              },
-              required: ["has_numerical_dimensions", "dimension_examples", "has_scale_bar", "has_scale_text", "scan_notes"]
+          }],
+          tools: [{
+            functionDeclarations: [{
+              name: "report_dimension_scan",
+              description: "Report whether numerical dimensions were found on the plan",
+              parameters: {
+                type: "object",
+                properties: {
+                  has_numerical_dimensions: { type: "boolean", description: "true ONLY if actual measurement annotations (with unit symbols like ', \", m, mm, ft) are found." },
+                  dimension_examples: { type: "array", items: { type: "string" }, description: "Up to 5 examples of dimension strings found. Empty if none." },
+                  has_scale_bar: { type: "boolean", description: "true if a graphic scale bar is detected" },
+                  has_scale_text: { type: "boolean", description: "true if a scale ratio text is detected (e.g. 1:100)" },
+                  scan_notes: { type: "string", description: "Brief note about findings" }
+                },
+                required: ["has_numerical_dimensions", "dimension_examples", "has_scale_bar", "has_scale_text", "scan_notes"]
+              }
+            }]
+          }],
+          toolConfig: {
+            functionCallingConfig: {
+              mode: "ANY",
+              allowedFunctionNames: ["report_dimension_scan"]
             }
           }
-        }],
-        tool_choice: { type: "function", function: { name: "report_dimension_scan" } },
-      }),
-    });
+        }),
+      }
+    );
 
     if (!preFlightResponse.ok) {
       const errText = await preFlightResponse.text();
@@ -98,10 +97,10 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
     }
 
     const preFlightData = await preFlightResponse.json();
-    const preFlightToolCall = preFlightData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!preFlightToolCall) throw new Error("Pre-flight scan did not return structured data");
+    const preFlightFnCall = preFlightData.candidates?.[0]?.content?.parts?.find((p: any) => p.functionCall)?.functionCall;
+    if (!preFlightFnCall) throw new Error("Pre-flight scan did not return structured data");
 
-    const scanResult = JSON.parse(preFlightToolCall.function.arguments);
+    const scanResult = preFlightFnCall.args;
     const hasAnyDimensions = scanResult.has_numerical_dimensions;
     const hasAnyScale = scanResult.has_scale_bar || scanResult.has_scale_text;
     console.log(`Pre-flight: dims=${hasAnyDimensions}, scale_bar=${scanResult.has_scale_bar}, scale_text=${scanResult.has_scale_text}, examples=${JSON.stringify(scanResult.dimension_examples)}`);
@@ -129,18 +128,14 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
     // ==================== STEP 2: FULL GEOMETRIC RECONSTRUCTION ANALYSIS ====================
     console.log("STEP 2: Geometric Reconstruction analysis via Gemini Vision...");
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `You are a Geometric Reconstruction engine for architectural floor plans. Analyze with these STRICT rules:
+    const aiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: `You are a Geometric Reconstruction engine for architectural floor plans. Analyze with these STRICT rules:
 
 ## RULE 1: GEOMETRIC TRUTH — OCR IS ABSOLUTE
 - Use OCR to find EVERY numerical dimension string (e.g., "12' 6\" x 11' 6\"", "3.5m × 4.2m").
@@ -189,35 +184,26 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
 - Identify the PRIMARY ENTRANCE (front door) of the building.
 - This entrance is the absolute origin (0,0,0) for all geometry.
 - Return entrance_x_px and entrance_y_px for the entrance center-point in pixels.
-- All coordinates are relative to the entrance anchor to prevent coordinate drift.`
+- All coordinates are relative to the entrance anchor to prevent coordinate drift.` }]
           },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: `Perform Geometric Reconstruction on this floor plan:
+          contents: [{
+            parts: [
+              { text: `Perform Geometric Reconstruction on this floor plan:
 1. OCR every dimension string — these are absolute truth for mesh generation. Snap wall intersections to labeled dimensions.
 2. Classify all walls: Outer/perimeter walls (thickest lines, ~8"/0.2m) vs Interior partition walls (thinner lines, ~5"/0.12m).
 3. Detect every door swing symbol and window glass line with exact center-point positions.
 4. Calibrate scale using the LARGEST dimension string found. Report which dimension was used.
 5. Assign room material types based on text labels.
 6. Identify the PRIMARY ENTRANCE (front door) — this is the origin anchor (0,0,0).
-7. Return precise bounding boxes for all elements.`
-              },
-              {
-                type: "image_url",
-                image_url: { url: `data:${mimeType};base64,${base64Image}` }
-              }
+7. Return precise bounding boxes for all elements.` },
+              { inlineData: { mimeType, data: base64Image } }
             ]
-          }
-        ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "reconstruct_floor_plan_geometry",
-            description: "Geometric Reconstruction of all architectural elements with entrance-anchored origin",
-            parameters: {
+          }],
+          tools: [{
+            functionDeclarations: [{
+              name: "reconstruct_floor_plan_geometry",
+              description: "Geometric Reconstruction of all architectural elements with entrance-anchored origin",
+              parameters: {
               type: "object",
               properties: {
                 dimensions_available: { type: "boolean", description: "true ONLY if actual written dimension annotations exist on the plan." },
@@ -347,25 +333,30 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
               },
               required: ["dimensions_available", "rooms", "walls", "doors", "windows", "scale_info", "entrance_info"]
             }
+          }]
+          }],
+          toolConfig: {
+            functionCallingConfig: {
+              mode: "ANY",
+              allowedFunctionNames: ["reconstruct_floor_plan_geometry"]
+            }
           }
-        }],
-        tool_choice: { type: "function", function: { name: "reconstruct_floor_plan_geometry" } },
-      }),
-    });
+        }),
+      }
+    );
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
-      console.error("AI gateway error:", aiResponse.status, errText);
+      console.error("Gemini API error:", aiResponse.status, errText);
       if (aiResponse.status === 429) throw new Error("AI rate limited. Please try again in a moment.");
-      if (aiResponse.status === 402) throw new Error("AI credits exhausted. Please add credits.");
       throw new Error(`AI analysis failed: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("AI did not return structured room data");
+    const fnCall = aiData.candidates?.[0]?.content?.parts?.find((p: any) => p.functionCall)?.functionCall;
+    if (!fnCall) throw new Error("AI did not return structured room data");
 
-    const detectedElements = JSON.parse(toolCall.function.arguments);
+    const detectedElements = fnCall.args;
     console.log(`Geometric Reconstruction: ${detectedElements.rooms?.length || 0} rooms, ${detectedElements.walls?.length || 0} walls, ${detectedElements.doors?.length || 0} doors, ${detectedElements.windows?.length || 0} windows`);
     console.log(`Scale: ${detectedElements.scale_info?.scale_source || 'unknown'}, px/m: ${detectedElements.scale_info?.pixels_per_meter || 0}, largest_dim: ${detectedElements.scale_info?.largest_dimension_text || 'N/A'}`);
     console.log(`Entrance anchor: (${detectedElements.entrance_info?.entrance_x_px || 'N/A'}, ${detectedElements.entrance_info?.entrance_y_px || 'N/A'}) — ${detectedElements.entrance_info?.entrance_label || 'auto-detected'}`);
@@ -430,8 +421,9 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
     }
 
     // ==================== STEP 5: GENERATE BIM-LEVEL GLB ====================
-    const glbData = generateBIMGLB(detectedElements, modelUploadId);
-    const fileName = `${modelUploadId}/${timestamp}.glb`;
+    const finalUploadId = modelUploadId || crypto.randomUUID();
+    const glbData = generateBIMGLB(detectedElements, finalUploadId);
+    const fileName = `${finalUploadId}/${timestamp}.glb`;
 
     const { error: uploadError } = await supabase.storage
       .from("3d-models")
@@ -448,7 +440,7 @@ Be STRICT: decorative numbers, room numbers, page numbers do NOT count. Only act
     const { data: savedModel } = await supabase
       .from('generated_3d_models')
       .insert({
-        upload_id: modelUploadId,
+        upload_id: finalUploadId,
         model_name: `${buildingType} - ${roomCount} Rooms (Geometric Reconstruction)`,
         model_description: `Geometric Reconstruction Protocol. ${roomCount} rooms, OCR-anchored dimensions. Scale: ${detectedElements.scale_info?.scale_source || 'calibrated'} (${detectedElements.scale_info?.largest_dimension_text || 'auto'}). Walls: ext=${EXTERIOR_WALL_THICKNESS}m, int=${INTERIOR_WALL_THICKNESS}m. Origin: entrance-anchored.`,
         model_file_path: fileName,
