@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './providers/AuthProvider';
@@ -7,79 +7,48 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { EnhancedResponsiveLayout } from './components/layout/EnhancedResponsiveLayout';
 import { RouteErrorBoundary } from './components/error/RouteErrorBoundary';
 import { ErrorBoundary } from './components/error/ErrorBoundary';
-import { Dashboard } from './pages/Dashboard';
-import { UploadBlueprint } from './pages/UploadBlueprint';
-import { ViewBlueprints } from './pages/ViewBlueprints';
-import { Settings } from './pages/Settings';
-import { Users } from './pages/Users';
-import { Compliance } from './pages/Compliance';
-import { FEAAnalysis } from './pages/FEAAnalysis';
-import { Analytics } from './pages/Analytics';
-import { ClientPortal } from './pages/ClientPortal';
-import { Testing } from './pages/Testing';
-import { DocumentManagementDashboard } from '@/components/documents/DocumentManagementDashboard';
-import Security from './pages/Security';
-import WorkflowAutomation from './pages/WorkflowAutomation';
-import { GIS } from './pages/GIS';
 import { AuthPage } from './pages/AuthPage';
-import { Blueprint3D } from './pages/Blueprint3D';
+import { Toaster } from './components/ui/toaster';
+
+// Lazy-load all page components to avoid module-level errors blocking the entire app
+const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const UploadBlueprint = React.lazy(() => import('./pages/UploadBlueprint').then(m => ({ default: m.UploadBlueprint })));
+const ViewBlueprints = React.lazy(() => import('./pages/ViewBlueprints').then(m => ({ default: m.ViewBlueprints })));
+const Settings = React.lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
+const Users = React.lazy(() => import('./pages/Users').then(m => ({ default: m.Users })));
+const Compliance = React.lazy(() => import('./pages/Compliance').then(m => ({ default: m.Compliance })));
+const FEAAnalysis = React.lazy(() => import('./pages/FEAAnalysis').then(m => ({ default: m.FEAAnalysis })));
+const Analytics = React.lazy(() => import('./pages/Analytics').then(m => ({ default: m.Analytics })));
+const ClientPortal = React.lazy(() => import('./pages/ClientPortal').then(m => ({ default: m.ClientPortal })));
+const Testing = React.lazy(() => import('./pages/Testing').then(m => ({ default: m.Testing })));
+const DocumentManagementDashboard = React.lazy(() => import('@/components/documents/DocumentManagementDashboard').then(m => ({ default: m.DocumentManagementDashboard })));
+const Security = React.lazy(() => import('./pages/Security'));
+const WorkflowAutomation = React.lazy(() => import('./pages/WorkflowAutomation'));
+const GIS = React.lazy(() => import('./pages/GIS').then(m => ({ default: m.GIS })));
+const Blueprint3D = React.lazy(() => import('./pages/Blueprint3D').then(m => ({ default: m.Blueprint3D })));
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[50vh]">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+  </div>
+);
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) => {
+        if (error && typeof error === 'object' && 'status' in error) {
+          const status = error.status as number;
+          return status >= 500 && failureCount < 3;
+        }
+        return failureCount < 3;
+      },
+      staleTime: 5 * 60 * 1000,
+    },
+  },
+});
 
 function App() {
-  console.log('App component rendering...');
-  
-  // Emergency fallback UI in case everything fails
-  const [showFallback, setShowFallback] = React.useState(false);
-  
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!document.querySelector('[data-app-loaded]')) {
-        console.warn('App failed to load properly, showing fallback');
-        setShowFallback(true);
-      }
-    }, 15000); // 15 second timeout
-    
-    return () => clearTimeout(timer);
-  }, []);
-  
-  if (showFallback) {
-    return (
-      <div 
-        className="min-h-screen flex items-center justify-center"
-        style={{ 
-          backgroundColor: 'hsl(240, 20%, 4%)', 
-          color: 'hsl(224, 71%, 85%)'
-        }}
-      >
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">CitadelTwin</h1>
-          <p>Loading application...</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 rounded"
-            style={{ backgroundColor: 'hsl(197, 80%, 50%)', color: 'white' }}
-          >
-            Reload
-          </button>
-        </div>
-      </div>
-    );
-  }
-  
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: (failureCount, error) => {
-          // Don't retry on 4xx errors, but retry on network errors
-          if (error && typeof error === 'object' && 'status' in error) {
-            const status = error.status as number;
-            return status >= 500 && failureCount < 3;
-          }
-          return failureCount < 3;
-        },
-        staleTime: 5 * 60 * 1000, // 5 minutes
-      },
-    },
-  });
 
   return (
     <div data-app-loaded="true">
@@ -92,173 +61,176 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <Router>
-            <Routes>
-              {/* Auth routes - no protection needed */}
-              <Route path="/auth/login" element={
-                <RouteErrorBoundary routeName="Authentication">
-                  <AuthPage />
-                </RouteErrorBoundary>
-              } />
-              
-              {/* Redirect root to dashboard */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              
-              {/* Protected routes with error boundaries */}
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <RouteErrorBoundary routeName="Dashboard">
-                    <EnhancedResponsiveLayout>
-                      <Dashboard />
-                    </EnhancedResponsiveLayout>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                {/* Auth routes - no protection needed */}
+                <Route path="/auth/login" element={
+                  <RouteErrorBoundary routeName="Authentication">
+                    <AuthPage />
                   </RouteErrorBoundary>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/blueprints/upload" element={
-                <ProtectedRoute>
-                  <RouteErrorBoundary routeName="Blueprint Upload">
-                    <EnhancedResponsiveLayout>
-                      <UploadBlueprint />
-                    </EnhancedResponsiveLayout>
-                  </RouteErrorBoundary>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/blueprint-3d" element={
-                <ProtectedRoute>
-                  <RouteErrorBoundary routeName="Blueprint 3D">
-                    <EnhancedResponsiveLayout>
-                      <Blueprint3D />
-                    </EnhancedResponsiveLayout>
-                  </RouteErrorBoundary>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/blueprints/view" element={
-                <ProtectedRoute>
-                  <RouteErrorBoundary routeName="View Blueprints">
-                    <EnhancedResponsiveLayout>
-                      <ViewBlueprints />
-                    </EnhancedResponsiveLayout>
-                  </RouteErrorBoundary>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/compliance" element={
-                <ProtectedRoute>
-                  <RouteErrorBoundary routeName="Compliance">
-                    <EnhancedResponsiveLayout>
-                      <Compliance />
-                    </EnhancedResponsiveLayout>
-                  </RouteErrorBoundary>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/gis" element={
-                <ProtectedRoute>
-                  <RouteErrorBoundary routeName="GIS Analysis">
-                    <EnhancedResponsiveLayout>
-                      <GIS />
-                    </EnhancedResponsiveLayout>
-                  </RouteErrorBoundary>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/fea-analysis" element={
-                <ProtectedRoute>
-                  <RouteErrorBoundary routeName="FEA Analysis">
-                    <EnhancedResponsiveLayout>
-                      <FEAAnalysis />
-                    </EnhancedResponsiveLayout>
-                  </RouteErrorBoundary>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/analytics" element={
-                <ProtectedRoute>
-                  <RouteErrorBoundary routeName="Analytics">
-                    <EnhancedResponsiveLayout>
-                      <Analytics />
-                    </EnhancedResponsiveLayout>
-                  </RouteErrorBoundary>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/client-portal" element={
-                <ProtectedRoute>
-                  <RouteErrorBoundary routeName="Client Portal">
-                    <EnhancedResponsiveLayout>
-                      <ClientPortal />
-                    </EnhancedResponsiveLayout>
-                  </RouteErrorBoundary>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/testing" element={
-                <ProtectedRoute>
-                  <RouteErrorBoundary routeName="Testing">
-                    <EnhancedResponsiveLayout>
-                      <Testing />
-                    </EnhancedResponsiveLayout>
-                  </RouteErrorBoundary>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/settings" element={
-                <ProtectedRoute>
-                  <RouteErrorBoundary routeName="Settings">
-                    <EnhancedResponsiveLayout>
-                      <Settings />
-                    </EnhancedResponsiveLayout>
-                  </RouteErrorBoundary>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/users" element={
-                <ProtectedRoute>
-                  <RouteErrorBoundary routeName="User Management">
-                    <EnhancedResponsiveLayout>
-                      <Users />
-                    </EnhancedResponsiveLayout>
-                  </RouteErrorBoundary>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/security" element={
-                <ProtectedRoute>
-                  <RouteErrorBoundary routeName="Security">
-                    <EnhancedResponsiveLayout>
-                      <Security />
-                    </EnhancedResponsiveLayout>
-                  </RouteErrorBoundary>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/workflow-automation" element={
-                <ProtectedRoute>
-                  <RouteErrorBoundary routeName="Workflow Automation">
-                    <EnhancedResponsiveLayout>
-                      <WorkflowAutomation />
-                    </EnhancedResponsiveLayout>
-                  </RouteErrorBoundary>
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/documents" element={
-                <ProtectedRoute>
-                  <RouteErrorBoundary routeName="Document Management">
-                    <EnhancedResponsiveLayout>
-                      <div className="container mx-auto p-6">
-                        <DocumentManagementDashboard />
-                      </div>
-                    </EnhancedResponsiveLayout>
-                  </RouteErrorBoundary>
-                </ProtectedRoute>
-              } />
-            </Routes>
+                } />
+
+                {/* Redirect root to dashboard */}
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+                {/* Protected routes with error boundaries */}
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <RouteErrorBoundary routeName="Dashboard">
+                      <EnhancedResponsiveLayout>
+                        <Dashboard />
+                      </EnhancedResponsiveLayout>
+                    </RouteErrorBoundary>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/blueprints/upload" element={
+                  <ProtectedRoute>
+                    <RouteErrorBoundary routeName="Blueprint Upload">
+                      <EnhancedResponsiveLayout>
+                        <UploadBlueprint />
+                      </EnhancedResponsiveLayout>
+                    </RouteErrorBoundary>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/blueprint-3d" element={
+                  <ProtectedRoute>
+                    <RouteErrorBoundary routeName="Blueprint 3D">
+                      <EnhancedResponsiveLayout>
+                        <Blueprint3D />
+                      </EnhancedResponsiveLayout>
+                    </RouteErrorBoundary>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/blueprints/view" element={
+                  <ProtectedRoute>
+                    <RouteErrorBoundary routeName="View Blueprints">
+                      <EnhancedResponsiveLayout>
+                        <ViewBlueprints />
+                      </EnhancedResponsiveLayout>
+                    </RouteErrorBoundary>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/compliance" element={
+                  <ProtectedRoute>
+                    <RouteErrorBoundary routeName="Compliance">
+                      <EnhancedResponsiveLayout>
+                        <Compliance />
+                      </EnhancedResponsiveLayout>
+                    </RouteErrorBoundary>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/gis" element={
+                  <ProtectedRoute>
+                    <RouteErrorBoundary routeName="GIS Analysis">
+                      <EnhancedResponsiveLayout>
+                        <GIS />
+                      </EnhancedResponsiveLayout>
+                    </RouteErrorBoundary>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/fea-analysis" element={
+                  <ProtectedRoute>
+                    <RouteErrorBoundary routeName="FEA Analysis">
+                      <EnhancedResponsiveLayout>
+                        <FEAAnalysis />
+                      </EnhancedResponsiveLayout>
+                    </RouteErrorBoundary>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/analytics" element={
+                  <ProtectedRoute>
+                    <RouteErrorBoundary routeName="Analytics">
+                      <EnhancedResponsiveLayout>
+                        <Analytics />
+                      </EnhancedResponsiveLayout>
+                    </RouteErrorBoundary>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/client-portal" element={
+                  <ProtectedRoute>
+                    <RouteErrorBoundary routeName="Client Portal">
+                      <EnhancedResponsiveLayout>
+                        <ClientPortal />
+                      </EnhancedResponsiveLayout>
+                    </RouteErrorBoundary>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/testing" element={
+                  <ProtectedRoute>
+                    <RouteErrorBoundary routeName="Testing">
+                      <EnhancedResponsiveLayout>
+                        <Testing />
+                      </EnhancedResponsiveLayout>
+                    </RouteErrorBoundary>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/settings" element={
+                  <ProtectedRoute>
+                    <RouteErrorBoundary routeName="Settings">
+                      <EnhancedResponsiveLayout>
+                        <Settings />
+                      </EnhancedResponsiveLayout>
+                    </RouteErrorBoundary>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/users" element={
+                  <ProtectedRoute>
+                    <RouteErrorBoundary routeName="User Management">
+                      <EnhancedResponsiveLayout>
+                        <Users />
+                      </EnhancedResponsiveLayout>
+                    </RouteErrorBoundary>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/security" element={
+                  <ProtectedRoute>
+                    <RouteErrorBoundary routeName="Security">
+                      <EnhancedResponsiveLayout>
+                        <Security />
+                      </EnhancedResponsiveLayout>
+                    </RouteErrorBoundary>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/workflow-automation" element={
+                  <ProtectedRoute>
+                    <RouteErrorBoundary routeName="Workflow Automation">
+                      <EnhancedResponsiveLayout>
+                        <WorkflowAutomation />
+                      </EnhancedResponsiveLayout>
+                    </RouteErrorBoundary>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/documents" element={
+                  <ProtectedRoute>
+                    <RouteErrorBoundary routeName="Document Management">
+                      <EnhancedResponsiveLayout>
+                        <div className="container mx-auto p-6">
+                          <DocumentManagementDashboard />
+                        </div>
+                      </EnhancedResponsiveLayout>
+                    </RouteErrorBoundary>
+                  </ProtectedRoute>
+                } />
+              </Routes>
+            </Suspense>
           </Router>
         </AuthProvider>
       </QueryClientProvider>
+      <Toaster />
     </ErrorBoundary>
     </div>
   );

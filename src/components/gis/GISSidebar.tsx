@@ -151,7 +151,7 @@ export const GISSidebar: React.FC<GISSidebarProps> = ({
       case 'High': return 'hsl(15 80% 55%)';
       case 'Moderate': return 'hsl(45 90% 60%)';
       case 'Low': return 'hsl(120 50% 50%)';
-      default: return 'hsl(240 5% 64.9%)';
+      default: return 'hsl(215 20% 50%)';
     }
   };
 
@@ -378,7 +378,7 @@ export const GISSidebar: React.FC<GISSidebarProps> = ({
                         </span>
                       )}
                       {isFetching && layer.id === 'flood_zones' && (
-                        <span className="block mt-1 text-blue-400">Loading...</span>
+                        <span className="block mt-1 text-blue-600">Loading...</span>
                       )}
                     </p>
                   </div>
@@ -402,12 +402,12 @@ export const GISSidebar: React.FC<GISSidebarProps> = ({
                   {combinedAnalysis && (
                     <div className="space-y-3">
                       {combinedAnalysis.floodZones.length > 0 && (
-                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'hsl(217 91% 15%)', border: '1px solid hsl(217 91% 25%)' }}>
-                          <h5 className="font-medium text-sm mb-2 flex items-center gap-2" style={{ color: 'hsl(217 91% 75%)' }}>
+                        <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700">
+                          <h5 className="font-medium text-sm mb-2 flex items-center gap-2 text-blue-700 dark:text-blue-400">
                             <Droplets className="w-4 h-4" />
                             FEMA Flood Zones
                           </h5>
-                          <div className="text-xs space-y-1" style={{ color: 'hsl(217 91% 65%)' }}>
+                          <div className="text-xs space-y-1 text-blue-600 dark:text-blue-400/80">
                             {combinedAnalysis.floodZones.map((zone, index) => (
                               <div key={index} className="flex items-start gap-1">
                                 <span>•</span>
@@ -419,12 +419,12 @@ export const GISSidebar: React.FC<GISSidebarProps> = ({
                       )}
 
                       {combinedAnalysis.protectedAreas.length > 0 && (
-                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'hsl(142 51% 15%)', border: '1px solid hsl(142 51% 25%)' }}>
-                          <h5 className="font-medium text-sm mb-2 flex items-center gap-2" style={{ color: 'hsl(142 51% 75%)' }}>
+                        <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/20 border border-green-300 dark:border-green-700">
+                          <h5 className="font-medium text-sm mb-2 flex items-center gap-2 text-green-700 dark:text-green-400">
                             <Shield className="w-4 h-4" />
                             Protected Areas
                           </h5>
-                          <div className="text-xs space-y-1" style={{ color: 'hsl(142 51% 65%)' }}>
+                          <div className="text-xs space-y-1 text-green-600 dark:text-green-400/80">
                             {combinedAnalysis.protectedAreas.map((area, index) => (
                               <div key={index} className="flex items-start gap-1">
                                 <span>•</span>
@@ -436,14 +436,14 @@ export const GISSidebar: React.FC<GISSidebarProps> = ({
                       )}
 
                       {combinedAnalysis.soilsWetlands.length > 0 && (
-                        <div className="p-3 rounded-lg" style={{ backgroundColor: 'hsl(30 51% 15%)', border: '1px solid hsl(30 51% 25%)' }}>
-                          <h5 className="font-medium text-sm mb-2 flex items-center gap-2" style={{ color: 'hsl(30 51% 75%)' }}>
+                        <div className="p-3 rounded-lg bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700">
+                          <h5 className="font-medium text-sm mb-2 flex items-center gap-2 text-yellow-700 dark:text-yellow-400">
                             <div className="w-4 h-4 rounded bg-orange-200 flex items-center justify-center">
                               <div className="w-2 h-2 rounded bg-orange-600" />
                             </div>
                             Soils & Wetlands
                           </h5>
-                          <div className="text-xs space-y-1" style={{ color: 'hsl(30 51% 65%)' }}>
+                          <div className="text-xs space-y-1 text-yellow-600 dark:text-yellow-400/80">
                             {combinedAnalysis.soilsWetlands.map((soil, index) => (
                               <div key={index} className="flex items-start gap-1">
                                 <span>•</span>
@@ -537,7 +537,7 @@ export const GISSidebar: React.FC<GISSidebarProps> = ({
               {isExporting && (
                 <div className="flex items-center gap-2 p-2 rounded-md bg-blue-500/10 border border-blue-500/20">
                   <div className="animate-spin w-3 h-3 border border-blue-500 border-t-transparent rounded-full"></div>
-                  <span className="text-xs text-blue-400">Generating export...</span>
+                  <span className="text-xs text-blue-600">Generating export...</span>
                 </div>
               )}
 

@@ -63,18 +63,18 @@ export const CollaborationPanel = ({ projectId }: CollaborationPanelProps) => {
       case 'edit':
         return <Edit className="w-4 h-4 text-green-500" />;
       default:
-        return <Eye className="w-4 h-4 text-gray-500" />;
+        return <Eye className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
   const getPermissionColor = (level: string) => {
     switch (level) {
       case 'owner':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-400/50';
+        return 'bg-yellow-500/20 text-yellow-600 border-yellow-600/50';
       case 'edit':
-        return 'bg-green-500/20 text-green-400 border-green-400/50';
+        return 'bg-green-500/20 text-green-600 border-green-600/50';
       default:
-        return 'bg-gray-500/20 text-gray-400 border-gray-400/50';
+        return 'bg-gray-500/20 text-muted-foreground border-gray-400/50';
     }
   };
 
@@ -93,19 +93,19 @@ export const CollaborationPanel = ({ projectId }: CollaborationPanelProps) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground glow-cyan">Real-time Collaboration</h2>
+          <h2 className="text-2xl font-bold text-foreground shadow-sm">Real-time Collaboration</h2>
           <p className="text-muted-foreground">Collaborate with your team in real-time</p>
         </div>
         <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
           <DialogTrigger asChild>
-            <Button className="cyber-button">
+            <Button className="skeuo-button">
               <Plus className="w-4 h-4 mr-2" />
               New Session
             </Button>
           </DialogTrigger>
           <DialogContent className="gradient-border">
             <DialogHeader>
-              <DialogTitle className="glow-cyan">Create Collaboration Session</DialogTitle>
+              <DialogTitle className="shadow-sm">Create Collaboration Session</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -115,21 +115,21 @@ export const CollaborationPanel = ({ projectId }: CollaborationPanelProps) => {
                   value={sessionName}
                   onChange={(e) => setSessionName(e.target.value)}
                   placeholder="Enter session name"
-                  className="cyber-button"
+                  className="skeuo-button"
                 />
               </div>
               <div className="flex justify-end space-x-2">
                 <Button
                   variant="outline"
                   onClick={() => setShowCreateModal(false)}
-                  className="cyber-button"
+                  className="skeuo-button"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleCreateSession}
                   disabled={!sessionName.trim()}
-                  className="cyber-button bg-primary text-primary-foreground"
+                  className="skeuo-button bg-primary text-primary-foreground"
                 >
                   Create Session
                 </Button>
@@ -141,11 +141,11 @@ export const CollaborationPanel = ({ projectId }: CollaborationPanelProps) => {
 
       {/* Active Session Status */}
       {activeSession && (
-        <Card className="gradient-border glow-cyan">
+        <Card className="gradient-border shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <UserCheck className="w-5 h-5 text-green-400" />
+                <UserCheck className="w-5 h-5 text-green-600" />
                 <div>
                   <CardTitle className="text-lg">{activeSession.name}</CardTitle>
                   <p className="text-sm text-muted-foreground">Active collaboration session</p>
@@ -155,7 +155,7 @@ export const CollaborationPanel = ({ projectId }: CollaborationPanelProps) => {
                 size="sm"
                 variant="outline"
                 onClick={handleLeaveSession}
-                className="cyber-button hover:bg-destructive/20"
+                className="skeuo-button hover:bg-destructive/20"
               >
                 <UserX className="w-4 h-4 mr-2" />
                 Leave
@@ -195,10 +195,10 @@ export const CollaborationPanel = ({ projectId }: CollaborationPanelProps) => {
                     placeholder="Enter email address"
                     value={newUserEmail}
                     onChange={(e) => setNewUserEmail(e.target.value)}
-                    className="flex-1 cyber-button"
+                    className="flex-1 skeuo-button"
                   />
                   <Select value={newUserPermission} onValueChange={(value: 'view' | 'edit') => setNewUserPermission(value)}>
-                    <SelectTrigger className="w-24 cyber-button">
+                    <SelectTrigger className="w-24 skeuo-button">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -206,7 +206,7 @@ export const CollaborationPanel = ({ projectId }: CollaborationPanelProps) => {
                       <SelectItem value="edit">Edit</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button size="sm" className="cyber-button">
+                  <Button size="sm" className="skeuo-button">
                     Invite
                   </Button>
                 </div>
@@ -251,14 +251,14 @@ export const CollaborationPanel = ({ projectId }: CollaborationPanelProps) => {
                   </div>
                   <div className="flex items-center space-x-2">
                     {activeSession?.id === session.id ? (
-                      <Badge className="bg-green-500/20 text-green-400 border-green-400/50">
+                      <Badge className="bg-green-500/20 text-green-600 border-green-600/50">
                         Active
                       </Badge>
                     ) : (
                       <Button
                         size="sm"
                         onClick={() => handleJoinSession(session.id)}
-                        className="cyber-button"
+                        className="skeuo-button"
                       >
                         Join
                       </Button>

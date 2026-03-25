@@ -71,7 +71,7 @@ export const IFCUpload = ({ projectId, onUploadComplete }: IFCUploadProps) => {
   };
 
   return (
-    <Card className="cyber-tool-palette">
+    <Card className="skeuo-panel">
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <Upload className="w-5 h-5 text-accent" />
@@ -121,7 +121,7 @@ export const IFCUpload = ({ projectId, onUploadComplete }: IFCUploadProps) => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter model name"
-              className="cyber-input"
+              className="skeuo-input"
             />
           </div>
           
@@ -132,7 +132,7 @@ export const IFCUpload = ({ projectId, onUploadComplete }: IFCUploadProps) => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional description"
-              className="cyber-input min-h-[80px]"
+              className="skeuo-input min-h-[80px]"
             />
           </div>
         </div>
@@ -142,7 +142,7 @@ export const IFCUpload = ({ projectId, onUploadComplete }: IFCUploadProps) => {
           <Button
             onClick={handleUpload}
             disabled={!selectedFile || !name.trim() || uploading}
-            className="cyber-button flex-1"
+            className="skeuo-button flex-1"
           >
             {uploading ? (
               <>
@@ -160,7 +160,7 @@ export const IFCUpload = ({ projectId, onUploadComplete }: IFCUploadProps) => {
           <Button
             variant="outline"
             onClick={handleUrlLoad}
-            className="cyber-button"
+            className="skeuo-button"
           >
             Load from URL
           </Button>

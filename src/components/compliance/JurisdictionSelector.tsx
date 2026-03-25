@@ -42,13 +42,13 @@ export const JurisdictionSelector: React.FC<JurisdictionSelectorProps> = ({
 
   if (jurisdictionsLoading) {
     return (
-      <Card className="cyber-tool-palette">
+      <Card className="skeuo-panel">
         <CardHeader>
-          <CardTitle className="text-cyan-400">Loading Jurisdictions...</CardTitle>
+          <CardTitle className="text-primary">Loading Jurisdictions...</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center p-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         </CardContent>
       </Card>
@@ -58,9 +58,9 @@ export const JurisdictionSelector: React.FC<JurisdictionSelectorProps> = ({
   return (
     <ErrorBoundary>
       <TooltipProvider>
-        <Card className="cyber-tool-palette">
+        <Card className="skeuo-panel">
           <CardHeader>
-            <CardTitle className="text-cyan-400">Jurisdiction Selection</CardTitle>
+            <CardTitle className="text-primary">Jurisdiction Selection</CardTitle>
             <CardDescription>
               Select jurisdiction for detailed compliance checking
             </CardDescription>
@@ -78,13 +78,13 @@ export const JurisdictionSelector: React.FC<JurisdictionSelectorProps> = ({
             {/* Search Results */}
             {safeSearchResults.length > 0 && (
               <div>
-                <h4 className="font-semibold text-cyan-400 mb-3">Search Results</h4>
+                <h4 className="font-semibold text-primary mb-3">Search Results</h4>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {safeSearchResults.map((jurisdiction) => (
                     <Card
                       key={jurisdiction.id}
-                      className={`cursor-pointer transition-colors border border-gray-700 hover:bg-gray-800/50 ${
-                        selectedJurisdiction === jurisdiction.id ? 'bg-cyan-900/30 border-cyan-500' : ''
+                      className={`cursor-pointer transition-colors border border-border hover:bg-muted/50 ${
+                        selectedJurisdiction === jurisdiction.id ? 'bg-primary/10 border-primary' : ''
                       }`}
                       onClick={() => onJurisdictionSelect(jurisdiction.id)}
                     >
@@ -101,13 +101,13 @@ export const JurisdictionSelector: React.FC<JurisdictionSelectorProps> = ({
 
             {/* All Jurisdictions Dropdown */}
             <div>
-              <h4 className="font-semibold text-cyan-400 mb-3">All Available Jurisdictions</h4>
+              <h4 className="font-semibold text-primary mb-3">All Available Jurisdictions</h4>
               {safeJurisdictions.length > 0 ? (
                 <Select onValueChange={onJurisdictionSelect} value={selectedJurisdiction}>
-                  <SelectTrigger className="bg-gray-900 border-gray-700">
+                  <SelectTrigger className="bg-card border-border">
                     <SelectValue placeholder="Select a jurisdiction..." />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-900 border-gray-700 max-h-60">
+                  <SelectContent className="bg-card border-border max-h-60">
                     {safeJurisdictions.map((jurisdiction) => (
                       <SelectItem key={jurisdiction.id} value={jurisdiction.id}>
                         {formatJurisdictionName(jurisdiction)}
@@ -116,7 +116,7 @@ export const JurisdictionSelector: React.FC<JurisdictionSelectorProps> = ({
                   </SelectContent>
                 </Select>
               ) : (
-                <div className="text-center text-gray-400 p-4">
+                <div className="text-center text-muted-foreground p-4">
                   {jurisdictionsLoading ? 'Loading jurisdictions...' : 'No jurisdictions available. Please check your connection.'}
                 </div>
               )}

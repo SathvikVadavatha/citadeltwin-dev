@@ -17,27 +17,27 @@ export const ComplianceEngineSelector: React.FC<ComplianceEngineSelectorProps> =
   onEngineChange
 }) => {
   return (
-    <Card className="cyber-tool-palette">
+    <Card className="skeuo-panel">
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex space-x-2">
             <Button
               variant={activeEngine === 'standard' ? 'default' : 'outline'}
               onClick={() => onEngineChange('standard')}
-              className={activeEngine === 'standard' ? 'cyber-button' : 'border-gray-600'}
+              className={activeEngine === 'standard' ? 'skeuo-button' : 'border-border'}
             >
               Standard IBC
             </Button>
             <Button
               variant={activeEngine === 'multi_jurisdiction' ? 'default' : 'outline'}
               onClick={() => onEngineChange('multi_jurisdiction')}
-              className={activeEngine === 'multi_jurisdiction' ? 'cyber-button' : 'border-gray-600'}
+              className={activeEngine === 'multi_jurisdiction' ? 'skeuo-button' : 'border-border'}
             >
               <Globe className="w-4 h-4 mr-2" />
               Multi-Jurisdiction
             </Button>
           </div>
-          <Badge className="bg-cyan-900 text-cyan-300">
+          <Badge className="bg-primary/20 text-primary">
             IBC 2021
           </Badge>
         </div>

@@ -42,12 +42,12 @@ export const CalculationTestRunner = () => {
 
   const getStatusBadge = (passed: boolean) => {
     return passed ? (
-      <Badge className="bg-green-500/20 text-green-400">
+      <Badge className="bg-green-500/20 text-green-600">
         <CheckCircle className="w-3 h-3 mr-1" />
         Passed
       </Badge>
     ) : (
-      <Badge className="bg-red-500/20 text-red-400">
+      <Badge className="bg-red-500/20 text-destructive">
         <XCircle className="w-3 h-3 mr-1" />
         Failed
       </Badge>
@@ -68,7 +68,7 @@ export const CalculationTestRunner = () => {
             variant="outline"
             onClick={() => setTestSuites([])}
             disabled={running || testSuites.length === 0}
-            className="cyber-button"
+            className="skeuo-button"
           >
             <RotateCcw className="w-4 h-4 mr-2" />
             Clear
@@ -76,7 +76,7 @@ export const CalculationTestRunner = () => {
           <Button
             onClick={runAllTests}
             disabled={running}
-            className="cyber-button"
+            className="skeuo-button"
           >
             {running ? (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
@@ -131,9 +131,9 @@ export const CalculationTestRunner = () => {
             <CardTitle className="flex items-center justify-between">
               <span>{suite.suiteName}</span>
               <div className="flex items-center space-x-2">
-                <Badge className={suite.score >= 90 ? 'bg-green-500/20 text-green-400' : 
-                                 suite.score >= 70 ? 'bg-yellow-500/20 text-yellow-400' : 
-                                 'bg-red-500/20 text-red-400'}>
+                <Badge className={suite.score >= 90 ? 'bg-green-500/20 text-green-600' : 
+                                 suite.score >= 70 ? 'bg-yellow-500/20 text-yellow-600' : 
+                                 'bg-red-500/20 text-destructive'}>
                   {suite.score.toFixed(0)}%
                 </Badge>
                 <span className="text-sm text-muted-foreground">
@@ -151,7 +151,7 @@ export const CalculationTestRunner = () => {
                     {getStatusBadge(test.passed)}
                   </div>
                   
-                  <p className={`text-sm ${test.passed ? 'text-green-400' : 'text-red-400'}`}>
+                  <p className={`text-sm ${test.passed ? 'text-green-600' : 'text-destructive'}`}>
                     {test.message}
                   </p>
                   
@@ -183,7 +183,7 @@ export const CalculationTestRunner = () => {
             <p className="text-muted-foreground mb-4">
               Run automated tests to validate calculation accuracy and reliability
             </p>
-            <Button onClick={runAllTests} className="cyber-button">
+            <Button onClick={runAllTests} className="skeuo-button">
               <Play className="w-4 h-4 mr-2" />
               Start Testing
             </Button>

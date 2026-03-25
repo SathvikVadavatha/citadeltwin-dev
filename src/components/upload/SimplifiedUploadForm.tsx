@@ -95,7 +95,7 @@ export const SimplifiedUploadForm: React.FC<SimplifiedUploadFormProps> = ({
       return (
         <Alert className="mb-4 border-green-500/20 bg-green-500/10">
           <CheckCircle2 className="h-4 w-4 text-green-500" />
-          <AlertDescription className="text-green-400">
+          <AlertDescription className="text-green-600">
             Upload completed successfully! File: {result.filename}
           </AlertDescription>
         </Alert>
@@ -110,8 +110,8 @@ export const SimplifiedUploadForm: React.FC<SimplifiedUploadFormProps> = ({
       return (
         <div className="space-y-4 mb-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-400">{currentStep}</span>
-            <Badge variant="outline" className="border-cyan-400 text-cyan-400">
+            <span className="text-sm text-muted-foreground">{currentStep}</span>
+            <Badge variant="outline" className="border-primary text-primary">
               {uploading ? 'Uploading' : 'Processing'}
             </Badge>
           </div>
@@ -143,10 +143,10 @@ export const SimplifiedUploadForm: React.FC<SimplifiedUploadFormProps> = ({
   }
 
   return (
-    <Card className="cyber-tool-palette">
+    <Card className="skeuo-panel">
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
-          <Upload className="w-5 h-5 text-cyan-400" />
+          <Upload className="w-5 h-5 text-primary" />
           <span>Upload Blueprint</span>
         </CardTitle>
       </CardHeader>
@@ -157,7 +157,7 @@ export const SimplifiedUploadForm: React.FC<SimplifiedUploadFormProps> = ({
           {...getRootProps()}
           className={`
             border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
-            ${isDragActive ? 'border-cyan-400 bg-cyan-400/10' : 'border-gray-600 hover:border-cyan-400/50'}
+            ${isDragActive ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}
             ${(uploading || processing) ? 'opacity-50 cursor-not-allowed' : ''}
           `}
         >
@@ -165,16 +165,16 @@ export const SimplifiedUploadForm: React.FC<SimplifiedUploadFormProps> = ({
           
           <div className="space-y-4">
             {uploading || processing ? (
-              <Loader2 className="w-12 h-12 text-cyan-400 mx-auto animate-spin" />
+              <Loader2 className="w-12 h-12 text-primary mx-auto animate-spin" />
             ) : (
-              <FileImage className="w-12 h-12 text-gray-400 mx-auto" />
+              <FileImage className="w-12 h-12 text-muted-foreground mx-auto" />
             )}
             
             <div>
-              <p className="text-lg font-medium text-gray-300 mb-2">
+              <p className="text-lg font-medium text-foreground mb-2">
                 {isDragActive ? 'Drop your blueprint here' : 'Upload Blueprint'}
               </p>
-              <p className="text-sm text-gray-400 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Drag & drop or click to select • JPEG, PNG, GIF, PDF • Max 50MB
               </p>
               
@@ -188,7 +188,7 @@ export const SimplifiedUploadForm: React.FC<SimplifiedUploadFormProps> = ({
           </div>
         </div>
 
-        <div className="text-xs text-gray-500 space-y-1">
+        <div className="text-xs text-muted-foreground space-y-1">
           <p>• Supported formats: JPEG, PNG, GIF, PDF</p>
           <p>• Maximum file size: 50MB</p>
           <p>• Processing includes basic object detection</p>

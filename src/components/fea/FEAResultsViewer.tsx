@@ -30,8 +30,8 @@ export const FEAResultsViewer = ({ analysisId, results }: FEAResultsViewerProps)
 
   const getSafetyFactorStatus = (factor: number) => {
     if (factor >= 2.0) return { color: 'text-emerald-400', icon: CheckCircle, status: 'Safe' };
-    if (factor >= 1.5) return { color: 'text-yellow-400', icon: AlertTriangle, status: 'Caution' };
-    return { color: 'text-red-400', icon: AlertTriangle, status: 'Unsafe' };
+    if (factor >= 1.5) return { color: 'text-yellow-600', icon: AlertTriangle, status: 'Caution' };
+    return { color: 'text-destructive', icon: AlertTriangle, status: 'Unsafe' };
   };
 
   // Helper function to safely access JSON data
@@ -59,10 +59,10 @@ export const FEAResultsViewer = ({ analysisId, results }: FEAResultsViewerProps)
 
   if (results.length === 0) {
     return (
-      <Card className="bg-gray-900 border-gray-700">
+      <Card className="bg-card border-border">
         <CardContent className="flex flex-col items-center justify-center py-8">
-          <Activity className="w-12 h-12 text-gray-400 mb-4" />
-          <p className="text-gray-400 text-center">
+          <Activity className="w-12 h-12 text-muted-foreground mb-4" />
+          <p className="text-muted-foreground text-center">
             No results available. Run the analysis to generate results.
           </p>
         </CardContent>
@@ -72,13 +72,13 @@ export const FEAResultsViewer = ({ analysisId, results }: FEAResultsViewerProps)
 
   return (
     <div className="space-y-4">
-      <Card className="bg-gray-900 border-gray-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-cyan-300 flex items-center gap-2">
+          <CardTitle className="text-primary flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
             Analysis Results
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             Structural analysis results and safety metrics
           </CardDescription>
         </CardHeader>
@@ -88,7 +88,7 @@ export const FEAResultsViewer = ({ analysisId, results }: FEAResultsViewerProps)
           {safetyFactorResult && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <h4 className="font-semibold text-gray-200">Safety Factor</h4>
+                <h4 className="font-semibold text-foreground">Safety Factor</h4>
                 {(() => {
                   const factor = getJsonValue(safetyFactorResult.data, 'value', 0);
                   const { color, icon: Icon, status } = getSafetyFactorStatus(factor);
@@ -100,24 +100,24 @@ export const FEAResultsViewer = ({ analysisId, results }: FEAResultsViewerProps)
                   );
                 })()}
               </div>
-              <div className="bg-gray-800 p-3 rounded-lg">
-                <div className="text-2xl font-bold text-cyan-300">
+              <div className="bg-muted p-3 rounded-lg">
+                <div className="text-2xl font-bold text-primary">
                   {getJsonValue(safetyFactorResult.data, 'value', 0)?.toFixed(2) || 'N/A'}
                 </div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-muted-foreground">
                   Ratio of material strength to applied stress
                 </div>
               </div>
             </div>
           )}
 
-          <Separator className="bg-gray-700" />
+          <Separator className="bg-secondary" />
 
           {/* Maximum Displacement */}
           {displacementResult && (
             <div className="space-y-2">
-              <h4 className="font-semibold text-gray-200">Maximum Displacement</h4>
-              <div className="bg-gray-800 p-3 rounded-lg">
+              <h4 className="font-semibold text-foreground">Maximum Displacement</h4>
+              <div className="bg-muted p-3 rounded-lg">
                 <div className="text-xl font-bold text-orange-300">
                   {formatValue(
                     getJsonValue(displacementResult.data, 'max', 0), 
@@ -125,7 +125,7 @@ export const FEAResultsViewer = ({ analysisId, results }: FEAResultsViewerProps)
                     3
                   )}
                 </div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-muted-foreground">
                   Maximum structural deformation
                 </div>
               </div>
@@ -135,8 +135,8 @@ export const FEAResultsViewer = ({ analysisId, results }: FEAResultsViewerProps)
           {/* Maximum Stress */}
           {stressResult && (
             <div className="space-y-2">
-              <h4 className="font-semibold text-gray-200">Maximum Stress</h4>
-              <div className="bg-gray-800 p-3 rounded-lg">
+              <h4 className="font-semibold text-foreground">Maximum Stress</h4>
+              <div className="bg-muted p-3 rounded-lg">
                 <div className="text-xl font-bold text-red-300">
                   {formatValue(
                     getJsonValue(stressResult.data, 'max', 0), 
@@ -144,60 +144,60 @@ export const FEAResultsViewer = ({ analysisId, results }: FEAResultsViewerProps)
                     3
                   )}
                 </div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-muted-foreground">
                   Peak stress in structure
                 </div>
               </div>
             </div>
           )}
 
-          <Separator className="bg-gray-700" />
+          <Separator className="bg-secondary" />
 
           {/* Detailed Results */}
           <div className="space-y-3">
-            <h4 className="font-semibold text-gray-200">Detailed Results</h4>
+            <h4 className="font-semibold text-foreground">Detailed Results</h4>
             
             {displacementResult && (
-              <div className="bg-gray-800 p-3 rounded-lg">
-                <div className="font-medium text-gray-200 mb-2">Displacement Data</div>
-                <div className="text-sm text-gray-400">
+              <div className="bg-muted p-3 rounded-lg">
+                <div className="font-medium text-foreground mb-2">Displacement Data</div>
+                <div className="text-sm text-muted-foreground">
                   Values: {getJsonValue(displacementResult.data, 'values', [])?.length || 0} nodes
                 </div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-muted-foreground">
                   Units: {getNestedJsonValue(displacementResult.metadata, 'units', '', 'm')}
                 </div>
               </div>
             )}
 
             {stressResult && (
-              <div className="bg-gray-800 p-3 rounded-lg">
-                <div className="font-medium text-gray-200 mb-2">Stress Data</div>
-                <div className="text-sm text-gray-400">
+              <div className="bg-muted p-3 rounded-lg">
+                <div className="font-medium text-foreground mb-2">Stress Data</div>
+                <div className="text-sm text-muted-foreground">
                   Values: {getJsonValue(stressResult.data, 'values', [])?.length || 0} elements
                 </div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-muted-foreground">
                   Type: {getNestedJsonValue(stressResult.metadata, 'type', '', 'von_mises')}
                 </div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-muted-foreground">
                   Units: {getNestedJsonValue(stressResult.metadata, 'units', '', 'Pa')}
                 </div>
               </div>
             )}
 
             {reactionResult && (
-              <div className="bg-gray-800 p-3 rounded-lg">
-                <div className="font-medium text-gray-200 mb-2">Reaction Forces</div>
-                <div className="text-sm text-gray-400">
+              <div className="bg-muted p-3 rounded-lg">
+                <div className="font-medium text-foreground mb-2">Reaction Forces</div>
+                <div className="text-sm text-muted-foreground">
                   Supports: {getJsonValue(reactionResult.data, 'values', [])?.length || 0}
                 </div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-muted-foreground">
                   Units: {getNestedJsonValue(reactionResult.metadata, 'units', '', 'N')}
                 </div>
               </div>
             )}
           </div>
 
-          <div className="text-xs text-gray-500 pt-2">
+          <div className="text-xs text-muted-foreground pt-2">
             Results generated on: {new Date(results[0]?.created_at).toLocaleString()}
           </div>
         </CardContent>

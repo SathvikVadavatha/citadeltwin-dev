@@ -90,11 +90,11 @@ export const TestReportGenerator: React.FC<TestReportGeneratorProps> = ({
 
   const getReportTypeColor = (type: string) => {
     switch (type) {
-      case 'comprehensive': return 'bg-blue-500/20 text-blue-400 border-blue-400/50';
-      case 'validation': return 'bg-green-500/20 text-green-400 border-green-400/50';
-      case 'performance': return 'bg-purple-500/20 text-purple-400 border-purple-400/50';
-      case 'security': return 'bg-red-500/20 text-red-400 border-red-400/50';
-      default: return 'bg-gray-500/20 text-gray-400 border-gray-400/50';
+      case 'comprehensive': return 'bg-blue-500/20 text-blue-600 border-blue-600/50';
+      case 'validation': return 'bg-green-500/20 text-green-600 border-green-600/50';
+      case 'performance': return 'bg-purple-500/20 text-purple-600 border-purple-600/50';
+      case 'security': return 'bg-red-500/20 text-destructive border-destructive/50';
+      default: return 'bg-gray-500/20 text-muted-foreground border-gray-400/50';
     }
   };
 
@@ -229,7 +229,7 @@ export const TestReportGenerator: React.FC<TestReportGeneratorProps> = ({
                   <Badge className={getReportTypeColor(report.type)}>
                     {report.type}
                   </Badge>
-                  <Badge className={report.score >= 80 ? 'bg-green-500/20 text-green-400' : report.score >= 60 ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}>
+                  <Badge className={report.score >= 80 ? 'bg-green-500/20 text-green-600' : report.score >= 60 ? 'bg-yellow-500/20 text-yellow-600' : 'bg-red-500/20 text-destructive'}>
                     {report.score}%
                   </Badge>
                   <Button size="sm" variant="ghost">

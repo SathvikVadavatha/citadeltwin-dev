@@ -62,7 +62,7 @@ export const IFCModelsManager = ({ projectId, onElementSelect }: IFCModelsManage
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground glow-cyan">IFC Models</h2>
+          <h2 className="text-2xl font-bold text-foreground shadow-sm">IFC Models</h2>
           <p className="text-muted-foreground">
             Upload and view Industry Foundation Classes (IFC) building models
           </p>
@@ -111,7 +111,7 @@ export const IFCModelsManager = ({ projectId, onElementSelect }: IFCModelsManage
                 </p>
                 <Button 
                   onClick={() => setActiveTab('upload')} 
-                  className="cyber-button"
+                  className="skeuo-button"
                 >
                   <Upload className="w-4 h-4 mr-2" />
                   Upload IFC Model
@@ -121,7 +121,7 @@ export const IFCModelsManager = ({ projectId, onElementSelect }: IFCModelsManage
           ) : (
             <div className="grid gap-4">
               {models.map((model) => (
-                <Card key={model.id} className="gradient-border glow-cyan">
+                <Card key={model.id} className="gradient-border shadow-sm">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
@@ -138,7 +138,7 @@ export const IFCModelsManager = ({ projectId, onElementSelect }: IFCModelsManage
                           size="sm"
                           variant="ghost"
                           onClick={() => handleModelSelect(model)}
-                          className="cyber-button"
+                          className="skeuo-button"
                           title="View Model"
                         >
                           <Eye className="w-4 h-4" />
@@ -147,7 +147,7 @@ export const IFCModelsManager = ({ projectId, onElementSelect }: IFCModelsManage
                           size="sm"
                           variant="ghost"
                           onClick={() => window.open(getModelUrl(model), '_blank')}
-                          className="cyber-button"
+                          className="skeuo-button"
                           title="Download"
                         >
                           <Download className="w-4 h-4" />
@@ -156,7 +156,7 @@ export const IFCModelsManager = ({ projectId, onElementSelect }: IFCModelsManage
                           size="sm"
                           variant="ghost"
                           onClick={() => handleModelDelete(model)}
-                          className="cyber-button hover:bg-destructive/20"
+                          className="skeuo-button hover:bg-destructive/20"
                           title="Delete"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -222,7 +222,7 @@ export const IFCModelsManager = ({ projectId, onElementSelect }: IFCModelsManage
                 </p>
                 <Button 
                   onClick={() => setActiveTab('models')} 
-                  className="cyber-button"
+                  className="skeuo-button"
                   disabled={models.length === 0}
                 >
                   <FileText className="w-4 h-4 mr-2" />

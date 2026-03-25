@@ -173,21 +173,21 @@ export const DocumentTemplateLibrary: React.FC<TemplateLibraryProps> = ({
 
           {/* AI-Powered Templates Section */}
           <div>
-            <h3 className="text-lg font-semibold text-cyan-400 mb-3 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-primary mb-3 flex items-center gap-2">
               <Sparkles className="h-5 w-5" />
               AI-Enhanced Templates
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {aiPoweredTemplates.map((template, index) => (
-                <Card key={index} className="border-cyan-500/30 bg-gradient-to-br from-cyan-900/10 to-blue-900/10">
+                <Card key={index} className="border-primary/30 bg-gradient-to-br from-cyan-900/10 to-blue-900/10">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-3">
-                      <h4 className="font-medium text-cyan-300">{template.name}</h4>
-                      <Sparkles className="h-4 w-4 text-cyan-400" />
+                      <h4 className="font-medium text-primary">{template.name}</h4>
+                      <Sparkles className="h-4 w-4 text-primary" />
                     </div>
-                    <p className="text-sm text-gray-300 mb-3">{template.description}</p>
+                    <p className="text-sm text-foreground mb-3">{template.description}</p>
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-cyan-400">AI Features:</p>
+                      <p className="text-xs font-medium text-primary">AI Features:</p>
                       {template.aiFeatures.map((feature, idx) => (
                         <Badge key={idx} variant="outline" className="text-xs mr-1 mb-1">
                           {feature}
@@ -196,7 +196,7 @@ export const DocumentTemplateLibrary: React.FC<TemplateLibraryProps> = ({
                     </div>
                     <Button 
                       size="sm" 
-                      className="w-full mt-3 bg-cyan-600 hover:bg-cyan-700"
+                      className="w-full mt-3 bg-primary hover:bg-primary/90"
                       onClick={() => onTemplateSelect(`ai-${index}`)}
                     >
                       Use Template
@@ -209,10 +209,10 @@ export const DocumentTemplateLibrary: React.FC<TemplateLibraryProps> = ({
 
           {/* Category-Based Templates */}
           <div>
-            <h3 className="text-lg font-semibold text-cyan-400 mb-3">Templates by Category</h3>
+            <h3 className="text-lg font-semibold text-primary mb-3">Templates by Category</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {Object.entries(templateCategories).map(([key, category]) => (
-                <Card key={key} className="border-gray-700">
+                <Card key={key} className="border-border">
                   <CardContent className="p-4">
                     <div className="text-center mb-3">
                       <div className="text-2xl mb-2">{category.icon}</div>
@@ -240,7 +240,7 @@ export const DocumentTemplateLibrary: React.FC<TemplateLibraryProps> = ({
           {/* Jurisdiction-Specific Templates */}
           {selectedJurisdiction && (
             <div>
-              <h3 className="text-lg font-semibold text-cyan-400 mb-3">
+              <h3 className="text-lg font-semibold text-primary mb-3">
                 Jurisdiction-Specific Templates
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -248,7 +248,7 @@ export const DocumentTemplateLibrary: React.FC<TemplateLibraryProps> = ({
                   <Card key={idx} className="border-yellow-500/30">
                     <CardContent className="p-4">
                       <h4 className="font-medium text-yellow-300 mb-2">{template}</h4>
-                      <p className="text-xs text-gray-400 mb-3">
+                      <p className="text-xs text-muted-foreground mb-3">
                         Customized for {selectedJurisdiction} specific requirements
                       </p>
                       <Button 
@@ -267,7 +267,7 @@ export const DocumentTemplateLibrary: React.FC<TemplateLibraryProps> = ({
 
           {/* Existing Templates */}
           <div>
-            <h3 className="text-lg font-semibold text-cyan-400 mb-3">Available Templates</h3>
+            <h3 className="text-lg font-semibold text-primary mb-3">Available Templates</h3>
             {filteredTemplates.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
                 No templates found matching your criteria.
@@ -275,7 +275,7 @@ export const DocumentTemplateLibrary: React.FC<TemplateLibraryProps> = ({
             ) : (
               <div className="grid gap-4">
                 {filteredTemplates.map((template) => (
-                  <Card key={template.id} className="border-gray-700">
+                  <Card key={template.id} className="border-border">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">

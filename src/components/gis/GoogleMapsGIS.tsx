@@ -54,6 +54,17 @@ interface EnvironmentalAnalysis {
   }[];
 }
 
+/** Escape untrusted text before interpolating into InfoWindow HTML */
+const escapeHtml = (str: unknown): string => {
+  const s = String(str ?? '');
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
 export const GoogleMapsGIS: React.FC = () => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
@@ -901,8 +912,8 @@ export const GoogleMapsGIS: React.FC = () => {
                     content: `
                       <div style="color: #333;">
                         <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold;">FEMA Flood Zone</h3>
-                        <p style="margin: 4px 0;"><strong>Zone:</strong> ${floodZone}</p>
-                        <p style="margin: 4px 0;"><strong>Risk Level:</strong> ${riskLevel}</p>
+                        <p style="margin: 4px 0;"><strong>Zone:</strong> ${escapeHtml(floodZone)}</p>
+                        <p style="margin: 4px 0;"><strong>Risk Level:</strong> ${escapeHtml(riskLevel)}</p>
                         <p style="margin: 4px 0; font-size: 12px; color: #666;">
                           ${riskLevel === 'high' ? 'Flood insurance required' : 
                             riskLevel === 'moderate' ? 'Flood insurance recommended' : 
@@ -1038,10 +1049,10 @@ export const GoogleMapsGIS: React.FC = () => {
                   const infoWindow = new google.maps.InfoWindow({
                     content: `
                       <div style="color: #333;">
-                        <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold;">${unitName}</h3>
-                        <p style="margin: 4px 0;"><strong>Managing Agency:</strong> ${managingAgency}</p>
-                        <p style="margin: 4px 0;"><strong>GAP Status:</strong> ${gapStatus}</p>
-                        <p style="margin: 4px 0;"><strong>Type:</strong> ${feature.properties?.Des_Tp || 'Protected Land'}</p>
+                        <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold;">${escapeHtml(unitName)}</h3>
+                        <p style="margin: 4px 0;"><strong>Managing Agency:</strong> ${escapeHtml(managingAgency)}</p>
+                        <p style="margin: 4px 0;"><strong>GAP Status:</strong> ${escapeHtml(gapStatus)}</p>
+                        <p style="margin: 4px 0;"><strong>Type:</strong> ${escapeHtml(feature.properties?.Des_Tp || 'Protected Land')}</p>
                         <p style="margin: 4px 0; font-size: 12px; color: #666;">
                           ${gapStatus === '1' ? 'Highest level of protection' : 
                             gapStatus === '2' ? 'Moderate protection with some restrictions' : 
@@ -1131,11 +1142,11 @@ export const GoogleMapsGIS: React.FC = () => {
                 content: `
                   <div>
                     <h3>Soil Information</h3>
-                    <p><strong>Name:</strong> ${feature.properties?.MUNAME || 'Unknown'}</p>
-                    <p><strong>Drainage:</strong> ${feature.properties?.DRCLASSDCD || 'Unknown'}</p>
-                    <p><strong>Hydro Group:</strong> ${feature.properties?.HYDGRP || 'Unknown'}</p>
-                    <p><strong>AWS:</strong> ${feature.properties?.AWS || 'Unknown'}</p>
-                    <p><strong>K Factor:</strong> ${feature.properties?.KFACT || 'Unknown'}</p>
+                    <p><strong>Name:</strong> ${escapeHtml(feature.properties?.MUNAME || 'Unknown')}</p>
+                    <p><strong>Drainage:</strong> ${escapeHtml(feature.properties?.DRCLASSDCD || 'Unknown')}</p>
+                    <p><strong>Hydro Group:</strong> ${escapeHtml(feature.properties?.HYDGRP || 'Unknown')}</p>
+                    <p><strong>AWS:</strong> ${escapeHtml(feature.properties?.AWS || 'Unknown')}</p>
+                    <p><strong>K Factor:</strong> ${escapeHtml(feature.properties?.KFACT || 'Unknown')}</p>
                   </div>
                 `,
                 position: { lat: paths[0].lat, lng: paths[0].lng }
@@ -1177,11 +1188,11 @@ export const GoogleMapsGIS: React.FC = () => {
                 content: `
                   <div>
                     <h3>Wetland Information</h3>
-                    <p><strong>Type:</strong> ${feature.properties?.WETLAND_TY || 'Unknown'}</p>
-                    <p><strong>Class:</strong> ${feature.properties?.CLASS || 'Unknown'}</p>
-                    <p><strong>System:</strong> ${feature.properties?.SYSTEM || 'Unknown'}</p>
-                    <p><strong>Water Regime:</strong> ${feature.properties?.WATER_REGI || 'Unknown'}</p>
-                    <p><strong>Area:</strong> ${feature.properties?.ACRES || 'Unknown'} acres</p>
+                    <p><strong>Type:</strong> ${escapeHtml(feature.properties?.WETLAND_TY || 'Unknown')}</p>
+                    <p><strong>Class:</strong> ${escapeHtml(feature.properties?.CLASS || 'Unknown')}</p>
+                    <p><strong>System:</strong> ${escapeHtml(feature.properties?.SYSTEM || 'Unknown')}</p>
+                    <p><strong>Water Regime:</strong> ${escapeHtml(feature.properties?.WATER_REGI || 'Unknown')}</p>
+                    <p><strong>Area:</strong> ${escapeHtml(feature.properties?.ACRES || 'Unknown')} acres</p>
                   </div>
                 `,
                 position: { lat: paths[0].lat, lng: paths[0].lng }
@@ -1379,19 +1390,19 @@ export const GoogleMapsGIS: React.FC = () => {
   if (apiKeyError) {
     return (
       <div className="space-y-6">
-        <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)', color: 'hsl(0 0% 98%)' }}>
+        <Card className="bg-card border-border text-foreground">
           <CardHeader>
-            <CardTitle style={{ color: 'hsl(0 0% 98%)' }}>Google Maps API Configuration Error</CardTitle>
+            <CardTitle className="text-foreground">Google Maps API Configuration Error</CardTitle>
           </CardHeader>
           <CardContent>
-            <p style={{ color: 'hsl(240 5% 64.9%)' }} className="mb-4">{apiKeyError}</p>
-            <p style={{ color: 'hsl(240 5% 64.9%)' }} className="text-sm">
+            <p className="mb-4 text-muted-foreground">{apiKeyError}</p>
+            <p className="text-sm text-muted-foreground">
               Please ensure the GOOGLE_MAPS_API_KEY is properly configured in your Supabase secrets.
             </p>
             <div className="mt-4">
-              <Button 
+              <Button
                 onClick={() => window.open('https://console.cloud.google.com/apis/credentials', '_blank')}
-                style={{ backgroundColor: 'hsl(210 40% 98%)', color: 'hsl(222.2 84% 4.9%)' }}
+                className="bg-background text-foreground"
               >
                 Get Google Maps API Key
               </Button>
@@ -1409,22 +1420,14 @@ export const GoogleMapsGIS: React.FC = () => {
         <Button
           onClick={() => switchRegion('central-florida')}
           variant={selectedRegion === 'central-florida' ? 'default' : 'outline'}
-          style={{
-            backgroundColor: selectedRegion === 'central-florida' ? 'hsl(210 40% 98%)' : 'transparent',
-            color: selectedRegion === 'central-florida' ? 'hsl(222.2 84% 4.9%)' : 'hsl(210 40% 98%)',
-            borderColor: 'hsl(240 3.7% 15.9%)'
-          }}
+          className="border-border"
         >
           Central Florida
         </Button>
         <Button
           onClick={() => switchRegion('northeast-ohio')}
           variant={selectedRegion === 'northeast-ohio' ? 'default' : 'outline'}
-          style={{
-            backgroundColor: selectedRegion === 'northeast-ohio' ? 'hsl(210 40% 98%)' : 'transparent',
-            color: selectedRegion === 'northeast-ohio' ? 'hsl(222.2 84% 4.9%)' : 'hsl(210 40% 98%)',
-            borderColor: 'hsl(240 3.7% 15.9%)'
-          }}
+          className="border-border"
         >
           Northeast Ohio
         </Button>
@@ -1432,7 +1435,7 @@ export const GoogleMapsGIS: React.FC = () => {
 
       {/* Search Bar */}
       <div className="mb-4">
-        <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
+        <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="space-y-3">
               <input
@@ -1456,7 +1459,7 @@ export const GoogleMapsGIS: React.FC = () => {
               {/* Analysis Status */}
               {isAnalyzing && (
                 <div className="bg-blue-500/10 rounded-md p-3 border border-blue-500/20">
-                  <p className="text-sm text-blue-400">Analyzing environmental factors...</p>
+                  <p className="text-sm text-blue-600">Analyzing environmental factors...</p>
                 </div>
               )}
               
@@ -1484,20 +1487,19 @@ export const GoogleMapsGIS: React.FC = () => {
 
         {/* Map Container */}
         <div className="flex-1">
-          <Card style={{ backgroundColor: 'hsl(240 10% 3.9%)', borderColor: 'hsl(240 3.7% 15.9%)' }}>
+          <Card className="bg-card border-border">
             <CardContent className="p-0">
               <div className="relative">
                 <div
                   ref={mapRef}
-                  className="w-full h-[600px] rounded-lg"
-                  style={{ backgroundColor: 'hsl(240 10% 3.9%)' }}
+                  className="w-full h-[600px] rounded-lg bg-card"
                 />
 
                 {isLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
                     <div className="text-center">
                       <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                      <p style={{ color: 'hsl(210 40% 98%)' }}>Loading Google Maps...</p>
+                      <p className="text-foreground">Loading Google Maps...</p>
                     </div>
                   </div>
                 )}

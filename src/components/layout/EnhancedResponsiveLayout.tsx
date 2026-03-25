@@ -14,12 +14,9 @@ interface EnhancedResponsiveLayoutProps {
 }
 
 export const EnhancedResponsiveLayout: React.FC<EnhancedResponsiveLayoutProps> = ({ children }) => {
-  console.log('EnhancedResponsiveLayout rendering...');
   const isMobile = useIsMobile();
   const { isTouch, orientation } = useViewport();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
-  console.log('Layout state:', { isMobile, isTouch, orientation });
 
   // Close sidebar when switching to mobile
   useEffect(() => {
@@ -39,19 +36,13 @@ export const EnhancedResponsiveLayout: React.FC<EnhancedResponsiveLayoutProps> =
   }, [isMobile]);
 
   if (isMobile) {
-    console.log('Rendering mobile layout');
     return (
       <MobileNavigationProvider>
-        <div 
+        <div
           className={cn(
-            "min-h-screen flex flex-col",
+            "min-h-screen flex flex-col bg-background text-foreground",
             isTouch && "touch-manipulation"
           )}
-          style={{ 
-            backgroundColor: 'hsl(240, 20%, 4%)', 
-            color: 'hsl(224, 71%, 85%)',
-            minHeight: '100vh'
-          }}
         >
           <EnhancedMobileHeader 
             onMenuToggle={() => setSidebarOpen(!sidebarOpen)} 
@@ -88,17 +79,9 @@ export const EnhancedResponsiveLayout: React.FC<EnhancedResponsiveLayoutProps> =
     );
   }
 
-  console.log('Rendering desktop layout');
   return (
     <SidebarProvider>
-      <div 
-        className="min-h-screen flex w-full"
-        style={{ 
-          backgroundColor: 'hsl(240, 20%, 4%)', 
-          color: 'hsl(224, 71%, 85%)',
-          minHeight: '100vh'
-        }}
-      >
+      <div className="min-h-screen flex w-full bg-background text-foreground">
         <AppSidebar />
         <main className="flex-1 overflow-auto">
           <div className="p-6">

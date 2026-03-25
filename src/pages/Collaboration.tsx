@@ -36,7 +36,7 @@ const Collaboration = () => {
           {/* Header */}
           <div className="space-y-4">
             <div>
-              <h1 className="text-4xl font-bold text-foreground glow-cyan">Real-time Collaboration</h1>
+              <h1 className="text-4xl font-bold text-foreground shadow-sm">Real-time Collaboration</h1>
               <p className="text-muted-foreground mt-2">
                 Work together on engineering projects with live editing, cursors, and presence indicators
               </p>
@@ -52,7 +52,7 @@ const Collaboration = () => {
               </CardHeader>
               <CardContent>
                 <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                  <SelectTrigger className="cyber-button">
+                  <SelectTrigger className="skeuo-button">
                     <SelectValue placeholder="Choose a project to collaborate on" />
                   </SelectTrigger>
                   <SelectContent>

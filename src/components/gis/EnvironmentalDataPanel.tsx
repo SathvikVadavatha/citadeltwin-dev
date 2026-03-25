@@ -90,7 +90,7 @@ export const EnvironmentalDataPanel = () => {
       case 'wetlands': return 'text-teal-500';
       case 'environmental': return 'text-orange-500';
       case 'zoning': return 'text-purple-500';
-      default: return 'text-gray-500';
+      default: return 'text-muted-foreground';
     }
   };
 
@@ -119,7 +119,7 @@ export const EnvironmentalDataPanel = () => {
                     value={fetchParams.city}
                     onChange={(e) => setFetchParams(prev => ({ ...prev, city: e.target.value }))}
                     placeholder="e.g., Miami"
-                    className="cyber-button"
+                    className="skeuo-button"
                   />
                 </div>
                 <div className="space-y-2">
@@ -129,7 +129,7 @@ export const EnvironmentalDataPanel = () => {
                     value={fetchParams.state}
                     onChange={(e) => setFetchParams(prev => ({ ...prev, state: e.target.value }))}
                     placeholder="e.g., FL"
-                    className="cyber-button"
+                    className="skeuo-button"
                   />
                 </div>
               </div>
@@ -166,7 +166,7 @@ export const EnvironmentalDataPanel = () => {
               <Button 
                 onClick={handleFetchEnvironmentalData}
                 disabled={isFetching || !fetchParams.city || !fetchParams.state || fetchParams.dataTypes.length === 0}
-                className="cyber-button w-full"
+                className="skeuo-button w-full"
               >
                 {isFetching ? 'Fetching Environmental Data...' : 'Fetch Environmental Data'}
               </Button>
@@ -175,7 +175,7 @@ export const EnvironmentalDataPanel = () => {
             <TabsContent value="manage" className="space-y-4">
               {environmentalLayers.length === 0 ? (
                 <div className="text-center py-8">
-                  <Shield className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <Shield className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">No environmental layers available. Fetch some data to get started.</p>
                 </div>
               ) : (
@@ -191,7 +191,7 @@ export const EnvironmentalDataPanel = () => {
                             <div className="flex items-start gap-3">
                               <IconComponent className={`h-5 w-5 ${iconColor} mt-0.5`} />
                               <div className="space-y-1">
-                                <h4 className="font-medium text-gray-200">{layer.layer_name}</h4>
+                                <h4 className="font-medium text-foreground">{layer.layer_name}</h4>
                                 <div className="flex items-center gap-2">
                                   <Badge variant="secondary">{layer.layer_type.replace('_', ' ')}</Badge>
                                   {layer.environmental_type && (
@@ -199,7 +199,7 @@ export const EnvironmentalDataPanel = () => {
                                   )}
                                   <Badge variant="outline">{layer.feature_count} features</Badge>
                                 </div>
-                                <div className="flex items-center gap-4 text-xs text-gray-500">
+                                <div className="flex items-center gap-4 text-xs text-muted-foreground">
                                   <span className="flex items-center gap-1">
                                     <Clock className="w-3 h-3" />
                                     Updated {new Date(layer.last_updated).toLocaleDateString()}
@@ -216,7 +216,7 @@ export const EnvironmentalDataPanel = () => {
                                   onCheckedChange={(checked) => handleToggleRealTime(layer.id, checked)}
                                   disabled={isFetching}
                                 />
-                                <span className="text-xs text-gray-400">Real-time</span>
+                                <span className="text-xs text-muted-foreground">Real-time</span>
                               </div>
                             </div>
                           </div>

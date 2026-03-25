@@ -10,9 +10,7 @@ import {
   BarChart3, 
   Map,
   Shield,
-  Zap,
   Building2,
-  Settings,
   Loader2,
   AlertCircle,
   RefreshCw
@@ -59,32 +57,25 @@ export const MainDashboard = () => {
   const availableRooms = uploadResult?.enhancedRoomData || detectionRooms || [];
 
   return (
-      <div 
-        className="min-h-screen p-6"
-        style={{ 
-          backgroundColor: 'hsl(240, 20%, 4%)', 
-          color: 'hsl(224, 71%, 85%)',
-          minHeight: '100vh'
-        }}
-      >
+      <div className="min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <Card className="cyber-ribbon border-cyan-400/20">
+        <Card className="skeuo-card border-border">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+                <CardTitle className="text-2xl font-bold text-primary">
                   CitadelTwin Engineering Platform
                 </CardTitle>
-                <CardDescription className="text-gray-300">
+                <CardDescription>
                   Digital Twin Platform for Civil Engineering - Complete BIM, FEA, and Compliance Solution
                 </CardDescription>
               </div>
               <div className="flex items-center space-x-2">
-                <Badge variant="outline" className="border-cyan-400 text-cyan-400">
+                <Badge variant="outline" className="border-primary text-primary">
                   {uploads?.length || 0} Projects
                 </Badge>
-                <Badge variant="outline" className="border-green-400 text-green-400">
+                <Badge variant="outline" className="border-green-600 text-green-600 dark:border-green-400 dark:text-green-400">
                   System Online
                 </Badge>
               </div>
@@ -94,36 +85,36 @@ export const MainDashboard = () => {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-8 bg-gray-900/50 border border-cyan-400/20">
-            <TabsTrigger value="upload" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
+          <TabsList className="grid w-full grid-cols-8 bg-muted border border-border">
+            <TabsTrigger value="upload" className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Upload className="w-4 h-4" />
               <span>Upload</span>
             </TabsTrigger>
-            <TabsTrigger value="3d-viewer" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
+            <TabsTrigger value="3d-viewer" className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Eye className="w-4 h-4" />
               <span>3D View</span>
             </TabsTrigger>
-            <TabsTrigger value="bim" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
+            <TabsTrigger value="bim" className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Building2 className="w-4 h-4" />
               <span>BIM</span>
             </TabsTrigger>
-            <TabsTrigger value="fea" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
+            <TabsTrigger value="fea" className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Cpu className="w-4 h-4" />
               <span>FEA</span>
             </TabsTrigger>
-            <TabsTrigger value="compliance" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
+            <TabsTrigger value="compliance" className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Shield className="w-4 h-4" />
               <span>Compliance</span>
             </TabsTrigger>
-            <TabsTrigger value="documents" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
+            <TabsTrigger value="documents" className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <FileText className="w-4 h-4" />
               <span>Documents</span>
             </TabsTrigger>
-            <TabsTrigger value="gis" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
+            <TabsTrigger value="gis" className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Map className="w-4 h-4" />
               <span>GIS</span>
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center space-x-2 data-[state=active]:bg-cyan-900/50">
+            <TabsTrigger value="analytics" className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <BarChart3 className="w-4 h-4" />
               <span>Analytics</span>
             </TabsTrigger>
@@ -138,33 +129,33 @@ export const MainDashboard = () => {
 
             <TabsContent value="3d-viewer" className="space-y-6">
               {modelLoading ? (
-                <Card className="cyber-tool-palette">
+                <Card className="skeuo-card">
                   <CardContent className="p-6 text-center space-y-4">
-                    <Loader2 className="w-12 h-12 text-cyan-400 mx-auto animate-spin" />
+                    <Loader2 className="w-12 h-12 text-primary mx-auto animate-spin" />
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-300 mb-2">Loading 3D Model</h3>
-                      <p className="text-gray-400">Fetching the latest generated 3D model...</p>
+                      <h3 className="text-lg font-semibold text-foreground mb-2">Loading 3D Model</h3>
+                      <p className="text-muted-foreground">Fetching the latest generated 3D model...</p>
                     </div>
                   </CardContent>
                 </Card>
               ) : modelError ? (
-                <Card className="cyber-tool-palette">
+                <Card className="skeuo-card">
                   <CardContent className="p-6 text-center space-y-4">
-                    <AlertCircle className="w-12 h-12 text-red-400 mx-auto" />
+                    <AlertCircle className="w-12 h-12 text-destructive mx-auto" />
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-300 mb-2">3D Model Error</h3>
-                      <p className="text-gray-400 mb-4">{modelError}</p>
+                      <h3 className="text-lg font-semibold text-foreground mb-2">3D Model Error</h3>
+                      <p className="text-muted-foreground mb-4">{modelError}</p>
                       <div className="flex justify-center space-x-3">
-                        <button 
+                        <button
                           onClick={refreshModel}
-                          className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md transition-colors flex items-center space-x-2"
+                          className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-md transition-colors flex items-center space-x-2"
                         >
                           <RefreshCw className="w-4 h-4" />
                           <span>Retry</span>
                         </button>
-                        <button 
+                        <button
                           onClick={() => setActiveTab('upload')}
-                          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors"
+                          className="px-4 py-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-md transition-colors"
                         >
                           Upload New Blueprint
                         </button>
@@ -175,22 +166,22 @@ export const MainDashboard = () => {
               ) : hasModel ? (
                 <div className="space-y-4">
                   {modelMetadata && (
-                    <Card className="cyber-tool-palette">
+                    <Card className="skeuo-card">
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                           <div>
-                            <CardTitle className="text-lg text-gray-200">{modelMetadata.model_name}</CardTitle>
+                            <CardTitle className="text-lg">{modelMetadata.model_name}</CardTitle>
                             {modelMetadata.model_description && (
-                              <CardDescription className="text-gray-400">{modelMetadata.model_description}</CardDescription>
+                              <CardDescription>{modelMetadata.model_description}</CardDescription>
                             )}
                           </div>
                           <div className="flex items-center space-x-2">
-                            <Badge variant="outline" className="border-green-400 text-green-400">
+                            <Badge variant="outline" className="border-green-600 text-green-600 dark:border-green-400 dark:text-green-400">
                               {(modelMetadata.file_size / 1024 / 1024).toFixed(2)} MB
                             </Badge>
-                            <button 
+                            <button
                               onClick={refreshModel}
-                              className="p-2 text-gray-400 hover:text-cyan-400 transition-colors"
+                              className="p-2 text-muted-foreground hover:text-primary transition-colors"
                               title="Refresh model"
                             >
                               <RefreshCw className="w-4 h-4" />
@@ -209,16 +200,16 @@ export const MainDashboard = () => {
                 </div>
               ) : availableRooms.length > 0 ? (
                 <div className="space-y-4">
-                  <Card className="cyber-tool-palette">
+                  <Card className="skeuo-card">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
                         <div>
-                          <CardTitle className="text-lg text-gray-200">Live 3D Floor Plan</CardTitle>
-                          <CardDescription className="text-gray-400">
+                          <CardTitle className="text-lg">Live 3D Floor Plan</CardTitle>
+                          <CardDescription>
                             Generated from {uploadResult?.enhancedRoomData ? 'latest upload' : 'detection results'}
                           </CardDescription>
                         </div>
-                        <Badge variant="outline" className="border-cyan-400 text-cyan-400">
+                        <Badge variant="outline" className="border-primary text-primary">
                           {availableRooms.length} Rooms
                         </Badge>
                       </div>
@@ -231,15 +222,15 @@ export const MainDashboard = () => {
                   />
                 </div>
               ) : (
-                <Card className="cyber-tool-palette">
+                <Card className="skeuo-card">
                   <CardContent className="p-6 text-center space-y-4">
-                    <Eye className="w-12 h-12 text-gray-400 mx-auto" />
+                    <Eye className="w-12 h-12 text-muted-foreground mx-auto" />
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-300 mb-2">No 3D Model Available</h3>
-                      <p className="text-gray-400 mb-4">Upload a blueprint to generate and view a 3D model</p>
-                      <button 
+                      <h3 className="text-lg font-semibold text-foreground mb-2">No 3D Model Available</h3>
+                      <p className="text-muted-foreground mb-4">Upload a blueprint to generate and view a 3D model</p>
+                      <button
                         onClick={() => setActiveTab('upload')}
-                        className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md transition-colors"
+                        className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-md transition-colors"
                       >
                         Go to Upload
                       </button>

@@ -9,35 +9,24 @@ export const useTakeoffOperations = (estimationId?: string) => {
     if (!estimationId) return;
 
     try {
-      const takeoffInserts = elements.map(element => {
+      const rows = elements.map(element => {
         const quantity = calculateQuantityFromElement(element);
         const unitOfMeasure = getUnitOfMeasureForElement(element.element_type);
 
-        return `(
-          '${estimationId}',
-          '${element.id}',
-          ${element.material_id ? `'${element.material_id}'` : 'NULL'},
-          ${quantity},
-          '${unitOfMeasure}',
-          'automated_geometry',
-          '${JSON.stringify(element.geometry || {}).replace(/'/g, "''")}'
-        )`;
-      }).join(',');
-
-      const { error } = await supabase.functions.invoke('exec-sql', {
-        body: {
-          sql: `
-            INSERT INTO quantity_takeoffs (
-              estimation_id, element_id, material_id, calculated_quantity, 
-              unit_of_measure, calculation_method, geometry_data
-            ) VALUES ${takeoffInserts}
-          `
-        }
+        return {
+          estimation_id: estimationId,
+          element_id: element.id,
+          material_id: element.material_id || null,
+          calculated_quantity: quantity,
+          unit_of_measure: unitOfMeasure,
+          calculation_method: 'automated_geometry',
+          geometry_data: element.geometry || {},
+        };
       });
 
-      if (error) throw error;
-
-      toast.success('Quantity takeoffs generated successfully');
+      const { error } = await supabase
+        .from('quantity_takeoffs')
+        .insert(rows);
     } catch (error) {
       console.error('Error generating takeoffs:', error);
       toast.error('Failed to generate quantity takeoffs');
@@ -46,20 +35,10 @@ export const useTakeoffOperations = (estimationId?: string) => {
 
   const updateTakeoff = async (id: string, updates: Partial<QuantityTakeoff>) => {
     try {
-      const updateFields = Object.entries(updates)
-        .filter(([key, value]) => value !== undefined)
-        .map(([key, value]) => `${key} = ${typeof value === 'string' ? `'${value}'` : value}`)
-        .join(', ');
-
-      const { error } = await supabase.functions.invoke('exec-sql', {
-        body: {
-          sql: `
-            UPDATE quantity_takeoffs 
-            SET ${updateFields}, updated_at = NOW()
-            WHERE id = '${id}'
-          `
-        }
-      });
+      const { error } = await supabase
+        .from('quantity_takeoffs')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id);
 
       if (error) throw error;
 
@@ -72,11 +51,10 @@ export const useTakeoffOperations = (estimationId?: string) => {
 
   const deleteTakeoff = async (id: string) => {
     try {
-      const { error } = await supabase.functions.invoke('exec-sql', {
-        body: {
-          sql: `DELETE FROM quantity_takeoffs WHERE id = '${id}'`
-        }
-      });
+      const { error } = await supabase
+        .from('quantity_takeoffs')
+        .delete()
+        .eq('id', id);
 
       if (error) throw error;
 

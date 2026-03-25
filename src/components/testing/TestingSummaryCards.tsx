@@ -32,7 +32,7 @@ export const TestingSummaryCards: React.FC<TestingSummaryCardsProps> = ({ testin
       case 'warning': return 'text-yellow-500';
       case 'overall': return testingSummary.overallScore >= 80 ? 'text-green-500' : 
                             testingSummary.overallScore >= 60 ? 'text-yellow-500' : 'text-red-500';
-      default: return 'text-gray-500';
+      default: return 'text-muted-foreground';
     }
   };
 

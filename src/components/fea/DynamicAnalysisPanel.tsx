@@ -54,7 +54,7 @@ export const DynamicAnalysisPanel: React.FC<DynamicAnalysisPanelProps> = ({
                       ...prev,
                       totalTime: Number(e.target.value)
                     }))}
-                    className="cyber-button"
+                    className="skeuo-button"
                   />
                 </div>
                 <div className="space-y-2">
@@ -67,7 +67,7 @@ export const DynamicAnalysisPanel: React.FC<DynamicAnalysisPanelProps> = ({
                       ...prev,
                       timeStep: Number(e.target.value)
                     }))}
-                    className="cyber-button"
+                    className="skeuo-button"
                   />
                 </div>
               </div>
@@ -82,7 +82,7 @@ export const DynamicAnalysisPanel: React.FC<DynamicAnalysisPanelProps> = ({
                     ...prev,
                     dampingRatio: Number(e.target.value)
                   }))}
-                  className="cyber-button"
+                  className="skeuo-button"
                 />
               </div>
 
@@ -100,37 +100,37 @@ export const DynamicAnalysisPanel: React.FC<DynamicAnalysisPanelProps> = ({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Start Frequency (Hz)</Label>
-                  <Input type="number" defaultValue="0.1" className="cyber-button" />
+                  <Input type="number" defaultValue="0.1" className="skeuo-button" />
                 </div>
                 <div className="space-y-2">
                   <Label>End Frequency (Hz)</Label>
-                  <Input type="number" defaultValue="100" className="cyber-button" />
+                  <Input type="number" defaultValue="100" className="skeuo-button" />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Frequency Steps</Label>
-                <Input type="number" defaultValue="100" className="cyber-button" />
+                <Input type="number" defaultValue="100" className="skeuo-button" />
               </div>
             </TabsContent>
 
             <TabsContent value="spectral" className="space-y-4">
               <div className="space-y-2">
                 <Label>Response Spectrum File</Label>
-                <Input type="file" accept=".txt,.csv" className="cyber-button" />
+                <Input type="file" accept=".txt,.csv" className="skeuo-button" />
               </div>
               <div className="space-y-2">
                 <Label>Scale Factor</Label>
-                <Input type="number" defaultValue="1.0" className="cyber-button" />
+                <Input type="number" defaultValue="1.0" className="skeuo-button" />
               </div>
             </TabsContent>
           </Tabs>
 
           <div className="flex gap-2 mt-6">
-            <Button className="cyber-button flex-1">
+            <Button className="skeuo-button flex-1">
               <Zap className="h-4 w-4 mr-2" />
               Run Dynamic Analysis
             </Button>
-            <Button variant="outline" className="cyber-button">
+            <Button variant="outline" className="skeuo-button">
               <BarChart3 className="h-4 w-4 mr-2" />
               Preview Setup
             </Button>
@@ -149,7 +149,7 @@ export const DynamicAnalysisPanel: React.FC<DynamicAnalysisPanelProps> = ({
           <div className="space-y-2">
             <Label>Integration Method</Label>
             <Select defaultValue="newmark">
-              <SelectTrigger className="cyber-button">
+              <SelectTrigger className="skeuo-button">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -164,11 +164,11 @@ export const DynamicAnalysisPanel: React.FC<DynamicAnalysisPanelProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Beta Parameter</Label>
-              <Input type="number" defaultValue="0.25" step="0.01" className="cyber-button" />
+              <Input type="number" defaultValue="0.25" step="0.01" className="skeuo-button" />
             </div>
             <div className="space-y-2">
               <Label>Gamma Parameter</Label>
-              <Input type="number" defaultValue="0.5" step="0.01" className="cyber-button" />
+              <Input type="number" defaultValue="0.5" step="0.01" className="skeuo-button" />
             </div>
           </div>
 

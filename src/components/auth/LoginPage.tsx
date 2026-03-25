@@ -6,11 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { AuthLayout } from "./AuthLayout";
 import { Eye, EyeOff, Shield, Chrome, Building, Smartphone } from "lucide-react";
 import { useAuth } from "@/providers/AuthProvider";
-import { toast } from "@/components/ui/use-toast";
 
 interface LoginPageProps {
   onNavigateToSignup: () => void;
@@ -23,22 +21,26 @@ export const LoginPage = ({ onNavigateToSignup, onNavigateToForgotPassword }: Lo
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, user, error, clearError } = useAuth();
+  const { signIn, signInWithOAuth, user, error: authError, clearError } = useAuth();
+  const [oauthLoading, setOauthLoading] = useState<string | null>(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   // Clear any auth errors when component mounts
   useEffect(() => {
-    if (error) {
+    if (authError) {
       clearError();
     }
   }, []);
 
-  // Redirect authenticated users
+  // Redirect authenticated users (handles both initial load and post-login)
   useEffect(() => {
     if (user) {
       const returnTo = searchParams.get('returnTo') || '/dashboard';
-      navigate(returnTo, { replace: true });
+      // Security: Validate returnTo is a safe relative path to prevent open redirects
+      const safeReturnTo = returnTo.startsWith('/') && !returnTo.startsWith('//') && !returnTo.includes('://') 
+        ? returnTo : '/dashboard';
+      navigate(safeReturnTo, { replace: true });
     }
   }, [user, navigate, searchParams]);
 
@@ -47,20 +49,11 @@ export const LoginPage = ({ onNavigateToSignup, onNavigateToForgotPassword }: Lo
     setLoading(true);
 
     try {
-      const { error } = await signIn(email, password);
-      
-      if (!error) {
-        // Navigation will be handled by useEffect above
-        const returnTo = searchParams.get('returnTo') || '/dashboard';
-        navigate(returnTo, { replace: true });
-      }
+      await signIn(email, password);
+      // Navigation is handled by the useEffect watching `user` state
+      // This avoids race conditions with duplicate redirects
     } catch (error) {
       console.error("Login error:", error);
-      toast({
-        title: "Login Failed",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
     } finally {
       setLoading(false);
     }
@@ -74,25 +67,20 @@ export const LoginPage = ({ onNavigateToSignup, onNavigateToForgotPassword }: Lo
       <form onSubmit={handleLogin} className="space-y-6">
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email" style={{ color: 'hsl(210 40% 98%)' }}>Email</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
               placeholder="engineer@company.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{ 
-                backgroundColor: 'hsl(222.2 84% 4.9%)',
-                border: '1px solid hsl(217.2 32.6% 17.5%)',
-                color: 'hsl(210 40% 98%)'
-              }}
-              className="focus:ring-2 focus:ring-cyan-500"
+              className="skeuo-input"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password" style={{ color: 'hsl(210 40% 98%)' }}>Password</Label>
+            <Label htmlFor="password">Password</Label>
             <div className="relative">
               <Input
                 id="password"
@@ -100,25 +88,20 @@ export const LoginPage = ({ onNavigateToSignup, onNavigateToForgotPassword }: Lo
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                style={{ 
-                  backgroundColor: 'hsl(222.2 84% 4.9%)',
-                  border: '1px solid hsl(217.2 32.6% 17.5%)',
-                  color: 'hsl(210 40% 98%)'
-                }}
-                className="pr-10 focus:ring-2 focus:ring-cyan-500"
+                className="skeuo-input pr-10"
                 required
               />
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent text-muted-foreground"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? (
-                  <EyeOff className="h-4 w-4" style={{ color: 'hsl(215.4 16.3% 46.9%)' }} />
+                  <EyeOff className="h-4 w-4" />
                 ) : (
-                  <Eye className="h-4 w-4" style={{ color: 'hsl(215.4 16.3% 46.9%)' }} />
+                  <Eye className="h-4 w-4" />
                 )}
               </Button>
             </div>
@@ -139,20 +122,16 @@ export const LoginPage = ({ onNavigateToSignup, onNavigateToForgotPassword }: Lo
           <Button
             type="button"
             variant="link"
-            className="px-0 text-sm text-primary hover:text-primary/80"
+            className="px-0 text-sm text-accent hover:text-accent/80"
             onClick={onNavigateToForgotPassword}
           >
             Forgot password?
           </Button>
         </div>
 
-        <Button 
-          type="submit" 
-          className="w-full"
-          style={{ 
-            backgroundColor: 'hsl(194.4 95.3% 60.4%)',
-            color: 'hsl(222.2 84% 4.9%)'
-          }}
+        <Button
+          type="submit"
+          className="w-full skeuo-button-primary text-white font-semibold py-2.5"
           disabled={loading}
         >
           {loading ? "Signing in..." : "Sign In"}
@@ -168,22 +147,40 @@ export const LoginPage = ({ onNavigateToSignup, onNavigateToForgotPassword }: Lo
         </div>
 
         <div className="space-y-3">
-          <Button variant="outline" className="w-full border-border hover:bg-secondary/20">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-border text-foreground hover:bg-secondary"
+            disabled={!!oauthLoading}
+            onClick={async () => { setOauthLoading('google'); await signInWithOAuth('google'); setOauthLoading(null); }}
+          >
             <Chrome className="h-4 w-4 mr-2" />
-            Continue with Google
+            {oauthLoading === 'google' ? 'Redirecting...' : 'Continue with Google'}
           </Button>
-          <Button variant="outline" className="w-full border-border hover:bg-secondary/20">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-border text-foreground hover:bg-secondary"
+            disabled={!!oauthLoading}
+            onClick={async () => { setOauthLoading('azure'); await signInWithOAuth('azure'); setOauthLoading(null); }}
+          >
             <Building className="h-4 w-4 mr-2" />
-            Continue with Azure AD
+            {oauthLoading === 'azure' ? 'Redirecting...' : 'Continue with Azure AD'}
           </Button>
-          <Button variant="outline" className="w-full border-border hover:bg-secondary/20">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-border text-foreground hover:bg-secondary"
+            disabled={!!oauthLoading}
+            onClick={async () => { setOauthLoading('okta'); await signInWithOAuth('okta'); setOauthLoading(null); }}
+          >
             <Shield className="h-4 w-4 mr-2" />
-            Continue with Okta
+            {oauthLoading === 'okta' ? 'Redirecting...' : 'Continue with Okta'}
           </Button>
         </div>
 
-        <div className="mt-6 p-3 rounded-lg bg-primary/10 border border-primary/20">
-          <div className="flex items-center space-x-2 text-sm text-primary">
+        <div className="mt-6 p-3 rounded-lg bg-accent/10 border border-accent/20">
+          <div className="flex items-center space-x-2 text-sm text-accent">
             <Smartphone className="h-4 w-4" />
             <span>Two-factor authentication enabled for enhanced security</span>
           </div>
@@ -195,7 +192,7 @@ export const LoginPage = ({ onNavigateToSignup, onNavigateToForgotPassword }: Lo
           </span>
           <Button
             variant="link"
-            className="px-0 text-sm text-primary hover:text-primary/80"
+            className="px-0 text-sm text-accent hover:text-accent/80"
             onClick={onNavigateToSignup}
           >
             Sign up

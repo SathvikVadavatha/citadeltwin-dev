@@ -308,7 +308,7 @@ export const AuthenticationTest = () => {
                   {result.status === 'success' ? (
                     <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5" />
                   ) : result.status === 'error' ? (
-                    <XCircle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5" />
+                    <XCircle className="w-4 h-4 text-red-600 dark:text-destructive mt-0.5" />
                   ) : (
                     <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5" />
                   )}

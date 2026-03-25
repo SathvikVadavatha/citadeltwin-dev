@@ -53,13 +53,13 @@ export const BIMElementsManager = ({ uploadId, projectId }: BIMElementsManagerPr
 
   const getElementTypeColor = (type: string) => {
     const colors: Record<string, string> = {
-      wall: 'bg-blue-500/20 text-blue-400 border-blue-400/50',
-      beam: 'bg-green-500/20 text-green-400 border-green-400/50',
-      column: 'bg-red-500/20 text-red-400 border-red-400/50',
-      slab: 'bg-purple-500/20 text-purple-400 border-purple-400/50',
-      door: 'bg-yellow-500/20 text-yellow-400 border-yellow-400/50',
-      window: 'bg-cyan-500/20 text-cyan-400 border-cyan-400/50',
-      default: 'bg-gray-500/20 text-gray-400 border-gray-400/50',
+      wall: 'bg-blue-500/20 text-blue-600 border-blue-600/50',
+      beam: 'bg-green-500/20 text-green-600 border-green-600/50',
+      column: 'bg-red-500/20 text-destructive border-destructive/50',
+      slab: 'bg-purple-500/20 text-purple-600 border-purple-600/50',
+      door: 'bg-yellow-500/20 text-yellow-600 border-yellow-600/50',
+      window: 'bg-primary/20 text-primary border-primary/50',
+      default: 'bg-gray-500/20 text-muted-foreground border-gray-400/50',
     };
     return colors[type] || colors.default;
   };
@@ -79,12 +79,12 @@ export const BIMElementsManager = ({ uploadId, projectId }: BIMElementsManagerPr
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground glow-cyan">BIM Model Manager</h2>
+          <h2 className="text-2xl font-bold text-foreground shadow-sm">BIM Model Manager</h2>
           <p className="text-muted-foreground">Manage parametric building elements and materials</p>
         </div>
         <Button
           onClick={() => setShowCreateModal(true)}
-          className="cyber-button"
+          className="skeuo-button"
           disabled={creating}
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -121,7 +121,7 @@ export const BIMElementsManager = ({ uploadId, projectId }: BIMElementsManagerPr
                 <p className="text-muted-foreground mb-4">
                   Create your first parametric building element to get started.
                 </p>
-                <Button onClick={() => setShowCreateModal(true)} className="cyber-button">
+                <Button onClick={() => setShowCreateModal(true)} className="skeuo-button">
                   <Plus className="w-4 h-4 mr-2" />
                   Create Element
                 </Button>
@@ -130,7 +130,7 @@ export const BIMElementsManager = ({ uploadId, projectId }: BIMElementsManagerPr
           ) : (
             <div className="grid gap-4">
               {elements.map((element) => (
-                <Card key={element.id} className="gradient-border glow-cyan">
+                <Card key={element.id} className="gradient-border shadow-sm">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
@@ -149,7 +149,7 @@ export const BIMElementsManager = ({ uploadId, projectId }: BIMElementsManagerPr
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDuplicate(element.id)}
-                          className="cyber-button"
+                          className="skeuo-button"
                         >
                           <Copy className="w-4 h-4" />
                         </Button>
@@ -157,7 +157,7 @@ export const BIMElementsManager = ({ uploadId, projectId }: BIMElementsManagerPr
                           size="sm"
                           variant="ghost"
                           onClick={() => setSelectedElementId(element.id)}
-                          className="cyber-button"
+                          className="skeuo-button"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -166,7 +166,7 @@ export const BIMElementsManager = ({ uploadId, projectId }: BIMElementsManagerPr
                           variant="ghost"
                           onClick={() => handleDelete(element.id)}
                           disabled={deleting}
-                          className="cyber-button hover:bg-destructive/20"
+                          className="skeuo-button hover:bg-destructive/20"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>

@@ -58,11 +58,11 @@ export const LineItemsTable = ({
 
   const getCategoryColor = (category: string) => {
     const colors = {
-      material: 'bg-blue-500/20 text-blue-400 border-blue-400/50',
-      labor: 'bg-green-500/20 text-green-400 border-green-400/50',
-      equipment: 'bg-yellow-500/20 text-yellow-400 border-yellow-400/50',
-      overhead: 'bg-purple-500/20 text-purple-400 border-purple-400/50',
-      contingency: 'bg-red-500/20 text-red-400 border-red-400/50',
+      material: 'bg-blue-500/20 text-blue-600 border-blue-600/50',
+      labor: 'bg-green-500/20 text-green-600 border-green-600/50',
+      equipment: 'bg-yellow-500/20 text-yellow-600 border-yellow-600/50',
+      overhead: 'bg-purple-500/20 text-purple-600 border-purple-600/50',
+      contingency: 'bg-red-500/20 text-destructive border-destructive/50',
     };
     return colors[category as keyof typeof colors] || colors.material;
   };
@@ -90,7 +90,7 @@ export const LineItemsTable = ({
             </div>
             <div>
               <span className="text-sm text-muted-foreground">Total:</span>
-              <p className="font-medium text-lg glow-cyan">${costSummary.totalCost.toLocaleString()}</p>
+              <p className="font-medium text-lg shadow-sm">${costSummary.totalCost.toLocaleString()}</p>
             </div>
           </div>
         </CardContent>
@@ -121,7 +121,7 @@ export const LineItemsTable = ({
                           value={editForm.item_description || ''}
                           onChange={(e) => setEditForm(prev => ({ ...prev, item_description: e.target.value }))}
                           placeholder="Description"
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                       </div>
                       <div>
@@ -129,7 +129,7 @@ export const LineItemsTable = ({
                           value={editForm.category || ''}
                           onValueChange={(value) => setEditForm(prev => ({ ...prev, category: value as any }))}
                         >
-                          <SelectTrigger className="cyber-button">
+                          <SelectTrigger className="skeuo-button">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -147,7 +147,7 @@ export const LineItemsTable = ({
                           value={editForm.quantity || 0}
                           onChange={(e) => setEditForm(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
                           placeholder="Quantity"
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                       </div>
                       <div>
@@ -157,14 +157,14 @@ export const LineItemsTable = ({
                           value={editForm.unit_cost || 0}
                           onChange={(e) => setEditForm(prev => ({ ...prev, unit_cost: parseFloat(e.target.value) || 0 }))}
                           placeholder="Unit Cost"
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                       </div>
                       <div className="flex space-x-2">
-                        <Button size="sm" onClick={saveEdit} className="cyber-button">
+                        <Button size="sm" onClick={saveEdit} className="skeuo-button">
                           <Save className="w-4 h-4" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={cancelEdit} className="cyber-button">
+                        <Button size="sm" variant="outline" onClick={cancelEdit} className="skeuo-button">
                           <X className="w-4 h-4" />
                         </Button>
                       </div>
@@ -200,7 +200,7 @@ export const LineItemsTable = ({
                           size="sm"
                           variant="outline"
                           onClick={() => startEditing(item)}
-                          className="cyber-button"
+                          className="skeuo-button"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -208,7 +208,7 @@ export const LineItemsTable = ({
                           size="sm"
                           variant="outline"
                           onClick={() => onDeleteLineItem(item.id)}
-                          className="cyber-button text-red-400 hover:text-red-300"
+                          className="skeuo-button text-destructive hover:text-red-300"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>

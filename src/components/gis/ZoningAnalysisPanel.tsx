@@ -68,7 +68,7 @@ export const ZoningAnalysisPanel = () => {
       case 'compliant': return 'text-green-500';
       case 'non_compliant': return 'text-red-500';
       case 'warning': return 'text-yellow-500';
-      default: return 'text-gray-500';
+      default: return 'text-muted-foreground';
     }
   };
 
@@ -100,7 +100,7 @@ export const ZoningAnalysisPanel = () => {
                   value={analysisParams.parcelId}
                   onChange={(e) => setAnalysisParams(prev => ({ ...prev, parcelId: e.target.value }))}
                   placeholder="Enter parcel ID"
-                  className="cyber-button"
+                  className="skeuo-button"
                 />
               </div>
 
@@ -110,7 +110,7 @@ export const ZoningAnalysisPanel = () => {
                   value={analysisParams.proposedUse} 
                   onValueChange={(value) => setAnalysisParams(prev => ({ ...prev, proposedUse: value }))}
                 >
-                  <SelectTrigger className="cyber-button">
+                  <SelectTrigger className="skeuo-button">
                     <SelectValue placeholder="Select proposed use" />
                   </SelectTrigger>
                   <SelectContent>
@@ -133,7 +133,7 @@ export const ZoningAnalysisPanel = () => {
                   value={analysisParams.buildingHeight}
                   onChange={(e) => setAnalysisParams(prev => ({ ...prev, buildingHeight: Number(e.target.value) }))}
                   placeholder="0"
-                  className="cyber-button"
+                  className="skeuo-button"
                 />
               </div>
             </div>
@@ -148,7 +148,7 @@ export const ZoningAnalysisPanel = () => {
                   onChange={(e) => setAnalysisParams(prev => ({ ...prev, lotCoverage: Number(e.target.value) }))}
                   placeholder="0"
                   max="100"
-                  className="cyber-button"
+                  className="skeuo-button"
                 />
               </div>
 
@@ -163,7 +163,7 @@ export const ZoningAnalysisPanel = () => {
                       ...prev, 
                       setbacks: { ...prev.setbacks, front: Number(e.target.value) }
                     }))}
-                    className="cyber-button text-xs"
+                    className="skeuo-button text-xs"
                   />
                   <Input
                     type="number"
@@ -173,7 +173,7 @@ export const ZoningAnalysisPanel = () => {
                       ...prev, 
                       setbacks: { ...prev.setbacks, rear: Number(e.target.value) }
                     }))}
-                    className="cyber-button text-xs"
+                    className="skeuo-button text-xs"
                   />
                   <Input
                     type="number"
@@ -183,7 +183,7 @@ export const ZoningAnalysisPanel = () => {
                       ...prev, 
                       setbacks: { ...prev.setbacks, side: Number(e.target.value) }
                     }))}
-                    className="cyber-button text-xs"
+                    className="skeuo-button text-xs"
                   />
                 </div>
               </div>
@@ -193,7 +193,7 @@ export const ZoningAnalysisPanel = () => {
           <Button 
             onClick={handleZoningAnalysis}
             disabled={isFetching || !analysisParams.parcelId || !analysisParams.proposedUse}
-            className="cyber-button w-full"
+            className="skeuo-button w-full"
           >
             {isFetching ? 'Analyzing Zoning Compliance...' : 'Analyze Zoning Compliance'}
           </Button>
@@ -207,7 +207,7 @@ export const ZoningAnalysisPanel = () => {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <h4 className="font-medium text-gray-200 mb-3">Overall Compliance</h4>
+                      <h4 className="font-medium text-foreground mb-3">Overall Compliance</h4>
                       <div className="flex items-center gap-3">
                         {analysisResults.overall_compliance && (() => {
                           const IconComponent = getComplianceIcon(analysisResults.overall_compliance.status);
@@ -219,7 +219,7 @@ export const ZoningAnalysisPanel = () => {
                                 <p className="font-medium capitalize">
                                   {analysisResults.overall_compliance.status.replace('_', ' ')}
                                 </p>
-                                <p className="text-sm text-gray-400">
+                                <p className="text-sm text-muted-foreground">
                                   {analysisResults.overall_compliance.message}
                                 </p>
                               </div>
@@ -230,15 +230,15 @@ export const ZoningAnalysisPanel = () => {
                     </div>
 
                     <div>
-                      <h4 className="font-medium text-gray-200 mb-3">Zoning Information</h4>
+                      <h4 className="font-medium text-foreground mb-3">Zoning Information</h4>
                       <div className="space-y-2">
                         {analysisResults.zoning_info && (
                           <>
                             <div className="flex items-center gap-2">
                               <Badge variant="outline">{analysisResults.zoning_info.district}</Badge>
-                              <span className="text-sm text-gray-400">District</span>
+                              <span className="text-sm text-muted-foreground">District</span>
                             </div>
-                            <div className="text-sm text-gray-400">
+                            <div className="text-sm text-muted-foreground">
                               Permitted Uses: {analysisResults.zoning_info.permitted_uses?.join(', ') || 'Not specified'}
                             </div>
                           </>
@@ -249,18 +249,18 @@ export const ZoningAnalysisPanel = () => {
 
                   {analysisResults.compliance_checks && (
                     <div>
-                      <h4 className="font-medium text-gray-200 mb-3">Detailed Compliance Checks</h4>
+                      <h4 className="font-medium text-foreground mb-3">Detailed Compliance Checks</h4>
                       <div className="space-y-3">
                         {analysisResults.compliance_checks.map((check: any, index: number) => {
                           const IconComponent = getComplianceIcon(check.status);
                           const iconColor = getComplianceColor(check.status);
                           
                           return (
-                            <div key={index} className="flex items-start gap-3 p-3 bg-gray-800/50 rounded-lg">
+                            <div key={index} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
                               <IconComponent className={`h-5 w-5 ${iconColor} mt-0.5`} />
                               <div className="flex-1">
-                                <p className="font-medium text-gray-200">{check.requirement}</p>
-                                <p className="text-sm text-gray-400">{check.message}</p>
+                                <p className="font-medium text-foreground">{check.requirement}</p>
+                                <p className="text-sm text-muted-foreground">{check.message}</p>
                                 {check.current_value && check.required_value && (
                                   <div className="mt-2">
                                     <div className="flex items-center gap-4 text-xs">
@@ -282,12 +282,12 @@ export const ZoningAnalysisPanel = () => {
 
                   {analysisResults.recommendations && analysisResults.recommendations.length > 0 && (
                     <div>
-                      <h4 className="font-medium text-gray-200 mb-3">Recommendations</h4>
+                      <h4 className="font-medium text-foreground mb-3">Recommendations</h4>
                       <div className="space-y-2">
                         {analysisResults.recommendations.map((rec: string, index: number) => (
                           <div key={index} className="flex items-start gap-2 text-sm">
                             <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
-                            <span className="text-gray-300">{rec}</span>
+                            <span className="text-foreground">{rec}</span>
                           </div>
                         ))}
                       </div>

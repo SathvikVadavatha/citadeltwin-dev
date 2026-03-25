@@ -20,12 +20,12 @@ export const QualityAssuranceDashboard = ({ projectId }: QualityAssuranceDashboa
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold glow-cyan">Quality Assurance & Testing</h2>
+          <h2 className="text-2xl font-bold shadow-sm">Quality Assurance & Testing</h2>
           <p className="text-muted-foreground">
             Comprehensive model validation, testing, and quality control
           </p>
         </div>
-        <Badge className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 border-cyan-400/50">
+        <Badge className="bg-gradient-to-r from-primary/20 to-blue-500/20 text-primary border-primary/50">
           <Shield className="w-4 h-4 mr-1" />
           QA Suite
         </Badge>
@@ -84,7 +84,7 @@ export const QualityAssuranceDashboard = ({ projectId }: QualityAssuranceDashboa
         <Card className="gradient-border">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
-              <TrendingUp className="w-8 h-8 text-cyan-500" />
+              <TrendingUp className="w-8 h-8 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Quality Score</p>
                 <p className="font-medium">Overall Rating</p>

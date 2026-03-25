@@ -56,26 +56,26 @@ export const StandardMaterialsLibrary = () => {
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
       steel: 'bg-slate-500/20 text-slate-400 border-slate-400/50',
-      concrete: 'bg-gray-500/20 text-gray-400 border-gray-400/50',
+      concrete: 'bg-gray-500/20 text-muted-foreground border-gray-400/50',
       wood: 'bg-amber-500/20 text-amber-400 border-amber-400/50',
-      aluminum: 'bg-blue-500/20 text-blue-400 border-blue-400/50',
-      composite: 'bg-purple-500/20 text-purple-400 border-purple-400/50',
-      masonry: 'bg-red-500/20 text-red-400 border-red-400/50',
+      aluminum: 'bg-blue-500/20 text-blue-600 border-blue-600/50',
+      composite: 'bg-purple-500/20 text-purple-600 border-purple-600/50',
+      masonry: 'bg-red-500/20 text-destructive border-destructive/50',
     };
-    return colors[category] || 'bg-gray-500/20 text-gray-400 border-gray-400/50';
+    return colors[category] || 'bg-gray-500/20 text-muted-foreground border-gray-400/50';
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-xl font-semibold glow-cyan">Standard Materials Library</h3>
+          <h3 className="text-xl font-semibold shadow-sm">Standard Materials Library</h3>
           <p className="text-muted-foreground">Import standard structural materials with verified properties</p>
         </div>
         <Button 
           onClick={importAllStandardMaterials}
           disabled={loading}
-          className="cyber-button"
+          className="skeuo-button"
         >
           <Download className="w-4 h-4 mr-2" />
           Import All Standards
@@ -89,7 +89,7 @@ export const StandardMaterialsLibrary = () => {
             placeholder="Search materials..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="cyber-button pl-10"
+            className="skeuo-button pl-10"
           />
         </div>
       </div>
@@ -114,7 +114,7 @@ export const StandardMaterialsLibrary = () => {
         <TabsContent value={selectedCategory} className="mt-6">
           <div className="grid gap-4">
             {filteredMaterials.map((material) => (
-              <Card key={material.id} className="gradient-border glow-cyan">
+              <Card key={material.id} className="gradient-border shadow-sm">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -134,14 +134,14 @@ export const StandardMaterialsLibrary = () => {
                             size="sm"
                             variant="ghost"
                             onClick={() => setSelectedMaterial(material)}
-                            className="cyber-button"
+                            className="skeuo-button"
                           >
                             <Info className="w-4 h-4" />
                           </Button>
                         </DialogTrigger>
                         <DialogContent className="max-w-4xl gradient-border">
                           <DialogHeader>
-                            <DialogTitle className="glow-cyan">{material.name} - Properties</DialogTitle>
+                            <DialogTitle className="shadow-sm">{material.name} - Properties</DialogTitle>
                           </DialogHeader>
                           <ScrollArea className="h-96 w-full">
                             <div className="space-y-4">
@@ -191,7 +191,7 @@ export const StandardMaterialsLibrary = () => {
                         size="sm"
                         onClick={() => importStandardMaterial(material)}
                         disabled={loading}
-                        className="cyber-button"
+                        className="skeuo-button"
                       >
                         <Download className="w-4 h-4 mr-1" />
                         Import

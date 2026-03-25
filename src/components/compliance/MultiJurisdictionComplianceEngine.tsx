@@ -169,21 +169,21 @@ export const MultiJurisdictionComplianceEngine: React.FC<MultiJurisdictionCompli
     if (jurisdictionId.includes('OH')) {
       return {
         name: 'Ohio',
-        icon: <Snowflake className="w-5 h-5 text-blue-400" />,
+        icon: <Snowflake className="w-5 h-5 text-blue-600" />,
         specialties: ['Snow Load (30 psf)', 'Frost Depth (42")', 'Energy Code (5A)', 'Wind (90 mph)'],
         climate: 'Cold climate with snow and frost considerations'
       };
     } else if (jurisdictionId.includes('FL')) {
       return {
         name: 'Florida',
-        icon: <Waves className="w-5 h-5 text-cyan-400" />,
+        icon: <Waves className="w-5 h-5 text-primary" />,
         specialties: ['Hurricane (150+ mph)', 'Flood Resistance', 'HVHZ Requirements', 'Coastal Protection'],
         climate: 'Hot-humid climate with hurricane and flood risks'
       };
     } else if (jurisdictionId.includes('TX')) {
       return {
         name: 'Texas',
-        icon: <Wind className="w-5 h-5 text-yellow-400" />,
+        icon: <Wind className="w-5 h-5 text-yellow-600" />,
         specialties: ['Wind Load (130 mph)', 'Flood Zones', 'Energy Efficiency'],
         climate: 'Hot climate with high wind and flood considerations'
       };
@@ -197,7 +197,7 @@ export const MultiJurisdictionComplianceEngine: React.FC<MultiJurisdictionCompli
     } else if (jurisdictionId.includes('NYC') || jurisdictionId.includes('NY')) {
       return {
         name: 'New York',
-        icon: <Shield className="w-5 h-5 text-purple-400" />,
+        icon: <Shield className="w-5 h-5 text-purple-600" />,
         specialties: ['Fire Safety', 'Enhanced Egress', 'High-Rise Requirements'],
         climate: 'Urban environment with enhanced safety requirements'
       };
@@ -205,7 +205,7 @@ export const MultiJurisdictionComplianceEngine: React.FC<MultiJurisdictionCompli
     
     return {
       name: 'Standard',
-      icon: <Settings className="w-5 h-5 text-gray-400" />,
+      icon: <Settings className="w-5 h-5 text-muted-foreground" />,
       specialties: ['IBC Requirements'],
       climate: 'Standard building code requirements'
     };
@@ -218,15 +218,15 @@ export const MultiJurisdictionComplianceEngine: React.FC<MultiJurisdictionCompli
   return (
     <div className="space-y-6">
       {/* Enhanced Header */}
-      <Card className="cyber-tool-palette">
+      <Card className="skeuo-panel">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-cyan-400 flex items-center space-x-2">
+              <CardTitle className="text-primary flex items-center space-x-2">
                 <Shield className="w-6 h-6" />
                 <span>Comprehensive Multi-Jurisdiction Compliance Engine v4.0</span>
               </CardTitle>
-              <CardDescription className="text-gray-300">
+              <CardDescription className="text-foreground">
                 Advanced building code compliance across multiple jurisdictions with comprehensive Ohio and Florida coverage,
                 including climate-specific requirements, energy codes, and life safety standards
               </CardDescription>
@@ -235,7 +235,7 @@ export const MultiJurisdictionComplianceEngine: React.FC<MultiJurisdictionCompli
               <Button
                 onClick={handleRunMultiJurisdictionCheck}
                 disabled={!uploadId || !selectedJurisdiction || isRunningCheck}
-                className="cyber-button"
+                className="skeuo-button"
                 size="lg"
               >
                 {isRunningCheck ? (
@@ -252,10 +252,10 @@ export const MultiJurisdictionComplianceEngine: React.FC<MultiJurisdictionCompli
               </Button>
               
               <Select value={reportFormat} onValueChange={(value: 'pdf' | 'docx') => setReportFormat(value)}>
-                <SelectTrigger className="w-24 bg-gray-900 border-gray-700">
+                <SelectTrigger className="w-24 bg-card border-border">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-900 border-gray-700">
+                <SelectContent className="bg-card border-border">
                   <SelectItem value="pdf">PDF</SelectItem>
                   <SelectItem value="docx">DOCX</SelectItem>
                 </SelectContent>
@@ -264,7 +264,7 @@ export const MultiJurisdictionComplianceEngine: React.FC<MultiJurisdictionCompli
               <Button
                 onClick={generateComplianceReport}
                 disabled={!uploadId || !selectedJurisdiction || isGeneratingReport || violations.length === 0}
-                className="cyber-button"
+                className="skeuo-button"
                 size="lg"
               >
                 {isGeneratingReport ? (
@@ -294,19 +294,19 @@ export const MultiJurisdictionComplianceEngine: React.FC<MultiJurisdictionCompli
       {uploadId && selectedJurisdiction && (
         <>
           {/* Jurisdiction-Specific Information */}
-          <Card className="cyber-tool-palette">
+          <Card className="skeuo-panel">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   {jurisdictionInfo.icon}
                   <div>
-                    <h3 className="font-semibold text-cyan-400">{jurisdictionInfo.name} Compliance Analysis</h3>
-                    <p className="text-sm text-gray-400">{jurisdictionInfo.climate}</p>
+                    <h3 className="font-semibold text-primary">{jurisdictionInfo.name} Compliance Analysis</h3>
+                    <p className="text-sm text-muted-foreground">{jurisdictionInfo.climate}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {jurisdictionInfo.specialties.map((specialty, idx) => (
-                    <Badge key={idx} variant="outline" className="border-cyan-600 text-cyan-300">
+                    <Badge key={idx} variant="outline" className="border-primary text-primary">
                       {specialty}
                     </Badge>
                   ))}
@@ -317,13 +317,13 @@ export const MultiJurisdictionComplianceEngine: React.FC<MultiJurisdictionCompli
 
           {/* Enhanced Compliance Score & Statistics */}
           <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-            <Card className="cyber-tool-palette md:col-span-2">
+            <Card className="skeuo-panel md:col-span-2">
               <CardContent className="p-6">
                 <div className="text-center">
-                  <div className="text-4xl font-bold text-cyan-400 mb-2">
+                  <div className="text-4xl font-bold text-primary mb-2">
                     {stats.complianceScore}%
                   </div>
-                  <p className="text-sm text-gray-400">Comprehensive Compliance Score</p>
+                  <p className="text-sm text-muted-foreground">Comprehensive Compliance Score</p>
                   <div className="mt-2 space-y-1">
                     {stats.complianceScore >= 95 ? (
                       <Badge className="bg-green-900 text-green-300">Excellent</Badge>
@@ -334,7 +334,7 @@ export const MultiJurisdictionComplianceEngine: React.FC<MultiJurisdictionCompli
                     ) : (
                       <Badge className="bg-red-900 text-red-300">Needs Improvement</Badge>
                     )}
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-muted-foreground">
                       {stats.jurisdiction_specific} jurisdiction-specific violations
                     </div>
                   </div>
@@ -342,49 +342,49 @@ export const MultiJurisdictionComplianceEngine: React.FC<MultiJurisdictionCompli
               </CardContent>
             </Card>
 
-            <Card className="cyber-tool-palette">
+            <Card className="skeuo-panel">
               <CardContent className="p-4">
                 <div className="flex items-center space-x-2">
-                  <AlertTriangle className="w-5 h-5 text-red-400" />
+                  <AlertTriangle className="w-5 h-5 text-destructive" />
                   <div>
-                    <p className="text-sm text-gray-400">Critical</p>
-                    <p className="text-xl font-bold text-red-400">{stats.critical}</p>
+                    <p className="text-sm text-muted-foreground">Critical</p>
+                    <p className="text-xl font-bold text-destructive">{stats.critical}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="cyber-tool-palette">
+            <Card className="skeuo-panel">
               <CardContent className="p-4">
                 <div className="flex items-center space-x-2">
-                  <AlertTriangle className="w-5 h-5 text-yellow-400" />
+                  <AlertTriangle className="w-5 h-5 text-yellow-600" />
                   <div>
-                    <p className="text-sm text-gray-400">Major</p>
-                    <p className="text-xl font-bold text-yellow-400">{stats.major}</p>
+                    <p className="text-sm text-muted-foreground">Major</p>
+                    <p className="text-xl font-bold text-yellow-600">{stats.major}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="cyber-tool-palette">
+            <Card className="skeuo-panel">
               <CardContent className="p-4">
                 <div className="flex items-center space-x-2">
-                  <Settings className="w-5 h-5 text-cyan-400" />
+                  <Settings className="w-5 h-5 text-primary" />
                   <div>
-                    <p className="text-sm text-gray-400">Minor</p>
-                    <p className="text-xl font-bold text-cyan-400">{stats.minor}</p>
+                    <p className="text-sm text-muted-foreground">Minor</p>
+                    <p className="text-xl font-bold text-primary">{stats.minor}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="cyber-tool-palette">
+            <Card className="skeuo-panel">
               <CardContent className="p-4">
                 <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <CheckCircle className="w-5 h-5 text-green-600" />
                   <div>
-                    <p className="text-sm text-gray-400">Warnings</p>
-                    <p className="text-xl font-bold text-green-400">{stats.warning}</p>
+                    <p className="text-sm text-muted-foreground">Warnings</p>
+                    <p className="text-xl font-bold text-green-600">{stats.warning}</p>
                   </div>
                 </div>
               </CardContent>
@@ -393,11 +393,11 @@ export const MultiJurisdictionComplianceEngine: React.FC<MultiJurisdictionCompli
 
           {/* Enhanced Last Check Status */}
           {latestCheck && (
-            <Card className="cyber-tool-palette">
+            <Card className="skeuo-panel">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-400">Last Comprehensive Multi-Jurisdiction Check</p>
+                    <p className="text-sm text-muted-foreground">Last Comprehensive Multi-Jurisdiction Check</p>
                     <div className="flex items-center space-x-2 mt-1">
                       <Badge 
                         variant={latestCheck.status === 'completed' ? 'default' : 'destructive'}
@@ -405,21 +405,21 @@ export const MultiJurisdictionComplianceEngine: React.FC<MultiJurisdictionCompli
                       >
                         {latestCheck.status}
                       </Badge>
-                      <span className="text-sm text-gray-300">
+                      <span className="text-sm text-foreground">
                         {new Date(latestCheck.started_at).toLocaleString()}
                       </span>
                       {latestCheck.metadata?.engine_version && (
-                        <Badge variant="outline" className="text-xs border-gray-600">
+                        <Badge variant="outline" className="text-xs border-border">
                           {latestCheck.metadata.engine_version}
                         </Badge>
                       )}
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-400">Jurisdiction: {jurisdictionInfo.name}</p>
-                    <p className="text-sm text-gray-400">Rules Checked: {latestCheck.rules_checked}</p>
-                    <p className="text-sm text-gray-400">Violations Found: {latestCheck.violations_found}</p>
-                    <p className="text-sm text-gray-400">Jurisdiction-Specific: {stats.jurisdiction_specific}</p>
+                    <p className="text-sm text-muted-foreground">Jurisdiction: {jurisdictionInfo.name}</p>
+                    <p className="text-sm text-muted-foreground">Rules Checked: {latestCheck.rules_checked}</p>
+                    <p className="text-sm text-muted-foreground">Violations Found: {latestCheck.violations_found}</p>
+                    <p className="text-sm text-muted-foreground">Jurisdiction-Specific: {stats.jurisdiction_specific}</p>
                   </div>
                 </div>
               </CardContent>
@@ -428,34 +428,34 @@ export const MultiJurisdictionComplianceEngine: React.FC<MultiJurisdictionCompli
 
           {/* Enhanced Tabs for different views */}
           <Tabs defaultValue="violations" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-gray-900">
-              <TabsTrigger value="violations" className="data-[state=active]:bg-cyan-900">
+            <TabsList className="grid w-full grid-cols-2 bg-card">
+              <TabsTrigger value="violations" className="data-[state=active]:bg-primary/20">
                 Comprehensive Violations ({violations.length})
               </TabsTrigger>
-              <TabsTrigger value="rules" className="data-[state=active]:bg-cyan-900">
+              <TabsTrigger value="rules" className="data-[state=active]:bg-primary/20">
                 Applicable Rules ({complianceRules.length})
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="violations" className="space-y-4">
-              <div className="bg-gray-900/50 p-3 rounded border border-gray-700">
-                <h4 className="font-semibold text-cyan-400 mb-2">Comprehensive Analysis Coverage</h4>
+              <div className="bg-muted p-3 rounded border border-border">
+                <h4 className="font-semibold text-primary mb-2">Comprehensive Analysis Coverage</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <p className="text-gray-300 font-medium">Building Codes</p>
-                    <p className="text-xs text-gray-500">Height, Area, Occupancy</p>
+                    <p className="text-foreground font-medium">Building Codes</p>
+                    <p className="text-xs text-muted-foreground">Height, Area, Occupancy</p>
                   </div>
                   <div>
-                    <p className="text-gray-300 font-medium">Life Safety</p>
-                    <p className="text-xs text-gray-500">Egress, Fire Safety, Accessibility</p>
+                    <p className="text-foreground font-medium">Life Safety</p>
+                    <p className="text-xs text-muted-foreground">Egress, Fire Safety, Accessibility</p>
                   </div>
                   <div>
-                    <p className="text-gray-300 font-medium">Climate-Specific</p>
-                    <p className="text-xs text-gray-500">Snow, Wind, Hurricane, Flood</p>
+                    <p className="text-foreground font-medium">Climate-Specific</p>
+                    <p className="text-xs text-muted-foreground">Snow, Wind, Hurricane, Flood</p>
                   </div>
                   <div>
-                    <p className="text-gray-300 font-medium">Environmental</p>
-                    <p className="text-xs text-gray-500">Energy, Coastal, Seismic</p>
+                    <p className="text-foreground font-medium">Environmental</p>
+                    <p className="text-xs text-muted-foreground">Energy, Coastal, Seismic</p>
                   </div>
                 </div>
               </div>

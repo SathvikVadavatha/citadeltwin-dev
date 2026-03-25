@@ -30,7 +30,7 @@ export const ClientFeedbackManager: React.FC = () => {
       case 'pending': return <Clock className="h-4 w-4 text-yellow-500" />;
       case 'approved': return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'rejected': return <XCircle className="h-4 w-4 text-red-500" />;
-      default: return <MessageSquare className="h-4 w-4 text-gray-500" />;
+      default: return <MessageSquare className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
@@ -39,7 +39,7 @@ export const ClientFeedbackManager: React.FC = () => {
       case 'pending': return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
       case 'approved': return 'bg-green-500/10 text-green-500 border-green-500/20';
       case 'rejected': return 'bg-red-500/10 text-red-500 border-red-500/20';
-      default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+      default: return 'bg-gray-500/10 text-muted-foreground border-gray-500/20';
     }
   };
 

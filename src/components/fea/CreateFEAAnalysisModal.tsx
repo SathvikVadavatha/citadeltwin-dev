@@ -76,49 +76,49 @@ export const CreateFEAAnalysisModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] bg-gray-900 border-gray-700">
+      <DialogContent className="sm:max-w-[500px] bg-card border-border">
         <DialogHeader>
-          <DialogTitle className="text-cyan-300">Create New FEA Analysis</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogTitle className="text-primary">Create New FEA Analysis</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             Set up a new finite element analysis for structural calculations.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-gray-200">Analysis Name</Label>
+            <Label htmlFor="name" className="text-foreground">Analysis Name</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Enter analysis name"
-              className="bg-gray-800 border-gray-700 text-gray-100"
+              className="bg-muted border-border text-foreground"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-gray-200">Description</Label>
+            <Label htmlFor="description" className="text-foreground">Description</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Optional description"
-              className="bg-gray-800 border-gray-700 text-gray-100"
+              className="bg-muted border-border text-foreground"
               rows={3}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="analysis_type" className="text-gray-200">Analysis Type</Label>
+            <Label htmlFor="analysis_type" className="text-foreground">Analysis Type</Label>
             <Select 
               value={formData.analysis_type} 
               onValueChange={(value: any) => setFormData({ ...formData, analysis_type: value })}
             >
-              <SelectTrigger className="bg-gray-800 border-gray-700 text-gray-100">
+              <SelectTrigger className="bg-muted border-border text-foreground">
                 <SelectValue placeholder="Select analysis type" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700">
+              <SelectContent className="bg-muted border-border">
                 <SelectItem value="static">Static Analysis</SelectItem>
                 <SelectItem value="modal">Modal Analysis</SelectItem>
                 <SelectItem value="buckling">Buckling Analysis</SelectItem>
@@ -130,7 +130,7 @@ export const CreateFEAAnalysisModal = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="element_size" className="text-gray-200">Mesh Size</Label>
+              <Label htmlFor="element_size" className="text-foreground">Mesh Size</Label>
               <Input
                 id="element_size"
                 type="number"
@@ -146,12 +146,12 @@ export const CreateFEAAnalysisModal = ({
                     }
                   }
                 })}
-                className="bg-gray-800 border-gray-700 text-gray-100"
+                className="bg-muted border-border text-foreground"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="tolerance" className="text-gray-200">Solver Tolerance</Label>
+              <Label htmlFor="tolerance" className="text-foreground">Solver Tolerance</Label>
               <Input
                 id="tolerance"
                 type="number"
@@ -167,7 +167,7 @@ export const CreateFEAAnalysisModal = ({
                     }
                   }
                 })}
-                className="bg-gray-800 border-gray-700 text-gray-100"
+                className="bg-muted border-border text-foreground"
               />
             </div>
           </div>
@@ -177,14 +177,14 @@ export const CreateFEAAnalysisModal = ({
               type="button" 
               variant="outline" 
               onClick={handleClose}
-              className="border-gray-600 text-gray-300 hover:bg-gray-800"
+              className="border-border text-foreground hover:bg-muted"
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
               disabled={isSubmitting || !formData.name.trim()}
-              className="bg-cyan-600 hover:bg-cyan-700"
+              className="bg-primary hover:bg-primary/90"
             >
               {isSubmitting ? "Creating..." : "Create Analysis"}
             </Button>

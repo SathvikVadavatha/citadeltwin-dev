@@ -58,7 +58,7 @@ export const FEAResultsVisualizer: React.FC<FEAResultsVisualizerProps> = ({
                 <div className="space-y-2">
                   <Label>Result Type</Label>
                   <Select value={resultType} onValueChange={setResultType}>
-                    <SelectTrigger className="cyber-button">
+                    <SelectTrigger className="skeuo-button">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -75,7 +75,7 @@ export const FEAResultsVisualizer: React.FC<FEAResultsVisualizerProps> = ({
                 <div className="space-y-2">
                   <Label>Component</Label>
                   <Select defaultValue="magnitude">
-                    <SelectTrigger className="cyber-button">
+                    <SelectTrigger className="skeuo-button">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -134,7 +134,7 @@ export const FEAResultsVisualizer: React.FC<FEAResultsVisualizerProps> = ({
                 <div className="space-y-2">
                   <Label>Vector Type</Label>
                   <Select defaultValue="displacement">
-                    <SelectTrigger className="cyber-button">
+                    <SelectTrigger className="skeuo-button">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -190,7 +190,7 @@ export const FEAResultsVisualizer: React.FC<FEAResultsVisualizerProps> = ({
                     <Button 
                       variant={isAnimating ? "secondary" : "default"}
                       onClick={() => setIsAnimating(!isAnimating)}
-                      className="cyber-button"
+                      className="skeuo-button"
                     >
                       {isAnimating ? (
                         <Pause className="h-4 w-4 mr-2" />
@@ -206,7 +206,7 @@ export const FEAResultsVisualizer: React.FC<FEAResultsVisualizerProps> = ({
                         setIsAnimating(false);
                         setTimeStep(0);
                       }}
-                      className="cyber-button"
+                      className="skeuo-button"
                     >
                       <Square className="h-4 w-4 mr-2" />
                       Stop
@@ -222,7 +222,7 @@ export const FEAResultsVisualizer: React.FC<FEAResultsVisualizerProps> = ({
               <div className="space-y-2">
                 <Label>Animation Speed</Label>
                 <Select defaultValue="normal">
-                  <SelectTrigger className="cyber-button">
+                  <SelectTrigger className="skeuo-button">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -240,7 +240,7 @@ export const FEAResultsVisualizer: React.FC<FEAResultsVisualizerProps> = ({
                 <div className="space-y-2">
                   <Label>Extraction Method</Label>
                   <Select defaultValue="nodal">
-                    <SelectTrigger className="cyber-button">
+                    <SelectTrigger className="skeuo-button">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -256,22 +256,22 @@ export const FEAResultsVisualizer: React.FC<FEAResultsVisualizerProps> = ({
                   <h4 className="font-medium">Data Export Options</h4>
                   
                   <div className="grid grid-cols-2 gap-4">
-                    <Button variant="outline" className="cyber-button">
+                    <Button variant="outline" className="skeuo-button">
                       <Download className="h-4 w-4 mr-2" />
                       Export CSV
                     </Button>
-                    <Button variant="outline" className="cyber-button">
+                    <Button variant="outline" className="skeuo-button">
                       <Download className="h-4 w-4 mr-2" />
                       Export Excel
                     </Button>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <Button variant="outline" className="cyber-button">
+                    <Button variant="outline" className="skeuo-button">
                       <Camera className="h-4 w-4 mr-2" />
                       Save Image
                     </Button>
-                    <Button variant="outline" className="cyber-button">
+                    <Button variant="outline" className="skeuo-button">
                       <Palette className="h-4 w-4 mr-2" />
                       Export Animation
                     </Button>
@@ -297,15 +297,15 @@ export const FEAResultsVisualizer: React.FC<FEAResultsVisualizerProps> = ({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
-            <Button variant="outline" className="cyber-button">
+            <Button variant="outline" className="skeuo-button">
               <Layers className="h-4 w-4 mr-2" />
               Isometric
             </Button>
-            <Button variant="outline" className="cyber-button">
+            <Button variant="outline" className="skeuo-button">
               <Eye className="h-4 w-4 mr-2" />
               Front View
             </Button>
-            <Button variant="outline" className="cyber-button">
+            <Button variant="outline" className="skeuo-button">
               <Camera className="h-4 w-4 mr-2" />
               Top View
             </Button>

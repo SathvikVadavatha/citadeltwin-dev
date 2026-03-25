@@ -31,15 +31,15 @@ export const RefactoredMultiJurisdictionComplianceEngine: React.FC<RefactoredMul
     <ErrorBoundary>
       <div className="space-y-6">
         {/* Header */}
-        <Card className="cyber-tool-palette">
+        <Card className="skeuo-panel">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-cyan-400 flex items-center space-x-2">
+                <CardTitle className="text-primary flex items-center space-x-2">
                   <Shield className="w-6 h-6" />
                   <span>Comprehensive Multi-Jurisdiction Compliance Engine v4.0</span>
                 </CardTitle>
-                <CardDescription className="text-gray-300">
+                <CardDescription className="text-foreground">
                   Advanced building code compliance across multiple jurisdictions with comprehensive coverage
                 </CardDescription>
               </div>
@@ -68,16 +68,16 @@ export const RefactoredMultiJurisdictionComplianceEngine: React.FC<RefactoredMul
 
             {/* Last Check Status */}
             {latestCheck && (
-              <Card className="cyber-tool-palette">
+              <Card className="skeuo-panel">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-400">Last Comprehensive Check</p>
-                      <p className="text-sm text-gray-300">
+                      <p className="text-sm text-muted-foreground">Last Comprehensive Check</p>
+                      <p className="text-sm text-foreground">
                         {new Date(latestCheck.started_at).toLocaleString()} - {latestCheck.status}
                       </p>
                     </div>
-                    <div className="text-right text-sm text-gray-400">
+                    <div className="text-right text-sm text-muted-foreground">
                       <p>Rules: {latestCheck.rules_checked}</p>
                       <p>Violations: {latestCheck.violations_found}</p>
                     </div>
@@ -88,11 +88,11 @@ export const RefactoredMultiJurisdictionComplianceEngine: React.FC<RefactoredMul
 
             {/* Tabs for different views */}
             <Tabs defaultValue="violations" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-gray-900">
-                <TabsTrigger value="violations" className="data-[state=active]:bg-cyan-900">
+              <TabsList className="grid w-full grid-cols-2 bg-card">
+                <TabsTrigger value="violations" className="data-[state=active]:bg-primary/20">
                   Violations ({violations.length})
                 </TabsTrigger>
-                <TabsTrigger value="rules" className="data-[state=active]:bg-cyan-900">
+                <TabsTrigger value="rules" className="data-[state=active]:bg-primary/20">
                   Rules ({complianceRules.length})
                 </TabsTrigger>
               </TabsList>

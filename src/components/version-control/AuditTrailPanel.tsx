@@ -56,7 +56,7 @@ export const AuditTrailPanel = ({
       case 'merge': return <GitMerge className="h-4 w-4 text-purple-500" />;
       case 'edit': return <Edit className="h-4 w-4 text-yellow-500" />;
       case 'delete': return <Trash2 className="h-4 w-4 text-red-500" />;
-      case 'export': return <Download className="h-4 w-4 text-gray-500" />;
+      case 'export': return <Download className="h-4 w-4 text-muted-foreground" />;
       default: return <FileText className="h-4 w-4" />;
     }
   };

@@ -25,9 +25,9 @@ export const MaterialPropertiesForFEA = ({
   const getPropertyStatus = (prop: MaterialProperty) => {
     // Check if property has source verification
     if (prop.source) {
-      return { status: 'verified', color: 'bg-green-500/20 text-green-400' };
+      return { status: 'verified', color: 'bg-green-500/20 text-green-600' };
     }
-    return { status: 'estimated', color: 'bg-yellow-500/20 text-yellow-400' };
+    return { status: 'estimated', color: 'bg-yellow-500/20 text-yellow-600' };
   };
 
   const getRequiredPropertiesForFEA = () => {
@@ -63,11 +63,11 @@ export const MaterialPropertiesForFEA = ({
           </CardTitle>
           <div className="flex gap-2">
             {feaReadiness.isComplete ? (
-              <Badge className="bg-green-500/20 text-green-400 border-green-400/50">
+              <Badge className="bg-green-500/20 text-green-600 border-green-600/50">
                 FEA Ready
               </Badge>
             ) : (
-              <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-400/50">
+              <Badge className="bg-yellow-500/20 text-yellow-600 border-yellow-600/50">
                 Incomplete
               </Badge>
             )}
@@ -95,7 +95,7 @@ export const MaterialPropertiesForFEA = ({
 
         {/* Essential Properties for FEA */}
         <div>
-          <h4 className="font-semibold mb-3 text-green-400">Essential FEA Properties</h4>
+          <h4 className="font-semibold mb-3 text-green-600">Essential FEA Properties</h4>
           <div className="grid gap-3">
             {[
               { key: 'elasticModulus', label: 'Elastic Modulus (E)' },
@@ -137,7 +137,7 @@ export const MaterialPropertiesForFEA = ({
 
         {/* Strength Properties */}
         <div>
-          <h4 className="font-semibold mb-3 text-blue-400">Strength Properties</h4>
+          <h4 className="font-semibold mb-3 text-blue-600">Strength Properties</h4>
           <div className="grid gap-3">
             {[
               { key: 'yieldStrength', label: 'Yield Strength (fy)' },
@@ -179,7 +179,7 @@ export const MaterialPropertiesForFEA = ({
         {/* Design Values & Factors */}
         {material.designValues && (
           <div>
-            <h4 className="font-semibold mb-3 text-purple-400">Design Values & Factors</h4>
+            <h4 className="font-semibold mb-3 text-purple-600">Design Values & Factors</h4>
             <div className="space-y-3">
               {material.designValues.reductionFactors && (
                 <div>
@@ -218,7 +218,7 @@ export const MaterialPropertiesForFEA = ({
             <Button 
               onClick={onExportForFEA}
               disabled={!feaReadiness.isComplete}
-              className="cyber-button flex-1"
+              className="skeuo-button flex-1"
             >
               <Calculator className="w-4 h-4 mr-2" />
               Export for FEA
@@ -229,7 +229,7 @@ export const MaterialPropertiesForFEA = ({
             <Button 
               onClick={onViewCompliance}
               variant="outline"
-              className="cyber-button flex-1"
+              className="skeuo-button flex-1"
             >
               <FileText className="w-4 h-4 mr-2" />
               View Compliance
@@ -242,7 +242,7 @@ export const MaterialPropertiesForFEA = ({
             <div className="flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5" />
               <div className="text-sm">
-                <p className="font-medium text-yellow-400">Incomplete FEA Properties</p>
+                <p className="font-medium text-yellow-600">Incomplete FEA Properties</p>
                 <p className="text-muted-foreground mt-1">
                   Missing essential properties will limit FEA analysis capabilities. 
                   Consider importing from standard library or adding missing properties manually.

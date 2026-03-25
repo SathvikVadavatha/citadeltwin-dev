@@ -267,7 +267,7 @@ export const AIServicePanel = () => {
                   type="file"
                   accept="image/*"
                   onChange={handleImageUpload}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                  className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
                 />
                 {imageFile && (
                   <p className="text-sm text-green-600 mt-1">

@@ -92,7 +92,7 @@ export const AddLineItemModal = ({ open, onClose, onSubmit, estimationId }: AddL
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="gradient-border max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="glow-cyan">Add Line Item</DialogTitle>
+          <DialogTitle className="shadow-sm">Add Line Item</DialogTitle>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -111,10 +111,10 @@ export const AddLineItemModal = ({ open, onClose, onSubmit, estimationId }: AddL
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search cost database..."
-                className="cyber-button"
+                className="skeuo-button"
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               />
-              <Button onClick={handleSearch} className="cyber-button">
+              <Button onClick={handleSearch} className="skeuo-button">
                 <Search className="w-4 h-4" />
               </Button>
             </div>
@@ -157,7 +157,7 @@ export const AddLineItemModal = ({ open, onClose, onSubmit, estimationId }: AddL
                     value={formData.item_description}
                     onChange={(e) => setFormData(prev => ({ ...prev, item_description: e.target.value }))}
                     placeholder="e.g., Concrete, Ready-Mix, 3000 PSI"
-                    className="cyber-button"
+                    className="skeuo-button"
                     required
                   />
                 </div>
@@ -168,7 +168,7 @@ export const AddLineItemModal = ({ open, onClose, onSubmit, estimationId }: AddL
                     value={formData.category}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, category: value as any }))}
                   >
-                    <SelectTrigger className="cyber-button">
+                    <SelectTrigger className="skeuo-button">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -187,7 +187,7 @@ export const AddLineItemModal = ({ open, onClose, onSubmit, estimationId }: AddL
                     value={formData.unit_of_measure}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, unit_of_measure: value }))}
                   >
-                    <SelectTrigger className="cyber-button">
+                    <SelectTrigger className="skeuo-button">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -210,7 +210,7 @@ export const AddLineItemModal = ({ open, onClose, onSubmit, estimationId }: AddL
                     step="0.01"
                     value={formData.quantity}
                     onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
-                    className="cyber-button"
+                    className="skeuo-button"
                     required
                   />
                 </div>
@@ -223,7 +223,7 @@ export const AddLineItemModal = ({ open, onClose, onSubmit, estimationId }: AddL
                     step="0.01"
                     value={formData.unit_cost}
                     onChange={(e) => setFormData(prev => ({ ...prev, unit_cost: parseFloat(e.target.value) || 0 }))}
-                    className="cyber-button"
+                    className="skeuo-button"
                     required
                   />
                 </div>
@@ -236,7 +236,7 @@ export const AddLineItemModal = ({ open, onClose, onSubmit, estimationId }: AddL
                     step="0.01"
                     value={formData.labor_hours_per_unit}
                     onChange={(e) => setFormData(prev => ({ ...prev, labor_hours_per_unit: parseFloat(e.target.value) || 0 }))}
-                    className="cyber-button"
+                    className="skeuo-button"
                   />
                 </div>
 
@@ -248,7 +248,7 @@ export const AddLineItemModal = ({ open, onClose, onSubmit, estimationId }: AddL
                     step="0.1"
                     value={formData.waste_factor}
                     onChange={(e) => setFormData(prev => ({ ...prev, waste_factor: parseFloat(e.target.value) || 0 }))}
-                    className="cyber-button"
+                    className="skeuo-button"
                   />
                 </div>
               </div>
@@ -260,7 +260,7 @@ export const AddLineItemModal = ({ open, onClose, onSubmit, estimationId }: AddL
                   value={formData.notes}
                   onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                   placeholder="Additional notes or specifications..."
-                  className="cyber-button"
+                  className="skeuo-button"
                   rows={3}
                 />
               </div>
@@ -293,14 +293,14 @@ export const AddLineItemModal = ({ open, onClose, onSubmit, estimationId }: AddL
                   type="button"
                   variant="outline"
                   onClick={onClose}
-                  className="cyber-button"
+                  className="skeuo-button"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={loading || !formData.item_description}
-                  className="cyber-button bg-primary text-primary-foreground"
+                  className="skeuo-button bg-primary text-primary-foreground"
                 >
                   {loading ? 'Adding...' : 'Add Line Item'}
                 </Button>

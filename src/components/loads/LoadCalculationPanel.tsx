@@ -65,12 +65,12 @@ export const LoadCalculationPanel = () => {
 
   const getLoadTypeColor = (loadType: string) => {
     const colors: Record<string, string> = {
-      dead: 'bg-gray-500/20 text-gray-400 border-gray-400/50',
-      live: 'bg-blue-500/20 text-blue-400 border-blue-400/50',
-      wind: 'bg-green-500/20 text-green-400 border-green-400/50',
-      seismic: 'bg-red-500/20 text-red-400 border-red-400/50',
+      dead: 'bg-gray-500/20 text-muted-foreground border-gray-400/50',
+      live: 'bg-blue-500/20 text-blue-600 border-blue-600/50',
+      wind: 'bg-green-500/20 text-green-600 border-green-600/50',
+      seismic: 'bg-red-500/20 text-destructive border-destructive/50',
     };
-    return colors[loadType] || 'bg-gray-500/20 text-gray-400 border-gray-400/50';
+    return colors[loadType] || 'bg-gray-500/20 text-muted-foreground border-gray-400/50';
   };
 
   return (
@@ -105,7 +105,7 @@ export const LoadCalculationPanel = () => {
                           type="number"
                           value={parameters.buildingWidth}
                           onChange={(e) => setParameters(prev => ({ ...prev, buildingWidth: Number(e.target.value) }))}
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                       </div>
                       <div className="space-y-2">
@@ -114,7 +114,7 @@ export const LoadCalculationPanel = () => {
                           type="number"
                           value={parameters.buildingLength}
                           onChange={(e) => setParameters(prev => ({ ...prev, buildingLength: Number(e.target.value) }))}
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                       </div>
                     </div>
@@ -126,7 +126,7 @@ export const LoadCalculationPanel = () => {
                           type="number"
                           value={parameters.floorHeight}
                           onChange={(e) => setParameters(prev => ({ ...prev, floorHeight: Number(e.target.value) }))}
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                       </div>
                       <div className="space-y-2">
@@ -135,7 +135,7 @@ export const LoadCalculationPanel = () => {
                           type="number"
                           value={parameters.numberOfFloors}
                           onChange={(e) => setParameters(prev => ({ ...prev, numberOfFloors: Number(e.target.value) }))}
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                       </div>
                     </div>
@@ -153,7 +153,7 @@ export const LoadCalculationPanel = () => {
                         <Input
                           value={parameters.city}
                           onChange={(e) => setParameters(prev => ({ ...prev, city: e.target.value }))}
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                       </div>
                       <div className="space-y-2">
@@ -161,7 +161,7 @@ export const LoadCalculationPanel = () => {
                         <Input
                           value={parameters.state}
                           onChange={(e) => setParameters(prev => ({ ...prev, state: e.target.value }))}
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                       </div>
                     </div>
@@ -173,7 +173,7 @@ export const LoadCalculationPanel = () => {
                           type="number"
                           value={parameters.windSpeedCategory}
                           onChange={(e) => setParameters(prev => ({ ...prev, windSpeedCategory: Number(e.target.value) }))}
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                       </div>
                       <div className="space-y-2">
@@ -182,7 +182,7 @@ export const LoadCalculationPanel = () => {
                           value={parameters.seismicDesignCategory}
                           onValueChange={(value: any) => setParameters(prev => ({ ...prev, seismicDesignCategory: value }))}
                         >
-                          <SelectTrigger className="cyber-button">
+                          <SelectTrigger className="skeuo-button">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -212,7 +212,7 @@ export const LoadCalculationPanel = () => {
                         value={parameters.occupancyType}
                         onValueChange={(value: any) => setParameters(prev => ({ ...prev, occupancyType: value }))}
                       >
-                        <SelectTrigger className="cyber-button">
+                        <SelectTrigger className="skeuo-button">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -230,7 +230,7 @@ export const LoadCalculationPanel = () => {
                         value={parameters.structuralSystem}
                         onValueChange={(value: any) => setParameters(prev => ({ ...prev, structuralSystem: value }))}
                       >
-                        <SelectTrigger className="cyber-button">
+                        <SelectTrigger className="skeuo-button">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -256,7 +256,7 @@ export const LoadCalculationPanel = () => {
                         value={parameters.buildingCode}
                         onValueChange={(value: any) => setParameters(prev => ({ ...prev, buildingCode: value }))}
                       >
-                        <SelectTrigger className="cyber-button">
+                        <SelectTrigger className="skeuo-button">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -273,7 +273,7 @@ export const LoadCalculationPanel = () => {
                         value={parameters.exposureCategory}
                         onValueChange={(value: any) => setParameters(prev => ({ ...prev, exposureCategory: value }))}
                       >
-                        <SelectTrigger className="cyber-button">
+                        <SelectTrigger className="skeuo-button">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -291,7 +291,7 @@ export const LoadCalculationPanel = () => {
                 <Button
                   onClick={handleCalculate}
                   disabled={calculating}
-                  className="cyber-button bg-primary text-primary-foreground"
+                  className="skeuo-button bg-primary text-primary-foreground"
                 >
                   <Calculator className="h-4 w-4 mr-2" />
                   {calculating ? 'Calculating...' : 'Calculate Loads'}
@@ -319,7 +319,7 @@ export const LoadCalculationPanel = () => {
                   <div className="grid grid-cols-4 gap-4">
                     <Card>
                       <CardContent className="p-4 text-center">
-                        <Building className="h-8 w-8 mx-auto text-gray-500 mb-2" />
+                        <Building className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                         <div className="text-2xl font-bold">{(results.summary.totalDeadLoad / 1000).toFixed(0)} kN</div>
                         <div className="text-sm text-muted-foreground">Total Dead Load</div>
                       </CardContent>
@@ -379,7 +379,7 @@ export const LoadCalculationPanel = () => {
                     <Button
                       onClick={handleSaveResults}
                       disabled={saving}
-                      className="cyber-button"
+                      className="skeuo-button"
                     >
                       Save Calculation Results
                     </Button>

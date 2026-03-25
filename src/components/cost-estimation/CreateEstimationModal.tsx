@@ -50,7 +50,7 @@ export const CreateEstimationModal = ({ open, onClose, onSubmit, projectId }: Cr
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="gradient-border max-w-md">
         <DialogHeader>
-          <DialogTitle className="glow-cyan">Create Cost Estimation</DialogTitle>
+          <DialogTitle className="shadow-sm">Create Cost Estimation</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -61,7 +61,7 @@ export const CreateEstimationModal = ({ open, onClose, onSubmit, projectId }: Cr
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               placeholder="e.g., Initial Cost Estimate"
-              className="cyber-button"
+              className="skeuo-button"
               required
             />
           </div>
@@ -73,7 +73,7 @@ export const CreateEstimationModal = ({ open, onClose, onSubmit, projectId }: Cr
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Brief description of this estimation..."
-              className="cyber-button"
+              className="skeuo-button"
               rows={3}
             />
           </div>
@@ -87,7 +87,7 @@ export const CreateEstimationModal = ({ open, onClose, onSubmit, projectId }: Cr
                 step="0.1"
                 value={formData.markup_percentage}
                 onChange={(e) => setFormData(prev => ({ ...prev, markup_percentage: parseFloat(e.target.value) || 0 }))}
-                className="cyber-button"
+                className="skeuo-button"
               />
             </div>
 
@@ -99,7 +99,7 @@ export const CreateEstimationModal = ({ open, onClose, onSubmit, projectId }: Cr
                 step="0.1"
                 value={formData.contingency_percentage}
                 onChange={(e) => setFormData(prev => ({ ...prev, contingency_percentage: parseFloat(e.target.value) || 0 }))}
-                className="cyber-button"
+                className="skeuo-button"
               />
             </div>
           </div>
@@ -112,7 +112,7 @@ export const CreateEstimationModal = ({ open, onClose, onSubmit, projectId }: Cr
               step="0.01"
               value={formData.labor_rate_per_hour}
               onChange={(e) => setFormData(prev => ({ ...prev, labor_rate_per_hour: parseFloat(e.target.value) || 0 }))}
-              className="cyber-button"
+              className="skeuo-button"
             />
           </div>
 
@@ -121,14 +121,14 @@ export const CreateEstimationModal = ({ open, onClose, onSubmit, projectId }: Cr
               type="button"
               variant="outline"
               onClick={onClose}
-              className="cyber-button"
+              className="skeuo-button"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={loading || !formData.name}
-              className="cyber-button bg-primary text-primary-foreground"
+              className="skeuo-button bg-primary text-primary-foreground"
             >
               {loading ? 'Creating...' : 'Create Estimation'}
             </Button>

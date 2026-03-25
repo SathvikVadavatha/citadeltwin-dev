@@ -14,11 +14,11 @@ interface EstimationsListProps {
 export const EstimationsList = ({ estimations, onCreateNew, onSelectEstimation }: EstimationsListProps) => {
   const getStatusColor = (status: string) => {
     const colors = {
-      draft: 'bg-gray-500/20 text-gray-400 border-gray-400/50',
-      in_progress: 'bg-blue-500/20 text-blue-400 border-blue-400/50',
-      completed: 'bg-green-500/20 text-green-400 border-green-400/50',
+      draft: 'bg-gray-500/20 text-muted-foreground border-gray-400/50',
+      in_progress: 'bg-blue-500/20 text-blue-600 border-blue-600/50',
+      completed: 'bg-green-500/20 text-green-600 border-green-600/50',
       approved: 'bg-emerald-500/20 text-emerald-400 border-emerald-400/50',
-      rejected: 'bg-red-500/20 text-red-400 border-red-400/50',
+      rejected: 'bg-red-500/20 text-destructive border-destructive/50',
     };
     return colors[status as keyof typeof colors] || colors.draft;
   };
@@ -32,7 +32,7 @@ export const EstimationsList = ({ estimations, onCreateNew, onSelectEstimation }
           <p className="text-muted-foreground mb-4">
             Create your first cost estimation to get started with project budgeting.
           </p>
-          <Button onClick={onCreateNew} className="cyber-button">
+          <Button onClick={onCreateNew} className="skeuo-button">
             <Plus className="w-4 h-4 mr-2" />
             Create Estimation
           </Button>
@@ -46,7 +46,7 @@ export const EstimationsList = ({ estimations, onCreateNew, onSelectEstimation }
       {estimations.map((estimation) => (
         <Card 
           key={estimation.id} 
-          className="gradient-border cursor-pointer hover:glow-cyan transition-all"
+          className="gradient-border cursor-pointer hover:shadow-sm transition-all"
           onClick={() => onSelectEstimation(estimation)}
         >
           <CardHeader>
@@ -68,7 +68,7 @@ export const EstimationsList = ({ estimations, onCreateNew, onSelectEstimation }
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
                 <span className="text-muted-foreground">Total Cost:</span>
-                <p className="font-medium text-lg glow-cyan">
+                <p className="font-medium text-lg shadow-sm">
                   ${estimation.total_estimated_cost?.toLocaleString() || '0'}
                 </p>
               </div>

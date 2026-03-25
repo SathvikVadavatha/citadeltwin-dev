@@ -142,7 +142,7 @@ export const CreateBIMElementModal = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto gradient-border">
         <DialogHeader>
-          <DialogTitle className="text-xl glow-cyan">Create BIM Element</DialogTitle>
+          <DialogTitle className="text-xl shadow-sm">Create BIM Element</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -168,7 +168,7 @@ export const CreateBIMElementModal = ({
                           setFormData(prev => ({ ...prev, element_type: value }))
                         }
                       >
-                        <SelectTrigger className="cyber-button">
+                        <SelectTrigger className="skeuo-button">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -187,7 +187,7 @@ export const CreateBIMElementModal = ({
                         id="name"
                         value={formData.name}
                         onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        className="cyber-button"
+                        className="skeuo-button"
                         required
                       />
                     </div>
@@ -199,7 +199,7 @@ export const CreateBIMElementModal = ({
                       id="description"
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      className="cyber-button"
+                      className="skeuo-button"
                       rows={3}
                     />
                   </div>
@@ -211,7 +211,7 @@ export const CreateBIMElementModal = ({
                         value={formData.material_id}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, material_id: value }))}
                       >
-                        <SelectTrigger className="cyber-button">
+                        <SelectTrigger className="skeuo-button">
                           <SelectValue placeholder="Select material" />
                         </SelectTrigger>
                         <SelectContent>
@@ -230,7 +230,7 @@ export const CreateBIMElementModal = ({
                         value={formData.parent_element_id}
                         onValueChange={(value) => setFormData(prev => ({ ...prev, parent_element_id: value }))}
                       >
-                        <SelectTrigger className="cyber-button">
+                        <SelectTrigger className="skeuo-button">
                           <SelectValue placeholder="Select parent" />
                         </SelectTrigger>
                         <SelectContent>
@@ -263,7 +263,7 @@ export const CreateBIMElementModal = ({
                           placeholder="Length"
                           value={geometryParams.length}
                           onChange={(e) => setGeometryParams(prev => ({ ...prev, length: parseFloat(e.target.value) || 0 }))}
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                         <Input
                           type="number"
@@ -271,7 +271,7 @@ export const CreateBIMElementModal = ({
                           placeholder="Width"
                           value={geometryParams.width}
                           onChange={(e) => setGeometryParams(prev => ({ ...prev, width: parseFloat(e.target.value) || 0 }))}
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                         <Input
                           type="number"
@@ -279,7 +279,7 @@ export const CreateBIMElementModal = ({
                           placeholder="Height"
                           value={geometryParams.height}
                           onChange={(e) => setGeometryParams(prev => ({ ...prev, height: parseFloat(e.target.value) || 0 }))}
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                       </div>
                     </div>
@@ -293,7 +293,7 @@ export const CreateBIMElementModal = ({
                           placeholder="X"
                           value={geometryParams.x}
                           onChange={(e) => setGeometryParams(prev => ({ ...prev, x: parseFloat(e.target.value) || 0 }))}
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                         <Input
                           type="number"
@@ -301,7 +301,7 @@ export const CreateBIMElementModal = ({
                           placeholder="Y"
                           value={geometryParams.y}
                           onChange={(e) => setGeometryParams(prev => ({ ...prev, y: parseFloat(e.target.value) || 0 }))}
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                         <Input
                           type="number"
@@ -309,7 +309,7 @@ export const CreateBIMElementModal = ({
                           placeholder="Z"
                           value={geometryParams.z}
                           onChange={(e) => setGeometryParams(prev => ({ ...prev, z: parseFloat(e.target.value) || 0 }))}
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                       </div>
                     </div>
@@ -323,7 +323,7 @@ export const CreateBIMElementModal = ({
                           placeholder="X Rotation"
                           value={geometryParams.rotX}
                           onChange={(e) => setGeometryParams(prev => ({ ...prev, rotX: parseFloat(e.target.value) || 0 }))}
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                         <Input
                           type="number"
@@ -331,7 +331,7 @@ export const CreateBIMElementModal = ({
                           placeholder="Y Rotation"
                           value={geometryParams.rotY}
                           onChange={(e) => setGeometryParams(prev => ({ ...prev, rotY: parseFloat(e.target.value) || 0 }))}
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                         <Input
                           type="number"
@@ -339,7 +339,7 @@ export const CreateBIMElementModal = ({
                           placeholder="Z Rotation"
                           value={geometryParams.rotZ}
                           onChange={(e) => setGeometryParams(prev => ({ ...prev, rotZ: parseFloat(e.target.value) || 0 }))}
-                          className="cyber-button"
+                          className="skeuo-button"
                         />
                       </div>
                     </div>
@@ -352,7 +352,7 @@ export const CreateBIMElementModal = ({
               <Card className="gradient-border">
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-lg">Custom Parameters</CardTitle>
-                  <Button type="button" onClick={addCustomParam} className="cyber-button">
+                  <Button type="button" onClick={addCustomParam} className="skeuo-button">
                     Add Parameter
                   </Button>
                 </CardHeader>
@@ -369,13 +369,13 @@ export const CreateBIMElementModal = ({
                           <Input
                             value={value}
                             onChange={(e) => setCustomParams(prev => ({ ...prev, [key]: e.target.value }))}
-                            className="cyber-button flex-1"
+                            className="skeuo-button flex-1"
                           />
                           <Button
                             type="button"
                             variant="ghost"
                             onClick={() => removeCustomParam(key)}
-                            className="cyber-button hover:bg-destructive/20"
+                            className="skeuo-button hover:bg-destructive/20"
                           >
                             Remove
                           </Button>
@@ -393,11 +393,11 @@ export const CreateBIMElementModal = ({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="cyber-button"
+              className="skeuo-button"
             >
               Cancel
             </Button>
-            <Button type="submit" className="cyber-button bg-primary text-primary-foreground">
+            <Button type="submit" className="skeuo-button bg-primary text-primary-foreground">
               Create Element
             </Button>
           </div>

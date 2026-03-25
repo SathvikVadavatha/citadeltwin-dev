@@ -22,7 +22,7 @@ export const EstimationOverviewCards = ({ estimations }: EstimationOverviewCards
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold glow-cyan">
+          <div className="text-2xl font-bold shadow-sm">
             ${totalProjectCost.toLocaleString()}
           </div>
         </CardContent>

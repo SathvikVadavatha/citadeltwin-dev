@@ -110,7 +110,7 @@ export const PropertyBoundaryViewer = () => {
                     value={searchParams.city}
                     onChange={(e) => setSearchParams(prev => ({ ...prev, city: e.target.value }))}
                     placeholder="e.g., Austin"
-                    className="cyber-button"
+                    className="skeuo-button"
                   />
                 </div>
                 <div className="space-y-2">
@@ -120,7 +120,7 @@ export const PropertyBoundaryViewer = () => {
                     value={searchParams.state}
                     onChange={(e) => setSearchParams(prev => ({ ...prev, state: e.target.value }))}
                     placeholder="e.g., TX"
-                    className="cyber-button"
+                    className="skeuo-button"
                   />
                 </div>
                 <div className="space-y-2">
@@ -130,7 +130,7 @@ export const PropertyBoundaryViewer = () => {
                     value={searchParams.parcelId}
                     onChange={(e) => setSearchParams(prev => ({ ...prev, parcelId: e.target.value }))}
                     placeholder="Search by parcel ID"
-                    className="cyber-button"
+                    className="skeuo-button"
                   />
                 </div>
               </div>
@@ -138,7 +138,7 @@ export const PropertyBoundaryViewer = () => {
               <Button 
                 onClick={handleFetchBoundaries}
                 disabled={isFetching || !searchParams.city || !searchParams.state}
-                className="cyber-button w-full"
+                className="skeuo-button w-full"
               >
                 {isFetching ? 'Fetching Property Boundaries...' : 'Fetch Property Boundaries'}
               </Button>
@@ -147,7 +147,7 @@ export const PropertyBoundaryViewer = () => {
             <TabsContent value="boundaries" className="space-y-4">
               {filteredProperties.length === 0 ? (
                 <div className="text-center py-8">
-                  <Search className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">
                     {isLoading ? 'Loading property boundaries...' : 'No property boundaries found. Search for a location to get started.'}
                   </p>
@@ -166,13 +166,13 @@ export const PropertyBoundaryViewer = () => {
                         <div className="flex items-start justify-between">
                           <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                              <h4 className="font-medium text-gray-200">
+                              <h4 className="font-medium text-foreground">
                                 {property.property_address || `Parcel ${property.parcel_id}`}
                               </h4>
                               <Badge variant="outline">{property.parcel_id}</Badge>
                             </div>
                             
-                            <div className="flex items-center gap-4 text-sm text-gray-400">
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
                               <span className="flex items-center gap-1">
                                 <MapPin className="w-3 h-3" />
                                 {property.city}, {property.state}
@@ -212,7 +212,7 @@ export const PropertyBoundaryViewer = () => {
             <TabsContent value="details" className="space-y-4">
               {!selectedProperty ? (
                 <div className="text-center py-8">
-                  <Building className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <Building className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">Select a property from the boundaries tab to view detailed information.</p>
                 </div>
               ) : (
@@ -221,7 +221,7 @@ export const PropertyBoundaryViewer = () => {
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
                         <span>Property Details</span>
-                        <Button variant="outline" size="sm" className="cyber-button">
+                        <Button variant="outline" size="sm" className="skeuo-button">
                           <Download className="h-4 w-4 mr-2" />
                           Export
                         </Button>
@@ -230,47 +230,47 @@ export const PropertyBoundaryViewer = () => {
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <h4 className="font-medium text-gray-200 mb-2">Basic Information</h4>
+                          <h4 className="font-medium text-foreground mb-2">Basic Information</h4>
                           <div className="space-y-2 text-sm">
-                            <div><span className="text-gray-400">Parcel ID:</span> {selectedProperty.parcel_id}</div>
-                            <div><span className="text-gray-400">Address:</span> {selectedProperty.property_address || 'Not available'}</div>
-                            <div><span className="text-gray-400">Owner:</span> {selectedProperty.owner_name || 'Not available'}</div>
-                            <div><span className="text-gray-400">Area:</span> {formatArea(selectedProperty.area_sqft)}</div>
+                            <div><span className="text-muted-foreground">Parcel ID:</span> {selectedProperty.parcel_id}</div>
+                            <div><span className="text-muted-foreground">Address:</span> {selectedProperty.property_address || 'Not available'}</div>
+                            <div><span className="text-muted-foreground">Owner:</span> {selectedProperty.owner_name || 'Not available'}</div>
+                            <div><span className="text-muted-foreground">Area:</span> {formatArea(selectedProperty.area_sqft)}</div>
                           </div>
                         </div>
 
                         <div>
-                          <h4 className="font-medium text-gray-200 mb-2">Zoning & Environmental</h4>
+                          <h4 className="font-medium text-foreground mb-2">Zoning & Environmental</h4>
                           <div className="space-y-2 text-sm">
                             <div className="flex items-center gap-2">
-                              <span className="text-gray-400">Zoning:</span>
+                              <span className="text-muted-foreground">Zoning:</span>
                               {selectedProperty.zoning_designation ? (
                                 <Badge className={`${getZoningColor(selectedProperty.zoning_designation)} text-white text-xs`}>
                                   {selectedProperty.zoning_designation}
                                 </Badge>
                               ) : (
-                                <span className="text-gray-500">Not specified</span>
+                                <span className="text-muted-foreground">Not specified</span>
                               )}
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-gray-400">Flood Zone:</span>
+                              <span className="text-muted-foreground">Flood Zone:</span>
                               {selectedProperty.flood_zone ? (
                                 <Badge className={`${getFloodZoneColor(selectedProperty.flood_zone)} text-white text-xs`}>
                                   {selectedProperty.flood_zone}
                                 </Badge>
                               ) : (
-                                <span className="text-gray-500">Not specified</span>
+                                <span className="text-muted-foreground">Not specified</span>
                               )}
                             </div>
-                            <div><span className="text-gray-400">Soil Type:</span> {selectedProperty.soil_type || 'Not specified'}</div>
-                            <div><span className="text-gray-400">Last Surveyed:</span> {selectedProperty.last_surveyed ? new Date(selectedProperty.last_surveyed).toLocaleDateString() : 'Not available'}</div>
+                            <div><span className="text-muted-foreground">Soil Type:</span> {selectedProperty.soil_type || 'Not specified'}</div>
+                            <div><span className="text-muted-foreground">Last Surveyed:</span> {selectedProperty.last_surveyed ? new Date(selectedProperty.last_surveyed).toLocaleDateString() : 'Not available'}</div>
                           </div>
                         </div>
                       </div>
 
                       {selectedProperty.environmental_constraints && selectedProperty.environmental_constraints.length > 0 && (
                         <div>
-                          <h4 className="font-medium text-gray-200 mb-2 flex items-center gap-2">
+                          <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
                             <TreePine className="h-4 w-4 text-green-500" />
                             Environmental Constraints
                           </h4>

@@ -3,16 +3,23 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Building2, 
-  Menu, 
-  Bell, 
-  ArrowLeft, 
+import {
+  Building2,
+  Menu,
+  Bell,
+  ArrowLeft,
   Search,
-  MoreVertical 
+  LogOut
 } from 'lucide-react';
 import { useAuth } from '@/providers/AuthProvider';
 import { useMobileNavigation } from './MobileNavigationProvider';
+import { useNavigate } from 'react-router-dom';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface EnhancedMobileHeaderProps {
   onMenuToggle: () => void;
@@ -25,8 +32,9 @@ export const EnhancedMobileHeader: React.FC<EnhancedMobileHeaderProps> = ({
   title,
   showBackButton = false 
 }) => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { goBack, canGoBack } = useMobileNavigation();
+  const navigate = useNavigate();
 
   const handleBackClick = () => {
     if (canGoBack) {
@@ -91,12 +99,30 @@ export const EnhancedMobileHeader: React.FC<EnhancedMobileHeaderProps> = ({
             </Badge>
           </Button>
 
-          <Avatar className="h-8 w-8 touch-manipulation">
-            <AvatarImage src="/placeholder-avatar.jpg" />
-            <AvatarFallback className="text-xs">
-              {user?.email?.charAt(0).toUpperCase() || 'U'}
-            </AvatarFallback>
-          </Avatar>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Avatar className="h-8 w-8 touch-manipulation cursor-pointer">
+                <AvatarImage src="/placeholder-avatar.jpg" />
+                <AvatarFallback className="text-xs">
+                  {user?.email?.charAt(0).toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {user?.email && (
+                <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+                  {user.email}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem
+                onClick={async () => { await signOut(); navigate('/auth/login', { replace: true }); }}
+                className="text-destructive focus:text-destructive"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

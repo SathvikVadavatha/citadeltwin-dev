@@ -95,13 +95,13 @@ export const GISDataManager = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="bg-gray-900 border-gray-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-cyan-300 flex items-center gap-2">
+          <CardTitle className="text-primary flex items-center gap-2">
             <Map className="w-5 h-5" />
             Advanced GIS Data Integration
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             Comprehensive GIS management with environmental data, property boundaries, and zoning analysis
           </CardDescription>
         </CardHeader>
@@ -117,12 +117,12 @@ export const GISDataManager = () => {
 
             <TabsContent value="basic" className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-200">Select Location</label>
+                <label className="text-sm font-medium text-foreground">Select Location</label>
                 <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                  <SelectTrigger className="bg-gray-800 border-gray-600 text-gray-200">
+                  <SelectTrigger className="bg-muted border-border text-foreground">
                     <SelectValue placeholder="Choose a city or county..." />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-600">
+                  <SelectContent className="bg-muted border-border">
                     <SelectItem value="nyc">New York City, NY</SelectItem>
                     <SelectItem value="la">Los Angeles, CA</SelectItem>
                     <SelectItem value="chicago">Chicago, IL</SelectItem>
@@ -143,7 +143,7 @@ export const GISDataManager = () => {
               <Button 
                 onClick={handleFetchData}
                 disabled={isLoading || !selectedLocation}
-                className="w-full bg-cyan-600 hover:bg-cyan-700"
+                className="w-full bg-primary hover:bg-primary/90"
               >
                 {isLoading ? (
                   <>
@@ -160,7 +160,7 @@ export const GISDataManager = () => {
 
               {gisLayers.length > 0 && (
                 <div className="space-y-3 mt-4">
-                  <h3 className="text-cyan-300 font-medium flex items-center gap-2">
+                  <h3 className="text-primary font-medium flex items-center gap-2">
                     <Database className="w-4 h-4" />
                     Available GIS Layers ({gisLayers.length})
                   </h3>
@@ -169,12 +169,12 @@ export const GISDataManager = () => {
                     return (
                       <div 
                         key={layer.id} 
-                        className="bg-gray-800 p-3 rounded-lg border border-gray-700"
+                        className="bg-muted p-3 rounded-lg border border-border"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <IconComponent className="w-4 h-4 text-cyan-400" />
-                            <span className="text-sm font-medium text-gray-200">{layer.layer_name}</span>
+                            <IconComponent className="w-4 h-4 text-primary" />
+                            <span className="text-sm font-medium text-foreground">{layer.layer_name}</span>
                             <Badge variant="outline" className="text-xs">
                               {layer.feature_count} features
                             </Badge>
@@ -183,7 +183,7 @@ export const GISDataManager = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => handleRefreshLayer(layer.id)}
-                            className="border-cyan-500/30 text-cyan-300 hover:bg-cyan-600/20"
+                            className="border-primary/30 text-primary hover:bg-primary/20"
                           >
                             <RefreshCw className="w-3 h-3" />
                           </Button>
@@ -192,17 +192,17 @@ export const GISDataManager = () => {
                     );
                   })}
                   {gisLayers.length > 5 && (
-                    <p className="text-sm text-gray-400 text-center">
+                    <p className="text-sm text-muted-foreground text-center">
                       ... and {gisLayers.length - 5} more layers
                     </p>
                   )}
                 </div>
               )}
 
-              <Separator className="my-6 bg-gray-700" />
+              <Separator className="my-6 bg-secondary" />
               
               <div className="space-y-4">
-                <h3 className="text-cyan-300 font-medium flex items-center gap-2">
+                <h3 className="text-primary font-medium flex items-center gap-2">
                   <Zap className="w-4 h-4" />
                   Test Data Ingestion
                 </h3>

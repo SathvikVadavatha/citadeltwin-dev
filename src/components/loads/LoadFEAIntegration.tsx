@@ -130,7 +130,7 @@ export const LoadFEAIntegration = ({ loadResults, onAnalysisComplete }: LoadFEAI
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-lg font-bold text-gray-400">
+            <div className="text-lg font-bold text-muted-foreground">
               {loadResults.individualLoads.filter(l => l.loadType === 'dead').length}
             </div>
             <div className="text-sm text-muted-foreground">Dead Loads</div>
@@ -139,7 +139,7 @@ export const LoadFEAIntegration = ({ loadResults, onAnalysisComplete }: LoadFEAI
         
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-lg font-bold text-blue-400">
+            <div className="text-lg font-bold text-blue-600">
               {loadResults.individualLoads.filter(l => l.loadType === 'live').length}
             </div>
             <div className="text-sm text-muted-foreground">Live Loads</div>
@@ -148,7 +148,7 @@ export const LoadFEAIntegration = ({ loadResults, onAnalysisComplete }: LoadFEAI
         
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-lg font-bold text-green-400">
+            <div className="text-lg font-bold text-green-600">
               {loadResults.individualLoads.filter(l => l.loadType === 'wind').length}
             </div>
             <div className="text-sm text-muted-foreground">Wind Loads</div>
@@ -157,7 +157,7 @@ export const LoadFEAIntegration = ({ loadResults, onAnalysisComplete }: LoadFEAI
         
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-lg font-bold text-red-400">
+            <div className="text-lg font-bold text-destructive">
               {loadResults.individualLoads.filter(l => l.loadType === 'seismic').length}
             </div>
             <div className="text-sm text-muted-foreground">Seismic Loads</div>
@@ -207,7 +207,7 @@ export const LoadFEAIntegration = ({ loadResults, onAnalysisComplete }: LoadFEAI
                       <select
                         value={selectedElementId}
                         onChange={(e) => setSelectedElementId(e.target.value)}
-                        className="w-full p-2 border rounded cyber-button"
+                        className="w-full p-2 border rounded skeuo-button"
                       >
                         <option value="">Select an element...</option>
                         {elements.map(element => (
@@ -239,7 +239,7 @@ export const LoadFEAIntegration = ({ loadResults, onAnalysisComplete }: LoadFEAI
                     <Button
                       onClick={transferLoadsToFEA}
                       disabled={!selectedElementId || transferringLoads || isRunningAnalysis}
-                      className="cyber-button w-full"
+                      className="skeuo-button w-full"
                     >
                       <Play className="h-4 w-4 mr-2" />
                       {transferringLoads ? 'Transferring Loads...' : 'Transfer & Run FEA Analysis'}

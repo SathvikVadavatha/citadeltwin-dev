@@ -141,7 +141,7 @@ export const CostBreakdownChart = ({ lineItems, costSummary }: CostBreakdownChar
                 </div>
                 <div className="flex justify-between font-medium border-t pt-1">
                   <span>Total:</span>
-                  <span className="glow-cyan">${costSummary.totalCost.toLocaleString()}</span>
+                  <span className="shadow-sm">${costSummary.totalCost.toLocaleString()}</span>
                 </div>
               </div>
             </div>

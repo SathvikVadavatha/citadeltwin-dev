@@ -241,7 +241,7 @@ export const IFCViewer = ({
               size="sm"
               variant="outline"
               onClick={resetCamera}
-              className="cyber-button"
+              className="skeuo-button"
               title="Reset Camera"
             >
               <RotateCcw className="w-4 h-4" />
@@ -251,7 +251,7 @@ export const IFCViewer = ({
               size="sm"
               variant="outline"
               onClick={toggleVisibility}
-              className="cyber-button"
+              className="skeuo-button"
               title="Toggle Model Visibility"
             >
               <Eye className="w-4 h-4" />
@@ -262,7 +262,7 @@ export const IFCViewer = ({
                 size="sm"
                 variant="outline"
                 onClick={showAllElements}
-                className="cyber-button"
+                className="skeuo-button"
                 title="Show All Elements"
               >
                 <Layers className="w-4 h-4" />
@@ -273,7 +273,7 @@ export const IFCViewer = ({
                   size="sm"
                   variant="outline"
                   onClick={() => isolateElements([selectedElement.expressID])}
-                  className="cyber-button"
+                  className="skeuo-button"
                   title="Isolate Selected"
                 >
                   <Layers className="w-4 h-4" />
@@ -285,7 +285,7 @@ export const IFCViewer = ({
               size="sm"
               variant="outline"
               onClick={clearSelection}
-              className="cyber-button"
+              className="skeuo-button"
               title="Clear Selection"
               disabled={!selectedElement}
             >
@@ -296,7 +296,7 @@ export const IFCViewer = ({
               size="sm"
               variant="outline"
               onClick={() => setShowPropertiesPanel(!showPropertiesPanel)}
-              className="cyber-button"
+              className="skeuo-button"
               title="Toggle Properties Panel"
               disabled={!selectedElement}
             >
@@ -309,7 +309,7 @@ export const IFCViewer = ({
         <div className="relative">
           <div
             ref={containerRef}
-            className="w-full h-[600px] bg-gray-900 rounded-lg border border-border overflow-hidden"
+            className="w-full h-[600px] bg-card rounded-lg border border-border overflow-hidden"
           />
           
           {loading && (
@@ -347,7 +347,7 @@ export const IFCViewer = ({
             ifcModelId={ifcModelId}
           />
         ) : (
-          <Card className="cyber-tool-palette h-full">
+          <Card className="skeuo-panel h-full">
             <CardContent className="p-8 text-center">
               <Settings className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">No Element Selected</h3>

@@ -25,6 +25,11 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				sans: ['DM Sans', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+				heading: ['DM Sans', 'system-ui', 'sans-serif'],
+				mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+			},
 			screens: {
 				'xs': '475px',
 				'touch': { 'raw': '(hover: none) and (pointer: coarse)' },
@@ -87,6 +92,13 @@ export default {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
+			},
+			boxShadow: {
+				'skeuo-raised': 'var(--skeuo-shadow-raised)',
+				'skeuo-pressed': 'var(--skeuo-shadow-pressed)',
+				'skeuo-card': 'var(--skeuo-shadow-card)',
+				'skeuo-deep': 'var(--skeuo-shadow-deep)',
+				'skeuo-inset': 'var(--skeuo-shadow-inset)',
 			},
 			keyframes: {
 				'accordion-down': {

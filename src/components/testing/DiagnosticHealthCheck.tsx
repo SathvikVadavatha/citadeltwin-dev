@@ -45,7 +45,7 @@ export const DiagnosticHealthCheck: React.FC = () => {
       case 'healthy': return <CheckCircle className="w-5 h-5 text-green-500" />;
       case 'warning': return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
       case 'error': return <XCircle className="w-5 h-5 text-red-500" />;
-      default: return <Activity className="w-5 h-5 text-gray-400" />;
+      default: return <Activity className="w-5 h-5 text-muted-foreground" />;
     }
   };
 
@@ -54,7 +54,7 @@ export const DiagnosticHealthCheck: React.FC = () => {
       case 'healthy': return 'text-green-500';
       case 'warning': return 'text-yellow-500';
       case 'error': return 'text-red-500';
-      default: return 'text-gray-500';
+      default: return 'text-muted-foreground';
     }
   };
 
@@ -118,7 +118,7 @@ export const DiagnosticHealthCheck: React.FC = () => {
               </div>
             </div>
             <Progress value={systemHealth.score} className="h-3" />
-            <Badge className={`${systemHealth.overallStatus === 'healthy' ? 'bg-green-500/20 text-green-400' : systemHealth.overallStatus === 'warning' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
+            <Badge className={`${systemHealth.overallStatus === 'healthy' ? 'bg-green-500/20 text-green-600' : systemHealth.overallStatus === 'warning' ? 'bg-yellow-500/20 text-yellow-600' : 'bg-red-500/20 text-destructive'}`}>
               {systemHealth.overallStatus.toUpperCase()}
             </Badge>
             {lastCheck && (
@@ -145,7 +145,7 @@ export const DiagnosticHealthCheck: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   {getStatusIcon(result.status)}
-                  <Badge className={`${result.status === 'healthy' ? 'bg-green-500/20 text-green-400' : result.status === 'warning' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
+                  <Badge className={`${result.status === 'healthy' ? 'bg-green-500/20 text-green-600' : result.status === 'warning' ? 'bg-yellow-500/20 text-yellow-600' : 'bg-red-500/20 text-destructive'}`}>
                     {result.status}
                   </Badge>
                 </div>

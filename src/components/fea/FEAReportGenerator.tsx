@@ -65,7 +65,7 @@ export const FEAReportGenerator: React.FC<FEAReportGeneratorProps> = ({
             <div className="space-y-2">
               <Label>Report Template</Label>
               <Select value={reportTemplate} onValueChange={setReportTemplate}>
-                <SelectTrigger className="cyber-button">
+                <SelectTrigger className="skeuo-button">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -81,7 +81,7 @@ export const FEAReportGenerator: React.FC<FEAReportGeneratorProps> = ({
             <div className="space-y-2">
               <Label>Output Format</Label>
               <Select defaultValue="pdf">
-                <SelectTrigger className="cyber-button">
+                <SelectTrigger className="skeuo-button">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -102,7 +102,7 @@ export const FEAReportGenerator: React.FC<FEAReportGeneratorProps> = ({
                 <Label>Project Title</Label>
                 <Input 
                   placeholder="Enter project title"
-                  className="cyber-button"
+                  className="skeuo-button"
                 />
               </div>
               
@@ -110,7 +110,7 @@ export const FEAReportGenerator: React.FC<FEAReportGeneratorProps> = ({
                 <Label>Engineer Name</Label>
                 <Input 
                   placeholder="Enter engineer name"
-                  className="cyber-button"
+                  className="skeuo-button"
                 />
               </div>
             </div>
@@ -120,7 +120,7 @@ export const FEAReportGenerator: React.FC<FEAReportGeneratorProps> = ({
                 <Label>Company</Label>
                 <Input 
                   placeholder="Enter company name"
-                  className="cyber-button"
+                  className="skeuo-button"
                 />
               </div>
               
@@ -128,7 +128,7 @@ export const FEAReportGenerator: React.FC<FEAReportGeneratorProps> = ({
                 <Label>Report Date</Label>
                 <Input 
                   type="date"
-                  className="cyber-button"
+                  className="skeuo-button"
                 />
               </div>
             </div>
@@ -137,7 +137,7 @@ export const FEAReportGenerator: React.FC<FEAReportGeneratorProps> = ({
               <Label>Project Description</Label>
               <Textarea 
                 placeholder="Enter project description and analysis objectives"
-                className="cyber-button"
+                className="skeuo-button"
                 rows={3}
               />
             </div>
@@ -222,7 +222,7 @@ export const FEAReportGenerator: React.FC<FEAReportGeneratorProps> = ({
 
           <div className="flex gap-2">
             <Button 
-              className="cyber-button flex-1"
+              className="skeuo-button flex-1"
               onClick={generateReport}
               disabled={generatingReport || !analysisId}
             >
@@ -230,7 +230,7 @@ export const FEAReportGenerator: React.FC<FEAReportGeneratorProps> = ({
               {generatingReport ? 'Generating Report...' : 'Generate Report'}
             </Button>
             
-            <Button variant="outline" className="cyber-button">
+            <Button variant="outline" className="skeuo-button">
               <Download className="h-4 w-4 mr-2" />
               Preview
             </Button>
@@ -262,17 +262,17 @@ export const FEAReportGenerator: React.FC<FEAReportGeneratorProps> = ({
             <Label>Email Recipients</Label>
             <Input 
               placeholder="Enter email addresses (comma-separated)"
-              className="cyber-button"
+              className="skeuo-button"
             />
           </div>
 
           <div className="flex gap-2">
-            <Button variant="outline" className="cyber-button">
+            <Button variant="outline" className="skeuo-button">
               <Mail className="h-4 w-4 mr-2" />
               Email Report
             </Button>
             
-            <Button variant="outline" className="cyber-button">
+            <Button variant="outline" className="skeuo-button">
               <Printer className="h-4 w-4 mr-2" />
               Print Report
             </Button>

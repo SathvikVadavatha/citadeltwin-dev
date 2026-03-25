@@ -58,7 +58,7 @@ export const UserStatsCards: React.FC<UserStatsCardsProps> = ({ stats, loading }
       value: stats.thisMonth,
       icon: TrendingUp,
       description: 'Recently joined',
-      color: 'text-cyan-600',
+      color: 'text-primary',
     },
   ];
 

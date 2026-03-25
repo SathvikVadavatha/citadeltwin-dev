@@ -19,43 +19,22 @@ export const useQuantityTakeoff = (estimationId?: string) => {
     if (!estimationId) return;
 
     try {
-      const { data, error } = await supabase.functions.invoke('exec-sql', {
-        body: {
-          sql: `
-            SELECT 
-              qt.*,
-              be.name as element_name,
-              be.element_type,
-              be.geometry,
-              be.parameters,
-              m.name as material_name,
-              m.material_type,
-              m.properties as material_properties
-            FROM quantity_takeoffs qt
-            LEFT JOIN bim_elements be ON qt.element_id = be.id
-            LEFT JOIN materials m ON qt.material_id = m.id
-            WHERE qt.estimation_id = '${estimationId}'
-            ORDER BY qt.created_at ASC
-          `
-        }
-      });
+      const { data, error } = await supabase
+        .from('quantity_takeoffs')
+        .select(`
+          *,
+          bim_elements:element_id (name, element_type, geometry, parameters),
+          materials:material_id (name, material_type, properties)
+        `)
+        .eq('estimation_id', estimationId)
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
 
-      // Transform the data to match our expected structure
-      const transformedData = (data.data || []).map((item: any) => ({
+      const transformedData = (data || []).map((item: any) => ({
         ...item,
-        bim_elements: item.element_name ? {
-          name: item.element_name,
-          element_type: item.element_type,
-          geometry: item.geometry,
-          parameters: item.parameters
-        } : null,
-        materials: item.material_name ? {
-          name: item.material_name,
-          material_type: item.material_type,
-          properties: item.material_properties
-        } : null
+        bim_elements: item.bim_elements || null,
+        materials: item.materials || null,
       }));
 
       setTakeoffs(transformedData);
