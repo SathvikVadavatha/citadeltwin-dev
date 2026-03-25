@@ -17,10 +17,7 @@ const ViewBlueprints = React.lazy(() => import('./pages/ViewBlueprints').then(m 
 const Settings = React.lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const Users = React.lazy(() => import('./pages/Users').then(m => ({ default: m.Users })));
 const Compliance = React.lazy(() => import('./pages/Compliance').then(m => ({ default: m.Compliance })));
-const FEAAnalysis = React.lazy(() => import('./pages/FEAAnalysis').then(m => ({ default: m.FEAAnalysis })));
-const Analytics = React.lazy(() => import('./pages/Analytics').then(m => ({ default: m.Analytics })));
 const ClientPortal = React.lazy(() => import('./pages/ClientPortal').then(m => ({ default: m.ClientPortal })));
-const Testing = React.lazy(() => import('./pages/Testing').then(m => ({ default: m.Testing })));
 const DocumentManagementDashboard = React.lazy(() => import('@/components/documents/DocumentManagementDashboard').then(m => ({ default: m.DocumentManagementDashboard })));
 const Security = React.lazy(() => import('./pages/Security'));
 const WorkflowAutomation = React.lazy(() => import('./pages/WorkflowAutomation'));
@@ -134,41 +131,12 @@ function App() {
                   </ProtectedRoute>
                 } />
 
-                <Route path="/fea-analysis" element={
-                  <ProtectedRoute>
-                    <RouteErrorBoundary routeName="FEA Analysis">
-                      <EnhancedResponsiveLayout>
-                        <FEAAnalysis />
-                      </EnhancedResponsiveLayout>
-                    </RouteErrorBoundary>
-                  </ProtectedRoute>
-                } />
-
-                <Route path="/analytics" element={
-                  <ProtectedRoute>
-                    <RouteErrorBoundary routeName="Analytics">
-                      <EnhancedResponsiveLayout>
-                        <Analytics />
-                      </EnhancedResponsiveLayout>
-                    </RouteErrorBoundary>
-                  </ProtectedRoute>
-                } />
 
                 <Route path="/client-portal" element={
                   <ProtectedRoute>
                     <RouteErrorBoundary routeName="Client Portal">
                       <EnhancedResponsiveLayout>
                         <ClientPortal />
-                      </EnhancedResponsiveLayout>
-                    </RouteErrorBoundary>
-                  </ProtectedRoute>
-                } />
-
-                <Route path="/testing" element={
-                  <ProtectedRoute>
-                    <RouteErrorBoundary routeName="Testing">
-                      <EnhancedResponsiveLayout>
-                        <Testing />
                       </EnhancedResponsiveLayout>
                     </RouteErrorBoundary>
                   </ProtectedRoute>

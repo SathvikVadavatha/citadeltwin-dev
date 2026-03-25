@@ -3,11 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Upload, 
-  Cpu, 
-  FileText, 
-  Eye, 
-  BarChart3, 
+  Upload,
+  FileText,
+  Eye,
   Map,
   Shield,
   Building2,
@@ -19,7 +17,6 @@ import { BlueprintUpload } from '@/components/upload/BlueprintUpload';
 import { UploadResults } from '@/components/upload/UploadResults';
 import { Model3DViewer } from '@/components/3d/Model3DViewer';
 import { BIMElementsManager } from '@/components/bim/BIMElementsManager';
-import { FEAAnalysisManager } from '@/components/fea/FEAAnalysisManager';
 import { GISDataManager } from '@/components/gis/GISDataManager';
 import { ComplianceEngine } from '@/components/compliance/ComplianceEngine';
 import { DocumentGenerator } from '@/components/documents/DocumentGenerator';
@@ -27,8 +24,6 @@ import { DocumentTemplateManager } from '@/components/documents/DocumentTemplate
 import { useUploads } from '@/hooks/useUploads';
 import { useSimplifiedUpload } from '@/hooks/useSimplifiedUpload';
 import { use3DModelViewer } from '@/hooks/use3DModelViewer';
-import { CustomReportBuilder } from '@/components/analytics/CustomReportBuilder';
-import { ScheduledReports } from '@/components/analytics/ScheduledReports';
 import { RealTime3DGenerator } from '@/components/3d/RealTime3DGenerator';
 import { useDetectionRooms } from '@/hooks/useDetectionRooms';
 
@@ -85,7 +80,7 @@ export const MainDashboard = () => {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-8 bg-muted border border-border">
+          <TabsList className="grid w-full grid-cols-6 bg-muted border border-border">
             <TabsTrigger value="upload" className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Upload className="w-4 h-4" />
               <span>Upload</span>
@@ -98,10 +93,6 @@ export const MainDashboard = () => {
               <Building2 className="w-4 h-4" />
               <span>BIM</span>
             </TabsTrigger>
-            <TabsTrigger value="fea" className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Cpu className="w-4 h-4" />
-              <span>FEA</span>
-            </TabsTrigger>
             <TabsTrigger value="compliance" className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Shield className="w-4 h-4" />
               <span>Compliance</span>
@@ -113,10 +104,6 @@ export const MainDashboard = () => {
             <TabsTrigger value="gis" className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Map className="w-4 h-4" />
               <span>GIS</span>
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center space-x-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <BarChart3 className="w-4 h-4" />
-              <span>Analytics</span>
             </TabsTrigger>
           </TabsList>
 
@@ -244,10 +231,6 @@ export const MainDashboard = () => {
               <BIMElementsManager />
             </TabsContent>
 
-            <TabsContent value="fea" className="space-y-6">
-              <FEAAnalysisManager />
-            </TabsContent>
-
             <TabsContent value="compliance" className="space-y-6">
               <ComplianceEngine uploadId={uploadResult?.id || recentUpload?.id} />
             </TabsContent>
@@ -263,12 +246,6 @@ export const MainDashboard = () => {
               <GISDataManager />
             </TabsContent>
 
-            <TabsContent value="analytics" className="space-y-6">
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <CustomReportBuilder />
-                <ScheduledReports />
-              </div>
-            </TabsContent>
           </div>
         </Tabs>
       </div>

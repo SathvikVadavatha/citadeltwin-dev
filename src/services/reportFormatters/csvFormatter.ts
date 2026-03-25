@@ -1,4 +1,4 @@
-import { ReportData, ComplianceReportData, ActivityReportData, FEAAnalysisReportData } from '@/types/reports';
+import { ReportData, ComplianceReportData, ActivityReportData } from '@/types/reports';
 
 export class CSVFormatter {
   static formatToCSV(data: ReportData, reportType: string): string {
@@ -7,8 +7,6 @@ export class CSVFormatter {
         return this.formatComplianceCSV(data as ComplianceReportData);
       case 'activity':
         return this.formatActivityCSV(data as ActivityReportData);
-      case 'fea_analysis':
-        return this.formatFEACSV(data as FEAAnalysisReportData);
       default:
         return 'Report Type,Error\nUnknown,Report type not supported';
     }
@@ -83,29 +81,4 @@ export class CSVFormatter {
     return csv;
   }
 
-  private static formatFEACSV(data: FEAAnalysisReportData): string {
-    let csv = 'Section,Field,Value\n';
-    
-    // Basic info
-    csv += `Basic Info,Project Name,"${data.projectName}"\n`;
-    csv += `Basic Info,Date Generated,"${data.dateGenerated}"\n`;
-    csv += `Basic Info,Objective,"${data.objective}"\n`;
-    csv += `Basic Info,Model,"${data.model}"\n`;
-    csv += `Basic Info,Mesh Resolution,"${data.meshResolution}"\n`;
-    csv += `Basic Info,Boundary Conditions,"${data.boundaryConditions}"\n`;
-    
-    // Load cases
-    csv += '\nLoad Type,Displacement,Stress,Status\n';
-    data.loadCases.forEach(loadCase => {
-      csv += `"${loadCase.type}","${loadCase.displacement}","${loadCase.stress}","${loadCase.status}"\n`;
-    });
-    
-    // Recommendations
-    csv += '\nRecommendations\n';
-    data.recommendations.forEach((rec, index) => {
-      csv += `"${index + 1}. ${rec}"\n`;
-    });
-    
-    return csv;
-  }
 }

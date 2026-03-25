@@ -1,12 +1,11 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Upload, 
-  FileText, 
-  Shield, 
-  BarChart3,
+import {
+  LayoutDashboard,
+  Upload,
+  FileText,
+  Shield,
   Box
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -16,7 +15,7 @@ const navigation = [
   { name: 'Upload', href: '/blueprints/upload', icon: Upload },
   { name: '3D', href: '/blueprint-3d', icon: Box },
   { name: 'Blueprints', href: '/blueprints/view', icon: FileText },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { name: 'Compliance', href: '/compliance', icon: Shield },
 ];
 
 export const MobileBottomNav: React.FC = () => {

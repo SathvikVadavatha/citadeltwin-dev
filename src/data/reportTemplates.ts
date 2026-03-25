@@ -1,4 +1,4 @@
-import { ComplianceReportData, ActivityReportData, FEAAnalysisReportData } from '@/types/reports';
+import { ComplianceReportData, ActivityReportData } from '@/types/reports';
 
 export const complianceReportTemplate: ComplianceReportData = {
   projectName: "Sunrise Villa",
@@ -53,21 +53,3 @@ export const activityReportTemplate: ActivityReportData = {
   ]
 };
 
-export const feaAnalysisReportTemplate: FEAAnalysisReportData = {
-  projectName: "Sunrise Villa",
-  dateGenerated: "PLACEHOLDER_DATE",
-  objective: "Validate model against expected residential load limits using finite element analysis (FEA).",
-  model: "3D model generated from DXF",
-  meshResolution: "35,000 tetrahedral elements",
-  boundaryConditions: "Fixed at base slab, distributed load on roof",
-  loadCases: [
-    { type: "Dead Load", displacement: "2.1 mm", stress: "42 MPa", status: "Passed" },
-    { type: "Live Load", displacement: "3.8 mm", stress: "61 MPa", status: "Passed" },
-    { type: "Wind Load (E-W)", displacement: "7.2 mm", stress: "78 MPa", status: "Near Limit" },
-    { type: "Seismic Load (Z)", displacement: "5.5 mm", stress: "88 MPa", status: "Passed" }
-  ],
-  recommendations: [
-    "Increase roof truss stiffness (current: timber W-beam)",
-    "Add lateral bracing to resist hurricane wind uplift"
-  ]
-};
