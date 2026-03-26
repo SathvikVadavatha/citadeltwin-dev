@@ -6,15 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BIMElementsManager } from "@/components/bim/BIMElementsManager";
-import { FEAAnalysisManager } from "@/components/fea/FEAAnalysisManager";
 import { GISDataManager } from "@/components/gis/GISDataManager";
 import { CADDrawingCanvas } from "./CADDrawingCanvas";
 import { CADMeasurementTool } from "./CADMeasurementTool";
 import { Enhanced3DViewer } from "@/components/3d/Enhanced3DViewer";
-import { FEAResultsOverlay } from "@/components/3d/FEAResultsOverlay";
 import { useCADDrawing } from "@/hooks/useCADDrawing";
 import { use3DViewer } from "@/hooks/use3DViewer";
-import { Layers, Package, Calculator, Zap, Settings, Eye, Grid3X3, Map, PenTool } from "lucide-react";
+import { Layers, Package, Settings, Eye, Grid3X3, Map, PenTool } from "lucide-react";
 
 interface CADCanvasProps {
   onNavigate: (view: string) => void;
@@ -48,9 +46,7 @@ export const CADCanvas = ({ onNavigate }: CADCanvasProps) => {
     viewerState,
     selectedElementIndex,
     selectElement,
-    toggleFEAOverlay,
     hasElements,
-    hasFEAResults,
     isLoading
   } = use3DViewer();
 
@@ -122,14 +118,6 @@ export const CADCanvas = ({ onNavigate }: CADCanvasProps) => {
                   onDownload={() => console.log('Download 3D model')}
                 />
                 
-                {/* FEA Results Overlay */}
-                {viewerState.feaOverlayEnabled && hasFEAResults && (
-                  <FEAResultsOverlay
-                    results={feaResults}
-                    selectedElementIndex={selectedElementIndex}
-                    analysisType={viewerState.feaAnalysisType}
-                  />
-                )}
               </>
             ) : (
               <div className="h-full flex items-center justify-center">
@@ -156,15 +144,6 @@ export const CADCanvas = ({ onNavigate }: CADCanvasProps) => {
         {/* 3D Viewport Controls */}
         {viewMode === "3d" && hasElements && (
           <div className="absolute top-4 right-4 flex gap-2">
-            <Button
-              size="sm"
-              variant={viewerState.feaOverlayEnabled ? "default" : "outline"}
-              onClick={() => toggleFEAOverlay()}
-              className="bg-card/80 border-primary/30 text-primary hover:bg-primary/20"
-              disabled={!hasFEAResults}
-            >
-              <Zap className="w-4 h-4" />
-            </Button>
             <Button
               size="sm"
               variant={showGrid ? "default" : "outline"}
@@ -219,36 +198,29 @@ export const CADCanvas = ({ onNavigate }: CADCanvasProps) => {
       {/* Right Panel */}
       <div className="w-96 border-l border-border bg-card/95 backdrop-blur flex flex-col">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-5 bg-muted m-2">
-            <TabsTrigger 
-              value="drawing" 
+          <TabsList className="grid w-full grid-cols-4 bg-muted m-2">
+            <TabsTrigger
+              value="drawing"
               className="data-[state=active]:bg-primary data-[state=active]:text-white"
             >
               <PenTool className="w-4 h-4 mr-1" />
               Draw
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="model"
               className="data-[state=active]:bg-primary data-[state=active]:text-white"
             >
               <Package className="w-4 h-4 mr-1" />
               Model
             </TabsTrigger>
-            <TabsTrigger 
-              value="analysis"
-              className="data-[state=active]:bg-primary data-[state=active]:text-white"
-            >
-              <Calculator className="w-4 h-4 mr-1" />
-              FEA
-            </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="gis"
               className="data-[state=active]:bg-primary data-[state=active]:text-white"
             >
               <Map className="w-4 h-4 mr-1" />
               GIS
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="layers"
               className="data-[state=active]:bg-primary data-[state=active]:text-white"
             >
@@ -302,10 +274,6 @@ export const CADCanvas = ({ onNavigate }: CADCanvasProps) => {
 
             <TabsContent value="model" className="h-full p-2 overflow-y-auto">
               <BIMElementsManager />
-            </TabsContent>
-
-            <TabsContent value="analysis" className="h-full p-2 overflow-y-auto">
-              <FEAAnalysisManager elementId={selectedElement || undefined} />
             </TabsContent>
 
             <TabsContent value="gis" className="h-full p-2 overflow-y-auto">

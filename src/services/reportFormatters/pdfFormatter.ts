@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import { ReportData, ComplianceReportData, ActivityReportData, FEAAnalysisReportData } from '@/types/reports';
+import { ReportData, ComplianceReportData, ActivityReportData } from '@/types/reports';
 
 export class PDFFormatter {
   static async formatToPDF(data: ReportData, reportType: string): Promise<Blob> {
@@ -14,9 +14,6 @@ export class PDFFormatter {
         break;
       case 'activity':
         this.generateActivityPDF(pdf, data as ActivityReportData);
-        break;
-      case 'fea_analysis':
-        this.generateFEAPDF(pdf, data as FEAAnalysisReportData);
         break;
       default:
         pdf.text('Unknown Report Type', 20, 20);
@@ -225,87 +222,4 @@ export class PDFFormatter {
     });
   }
 
-  private static generateFEAPDF(pdf: jsPDF, data: FEAAnalysisReportData): void {
-    let yPosition = 20;
-    
-    // Title
-    pdf.setFontSize(20);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text(`Analysis Report – ${data.projectName}`, 20, yPosition);
-    yPosition += 15;
-    
-    // Date
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'italic');
-    pdf.text(`Date Generated: ${data.dateGenerated}`, 20, yPosition);
-    yPosition += 20;
-    
-    // Overview
-    pdf.setFontSize(16);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Overview', 20, yPosition);
-    yPosition += 15;
-    
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    const overviewItems = [
-      `Objective: ${data.objective}`,
-      `Model: ${data.model}`,
-      `Mesh Resolution: ${data.meshResolution}`,
-      `Boundary Conditions: ${data.boundaryConditions}`
-    ];
-    
-    overviewItems.forEach(item => {
-      const lines = pdf.splitTextToSize(`• ${item}`, 170);
-      lines.forEach((line: string) => {
-        pdf.text(line, 25, yPosition);
-        yPosition += 8;
-      });
-      yPosition += 3;
-    });
-    yPosition += 15;
-    
-    // Key Load Cases
-    pdf.setFontSize(16);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Key Load Cases', 20, yPosition);
-    yPosition += 15;
-    
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    data.loadCases.forEach(loadCase => {
-      const statusColor = loadCase.status === 'Passed' ? [0, 150, 0] : 
-                         loadCase.status === 'Failed' ? [200, 0, 0] : [200, 150, 0];
-      
-      pdf.text(`• ${loadCase.type}: ${loadCase.displacement} displacement, ${loadCase.stress} stress`, 25, yPosition);
-      pdf.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
-      pdf.text(`${loadCase.status}`, 150, yPosition);
-      pdf.setTextColor(0, 0, 0);
-      yPosition += 12;
-    });
-    yPosition += 15;
-    
-    // Recommendations
-    if (yPosition > 220) {
-      pdf.addPage();
-      yPosition = 20;
-    }
-    
-    pdf.setFontSize(16);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text('Recommendations', 20, yPosition);
-    yPosition += 15;
-    
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    data.recommendations.forEach((rec, index) => {
-      const recText = `${index + 1}. ${rec}`;
-      const lines = pdf.splitTextToSize(recText, 170);
-      lines.forEach((line: string) => {
-        pdf.text(line, 25, yPosition);
-        yPosition += 8;
-      });
-      yPosition += 5;
-    });
-  }
 }

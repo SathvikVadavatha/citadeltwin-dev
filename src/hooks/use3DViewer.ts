@@ -1,6 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useBIMElements } from '@/hooks/useBIMElements';
-import { useFEAAnalyses } from '@/hooks/useFEAAnalyses';
 
 export interface ViewerState {
   selectedElementId?: string;
@@ -21,7 +20,6 @@ export const use3DViewer = (uploadId?: string, projectId?: string) => {
   const filterId = projectId || uploadId;
   
   const { elements, loading: elementsLoading, refreshElements } = useBIMElements(filterId, filterType);
-  const { analyses, results, loading: feaLoading } = useFEAAnalyses();
 
   const [viewerState, setViewerState] = useState<ViewerState>({
     viewMode: '3d',
@@ -71,57 +69,6 @@ export const use3DViewer = (uploadId?: string, projectId?: string) => {
     }
   }, [elements]);
 
-  // Transform FEA results with better error handling and element mapping
-  const transformedFEAResults = useMemo(() => {
-    if (!results || results.length === 0) return undefined;
-
-    try {
-      const feaData: any = {};
-      
-      results.forEach((result) => {
-        if (result.result_type && result.data) {
-          try {
-            const data = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
-            const metadata = typeof result.metadata === 'string' ? JSON.parse(result.metadata) : result.metadata;
-            
-            // Ensure we have values array that matches element count
-            let values = data.values || [];
-            if (values.length !== transformedElements.length && transformedElements.length > 0) {
-              // Generate mock values if counts don't match
-              values = transformedElements.map((_, index) => {
-                const normalizedIndex = index / Math.max(1, transformedElements.length - 1);
-                switch (result.result_type) {
-                  case 'stress':
-                    return 50000 + (normalizedIndex * 200000); // 50kPa to 250kPa
-                  case 'displacement':
-                    return normalizedIndex * 0.01; // 0 to 10mm
-                  case 'safety_factor':
-                    return 1.2 + (normalizedIndex * 1.8); // 1.2 to 3.0
-                  default:
-                    return normalizedIndex;
-                }
-              });
-            }
-            
-            feaData[result.result_type] = {
-              values,
-              max: data.max || Math.max(...values),
-              min: data.min || Math.min(...values),
-              unit: metadata?.units || (result.result_type === 'safety_factor' ? '' : 'N/m²')
-            };
-          } catch (error) {
-            console.error('Error parsing FEA result:', error);
-          }
-        }
-      });
-
-      return Object.keys(feaData).length > 0 ? feaData : undefined;
-    } catch (error) {
-      console.error('Error transforming FEA results:', error);
-      return undefined;
-    }
-  }, [results, transformedElements.length]);
-
   const updateViewerState = useCallback((updates: Partial<ViewerState>) => {
     setViewerState(prev => ({ ...prev, ...updates }));
   }, []);
@@ -144,14 +91,6 @@ export const use3DViewer = (uploadId?: string, projectId?: string) => {
       viewMode: prev.crossSectionEnabled ? '3d' : 'cross-section',
       crossSectionEnabled: !prev.crossSectionEnabled,
       crossSectionPosition: position || prev.crossSectionPosition
-    }));
-  }, []);
-
-  const toggleFEAOverlay = useCallback((analysisType?: 'stress' | 'displacement' | 'safety_factor') => {
-    setViewerState(prev => ({
-      ...prev,
-      feaOverlayEnabled: !prev.feaOverlayEnabled,
-      feaAnalysisType: analysisType || prev.feaAnalysisType
     }));
   }, []);
 
@@ -187,29 +126,27 @@ export const use3DViewer = (uploadId?: string, projectId?: string) => {
   return {
     // Data
     elements: transformedElements,
-    feaResults: transformedFEAResults,
-    analyses,
-    loading: elementsLoading || feaLoading,
-    
+    feaResults: undefined,
+    loading: elementsLoading,
+
     // State
     viewerState,
     selectedElementIndex: getSelectedElementIndex(),
-    
+
     // Actions
     updateViewerState,
     selectElement,
     toggleExplodedView,
     toggleCrossSection,
-    toggleFEAOverlay,
     resetView,
     exportView,
     getElementByIndex,
     refreshElements,
-    
+
     // Computed
     hasElements: transformedElements.length > 0,
-    hasFEAResults: !!transformedFEAResults,
-    isLoading: elementsLoading || feaLoading,
+    hasFEAResults: false,
+    isLoading: elementsLoading,
     elementCount: transformedElements.length
   };
 };

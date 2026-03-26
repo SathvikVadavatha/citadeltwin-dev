@@ -23,7 +23,6 @@ import {
   Camera,
   RefreshCw
 } from "lucide-react";
-import { FEAResultsOverlay } from './FEAResultsOverlay';
 import * as THREE from 'three';
 
 interface BIMElement {
@@ -495,15 +494,6 @@ export const Enhanced3DViewer: React.FC<Enhanced3DViewerProps> = ({
             />
           </Canvas>
         </ErrorBoundary>
-      )}
-      
-      {/* FEA Results Overlay */}
-      {feaResults && (
-        <FEAResultsOverlay
-          results={feaResults}
-          selectedElementIndex={selectedElementIndex}
-          analysisType={feaType}
-        />
       )}
       
       {/* Controls overlay */}

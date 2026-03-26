@@ -46,12 +46,6 @@ export const LazyBIMElementsManager = lazy(() =>
   }))
 );
 
-export const LazyFEAAnalysisManager = lazy(() => 
-  import('@/components/fea/FEAAnalysisManager').then(module => ({
-    default: module.FEAAnalysisManager
-  }))
-);
-
 export const LazyCollaborativeEditor = lazy(() => 
   import('@/components/collaboration/CollaborativeEditor').then(module => ({
     default: module.CollaborativeEditor
