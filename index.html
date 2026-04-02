@@ -3,7 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://maps.googleapis.com https://docs.opencv.org https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com https://maps.googleapis.com; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; worker-src 'self' blob:;" />
+    <!--
+      CSP is intentionally set via HTTP headers in production (e.g. Vercel/Nginx),
+      NOT via a meta tag, because meta-tag CSP blocks Vite's dev-mode inline
+      scripts and lacks features like report-uri and frame-ancestors.
+    -->
     <title>CitadelTwin — Digital Twin for Construction</title>
     <meta name="description" content="CitadelTwin is an AI-powered digital twin platform for construction project management, BIM, cost estimation, and compliance." />
     <meta name="author" content="CitadelTwin" />

@@ -13,7 +13,7 @@ export const AuthPage: React.FC = () => {
     const hash = window.location.hash;
     if (hash) {
       const params = new URLSearchParams(hash.substring(1));
-      if (params.get('type') === 'recovery' || params.has('access_token')) {
+      if (params.get('type') === 'recovery') {
         setCurrentView('reset-password');
       }
     }
