@@ -82,12 +82,12 @@ export const ComplianceActions: React.FC<ComplianceActionsProps> = ({
       <Button
         onClick={handleRunMultiJurisdictionCheck}
         disabled={!uploadId || !selectedJurisdiction || isRunningCheck}
-        className="skeuo-button"
+        className="skeuo-button text-foreground"
         size="lg"
       >
         {isRunningCheck ? (
           <>
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-foreground mr-2" />
             Running Check...
           </>
         ) : (
@@ -111,12 +111,12 @@ export const ComplianceActions: React.FC<ComplianceActionsProps> = ({
       <Button
         onClick={generateComplianceReport}
         disabled={!uploadId || !selectedJurisdiction || isGeneratingReport || violations.length === 0}
-        className="skeuo-button"
+        className="skeuo-button text-foreground"
         size="lg"
       >
         {isGeneratingReport ? (
           <>
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-foreground mr-2" />
             Generating...
           </>
         ) : (

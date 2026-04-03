@@ -8,15 +8,18 @@ import { useJurisdictions } from '@/hooks/useJurisdictions';
 import { PriorityJurisdictions } from './PriorityJurisdictions';
 import { JurisdictionSearchForm } from './jurisdiction/JurisdictionSearchForm';
 import { formatJurisdictionName } from './jurisdiction/JurisdictionUtils';
+import type { ComplianceTemplateKey } from '@/types/complianceTemplate';
 
 interface JurisdictionSelectorProps {
   onJurisdictionSelect: (jurisdictionId: string) => void;
   selectedJurisdiction?: string;
+  onOpenComplianceTemplate?: (key: ComplianceTemplateKey) => void;
 }
 
 export const JurisdictionSelector: React.FC<JurisdictionSelectorProps> = ({
   onJurisdictionSelect,
-  selectedJurisdiction
+  selectedJurisdiction,
+  onOpenComplianceTemplate,
 }) => {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   
@@ -70,6 +73,7 @@ export const JurisdictionSelector: React.FC<JurisdictionSelectorProps> = ({
             <PriorityJurisdictions
               onJurisdictionSelect={onJurisdictionSelect}
               selectedJurisdiction={selectedJurisdiction}
+              onOpenComplianceTemplate={onOpenComplianceTemplate}
             />
 
             {/* Location Search */}
