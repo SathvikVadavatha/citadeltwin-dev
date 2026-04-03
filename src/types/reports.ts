@@ -52,25 +52,7 @@ export interface ActivityReportData {
   nextMilestones: Milestone[];
 }
 
-export interface LoadCase {
-  type: string;
-  displacement: string;
-  stress: string;
-  status: 'Passed' | 'Near Limit' | 'Failed';
-}
-
-export interface FEAAnalysisReportData {
-  projectName: string;
-  dateGenerated: string;
-  objective: string;
-  model: string;
-  meshResolution: string;
-  boundaryConditions: string;
-  loadCases: LoadCase[];
-  recommendations: string[];
-}
-
-export type ReportData = ComplianceReportData | ActivityReportData | FEAAnalysisReportData;
+export type ReportData = ComplianceReportData | ActivityReportData;
 
 export interface ReportOutput {
   data: ReportData;
@@ -79,5 +61,5 @@ export interface ReportOutput {
   mimeType: string;
 }
 
-export type ReportType = 'fea_analysis' | 'compliance' | 'activity' | 'performance';
+export type ReportType = 'compliance' | 'activity' | 'performance';
 export type OutputFormat = 'pdf' | 'csv' | 'json';
