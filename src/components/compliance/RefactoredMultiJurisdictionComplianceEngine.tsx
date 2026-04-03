@@ -13,12 +13,17 @@ import { ComplianceActions } from './ComplianceActions';
 import { JurisdictionSelector } from './JurisdictionSelector';
 import { ComplianceViolationsList } from './ComplianceViolationsList';
 import { ComplianceRulesList } from './ComplianceRulesList';
+import type { ComplianceTemplateKey } from '@/types/complianceTemplate';
 
 interface RefactoredMultiJurisdictionComplianceEngineProps {
   uploadId?: string;
+  onOpenComplianceTemplate?: (key: ComplianceTemplateKey) => void;
 }
 
-export const RefactoredMultiJurisdictionComplianceEngine: React.FC<RefactoredMultiJurisdictionComplianceEngineProps> = ({ uploadId }) => {
+export const RefactoredMultiJurisdictionComplianceEngine: React.FC<RefactoredMultiJurisdictionComplianceEngineProps> = ({
+  uploadId,
+  onOpenComplianceTemplate,
+}) => {
   const [selectedJurisdiction, setSelectedJurisdiction] = useState<string>('');
   
   const { complianceRules, rulesLoading } = useComplianceRules();
@@ -58,6 +63,7 @@ export const RefactoredMultiJurisdictionComplianceEngine: React.FC<RefactoredMul
         <JurisdictionSelector
           onJurisdictionSelect={setSelectedJurisdiction}
           selectedJurisdiction={selectedJurisdiction}
+          onOpenComplianceTemplate={onOpenComplianceTemplate}
         />
 
         {/* Compliance Dashboard */}

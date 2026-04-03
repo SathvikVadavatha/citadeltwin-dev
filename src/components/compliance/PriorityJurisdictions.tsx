@@ -4,15 +4,26 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { MapPin, Building, Shield, AlertTriangle, Snowflake, Wind, Waves } from 'lucide-react';
+import type { ComplianceTemplateKey } from '@/types/complianceTemplate';
 
 interface PriorityJurisdictionsProps {
   onJurisdictionSelect: (jurisdictionId: string) => void;
   selectedJurisdiction?: string;
+  onOpenComplianceTemplate?: (key: ComplianceTemplateKey) => void;
 }
+
+const PRIORITY_TEMPLATE_KEY: Record<string, ComplianceTemplateKey> = {
+  'OH-state': 'ohio',
+  'FL-state': 'florida',
+  'NY-city': 'nyc',
+  'CA-state': 'california',
+  'TX-state': 'texas',
+};
 
 export const PriorityJurisdictions: React.FC<PriorityJurisdictionsProps> = ({
   onJurisdictionSelect,
-  selectedJurisdiction
+  selectedJurisdiction,
+  onOpenComplianceTemplate,
 }) => {
   const getJurisdictionIcon = (type: string) => {
     switch (type) {
@@ -50,7 +61,12 @@ export const PriorityJurisdictions: React.FC<PriorityJurisdictionsProps> = ({
             className={`cursor-pointer transition-colors border border-primary hover:bg-primary/20 ${
               selectedJurisdiction === `${priority.state}-${priority.type}` ? 'bg-primary/10' : ''
             }`}
-            onClick={() => onJurisdictionSelect(`${priority.state}-${priority.type}`)}
+            onClick={() => {
+              const id = `${priority.state}-${priority.type}`;
+              onJurisdictionSelect(id);
+              const templateKey = PRIORITY_TEMPLATE_KEY[id];
+              if (templateKey) onOpenComplianceTemplate?.(templateKey);
+            }}
           >
             <CardContent className="p-3">
               <div className="flex items-start justify-between">
