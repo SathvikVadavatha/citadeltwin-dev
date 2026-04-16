@@ -46,41 +46,43 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComple
     try {
       console.log('Auto-triggering 3D generation for upload:', uploadId);
 
-      // Fetch the image and re-send to the 3D generation edge function
-      const imgResponse = await fetch(imageUrl);
-      const blob = await imgResponse.blob();
-      const file = new File([blob], 'blueprint.png', { type: blob.type || 'image/png' });
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_id', uploadId); // Link to existing blueprint_uploads row
-
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-blueprint-3d`,
-        { method: 'POST', body: formData }
+        `https://blueprint-pipeline-production.up.railway.app/process`,
+        { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_url: imageUrl }) 
+        }
       );
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Failed to generate 3D model');
+        throw new Error(`Pipeline returned ${response.status}`);
       }
 
       const data = await response.json();
-      if (data.status === 'success') {
-        setModel3DUrl(data.glb_url);
-        // Store the AI detections with precise OCR dimensions
-        if (data.detections?.length > 0) {
-          setAiDetections(data.detections);
-        }
-        if (data.scale_info) setAiScaleInfo(data.scale_info);
-        if (data.building_info) setAiBuildingInfo(data.building_info);
-        if (data.walls) setAiWalls(data.walls);
-        toast({
-          title: '3D Model Ready',
-          description: `Generated ${data.detections?.length || 0} rooms with precise dimensions.`,
-        });
-        if (onUploadComplete) onUploadComplete(uploadId);
+      const { glb_base64, rooms, walls, metadata } = data;
+
+      // Convert base64 GLB to a blob URL the Three.js viewer can load
+      const glbBytes = Uint8Array.from(atob(glb_base64), (c) => c.charCodeAt(0));
+      const glbBlob = new Blob([glbBytes], { type: 'model/gltf-binary' });
+      const glbUrl = URL.createObjectURL(glbBlob);
+
+      setModel3DUrl(glbUrl);
+      
+      // Store the AI detections and structural info
+      if (rooms?.length > 0) {
+        setAiDetections(rooms);
       }
+      
+      if (walls) setAiWalls(walls);
+      if (metadata) setAiBuildingInfo(metadata);
+      
+      toast({
+        title: '3D Model Ready',
+        description: `Generated ${rooms?.length || 0} rooms from your blueprint.`,
+      });
+      
+      if (onUploadComplete) onUploadComplete(uploadId);
     } catch (err) {
       console.error('3D generation error:', err);
       toast({

@@ -556,16 +556,52 @@ export const useBlueprintProcessing = () => {
       
       const isAIGenerated = processingState.processingMethod === 'ai';
       
-      // Call the enhanced 3D generation edge function
-      const { data: generationResult, error: generationError } = await supabase.functions.invoke('generate-3d-model', {
-        body: {
-          uploadId,
-          detectedObjects,
-          imageUrl,
-          uniqueFileName,
-          isAIGenerated
+      const PIPELINE_URL = 'https://blueprint-pipeline-production.up.railway.app';
+      
+      let generationResult = null;
+      let generationError = null;
+      
+      try {
+        const pipelineRes = await fetch(`${PIPELINE_URL}/process`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_url: imageUrl })
+        });
+        
+        if (!pipelineRes.ok) {
+          throw new Error(`Pipeline returned ${pipelineRes.status}`);
         }
-      });
+        
+        const pipelineData = await pipelineRes.json();
+        const { glb_base64, rooms, metadata } = pipelineData;
+        
+        // Convert base64 GLB to a blob URL the Three.js viewer can load
+        const glbBytes = Uint8Array.from(atob(glb_base64), c => c.charCodeAt(0));
+        const glbBlob = new Blob([glbBytes], { type: 'model/gltf-binary' });
+        const glbUrl = URL.createObjectURL(glbBlob);
+        
+        // Insert model record into database so the subsequent query finds it
+        const { error: insertError } = await supabase
+          .from('generated_3d_models')
+          .insert({
+            upload_id: uploadId,
+            model_name: `Blueprint Model ${uploadId}`,
+            model_description: `AI-generated 3D model — ${metadata?.total_rooms ?? 0} rooms`,
+            model_file_path: glbUrl,
+            file_size: glbBytes.length,
+            generation_status: 'completed',
+            generation_prompt: 'Python CV pipeline: YOLO + EasyOCR + Voronoi + trimesh'
+          });
+        
+        if (insertError) {
+          console.warn('Could not store model record:', insertError.message);
+        }
+        
+        generationResult = { modelUrl: glbUrl, rooms, metadata };
+        
+      } catch (err) {
+        generationError = { message: err instanceof Error ? err.message : 'Pipeline call failed' };
+      }
 
       if (generationError) {
         logger.warn('3D generation service failed, creating fallback model', '3D Generation', {
