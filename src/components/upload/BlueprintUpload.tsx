@@ -46,43 +46,15 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComple
     try {
       console.log('Auto-triggering 3D generation for upload:', uploadId);
 
-      const response = await fetch(
-        `https://blueprint-pipeline-production.up.railway.app/process`,
-        { 
-          method: 'POST', 
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image_url: imageUrl }) 
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Pipeline returned ${response.status}`);
-      }
-
-      const data = await response.json();
-      const { glb_base64, rooms, walls, metadata } = data;
-
-      // Convert base64 GLB to a blob URL the Three.js viewer can load
-      const glbBytes = Uint8Array.from(atob(glb_base64), (c) => c.charCodeAt(0));
-      const glbBlob = new Blob([glbBytes], { type: 'model/gltf-binary' });
-      const glbUrl = URL.createObjectURL(glbBlob);
-
-      setModel3DUrl(glbUrl);
-      
-      // Store the AI detections and structural info
-      if (rooms?.length > 0) {
-        setAiDetections(rooms);
-      }
-      
-      if (walls) setAiWalls(walls);
-      if (metadata) setAiBuildingInfo(metadata);
-      
-      toast({
-        title: '3D Model Ready',
-        description: `Generated ${rooms?.length || 0} rooms from your blueprint.`,
-      });
-      
-      if (onUploadComplete) onUploadComplete(uploadId);
+      const { data: generationResult, error: generationError } = 
+        await supabase.functions.invoke('generate-3d-model', {
+          body: {
+            uploadId,
+            imageUrl,
+            uniqueFileName: `${uploadId}/model_${Date.now()}.glb`,
+            isAIGenerated: true
+          }
+        });
     } catch (err) {
       console.error('3D generation error:', err);
       toast({
