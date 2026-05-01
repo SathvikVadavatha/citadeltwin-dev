@@ -29,7 +29,9 @@ export const use3DModelViewer = (uploadId?: string): Use3DModelViewerReturn => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchLatest3DModel = useCallback(async () => {
-    if (!uploadId) {
+    let effectiveUploadId = uploadId;
+    
+    if (!effectiveUploadId) {
       // Try to get the most recent upload if no specific uploadId
       const { data: recentUploads } = await supabase
         .from('blueprint_uploads')
@@ -43,58 +45,74 @@ export const use3DModelViewer = (uploadId?: string): Use3DModelViewerReturn => {
         return;
       }
       
-      uploadId = recentUploads[0].id;
+      effectiveUploadId = recentUploads[0].id;
     }
 
     setLoading(true);
     setError(null);
 
-    try {
-      console.log('Fetching 3D model for upload:', uploadId);
-      
-      // Get the latest 3D model for this upload
-      const { data: modelData, error: modelError } = await supabase
-        .from('generated_3d_models')
-        .select('*')
-        .eq('upload_id', uploadId)
-        .eq('generation_status', 'completed')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+    const maxAttempts = 15;
+    const delay = 3000;
 
-      if (modelError) {
-        if (modelError.code === 'PGRST116') {
-          setError('No 3D model found for this upload');
-          console.log('No 3D model found for upload:', uploadId);
-        } else {
+    try {
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        console.log(`[Attempt ${attempt}/${maxAttempts}] Fetching 3D model for upload:`, effectiveUploadId);
+        
+        // Get the latest 3D model for this upload
+        // Use .maybeSingle() instead of .single() to avoid PGRST116 error when 0 rows returned
+        const { data: modelData, error: modelError } = await supabase
+          .from('generated_3d_models')
+          .select('*')
+          .eq('upload_id', effectiveUploadId)
+          .eq('generation_status', 'completed')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (modelError) {
           throw modelError;
         }
-        return;
+
+        if (modelData?.model_file_path) {
+          console.log('Found 3D model:', modelData);
+          setModelMetadata(modelData);
+
+          // Check if the path is already a direct URL (blob: or http:)
+          const filePath = modelData.model_file_path;
+          if (filePath.startsWith('blob:') || filePath.startsWith('http')) {
+            console.log('Using direct model URL:', filePath);
+            setModel3DUrl(filePath);
+            return; // Exit on success
+          }
+
+          // Generate signed URL for the model (for Supabase Storage paths)
+          const { data: urlData, error: urlError } = await supabase.storage
+            .from('3d-models')
+            .createSignedUrl(filePath, 60 * 60); // 1 hour expiry
+
+          if (urlError) {
+            throw urlError;
+          }
+
+          if (urlData?.signedUrl) {
+            setModel3DUrl(urlData.signedUrl);
+            console.log('Generated signed URL for 3D model');
+            return; // Exit on success
+          } else {
+            throw new Error('Failed to generate signed URL for 3D model');
+          }
+        }
+
+        // If no model found and not last attempt, wait and retry
+        if (attempt < maxAttempts) {
+          console.log(`No model found for upload ${effectiveUploadId}, retrying in ${delay/1000}s...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
       }
 
-      if (!modelData?.model_file_path) {
-        setError('3D model file path not found');
-        return;
-      }
-
-      console.log('Found 3D model:', modelData);
-      setModelMetadata(modelData);
-
-      // Generate signed URL for the model
-      const { data: urlData, error: urlError } = await supabase.storage
-        .from('3d-models')
-        .createSignedUrl(modelData.model_file_path, 60 * 60); // 1 hour expiry
-
-      if (urlError) {
-        throw urlError;
-      }
-
-      if (urlData?.signedUrl) {
-        setModel3DUrl(urlData.signedUrl);
-        console.log('Generated signed URL for 3D model');
-      } else {
-        setError('Failed to generate signed URL for 3D model');
-      }
+      // If we reach here, we exhausted retries
+      setError('No 3D model found for this upload');
+      console.log('Exhausted retries for upload:', effectiveUploadId);
 
     } catch (err) {
       console.error('Error fetching 3D model:', err);
@@ -111,7 +129,7 @@ export const use3DModelViewer = (uploadId?: string): Use3DModelViewerReturn => {
   // Auto-fetch on mount and when uploadId changes
   useEffect(() => {
     fetchLatest3DModel();
-  }, [fetchLatest3DModel]);
+  }, [fetchLatest3DModel, uploadId]);
 
   // Auto-refresh URL if it's about to expire (every 50 minutes)
   useEffect(() => {

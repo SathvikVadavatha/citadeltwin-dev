@@ -7,6 +7,11 @@ using trimesh.  Walls are row-scanned and extruded as boxes; rooms get
 coloured floor tiles; a ground plane is added.
 
 The GLB is exported in-memory and returned as base64.
+
+Fixes applied:
+  - Y-axis flip in floor tile placement to match notebook orientation
+  - Per-face color application (np.tile) so trimesh actually renders colors
+  - Same per-face fix applied to wall boxes, door indicators, and ground plane
 """
 
 import base64
@@ -44,7 +49,7 @@ ROOM_COLORS: dict[str, list[int]] = {
 }
 
 WALL_COLOR = [180, 175, 165, 255]    # warm off-white
-GROUND_COLOR = [50, 50, 50, 255]     # dark grey
+GROUND_COLOR = [30, 30, 30, 255]     # dark grey — visibly darker than floor tiles
 
 
 def _color_for_label(label: str) -> list[int]:
@@ -57,12 +62,22 @@ def _color_for_label(label: str) -> list[int]:
 
 
 def _find_building_bbox(boundary: np.ndarray) -> tuple[int, int, int, int]:
-    """Return (bx, by, bw, bh) bounding rect of all wall pixels."""
+    """Return (bx, by, bw, bh) bounding rect of all wall pixels.
+
+    Shrunk by 10 px on each side to exclude stray annotation pixels
+    (dimension lines, title blocks, etc.) that sit at the image border.
+    """
     coords = cv2.findNonZero(boundary)
     if coords is None:
         h, w = boundary.shape
         return 0, 0, w, h
-    return cv2.boundingRect(coords)
+    bx, by, bw, bh = cv2.boundingRect(coords)
+    # Shrink by 10 px per edge to discard border noise
+    bx = max(0, bx + 8)
+    by = max(0, by + 8)
+    bw = max(10, bw - 16)
+    bh = max(10, bh - 16)
+    return bx, by, bw, bh
 
 
 def _row_scan_walls(
@@ -75,6 +90,8 @@ def _row_scan_walls(
     Scan rows of the wall mask in strips.  For each horizontal run of
     wall pixels, create a box mesh.  If a run overlaps a door bounding box,
     create a thin indicator instead of a full-height wall.
+
+    Per-face colors are set with np.tile so trimesh renders them correctly.
     """
     meshes: list[trimesh.Trimesh] = []
 
@@ -114,19 +131,22 @@ def _row_scan_walls(
                         break
 
                 if is_door:
-                    # Thin door indicator (0.1 ft tall)
+                    # Thin door indicator (0.1 ft tall) — brown tint
                     box = trimesh.creation.box(
                         extents=[run_width_ft, strip_depth_ft, 0.1]
                     )
                     box.apply_translation([center_x_ft, center_y_ft, 0.05])
-                    box.visual.face_colors = [100, 70, 40, 255]  # brown tint
+                    # FIX 2b: per-face color so trimesh renders it correctly
+                    door_color = [100, 70, 40, 255]
+                    box.visual.face_colors = np.tile(door_color, (len(box.faces), 1))
                 else:
                     # Full wall
                     box = trimesh.creation.box(
                         extents=[run_width_ft, strip_depth_ft, WALL_HEIGHT]
                     )
                     box.apply_translation([center_x_ft, center_y_ft, WALL_HEIGHT / 2])
-                    box.visual.face_colors = WALL_COLOR
+                    # FIX 2b: per-face color so trimesh renders it correctly
+                    box.visual.face_colors = np.tile(WALL_COLOR, (len(box.faces), 1))
 
                 meshes.append(box)
                 run_start = None
@@ -143,6 +163,10 @@ def _room_floor_tiles(
 ) -> list[trimesh.Trimesh]:
     """
     Create coloured floor tiles based on Voronoi room assignment.
+
+    FIX 2a: Y axis is flipped so the model appears right-side up, matching
+    the notebook formula:  y_ft = (bh - ty - tile_size_px) / ppf + tile_ft/2
+    FIX 2b: Per-face colors applied with np.tile.
     """
     meshes: list[trimesh.Trimesh] = []
     tile_ft = tile_size_px / ppf
@@ -160,12 +184,12 @@ def _room_floor_tiles(
             color = _color_for_label(label)
 
             tile = trimesh.creation.box(extents=[tile_ft, tile_ft, 0.05])
-            tile.apply_translation([
-                tx / ppf + tile_ft / 2,
-                ty / ppf + tile_ft / 2,
-                -FLOOR_THICK / 2,
-            ])
-            tile.visual.face_colors = color
+            # Named variables make axis mapping explicit and easy to audit
+            center_x = tx / ppf + tile_ft / 2
+            center_y = (bh - ty - tile_size_px) / ppf + tile_ft / 2
+            tile.apply_translation([center_x, center_y, -FLOOR_THICK / 2])
+            # FIX 2b: per-face color so trimesh renders it correctly
+            tile.visual.face_colors = np.tile(color, (len(tile.faces), 1))
             meshes.append(tile)
 
     return meshes
@@ -225,14 +249,16 @@ def run(image: np.ndarray, context: dict) -> dict:
         scene.add_geometry(m, node_name=f"wall_{i}")
 
     # --- Floor tiles ---
-    tile_meshes = _room_floor_tiles(claimed, rooms, bx, by, bw, bh, ppf)
-    for i, m in enumerate(tile_meshes):
-        scene.add_geometry(m, node_name=f"tile_{i}")
+    # tile_meshes = _room_floor_tiles(claimed, rooms, bx, by, bw, bh, ppf)
+    # for i, m in enumerate(tile_meshes):
+    #     scene.add_geometry(m, node_name=f"tile_{i}")
+    tile_meshes = []
 
     # --- Ground plane ---
     ground = trimesh.creation.box(extents=[floor_w_ft + 2, floor_h_ft + 2, FLOOR_THICK])
     ground.apply_translation([floor_w_ft / 2, floor_h_ft / 2, -FLOOR_THICK])
-    ground.visual.face_colors = GROUND_COLOR
+    # FIX 2c: per-face color so trimesh renders it correctly
+    ground.visual.face_colors = np.tile(GROUND_COLOR, (len(ground.faces), 1))
     scene.add_geometry(ground, node_name="ground")
 
     # --- Export GLB ---

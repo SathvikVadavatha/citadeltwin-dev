@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { BlueprintUpload } from '@/components/upload/BlueprintUpload';
 import { UploadResults } from '@/components/upload/UploadResults';
-import { Model3DViewer } from '@/components/3d/Model3DViewer';
 import { BIMElementsManager } from '@/components/bim/BIMElementsManager';
 import { GISDataManager } from '@/components/gis/GISDataManager';
 import { ComplianceEngine } from '@/components/compliance/ComplianceEngine';
@@ -24,13 +23,47 @@ import { DocumentTemplateManager } from '@/components/documents/DocumentTemplate
 import { useUploads } from '@/hooks/useUploads';
 import { useSimplifiedUpload } from '@/hooks/useSimplifiedUpload';
 import { use3DModelViewer } from '@/hooks/use3DModelViewer';
-import { RealTime3DGenerator } from '@/components/3d/RealTime3DGenerator';
 import { useDetectionRooms } from '@/hooks/useDetectionRooms';
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'model-viewer': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
+        src?: string | null;
+        'camera-controls'?: boolean;
+        'auto-rotate'?: boolean;
+        'shadow-intensity'?: string;
+        style?: React.CSSProperties;
+      }, HTMLElement>;
+    }
+  }
+}
 
 export const MainDashboard = () => {
   const [activeTab, setActiveTab] = useState('upload');
   const { uploads } = useUploads();
   const { result: uploadResult, reset: resetUpload } = useSimplifiedUpload();
+  // liveGlbUrl: the blob URL returned directly from the pipeline for the current session.
+  // This lets the model-viewer load the GLB immediately without DB polling.
+  const [liveGlbUrl, setLiveGlbUrl] = useState<string | null>(null);
+  const [liveGlbUploadId, setLiveGlbUploadId] = useState<string | undefined>(undefined);
+
+  // Inject model-viewer web component script once on mount
+  useEffect(() => {
+    const existing = document.querySelector('script[src*="model-viewer"]');
+    if (!existing) {
+      const script = document.createElement('script');
+      script.type = 'module';
+      script.src = 'https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js';
+      document.head.appendChild(script);
+    }
+  }, []);
+
+  const handleModelGenerated = (glbUrl: string, uploadId: string) => {
+    setLiveGlbUrl(glbUrl);
+    setLiveGlbUploadId(uploadId);
+    // NOTE: auto-switch removed — navigating away loses upload state
+  };
   
   const recentUpload = uploads?.[0];
   const targetUploadId = uploadResult?.id || recentUpload?.id;
@@ -50,6 +83,9 @@ export const MainDashboard = () => {
   
   // Use rooms from uploadResult if available, otherwise from detection results
   const availableRooms = uploadResult?.enhancedRoomData || detectionRooms || [];
+
+  // The active GLB URL — prefer the live pipeline blob, fall back to DB-fetched URL
+  const activeGlbUrl = liveGlbUrl || model3DUrl;
 
   return (
       <div className="min-h-screen">
@@ -110,12 +146,15 @@ export const MainDashboard = () => {
           <div className="mt-6">
             <TabsContent value="upload" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <BlueprintUpload onUploadComplete={() => {}} />
+                <BlueprintUpload
+                  onUploadComplete={() => {}}
+                  onModelGenerated={handleModelGenerated}
+                />
               </div>
             </TabsContent>
 
             <TabsContent value="3d-viewer" className="space-y-6">
-              {modelLoading ? (
+              {modelLoading && !activeGlbUrl ? (
                 <Card className="skeuo-card">
                   <CardContent className="p-6 text-center space-y-4">
                     <Loader2 className="w-12 h-12 text-primary mx-auto animate-spin" />
@@ -125,7 +164,7 @@ export const MainDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-              ) : modelError ? (
+              ) : modelError && !activeGlbUrl ? (
                 <Card className="skeuo-card">
                   <CardContent className="p-6 text-center space-y-4">
                     <AlertCircle className="w-12 h-12 text-destructive mx-auto" />
@@ -150,7 +189,7 @@ export const MainDashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
-              ) : hasModel ? (
+              ) : activeGlbUrl ? (
                 <div className="space-y-4">
                   {modelMetadata && (
                     <Card className="skeuo-card">
@@ -178,35 +217,30 @@ export const MainDashboard = () => {
                       </CardHeader>
                     </Card>
                   )}
-                  <Model3DViewer
-                    modelUrl={model3DUrl}
-                    modelName={modelMetadata?.model_name || uploadResult?.filename || 'Generated 3D Model'}
-                    uploadId={targetUploadId}
-                    projectId={recentUpload?.project_id}
-                  />
-                </div>
-              ) : availableRooms.length > 0 ? (
-                <div className="space-y-4">
+                  {/* model-viewer replaces Model3DViewer — no WebGL context conflict */}
                   <Card className="skeuo-card">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle className="text-lg">Live 3D Floor Plan</CardTitle>
-                          <CardDescription>
-                            Generated from {uploadResult?.enhancedRoomData ? 'latest upload' : 'detection results'}
-                          </CardDescription>
-                        </div>
-                        <Badge variant="outline" className="border-primary text-primary">
-                          {availableRooms.length} Rooms
-                        </Badge>
-                      </div>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">
+                        {liveGlbUrl ? 'Pipeline 3D Model (Python CV)' : '3D Model'}
+                      </CardTitle>
+                      <CardDescription>
+                        {liveGlbUrl
+                          ? 'Generated by YOLO + EasyOCR + trimesh — drag to rotate, scroll to zoom'
+                          : 'Use mouse to rotate, zoom, and pan'}
+                      </CardDescription>
                     </CardHeader>
+                    <CardContent>
+                      <div style={{ width: '100%', height: '500px' }}>
+                        <model-viewer
+                          src={activeGlbUrl}
+                          camera-controls
+                          auto-rotate
+                          shadow-intensity="1"
+                          style={{ width: '100%', height: '100%' }}
+                        />
+                      </div>
+                    </CardContent>
                   </Card>
-                  <RealTime3DGenerator
-                    rooms={availableRooms}
-                    title="Live 3D Preview"
-                    uploadId={targetUploadId}
-                  />
                 </div>
               ) : (
                 <Card className="skeuo-card">

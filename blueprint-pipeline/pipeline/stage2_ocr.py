@@ -9,6 +9,7 @@ blueprint image using EasyOCR.
 import logging
 import re
 import numpy as np
+import cv2
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +140,14 @@ def run(image: np.ndarray, context: dict) -> dict:
     if reader is None:
         reader = easyocr.Reader(["en"], gpu=False)
         
-    results = reader.readtext(image)
+    # Resize for OCR speed — EasyOCR is slow on large images on CPU
+    h, w = image.shape[:2]
+    if w > 800:
+        scale = 800 / w
+        image_ocr = cv2.resize(image, (800, int(h * scale)))
+    else:
+        image_ocr = image
+    results = reader.readtext(image_ocr)
 
     room_labels: list[dict] = []
     dimensions: list[str] = []

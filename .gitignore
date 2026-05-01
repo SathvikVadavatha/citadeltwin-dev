@@ -29,3 +29,6 @@ dist-ssr
 .claude/
 .agents/
 "blueprint-pipeline/.venv/" 
+blueprint-pipeline/.venv/ 
+blueprint-pipeline/__pycache__/ 
+blueprint-pipeline/pipeline/__pycache__/ 

@@ -3,12 +3,15 @@ Stage 3 — Room Assignment (Geodesic Voronoi flood-fill)
 ========================================================
 
 Each room seed (from Stage 2 OCR) expands outward through *passable*
-pixels (non-wall) using BFS.  Expansion is capped at 115% of the
-room's OCR-reported area converted to pixels.
+pixels (non-wall) using a priority-queue (heapq) flood-fill, processing
+pixels in geodesic distance order (matching the notebook implementation).
+Expansion is capped at 115% of the room's OCR-reported area converted
+to pixels.
 
 The resulting pixel-level assignment is downsampled to 12×12 tiles.
 """
 
+import heapq
 import logging
 from collections import deque
 import math
@@ -68,8 +71,10 @@ def _bfs_flood(
     caps: list[int],  # max pixels per room
 ) -> np.ndarray:
     """
-    Multi-source BFS.  Each seed expands until its cap is reached or it
-    hits walls / already-claimed territory.
+    Multi-source geodesic flood-fill using a min-heap priority queue so that
+    pixels are processed in geodesic distance order (matching the notebook).
+    Each seed expands until its cap is reached or it hits walls /
+    already-claimed territory.
 
     Returns
     -------
@@ -79,23 +84,53 @@ def _bfs_flood(
     claimed = np.full((h, w), -1, dtype=np.int32)
     counts = [0] * len(caps)
 
-    q: deque = deque()
-    for sy, sx, idx in seeds:
-        if 0 <= sy < h and 0 <= sx < w and passable[sy, sx]:
-            claimed[sy, sx] = idx
-            counts[idx] += 1
-            q.append((sy, sx, idx))
+    pq: list = []
 
-    while q:
-        cy, cx, idx = q.popleft()
+    for sy, sx, idx in seeds:
+        # Find the nearest passable pixel within a 5×5 neighbourhood of the seed
+        best = None
+        best_dist = 999
+        for dy in range(-2, 3):
+            for dx in range(-2, 3):
+                ny, nx = sy + dy, sx + dx
+                if 0 <= ny < h and 0 <= nx < w and passable[ny, nx]:
+                    d = abs(dy) + abs(dx)
+                    if d < best_dist:
+                        best_dist = d
+                        best = (ny, nx)
+
+        if best is None:
+            continue
+
+        by2, bx2 = best
+        # Seed a 5×5 neighbourhood around the nearest passable pixel
+        for dy in range(-2, 3):
+            for dx in range(-2, 3):
+                ny, nx = by2 + dy, bx2 + dx
+                if (0 <= ny < h and 0 <= nx < w and
+                        claimed[ny, nx] == -1 and passable[ny, nx]):
+                    claimed[ny, nx] = idx
+                    counts[idx] += 1
+                    heapq.heappush(pq, (0, ny, nx, idx))
+
+    while pq:
+        dist, cy, cx, idx = heapq.heappop(pq)
+
+        # Skip if this room is already full
         if counts[idx] >= caps[idx]:
             continue
+        # Skip if this cell was claimed by a closer room since we pushed
+        if claimed[cy, cx] != idx:
+            continue
+
         for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1)):
             ny, nx = cy + dy, cx + dx
-            if 0 <= ny < h and 0 <= nx < w and claimed[ny, nx] == -1 and passable[ny, nx]:
-                claimed[ny, nx] = idx
-                counts[idx] += 1
-                q.append((ny, nx, idx))
+            if (0 <= ny < h and 0 <= nx < w and
+                    claimed[ny, nx] == -1 and passable[ny, nx]):
+                if counts[idx] < caps[idx]:
+                    claimed[ny, nx] = idx
+                    counts[idx] += 1
+                    heapq.heappush(pq, (dist + 1, ny, nx, idx))
 
     return claimed
 
@@ -178,7 +213,7 @@ def run(image: np.ndarray, context: dict) -> dict:
         cx, cy = room["label_center"]
         seeds.append((int(cy), int(cx), idx))
 
-    # Run BFS
+    # Run geodesic priority-queue flood-fill
     claimed = _bfs_flood(seeds, passable, caps)
 
     # Downsample to tiles

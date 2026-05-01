@@ -65,7 +65,8 @@ async def preload_models():
     global _yolo_model, _ocr_reader
     logger.info("Pre-loading YOLO model...")
     try:
-        _yolo_model = YOLO("yolov8n.pt")
+        from pipeline.stage1_yolo import _load_floor_plan_model
+        _yolo_model = _load_floor_plan_model()
         logger.info("YOLO model loaded successfully")
     except Exception as e:
         logger.warning(f"YOLO preload failed: {e}")
