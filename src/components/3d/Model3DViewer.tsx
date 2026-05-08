@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Download, ZoomIn, ZoomOut, Eye, AlertCircle, Package, Box } from "lucide-react";
 import { Enhanced3DViewer } from './Enhanced3DViewer';
 import { use3DViewer } from '@/hooks/use3DViewer';
+import { use3DModelViewer } from '@/hooks/use3DModelViewer';
 import * as THREE from 'three';
 
 interface Model3DViewerProps {
@@ -105,10 +106,22 @@ const DefaultScene = () => {
 const Model3D = ({ url }: { url: string }) => {
   const meshRef = useRef<THREE.Group>(null);
   const [hasError, setHasError] = useState(false);
-  
+  const prevUrlRef = useRef<string | null>(null);
+
+  // Clear stale GLTF cache before loading a new URL to prevent Three.js
+  // from serving a cached blob that may have already been revoked.
+  useEffect(() => {
+    if (prevUrlRef.current && prevUrlRef.current !== url) {
+      try {
+        useGLTF.clear(prevUrlRef.current);
+      } catch (_) { /* ignore */ }
+    }
+    prevUrlRef.current = url;
+  }, [url]);
+
   let gltf;
   let loadError = false;
-  
+
   try {
     gltf = useGLTF(url);
   } catch (err) {
@@ -130,13 +143,29 @@ const Model3D = ({ url }: { url: string }) => {
 
     if (gltf?.scene) {
       try {
+        // Force opaque rendering with vertex colors on every mesh.
+        // trimesh exports GLB with vertex colors but without explicit material
+        // opacity settings, causing Three.js to default to semi-transparent blue.
+        gltf.scene.traverse((child: any) => {
+          if (child.isMesh && child.material) {
+            child.material.transparent = false;
+            child.material.opacity = 1.0;
+            child.material.depthWrite = true;
+            child.material.side = THREE.DoubleSide;
+            if (child.material.vertexColors) {
+              child.material.vertexColors = true;
+            }
+            child.material.needsUpdate = true;
+          }
+        });
+
         const box = new THREE.Box3().setFromObject(gltf.scene);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
-        
+
         const maxDim = Math.max(size.x, size.y, size.z);
         const scale = maxDim > 0 ? 3 / maxDim : 1;
-        
+
         gltf.scene.scale.setScalar(scale);
         gltf.scene.position.sub(center.multiplyScalar(scale));
       } catch (err) {
@@ -173,23 +202,45 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
   const [useEnhancedViewer, setUseEnhancedViewer] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
 
+  // Log the uploadId whenever it changes so we can verify the correct ID is received
+  useEffect(() => {
+    console.log('Model3DViewer received uploadId:', uploadId);
+  }, [uploadId]);
+
+  // When a modelUrl prop is supplied directly (e.g. fresh blob: URL from the
+  // pipeline), use it immediately without any DB query.  Only fall back to the
+  // DB-polling hook when no direct URL is available.
+  const skipDbQuery = Boolean(modelUrl);
+
+  const { 
+    model3DUrl: fetchedModelUrl,
+    loading: modelDataLoading,
+    modelMetadata: fetchedMetadata
+  } = use3DModelViewer(skipDbQuery ? undefined : uploadId);
+
   const { 
     hasElements, 
     elements, 
     feaResults, 
-    loading,
+    loading: elementsLoading,
     elementCount 
   } = use3DViewer(uploadId, projectId);
+
+  // Prefer the directly-supplied prop URL; fall back to DB-fetched URL
+  const finalModelUrl = modelUrl || fetchedModelUrl;
+  const finalModelName = modelName !== "3D Model" ? modelName : (fetchedMetadata?.model_name || "3D Model");
+  const isLoading = elementsLoading || (!skipDbQuery && modelDataLoading);
 
   console.log('Model3DViewer state:', {
     hasElements,
     elementCount,
-    loading,
+    isLoading,
     uploadId,
     projectId,
     useEnhancedViewer,
-    modelUrl,
-    sceneReady
+    modelUrl: finalModelUrl,
+    sceneReady,
+    source: modelUrl ? 'prop (direct)' : 'db-fetch'
   });
 
   useEffect(() => {
@@ -246,8 +297,8 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
         <hemisphereLight args={['#87CEEB', '#f0f8ff', 0.3]} />
         
         <Suspense fallback={<LoadingFallback />}>
-          {modelUrl && sceneReady ? (
-            <Model3D url={modelUrl} />
+          {finalModelUrl && sceneReady ? (
+            <Model3D url={finalModelUrl} />
           ) : (
             <DefaultScene />
           )}
@@ -334,8 +385,8 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
             3D Model Viewer
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="secondary">{modelName}</Badge>
-            {loading && <Badge variant="outline">Loading...</Badge>}
+            <Badge variant="secondary">{finalModelName}</Badge>
+            {isLoading && <Badge variant="outline">Loading...</Badge>}
             {hasElements && (
               <Badge variant="default" className="bg-green-600">
                 {elementCount} Elements
@@ -353,7 +404,7 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
         {viewerContent}
         <div className="mt-4 text-sm text-muted-foreground text-center space-y-2">
           <p>Use mouse to rotate, zoom, and pan the 3D model</p>
-          {!modelUrl && !hasElements && (
+          {!finalModelUrl && !hasElements && (
             <p className="text-blue-600">
               🏠 Showing enhanced architectural model - upload a blueprint to generate a custom 3D model
             </p>

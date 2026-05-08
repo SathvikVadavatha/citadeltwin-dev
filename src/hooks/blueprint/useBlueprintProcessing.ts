@@ -556,16 +556,16 @@ export const useBlueprintProcessing = () => {
       
       const isAIGenerated = processingState.processingMethod === 'ai';
       
-      // Call the enhanced 3D generation edge function
-      const { data: generationResult, error: generationError } = await supabase.functions.invoke('generate-3d-model', {
-        body: {
-          uploadId,
-          detectedObjects,
-          imageUrl,
-          uniqueFileName,
-          isAIGenerated
-        }
-      });
+      const { data: generationResult, error: generationError } = 
+        await supabase.functions.invoke('generate-3d-model', {
+          body: {
+            uploadId,
+            detectedObjects,
+            imageUrl,
+            uniqueFileName,
+            isAIGenerated
+          }
+        });
 
       if (generationError) {
         logger.warn('3D generation service failed, creating fallback model', '3D Generation', {

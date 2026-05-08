@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { UploadForm } from './UploadForm';
 import { UploadResults } from './UploadResults';
 import { useSimplifiedUpload } from '@/hooks/useSimplifiedUpload';
@@ -8,9 +9,14 @@ import { Loader2, Box } from 'lucide-react';
 
 interface BlueprintUploadProps {
   onUploadComplete?: (uploadId: string) => void;
+  /** Called immediately after the pipeline returns a GLB, before the DB insert. */
+  onModelGenerated?: (glbUrl: string, uploadId: string) => void;
 }
 
-export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComplete }) => {
+export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({
+  onUploadComplete,
+  onModelGenerated,
+}) => {
   const { toast } = useToast();
   const [generating3D, setGenerating3D] = useState(false);
   const [model3DUrl, setModel3DUrl] = useState<string | null>(null);
@@ -44,48 +50,66 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComple
   const trigger3DGeneration = async (uploadId: string, imageUrl: string) => {
     setGenerating3D(true);
     try {
-      console.log('Auto-triggering 3D generation for upload:', uploadId);
+      console.log('Calling pipeline for upload:', uploadId, 'imageUrl:', imageUrl);
 
-      // Fetch the image and re-send to the 3D generation edge function
-      const imgResponse = await fetch(imageUrl);
-      const blob = await imgResponse.blob();
-      const file = new File([blob], 'blueprint.png', { type: blob.type || 'image/png' });
+      const PIPELINE_URL = 'https://sathvikvadavatha-citadeltwin-pipeline.hf.space';
 
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_id', uploadId); // Link to existing blueprint_uploads row
+      const pipelineRes = await fetch(`${PIPELINE_URL}/process`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_url: imageUrl })
+      });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-blueprint-3d`,
-        { method: 'POST', body: formData }
-      );
+      console.log('Pipeline response status:', pipelineRes.status);
 
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Failed to generate 3D model');
+      if (!pipelineRes.ok) {
+        throw new Error(`Pipeline error: ${pipelineRes.statusText}`);
       }
 
-      const data = await response.json();
-      if (data.status === 'success') {
-        setModel3DUrl(data.glb_url);
-        // Store the AI detections with precise OCR dimensions
-        if (data.detections?.length > 0) {
-          setAiDetections(data.detections);
-        }
-        if (data.scale_info) setAiScaleInfo(data.scale_info);
-        if (data.building_info) setAiBuildingInfo(data.building_info);
-        if (data.walls) setAiWalls(data.walls);
-        toast({
-          title: '3D Model Ready',
-          description: `Generated ${data.detections?.length || 0} rooms with precise dimensions.`,
-        });
-        if (onUploadComplete) onUploadComplete(uploadId);
+      const pipelineData = await pipelineRes.json();
+      console.log('Pipeline response data:', pipelineData);
+
+      const { glb_base64, rooms, metadata } = pipelineData;
+
+      const glbBytes = Uint8Array.from(atob(glb_base64), c => c.charCodeAt(0));
+      const glbBlob = new Blob([glbBytes], { type: 'model/gltf-binary' });
+      const glbUrl = URL.createObjectURL(glbBlob);
+
+      // Update local state so the upload results card shows the model
+      setModel3DUrl(glbUrl);
+      if (rooms) setAiDetections(rooms);
+      if (metadata?.walls) setAiWalls(metadata.walls);
+      if (metadata?.scale) setAiScaleInfo(metadata.scale);
+      if (metadata?.building) setAiBuildingInfo(metadata.building);
+
+      // Immediately notify parent so it can pass the URL directly to Model3DViewer
+      // (avoids stale blob URL issues from DB polling)
+      if (onModelGenerated) {
+        onModelGenerated(glbUrl, uploadId);
       }
-    } catch (err) {
-      console.error('3D generation error:', err);
+
+      const modelData = {
+        model_name: `Blueprint Model ${uploadId}`,
+        model_description: `AI-generated 3D model from blueprint upload`,
+        model_file_path: glbUrl,
+        file_size: glbBytes.length,
+        generation_status: 'completed',
+        generation_prompt: 'Python CV pipeline',
+        upload_id: uploadId
+      };
+
+      console.log('About to insert into DB for upload:', uploadId);
+
+      // Insert into generated_3d_models (background persistence)
+      const { error: insertError } = await supabase.from('generated_3d_models').insert(modelData);
+      console.log('DB insert result:', insertError);
+
+      if (onUploadComplete) onUploadComplete(uploadId);
+    } catch (error) {
+      console.error('trigger3DGeneration failed:', error);
       toast({
         title: '3D Generation Failed',
-        description: err instanceof Error ? err.message : 'Could not generate 3D model.',
+        description: error instanceof Error ? error.message : 'Could not generate 3D model.',
         variant: 'destructive',
       });
       // Still call onUploadComplete so user can navigate
@@ -115,7 +139,7 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComple
             // Use AI detections (with OCR dimensions) when available, fallback to client-side
             detectedObjects: aiDetections || uploadResult.detectedObjects || [],
             imageUrl: uploadResult.imageUrl,
-            processingMethod: aiDetections ? 'ai' : 'fallback',
+            processingMethod: aiDetections ? 'cv-pipeline' : 'fallback',
             enhancedRoomData: uploadResult.enhancedRoomData,
             model3DUrl: model3DUrl || undefined,
             model3DGenerated: !!model3DUrl,
@@ -126,23 +150,24 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({ onUploadComple
           onReset={handleReset}
         />
 
-        {/* 3D generation status */}
+        {/* 3D generation status — shown while pipeline is running */}
         {generating3D && (
           <div className="flex items-center gap-3 p-4 rounded-lg border border-primary/20 bg-primary/5">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
             <div>
               <p className="text-sm font-medium text-foreground">Generating 3D Model…</p>
-              <p className="text-xs text-muted-foreground">AI is analyzing your blueprint and building the 3D model</p>
+              <p className="text-xs text-muted-foreground">CV pipeline is analyzing your blueprint and building the 3D model</p>
             </div>
           </div>
         )}
 
+        {/* "3D Model Ready" banner — only shown after pipeline completes */}
         {model3DUrl && !generating3D && (
           <div className="flex items-center gap-3 p-4 rounded-lg border border-accent/20 bg-accent/5">
             <Box className="h-5 w-5 text-accent-foreground" />
             <div>
-              <p className="text-sm font-medium text-foreground">3D Model Ready</p>
-              <p className="text-xs text-muted-foreground">Switch to the "3D View" tab to explore your model</p>
+              <p className="text-sm font-medium text-foreground">3D Model Ready — Switch to 3D View tab</p>
+              <p className="text-xs text-muted-foreground">Your model was generated by the Python CV pipeline and is ready to explore</p>
             </div>
           </div>
         )}
