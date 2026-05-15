@@ -138,14 +138,18 @@ export const useAdvancedGIS = () => {
 
   // Fetch environmental data for specific location
   const fetchEnvironmentalDataMutation = useMutation({
-    mutationFn: async ({ 
-      city, 
-      state, 
-      dataTypes 
-    }: { 
-      city: string; 
-      state: string; 
-      dataTypes: string[] 
+    mutationFn: async ({
+      city,
+      state,
+      dataTypes,
+      latitude,
+      longitude
+    }: {
+      city: string;
+      state: string;
+      dataTypes: string[];
+      latitude?: number;
+      longitude?: number;
     }) => {
       // Clean up any duplicate protected lands data first
       if (dataTypes.includes('protected_lands')) {
@@ -174,7 +178,9 @@ export const useAdvancedGIS = () => {
           action: 'fetch_environmental_data',
           city,
           state,
-          data_types: dataTypes
+          data_types: dataTypes,
+          latitude,
+          longitude
         }
       });
 
@@ -277,12 +283,24 @@ export const useAdvancedGIS = () => {
 
   // Fetch FEMA flood data specifically
   const fetchFEMAFloodDataMutation = useMutation({
-    mutationFn: async ({ city, state }: { city: string; state: string }) => {
+    mutationFn: async ({
+      city,
+      state,
+      latitude,
+      longitude
+    }: {
+      city: string;
+      state: string;
+      latitude?: number;
+      longitude?: number;
+    }) => {
       const { data, error } = await supabase.functions.invoke('real-gis-integration', {
         body: {
           action: 'fetch_fema_flood_data',
           city,
-          state
+          state,
+          latitude,
+          longitude
         }
       });
 
@@ -297,6 +315,35 @@ export const useAdvancedGIS = () => {
       console.error('FEMA flood data fetch error:', error);
       toast.error(`Failed to fetch FEMA flood data: ${error.message}`);
     },
+  });
+
+  // Fetch federal disaster declaration history (OpenFEMA)
+  const fetchDisasterHistoryMutation = useMutation({
+    mutationFn: async ({
+      state,
+      latitude,
+      longitude
+    }: {
+      state: string;
+      latitude?: number;
+      longitude?: number;
+    }) => {
+      const { data, error } = await supabase.functions.invoke('real-gis-integration', {
+        body: {
+          action: 'fetch_disaster_history',
+          state,
+          latitude,
+          longitude
+        }
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onError: (error: any) => {
+      console.error('Disaster history fetch error:', error);
+      // No user toast — disaster history is non-critical, panel falls back to empty state
+    }
   });
 
   // Advanced spatial analysis with environmental factors
@@ -342,13 +389,15 @@ export const useAdvancedGIS = () => {
     isLoading: isLoadingEnvironmental || isLoadingBoundaries,
     fetchEnvironmentalData: fetchEnvironmentalDataMutation.mutateAsync,
     fetchFEMAFloodData: fetchFEMAFloodDataMutation.mutateAsync,
+    fetchDisasterHistory: fetchDisasterHistoryMutation.mutateAsync,
     performZoningAnalysis: zoningAnalysisMutation.mutateAsync,
     enableRealTimeUpdates: enableRealTimeUpdatesMutation.mutateAsync,
     fetchPropertyBoundaries: fetchPropertyBoundariesMutation.mutateAsync,
     performAdvancedSpatialAnalysis: advancedSpatialAnalysisMutation.mutateAsync,
-    isFetching: fetchEnvironmentalDataMutation.isPending || 
+    isFetching: fetchEnvironmentalDataMutation.isPending ||
                 fetchFEMAFloodDataMutation.isPending ||
-                zoningAnalysisMutation.isPending || 
+                fetchDisasterHistoryMutation.isPending ||
+                zoningAnalysisMutation.isPending ||
                 enableRealTimeUpdatesMutation.isPending ||
                 fetchPropertyBoundariesMutation.isPending ||
                 advancedSpatialAnalysisMutation.isPending,

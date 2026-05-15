@@ -1,5 +1,5 @@
 
-import { Building2, Mail, Phone } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
 
 export const LandingFooter = () => {
   return (
@@ -57,7 +57,7 @@ export const LandingFooter = () => {
         <div className="section-divider border-t pt-8 flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center mb-4 md:mb-0">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mr-3">
-              <Building2 className="text-primary-foreground h-4 w-4" />
+              <img src="/logo.png" alt="CitadelTwin" className="h-4 w-4 object-contain" />
             </div>
             <span className="text-xl font-bold text-foreground">CitadelTwin</span>
           </div>

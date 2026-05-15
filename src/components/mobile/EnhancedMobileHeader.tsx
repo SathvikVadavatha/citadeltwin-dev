@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
-  Building2,
   Menu,
   Bell,
   ArrowLeft,
@@ -67,7 +66,7 @@ export const EnhancedMobileHeader: React.FC<EnhancedMobileHeaderProps> = ({
           )}
           
           <div className="flex items-center gap-2 flex-1">
-            <Building2 className="h-6 w-6 text-primary" />
+            <img src="/logo.png" alt="CitadelTwin" className="h-6 w-6 object-contain" />
             <div className="flex flex-col">
               <span className="font-bold text-base leading-none">CitadelTwin</span>
               {title && (

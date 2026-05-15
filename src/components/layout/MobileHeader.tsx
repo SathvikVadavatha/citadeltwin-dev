@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Building2, Menu, Bell, Search } from 'lucide-react';
+import { Menu, Bell, Search } from 'lucide-react';
 import { useAuth } from '@/providers/AuthProvider';
 import { Badge } from '@/components/ui/badge';
 
@@ -27,7 +27,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuToggle }) => {
           </Button>
           
           <div className="flex items-center gap-2">
-            <Building2 className="h-6 w-6 text-primary" />
+            <img src="/logo.png" alt="CitadelTwin" className="h-6 w-6 object-contain" />
             <span className="font-bold text-lg">CitadelTwin</span>
           </div>
         </div>

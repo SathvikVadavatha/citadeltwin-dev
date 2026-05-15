@@ -95,7 +95,37 @@ export const useUploads = (userId?: string) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+
+      // Deduplicate by (original_filename, file_size).
+      // Prefer rows with the most "complete" upload_status; for ties, keep the most recent.
+      const deduped = data ? Object.values(
+        data.reduce((acc: any, row: any) => {
+          const key = row.original_filename + '_' + row.file_size;
+          const statusPriority: Record<string, number> = {
+            'processed': 3,
+            'processed_fallback': 2,
+            'uploaded': 1,
+            'processing': 0
+          };
+          if (!acc[key]) {
+            acc[key] = row;
+          } else {
+            const existingPriority = statusPriority[acc[key].upload_status] || 0;
+            const newPriority = statusPriority[row.upload_status] || 0;
+            if (newPriority > existingPriority) {
+              acc[key] = row;
+            } else if (
+              newPriority === existingPriority &&
+              new Date(row.created_at) > new Date(acc[key].created_at)
+            ) {
+              acc[key] = row;
+            }
+          }
+          return acc;
+        }, {})
+      ) : [];
+
+      return deduped;
     },
     cacheTime: 300000, // 5 minutes cache
     enabled: !!userId

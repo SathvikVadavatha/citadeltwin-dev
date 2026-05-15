@@ -1,6 +1,5 @@
 
 import { Button } from "@/components/ui/button";
-import { Building2 } from "lucide-react";
 
 interface LandingHeaderProps {
   setShowLogin: (isLogin: boolean) => void;
@@ -13,7 +12,7 @@ export const LandingHeader = ({ setShowLogin, scrollToSection }: LandingHeaderPr
       <div className="container mx-auto px-6 py-4 flex justify-between items-center">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <Building2 className="text-primary-foreground h-6 w-6" />
+            <img src="/logo.png" alt="CitadelTwin" className="h-6 w-6 object-contain" />
           </div>
           <h1 className="text-xl font-bold text-foreground">
             CitadelTwin
