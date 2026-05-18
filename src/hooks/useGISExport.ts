@@ -3,6 +3,14 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 
+interface CurrentLocation {
+  city: string;
+  state: string;
+  lat: number;
+  lng: number;
+  displayName: string;
+}
+
 interface ExportData {
   selectedProperty?: {
     place: google.maps.places.PlaceResult;
@@ -13,7 +21,7 @@ interface ExportData {
     protectedAreas: string[];
     soilsWetlands: string[];
   };
-  selectedRegion: 'central-florida' | 'northeast-ohio';
+  currentLocation: CurrentLocation;
   layers: Array<{
     id: string;
     name: string;
@@ -612,7 +620,7 @@ export const useGISExport = () => {
   };
 
   const generateDetailedAnalysis = (data: ExportData): DetailedAnalysis => {
-    const { selectedProperty, combinedAnalysis, selectedRegion } = data;
+    const { selectedProperty, combinedAnalysis, currentLocation } = data;
     
     // Generate risk assessment based on actual GIS data
     let overallRisk: 'Low' | 'Moderate' | 'High' | 'Critical' = 'Low';
@@ -728,9 +736,7 @@ export const useGISExport = () => {
     const floodAnalysis = hasFloodData ? {
       zones: combinedAnalysis!.floodZones,
       riskLevel: combinedAnalysis!.floodZones.some(z => z.includes('High')) ? 'High Risk' : 'Moderate Risk',
-      historicalData: selectedRegion === 'central-florida' ? 
-        'Central Florida experiences seasonal flooding during hurricane season (June-November)' :
-        'Northeast Ohio experiences spring flooding from snowmelt and heavy rainfall',
+      historicalData: `Historical flood patterns vary by location. Consult local FEMA and ${currentLocation.state || 'state'} hydrology resources for ${currentLocation.city || 'this area'}.`,
       mitigationSteps: [
         'Elevate critical systems above base flood elevation',
         'Install proper drainage systems',
@@ -828,7 +834,9 @@ export const useGISExport = () => {
           restrictions: []
         },
         buildingCodes: {
-          jurisdiction: selectedRegion === 'central-florida' ? 'Central Florida' : 'Northeast Ohio',
+          jurisdiction: currentLocation.city && currentLocation.state
+            ? `${currentLocation.city}, ${currentLocation.state}`
+            : 'Local jurisdiction',
           applicableCodes: ['Consult local building department for applicable codes']
         },
         environmentalPermits: {
@@ -842,19 +850,22 @@ export const useGISExport = () => {
   };
 
   const exportAnalysisAsCSV = (data: ExportData, filename?: string) => {
-    const { selectedProperty, selectedRegion, layers } = data;
+    const { selectedProperty, currentLocation, layers } = data;
     const detailedAnalysis = generateDetailedAnalysis(data);
-    
+
     const rows: string[] = [];
     rows.push('Section,Category,Item,Details,Notes');
-    
+
     // Property info
     if (selectedProperty) {
       rows.push(`Property,Basic Info,"${selectedProperty.place.name || selectedProperty.place.formatted_address || 'Unknown'}","${selectedProperty.place.formatted_address || ''}",Primary property identifier`);
       rows.push(`Property,Coordinates,"${selectedProperty.location.lat().toFixed(6)}, ${selectedProperty.location.lng().toFixed(6)}","Decimal Degrees (WGS84)",Precise geographic location`);
     }
-    
-    rows.push(`Analysis,Region,"${selectedRegion}","Selected analysis region",Geographic area of focus`);
+
+    const locationLabel = currentLocation.city && currentLocation.state
+      ? `${currentLocation.city}, ${currentLocation.state}`
+      : currentLocation.city || 'Unknown location';
+    rows.push(`Analysis,Location,"${locationLabel}","Searched location",Geographic area of focus`);
     rows.push(`Analysis,Date,"${new Date().toLocaleDateString()}","Analysis performed",Data current as of this date`);
     
     // Risk Assessment
@@ -924,8 +935,14 @@ export const useGISExport = () => {
         confidenceLevel: '95%'
       },
       region: {
-        name: data.selectedRegion,
-        jurisdiction: data.selectedRegion === 'central-florida' ? 'Orange County, FL' : 'Cuyahoga County, OH',
+        name: data.currentLocation.displayName || `${data.currentLocation.city}, ${data.currentLocation.state}`,
+        jurisdiction: data.currentLocation.city && data.currentLocation.state
+          ? `${data.currentLocation.city}, ${data.currentLocation.state}`
+          : 'Unknown jurisdiction',
+        coordinates: {
+          latitude: data.currentLocation.lat,
+          longitude: data.currentLocation.lng
+        },
         coordinateSystem: 'WGS84 (EPSG:4326)'
       },
       property: data.selectedProperty ? {
@@ -993,7 +1010,7 @@ export const useGISExport = () => {
     setIsExporting(true);
     try {
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const { selectedProperty, selectedRegion, layers } = data;
+      const { selectedProperty, currentLocation, layers } = data;
       const detailedAnalysis = generateDetailedAnalysis(data);
       const pageWidth = pdf.internal.pageSize.width;
       const pageHeight = pdf.internal.pageSize.height;
@@ -1033,7 +1050,7 @@ export const useGISExport = () => {
       if (selectedProperty) {
         addWrappedText(`Property: ${selectedProperty.place.name || selectedProperty.place.formatted_address}`, 20, 12);
       }
-      addWrappedText(`Region: ${selectedRegion === 'central-florida' ? 'Central Florida' : 'Northeast Ohio'}`, 20, 12);
+      addWrappedText(`Location: ${currentLocation.city && currentLocation.state ? `${currentLocation.city}, ${currentLocation.state}` : (currentLocation.displayName || 'Unknown')}`, 20, 12);
       addWrappedText(`Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, 20, 12);
       addWrappedText(`Analysis Version: 2.0 | Confidence Level: 95%`, 20, 12);
 

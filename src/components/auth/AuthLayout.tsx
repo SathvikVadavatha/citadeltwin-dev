@@ -1,6 +1,5 @@
 
 import { ReactNode } from "react";
-import { Building2 } from "lucide-react";
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -15,7 +14,7 @@ export const AuthLayout = ({ children, title, subtitle }: AuthLayoutProps) => {
         {/* Logo and Branding */}
         <div className="text-center">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-primary text-primary-foreground shadow-skeuo-raised border border-border">
-            <Building2 className="w-8 h-8" />
+            <img src="/logo.png" alt="CitadelTwin" className="w-8 h-8 object-contain" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
             CitadelTwin
