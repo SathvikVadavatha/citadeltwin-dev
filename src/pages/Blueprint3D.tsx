@@ -56,7 +56,7 @@ export const Blueprint3D: React.FC = () => {
               border: '1px solid #e2e8f0',
             }}
           >
-            <model-viewer
+            <ModelViewer
               src={currentGlbUrl}
               camera-controls
               auto-rotate
@@ -64,6 +64,7 @@ export const Blueprint3D: React.FC = () => {
               exposure="0.8"
               style={{ width: '100%', height: '100%' }}
             />
+
           </div>
         </div>
       ) : (
