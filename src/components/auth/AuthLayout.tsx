@@ -13,8 +13,8 @@ export const AuthLayout = ({ children, title, subtitle }: AuthLayoutProps) => {
       <div className="w-full max-w-md space-y-8">
         {/* Logo and Branding */}
         <div className="text-center">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-primary text-primary-foreground shadow-skeuo-raised border border-border">
-            <img src="/logo.png" alt="CitadelTwin" className="w-8 h-8 object-contain" />
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <img src="/logo-transparent.png" alt="CitadelTwin" className="w-16 h-16 object-contain" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
             CitadelTwin
