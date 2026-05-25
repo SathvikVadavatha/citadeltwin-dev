@@ -12,7 +12,7 @@ import { CADMeasurementTool } from "./CADMeasurementTool";
 import { Enhanced3DViewer } from "@/components/3d/Enhanced3DViewer";
 import { useCADDrawing } from "@/hooks/useCADDrawing";
 import { use3DViewer } from "@/hooks/use3DViewer";
-import { Layers, Package, Settings, Eye, Grid3X3, Map, PenTool } from "lucide-react";
+import { Layers, Package, Settings, Eye, Grid3X3, Map, PenTool, Calculator } from "lucide-react";
 
 interface CADCanvasProps {
   onNavigate: (view: string) => void;

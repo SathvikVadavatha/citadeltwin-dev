@@ -12,9 +12,10 @@ declare global {
     interface IntrinsicElements {
       'model-viewer': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
         src?: string;
-        'camera-controls'?: boolean;
-        'auto-rotate'?: boolean;
+        'camera-controls'?: boolean | string;
+        'auto-rotate'?: boolean | string;
         'shadow-intensity'?: string;
+        exposure?: string;
         style?: React.CSSProperties;
       }, HTMLElement>;
     }

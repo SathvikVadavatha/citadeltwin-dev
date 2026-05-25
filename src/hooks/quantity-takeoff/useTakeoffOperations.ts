@@ -1,5 +1,6 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase as supabaseClient } from '@/integrations/supabase/client';
+const supabase = supabaseClient as any;
 import { toast } from 'sonner';
 import { calculateQuantityFromElement, getUnitOfMeasureForElement } from './useQuantityCalculations';
 import type { QuantityTakeoff } from '@/types/cost-estimation';

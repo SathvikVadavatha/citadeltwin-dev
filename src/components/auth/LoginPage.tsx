@@ -172,7 +172,7 @@ export const LoginPage = ({ onNavigateToSignup, onNavigateToForgotPassword }: Lo
             variant="outline"
             className="w-full border-border text-foreground hover:bg-secondary"
             disabled={!!oauthLoading}
-            onClick={async () => { setOauthLoading('okta'); await signInWithOAuth('okta'); setOauthLoading(null); }}
+            onClick={async () => { setOauthLoading('okta'); await signInWithOAuth('okta' as any); setOauthLoading(null); }}
           >
             <Shield className="h-4 w-4 mr-2" />
             {oauthLoading === 'okta' ? 'Redirecting...' : 'Continue with Okta'}

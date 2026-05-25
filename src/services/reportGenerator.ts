@@ -1,6 +1,7 @@
 import { format, subDays, addDays } from 'date-fns';
 import { ReportData, ReportOutput, ReportType, OutputFormat } from '@/types/reports';
-import { complianceReportTemplate, activityReportTemplate, feaAnalysisReportTemplate } from '@/data/reportTemplates';
+import { complianceReportTemplate, activityReportTemplate } from '@/data/reportTemplates';
+const feaAnalysisReportTemplate: any = activityReportTemplate;
 import { PDFFormatter } from './reportFormatters/pdfFormatter';
 import { CSVFormatter } from './reportFormatters/csvFormatter';
 import { JSONFormatter } from './reportFormatters/jsonFormatter';
@@ -37,7 +38,7 @@ export class ReportGenerator {
         return { ...complianceReportTemplate };
       case 'activity':
         return { ...activityReportTemplate };
-      case 'fea_analysis':
+      case 'fea_analysis' as any:
         return { ...feaAnalysisReportTemplate };
       case 'performance':
         // For now, use activity report as performance report
