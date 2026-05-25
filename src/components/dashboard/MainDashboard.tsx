@@ -65,7 +65,7 @@ export const MainDashboard = () => {
     // NOTE: auto-switch removed — navigating away loses upload state
   };
   
-  const recentUpload = uploads?.[0];
+  const recentUpload = uploads?.[0] as any;
   const targetUploadId = uploadResult?.id || recentUpload?.id;
   
   // Use the 3D model viewer hook to fetch latest models
@@ -266,12 +266,12 @@ export const MainDashboard = () => {
             </TabsContent>
 
             <TabsContent value="compliance" className="space-y-6">
-              <ComplianceEngine uploadId={uploadResult?.id || recentUpload?.id} />
+              <ComplianceEngine uploadId={uploadResult?.id || (recentUpload as any)?.id} />
             </TabsContent>
 
             <TabsContent value="documents" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <DocumentGenerator uploadId={uploadResult?.id || recentUpload?.id} />
+                <DocumentGenerator uploadId={uploadResult?.id || (recentUpload as any)?.id} />
                 <DocumentTemplateManager />
               </div>
             </TabsContent>

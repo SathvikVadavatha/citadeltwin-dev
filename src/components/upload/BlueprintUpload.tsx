@@ -139,7 +139,7 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({
             // Use AI detections (with OCR dimensions) when available, fallback to client-side
             detectedObjects: aiDetections || uploadResult.detectedObjects || [],
             imageUrl: uploadResult.imageUrl,
-            processingMethod: aiDetections ? 'cv-pipeline' : 'fallback',
+            processingMethod: aiDetections ? 'ai' : 'fallback',
             enhancedRoomData: uploadResult.enhancedRoomData,
             model3DUrl: model3DUrl || undefined,
             model3DGenerated: !!model3DUrl,
