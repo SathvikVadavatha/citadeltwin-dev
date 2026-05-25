@@ -30,17 +30,18 @@ export const LandingFooter = () => {
               <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">FAQ</a></li>
               <li><a href="#" className="text-muted-foreground hover:text-primary transition-colors">Help Center</a></li>
               <li>
-                <a href="mailto:support@citadeltwin.com" className="text-muted-foreground hover:text-primary transition-colors flex items-center">
+                <a href="mailto:info@cdreams.org" className="text-muted-foreground hover:text-primary transition-colors flex items-center">
                   <Mail className="h-4 w-4 mr-2" />
-                  Contact
+                  info@cdreams.org
                 </a>
               </li>
               <li>
-                <a href="tel:+1-555-0123" className="text-muted-foreground hover:text-primary transition-colors flex items-center">
+                <a href="tel:+14072594242" className="text-muted-foreground hover:text-primary transition-colors flex items-center">
                   <Phone className="h-4 w-4 mr-2" />
-                  Support
+                  +1 (407) 259-4242
                 </a>
               </li>
+              <li className="text-muted-foreground">Tampa, FL</li>
             </ul>
           </div>
           <div>
