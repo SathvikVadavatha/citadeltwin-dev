@@ -23,6 +23,7 @@ const Security = React.lazy(() => import('./pages/Security'));
 const WorkflowAutomation = React.lazy(() => import('./pages/WorkflowAutomation'));
 const GIS = React.lazy(() => import('./pages/GIS').then(m => ({ default: m.GIS })));
 const Blueprint3D = React.lazy(() => import('./pages/Blueprint3D').then(m => ({ default: m.Blueprint3D })));
+const Landing = React.lazy(() => import('./pages/Landing'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -67,8 +68,12 @@ function App() {
                   </RouteErrorBoundary>
                 } />
 
-                {/* Redirect root to dashboard */}
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                {/* Public landing page */}
+                <Route path="/" element={
+                  <RouteErrorBoundary routeName="Landing">
+                    <Landing />
+                  </RouteErrorBoundary>
+                } />
 
                 {/* Protected routes with error boundaries */}
                 <Route path="/dashboard" element={
