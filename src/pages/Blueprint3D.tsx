@@ -1,24 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BlueprintUpload } from '@/components/upload/BlueprintUpload';
 
-// Extend JSX intrinsic elements to allow the <model-viewer> web component
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'model-viewer': React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & {
-          src?: string;
-          'camera-controls'?: boolean | string;
-          'auto-rotate'?: boolean | string;
-          'shadow-intensity'?: string;
-          exposure?: string;
-          style?: React.CSSProperties;
-        },
-        HTMLElement
-      >;
-    }
-  }
-}
+// model-viewer JSX intrinsic is declared in src/components/dashboard/MainDashboard.tsx and UploadResultsTabs.tsx
+const ModelViewer = 'model-viewer' as any;
 
 export const Blueprint3D: React.FC = () => {
   const [currentGlbUrl, setCurrentGlbUrl] = useState<string | null>(null);
