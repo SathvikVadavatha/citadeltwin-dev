@@ -43,7 +43,7 @@ export const AppSidebar: React.FC = () => {
     <div className="flex h-full w-64 flex-col border-r border-border bg-card text-card-foreground">
       <div className="flex h-16 items-center px-6 border-b border-border">
         <Link to="/dashboard" className="flex items-center space-x-2">
-          <img src="/logo.png" alt="CitadelTwin" className="h-8 w-8 object-contain" />
+          <img src="/logo-transparent.png" alt="CitadelTwin" className="h-8 w-8 object-contain" />
           <span className="text-xl font-bold text-foreground">CitadelTwin</span>
         </Link>
       </div>

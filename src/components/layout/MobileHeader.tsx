@@ -27,7 +27,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuToggle }) => {
           </Button>
           
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="CitadelTwin" className="h-6 w-6 object-contain" />
+            <img src="/logo-transparent.png" alt="CitadelTwin" className="h-6 w-6 object-contain" />
             <span className="font-bold text-lg">CitadelTwin</span>
           </div>
         </div>
