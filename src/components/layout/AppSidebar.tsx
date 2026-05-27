@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
+  Home,
   LayoutDashboard,
   Upload,
   FileText,
@@ -17,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/providers/AuthProvider';
 
 const navigation = [
+  { name: 'Home', href: '/home', icon: Home },
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Upload Blueprints', href: '/blueprints/upload', icon: Upload },
   { name: 'Blueprint → 3D', href: '/blueprint-3d', icon: Box },
@@ -42,7 +44,7 @@ export const AppSidebar: React.FC = () => {
   return (
     <div className="flex h-full w-64 flex-col border-r border-border bg-card text-card-foreground">
       <div className="flex h-16 items-center px-6 border-b border-border">
-        <Link to="/dashboard" className="flex items-center space-x-2">
+        <Link to="/home" className="flex items-center space-x-2">
           <img src="/logo-transparent.png" alt="CitadelTwin" className="h-8 w-8 object-contain" />
           <span className="text-xl font-bold text-foreground">CitadelTwin</span>
         </Link>

@@ -24,6 +24,7 @@ const WorkflowAutomation = React.lazy(() => import('./pages/WorkflowAutomation')
 const GIS = React.lazy(() => import('./pages/GIS').then(m => ({ default: m.GIS })));
 const Blueprint3D = React.lazy(() => import('./pages/Blueprint3D').then(m => ({ default: m.Blueprint3D })));
 const Landing = React.lazy(() => import('./pages/Landing'));
+const Home = React.lazy(() => import('./pages/Home'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -76,6 +77,16 @@ function App() {
                 } />
 
                 {/* Protected routes with error boundaries */}
+                <Route path="/home" element={
+                  <ProtectedRoute>
+                    <RouteErrorBoundary routeName="Home">
+                      <EnhancedResponsiveLayout>
+                        <Home />
+                      </EnhancedResponsiveLayout>
+                    </RouteErrorBoundary>
+                  </ProtectedRoute>
+                } />
+
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
                     <RouteErrorBoundary routeName="Dashboard">

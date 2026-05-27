@@ -36,10 +36,10 @@ export const LoginPage = ({ onNavigateToSignup, onNavigateToForgotPassword }: Lo
   // Redirect authenticated users (handles both initial load and post-login)
   useEffect(() => {
     if (user) {
-      const returnTo = searchParams.get('returnTo') || '/dashboard';
+      const returnTo = searchParams.get('returnTo') || '/home';
       // Security: Validate returnTo is a safe relative path to prevent open redirects
-      const safeReturnTo = returnTo.startsWith('/') && !returnTo.startsWith('//') && !returnTo.includes('://') 
-        ? returnTo : '/dashboard';
+      const safeReturnTo = returnTo.startsWith('/') && !returnTo.startsWith('//') && !returnTo.includes('://')
+        ? returnTo : '/home';
       navigate(safeReturnTo, { replace: true });
     }
   }, [user, navigate, searchParams]);
