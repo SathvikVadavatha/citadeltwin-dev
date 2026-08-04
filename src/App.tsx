@@ -25,6 +25,7 @@ const GIS = React.lazy(() => import('./pages/GIS').then(m => ({ default: m.GIS }
 const Blueprint3D = React.lazy(() => import('./pages/Blueprint3D').then(m => ({ default: m.Blueprint3D })));
 const Landing = React.lazy(() => import('./pages/Landing'));
 const Home = React.lazy(() => import('./pages/Home'));
+const OAuthConsent = React.lazy(() => import('./pages/OAuthConsent'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
