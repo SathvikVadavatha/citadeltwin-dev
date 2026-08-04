@@ -70,12 +70,21 @@ function App() {
                   </RouteErrorBoundary>
                 } />
 
+                {/* OAuth 2.1 consent screen for MCP clients */}
+                <Route path="/.lovable/oauth/consent" element={
+                  <RouteErrorBoundary routeName="OAuth Consent">
+                    <OAuthConsent />
+                  </RouteErrorBoundary>
+                } />
+
                 {/* Public landing page */}
                 <Route path="/" element={
                   <RouteErrorBoundary routeName="Landing">
                     <Landing />
                   </RouteErrorBoundary>
                 } />
+
+
 
                 {/* Protected routes with error boundaries */}
                 <Route path="/home" element={
