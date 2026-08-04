@@ -160,14 +160,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, metadata?: any) => {
     try {
       setError(null);
+      // Preserve any pending redirect (e.g. the MCP OAuth consent screen)
+      const returnTo = new URLSearchParams(window.location.search).get('returnTo');
+      const safeReturnTo =
+        returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//') && !returnTo.includes('://')
+          ? returnTo
+          : null;
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/login`,
+          emailRedirectTo: `${window.location.origin}/auth/login${
+            safeReturnTo ? `?returnTo=${encodeURIComponent(safeReturnTo)}` : ''
+          }`,
           data: metadata,
         },
       });
+
 
       if (error) {
         setError(error.message);
