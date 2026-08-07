@@ -3,6 +3,16 @@ import { useGeminiAI } from '@/hooks/useGeminiAI';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
+// Gemini sometimes wraps JSON in ```json ... ``` or ``` ... ``` fences, or leaves stray
+// leading/trailing whitespace. Strip that before any JSON.parse attempt so more
+// responses parse successfully instead of failing on the fence markers themselves.
+const stripCodeFences = (text: string): string =>
+  text
+    .trim()
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/i, '')
+    .trim();
+
 interface BlueprintAnalysis {
   elements: Array<{
     type: 'wall' | 'door' | 'window' | 'room' | 'fixture';
@@ -235,30 +245,28 @@ BE SPECIFIC AND UNIQUE - analyze what you actually see in THIS image, not generi
       // Parse JSON response with better extraction
       let parsedAnalysis: BlueprintAnalysis;
       try {
+        const cleanedResult = stripCodeFences(analysisResponse.result);
+
         const jsonPatterns = [
           /```json\s*([\s\S]*?)\s*```/i,
           /```\s*([\s\S]*?)\s*```/i,
           /\{[\s\S]*\}/,
           /"elements":\s*\[[\s\S]*?"buildingType":\s*"[^"]*"/
         ];
-        
+
         let jsonText = '';
         for (const pattern of jsonPatterns) {
-          const match = analysisResponse.result.match(pattern);
+          const match = cleanedResult.match(pattern);
           if (match) {
             jsonText = match[1] || match[0];
             console.log('Extracted JSON pattern:', jsonText.substring(0, 200) + '...');
             break;
           }
         }
-        
+
         if (jsonText) {
-          jsonText = jsonText.trim()
-            .replace(/^```json\s*/i, '')
-            .replace(/\s*```$/i, '')
-            .replace(/[\r\n]+/g, ' ')
-            .trim();
-          
+          jsonText = stripCodeFences(jsonText).replace(/[\r\n]+/g, ' ').trim();
+
           console.log('Parsing cleaned JSON:', jsonText.substring(0, 200) + '...');
           parsedAnalysis = JSON.parse(jsonText);
           
@@ -360,22 +368,29 @@ BE SPECIFIC AND UNIQUE - analyze what you actually see in THIS image, not generi
         throw new Error('Failed to generate 3D model specifications');
       }
 
+      const cleaned3DResult = stripCodeFences(generation3DResponse.result);
+
       let parsed3DModel: Generated3DModel;
       try {
-        const jsonMatch = generation3DResponse.result.match(/```json\n([\s\S]*?)\n```/) || 
-                         generation3DResponse.result.match(/\{[\s\S]*\}/);
-        
-        if (jsonMatch) {
-          const jsonText = jsonMatch[1] || jsonMatch[0];
-          console.log('Extracted 3D model JSON:', jsonText);
-          parsed3DModel = JSON.parse(jsonText);
-        } else {
-          console.warn('No JSON found in 3D response, using basic generation');
-          parsed3DModel = generateBasic3DModel(analysis);
+        const jsonMatch = cleaned3DResult.match(/```json\n([\s\S]*?)\n```/) ||
+                         cleaned3DResult.match(/\{[\s\S]*\}/);
+
+        if (!jsonMatch) {
+          throw new Error('No JSON structure found in Gemini 3D response');
         }
+
+        const jsonText = stripCodeFences(jsonMatch[1] || jsonMatch[0]);
+        console.log('Extracted 3D model JSON:', jsonText);
+        parsed3DModel = JSON.parse(jsonText);
       } catch (parseError) {
-        console.warn('Failed to parse 3D model JSON, using basic generation:', parseError);
-        parsed3DModel = generateBasic3DModel(analysis);
+        // Gemini's 3D JSON is occasionally malformed/truncated. Fail quietly here rather
+        // than fabricating a placeholder model — callers already treat a null return as
+        // "no 3D model this time" without surfacing an error.
+        console.warn(
+          'Failed to parse Gemini 3D model JSON — skipping 3D generation:',
+          parseError instanceof Error ? parseError.message : parseError
+        );
+        return null;
       }
 
       setGenerated3DModel(parsed3DModel);
@@ -457,69 +472,6 @@ BE SPECIFIC AND UNIQUE - analyze what you actually see in THIS image, not generi
     processBlueprint
   };
 };
-
-// Helper function to generate basic 3D model from analysis
-function generateBasic3DModel(analysis: BlueprintAnalysis): Generated3DModel {
-  console.log('Generating basic 3D model for analysis:', analysis);
-  
-  return {
-    geometry: {
-      vertices: [
-        0, 0, 0,    16, 0, 0,    16, 12, 0,    0, 12, 0,
-        0, 0, 9,    16, 0, 9,    16, 12, 9,    0, 12, 9
-      ],
-      faces: [
-        0, 1, 2, 3,
-        4, 7, 6, 5,
-        0, 4, 5, 1,
-        2, 6, 7, 3,
-        0, 3, 7, 4,
-        1, 5, 6, 2
-      ],
-      normals: [0, 0, -1, 0, 0, 1, 0, -1, 0, 0, 1, 0, -1, 0, 0, 1, 0, 0],
-      uvs: [0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1]
-    },
-    materials: [
-      {
-        name: 'WallMaterial',
-        type: 'MeshStandardMaterial',
-        properties: { color: '#f5f5f5', roughness: 0.8 }
-      },
-      {
-        name: 'FloorMaterial',
-        type: 'MeshStandardMaterial',
-        properties: { color: '#8b7355', roughness: 0.6 }
-      }
-    ],
-    scene: {
-      objects: analysis.rooms.map((room, index) => ({
-        name: room.name,
-        type: 'Room',
-        geometry: 'BoxGeometry',
-        material: 'WallMaterial',
-        transform: {
-          position: [room.bounds.x + room.bounds.width/2, room.bounds.y + room.bounds.height/2, 4.5],
-          rotation: [0, 0, 0],
-          scale: [room.bounds.width, room.bounds.height, 9]
-        }
-      })),
-      lights: [
-        {
-          type: 'AmbientLight',
-          position: [0, 0, 0],
-          intensity: 0.4,
-          color: '#ffffff'
-        },
-        {
-          type: 'DirectionalLight',
-          position: [10, 10, 10],
-          intensity: 0.8,
-          color: '#ffffff'
-        }
-      ]
-    }
-  };
-}
 
 // Helper function to convert 3D model to GLB format
 async function convertToGLB(model: Generated3DModel): Promise<Uint8Array> {
