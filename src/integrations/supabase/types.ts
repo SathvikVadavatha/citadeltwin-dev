@@ -483,6 +483,108 @@ export type Database = {
         }
         Relationships: []
       }
+      client_portal_projects: {
+        Row: {
+          blueprint_file_name: string | null
+          blueprint_file_size: number | null
+          blueprint_file_type: string | null
+          blueprint_public_url: string | null
+          building_sub_type: string | null
+          building_type: string | null
+          client_name: string
+          created_at: string
+          created_by: string | null
+          feedback: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          project_name: string
+          site_address: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          blueprint_file_name?: string | null
+          blueprint_file_size?: number | null
+          blueprint_file_type?: string | null
+          blueprint_public_url?: string | null
+          building_sub_type?: string | null
+          building_type?: string | null
+          client_name: string
+          created_at?: string
+          created_by?: string | null
+          feedback?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          project_name: string
+          site_address?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          blueprint_file_name?: string | null
+          blueprint_file_size?: number | null
+          blueprint_file_type?: string | null
+          blueprint_public_url?: string | null
+          building_sub_type?: string | null
+          building_type?: string | null
+          client_name?: string
+          created_at?: string
+          created_by?: string | null
+          feedback?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          project_name?: string
+          site_address?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      client_portal_project_results: {
+        Row: {
+          id: string
+          project_id: string
+          gis_results: Json | null
+          room_results: Json | null
+          compliance_results: Json | null
+          model_3d_url: string | null
+          processing_status: string
+          error_message: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          gis_results?: Json | null
+          room_results?: Json | null
+          compliance_results?: Json | null
+          model_3d_url?: string | null
+          processing_status?: string
+          error_message?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          gis_results?: Json | null
+          room_results?: Json | null
+          compliance_results?: Json | null
+          model_3d_url?: string | null
+          processing_status?: string
+          error_message?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       collaboration_changes: {
         Row: {
           applied_at: string | null
