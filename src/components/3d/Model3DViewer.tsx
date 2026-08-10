@@ -1,6 +1,7 @@
 
 import React, { Suspense, useRef, useEffect, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { createPortal } from 'react-dom';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, useGLTF } from '@react-three/drei';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -107,6 +108,7 @@ const Model3D = ({ url }: { url: string }) => {
   const meshRef = useRef<THREE.Group>(null);
   const [hasError, setHasError] = useState(false);
   const prevUrlRef = useRef<string | null>(null);
+  const { camera } = useThree();
 
   // Clear stale GLTF cache before loading a new URL to prevent Three.js
   // from serving a cached blob that may have already been revoked.
@@ -128,12 +130,6 @@ const Model3D = ({ url }: { url: string }) => {
     console.error('Error loading 3D model:', err);
     loadError = true;
   }
-
-  useFrame(() => {
-    if (meshRef.current && !hasError && !loadError) {
-      meshRef.current.rotation.y += 0.005;
-    }
-  });
 
   useEffect(() => {
     if (loadError) {
@@ -163,17 +159,40 @@ const Model3D = ({ url }: { url: string }) => {
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
 
+        // Normalized to 6 units (not 3) so the model reads at roughly the same
+        // scale as the default camera/placeholder framing below instead of
+        // looking tiny in the middle of the canvas.
         const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = maxDim > 0 ? 3 / maxDim : 1;
+        const scale = maxDim > 0 ? 6 / maxDim : 1;
 
         gltf.scene.scale.setScalar(scale);
         gltf.scene.position.sub(center.multiplyScalar(scale));
+
+        // Fit the camera to the now-normalized model's bounding box, rather than
+        // relying on one fixed default camera position for every model — a model
+        // that's proportioned very differently from the placeholder scene would
+        // otherwise render tiny (or clipped) in the frame.
+        if (camera instanceof THREE.PerspectiveCamera) {
+          const fittedSize = maxDim * scale;
+          const halfFovY = (camera.fov * Math.PI) / 360;
+          const fitHeightDistance = fittedSize / 2 / Math.tan(halfFovY);
+          const fitWidthDistance = fitHeightDistance / camera.aspect;
+          // 1.35x padding so the model doesn't touch the edges of the frame.
+          const distance = 1.35 * Math.max(fitHeightDistance, fitWidthDistance);
+
+          const direction = new THREE.Vector3(1, 0.65, 1).normalize();
+          camera.position.copy(direction.multiplyScalar(distance));
+          camera.near = Math.max(0.1, distance / 100);
+          camera.far = distance * 100;
+          camera.lookAt(0, 0, 0);
+          camera.updateProjectionMatrix();
+        }
       } catch (err) {
         console.error('Error processing 3D model:', err);
         setHasError(true);
       }
     }
-  }, [gltf, loadError]);
+  }, [gltf, loadError, camera]);
 
   if (hasError || loadError) {
     return <DefaultScene />;
@@ -267,15 +286,25 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
   }
 
   const viewerContent = (
-    <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'h-96'}`}>
+    <div
+      className={
+        isFullscreen
+          ? 'fixed inset-0 z-[100] h-screen w-screen bg-background'
+          : 'relative w-full aspect-[16/10] min-h-[420px] max-h-[70vh]'
+      }
+    >
       <Canvas
-        camera={{ 
-          position: [10, 8, 10], 
+        camera={{
+          position: [8, 6, 8],
           fov: 50,
           near: 0.1,
           far: 1000
         }}
-        style={{ background: 'linear-gradient(to bottom, #87CEEB 0%, #98D8E8 50%, #B0E0E6 100%)' }}
+        style={{
+          width: '100%',
+          height: '100%',
+          background: 'linear-gradient(to bottom, #87CEEB 0%, #98D8E8 50%, #B0E0E6 100%)'
+        }}
         shadows={{ enabled: true, type: THREE.PCFSoftShadowMap }}
         gl={{ antialias: true, alpha: false }}
         onCreated={() => setSceneReady(true)}
@@ -304,11 +333,11 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
           )}
         </Suspense>
         
-        <OrbitControls 
+        <OrbitControls
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
-          minDistance={3}
+          minDistance={4}
           maxDistance={50}
           enableDamping
           dampingFactor={0.05}
@@ -317,7 +346,7 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
       </Canvas>
       
       {/* Enhanced 3D Viewer Controls */}
-      <div className="absolute top-4 right-4 flex flex-col gap-2">
+      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
         <Button
           variant="outline"
           size="sm"
@@ -350,7 +379,7 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
       </div>
 
       {isFullscreen && (
-        <div className="absolute top-4 left-4">
+        <div className="absolute top-4 left-4 z-10">
           <Button
             variant="outline"
             onClick={() => setIsFullscreen(false)}
@@ -362,7 +391,7 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
 
       {/* Scene loading indicator */}
       {!sceneReady && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm">
           <div className="flex items-center gap-2">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
             <span className="text-sm">Initializing 3D scene...</span>
@@ -373,7 +402,11 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
   );
 
   if (isFullscreen) {
-    return viewerContent;
+    // Portal straight to <body> — the results Sheet (and its slide-in animation)
+    // establishes its own containing block via CSS transform, which would
+    // otherwise confine a `position: fixed` element to the Sheet's panel instead
+    // of the real viewport, leaving "fullscreen" visually small.
+    return createPortal(viewerContent, document.body);
   }
 
   return (

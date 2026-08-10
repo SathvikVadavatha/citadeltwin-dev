@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
-import { supabase } from '@/integrations/supabase/client';
 import { CheckCircle2 } from 'lucide-react';
+import { loadGoogleMaps } from '@/lib/googleMapsLoader';
 
 export interface ResolvedAddress {
   formattedAddress: string;
@@ -21,24 +20,6 @@ interface AddressAutocompleteInputProps {
   onResolvedChange: (address: ResolvedAddress | null) => void;
 }
 
-// Same technique used by the GIS page (src/components/gis/GoogleMapsGIS.tsx): fetch the
-// Maps key from the `get-google-maps-key` edge function, then attach Places Autocomplete
-// to a plain input. Cached at module scope so re-mounting this input doesn't re-invoke the
-// edge function or reload the script every time the modal opens.
-let apiKeyPromise: Promise<string> | null = null;
-const loadGoogleMapsApiKey = (): Promise<string> => {
-  if (!apiKeyPromise) {
-    apiKeyPromise = supabase.functions.invoke('get-google-maps-key').then(({ data, error }) => {
-      if (error || !data?.apiKey) {
-        apiKeyPromise = null;
-        throw new Error(error?.message || data?.error || 'Failed to load Google Maps API key');
-      }
-      return data.apiKey as string;
-    });
-  }
-  return apiKeyPromise;
-};
-
 export const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> = ({
   id,
   placeholder = "Search any US address — e.g. '1600 Pennsylvania Ave, Washington, DC'",
@@ -56,11 +37,7 @@ export const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> =
   useEffect(() => {
     let cancelled = false;
 
-    loadGoogleMapsApiKey()
-      .then((apiKey) => {
-        const loader = new Loader({ apiKey, version: 'weekly', libraries: ['places'] });
-        return loader.load();
-      })
+    loadGoogleMaps()
       .then((googleMaps: typeof google) => {
         if (cancelled || !inputRef.current) return;
 

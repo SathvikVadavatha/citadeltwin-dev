@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
-import { MoreHorizontal, Pencil, MessageSquare, CheckCircle, Trash2, Loader2, RotateCw } from 'lucide-react';
+import { MoreHorizontal, Pencil, MessageSquare, CheckCircle, Trash2, Loader2, RotateCw, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   ClientPortalProject,
@@ -259,6 +259,10 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setViewingResultsProject(project)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setEditingProject(project)}>
                         <Pencil className="h-4 w-4 mr-2" />
                         Edit details
@@ -386,8 +390,13 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
         onOpenChange={(open) => {
           if (!open) setViewingResultsProject(null);
         }}
-        project={viewingResultsProject}
+        project={
+          viewingResultsProject
+            ? projects.find((p) => p.id === viewingResultsProject.id) ?? viewingResultsProject
+            : null
+        }
         results={viewingResultsProject ? resultsByProjectId[viewingResultsProject.id] : undefined}
+        onApprove={() => viewingResultsProject && setApprovingProject(viewingResultsProject)}
       />
     </>
   );

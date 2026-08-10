@@ -1,17 +1,32 @@
 
 import React from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import {
+  AlertTriangle,
+  Building2,
+  CheckCircle2,
+  Download,
+  FileUp,
+  MapPinned,
+  MessageSquare,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react';
+import { format } from 'date-fns';
 import { Model3DViewer } from '@/components/3d/Model3DViewer';
 import { ClientPortalProject, ClientPortalProjectResults } from '@/hooks/useClientPortalProjects';
 import { getRoomLabel, getRoomDimensionsText } from '@/lib/blueprintPipeline';
+import { BUILDING_TYPES } from './buildingTypeOptions';
 
 interface ProjectResultsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   project: ClientPortalProject | null;
   results?: ClientPortalProjectResults | null;
+  onApprove?: () => void;
 }
 
 const suitabilityBadgeVariant = (color: string): 'default' | 'secondary' | 'destructive' => {
@@ -20,157 +35,322 @@ const suitabilityBadgeVariant = (color: string): 'default' | 'secondary' | 'dest
   return 'destructive';
 };
 
+const getStatusBadgeVariant = (status: string): 'default' | 'secondary' | 'outline' => {
+  switch (status) {
+    case 'approved':
+      return 'default';
+    case 'in_progress':
+      return 'secondary';
+    default:
+      return 'outline';
+  }
+};
+
+const getStatusLabel = (status: string) =>
+  status
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
+const getBuildingTypeLabel = (value: string | null) =>
+  BUILDING_TYPES.find((t) => t.value === value)?.label || value || '—';
+
+const getBuildingSubTypeLabel = (buildingType: string | null, subType: string | null) => {
+  if (!subType) return null;
+  const type = BUILDING_TYPES.find((t) => t.value === buildingType);
+  return type?.subTypes.find((s) => s.value === subType)?.label || subType;
+};
+
 export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
   open,
   onOpenChange,
   project,
   results,
+  onApprove,
 }) => {
   if (!project) return null;
 
   const gis = results?.gis_results;
   const rooms = results?.room_results;
+  const isProcessing = results?.processing_status === 'running' || results?.processing_status === 'pending';
+
+  // Coherent with the row/project status: once the model is ready, say so — and call
+  // out GIS specifically if it's the only piece missing, instead of showing "Model
+  // ready" next to an unrelated "failed"/"in progress" label elsewhere on the page.
+  const modelStatusLabel = results?.model_3d_url
+    ? gis
+      ? 'Ready'
+      : 'Ready (GIS unavailable)'
+    : isProcessing
+      ? 'Processing…'
+      : 'Not available';
+
+  const modelPlaceholderText = isProcessing
+    ? '3D model is still processing.'
+    : '3D model is not available for this project.';
+
+  const toNumber = (value: number | string | undefined): number | null => {
+    if (value == null) return null;
+    const n = typeof value === 'number' ? value : parseFloat(value);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  // Fallback for when the pipeline didn't return an aggregate building.total_area_*:
+  // sum whatever per-room width/depth the pipeline did return (rooms/labels already
+  // rely on these same fields, so they're known-available even when the aggregate isn't).
+  const roomAreasSqft = (rooms?.rooms ?? [])
+    .map((room) => {
+      const widthFt = toNumber(room.width_ft);
+      const depthFt = toNumber(room.depth_ft);
+      if (widthFt != null && depthFt != null) return widthFt * depthFt;
+      const widthM = toNumber(room.width_m);
+      const depthM = toNumber(room.depth_m);
+      if (widthM != null && depthM != null) return widthM * depthM * 10.7639;
+      return null;
+    })
+    .filter((area): area is number => area != null);
+  const fallbackAreaSqft = roomAreasSqft.length > 0 ? roomAreasSqft.reduce((a, b) => a + b, 0) : null;
+
+  const dimensionsText =
+    rooms?.building?.total_area_sqft != null
+      ? `${Math.round(rooms.building.total_area_sqft)} sq ft`
+      : rooms?.building?.total_area_m2 != null
+        ? `${rooms.building.total_area_m2} m²`
+        : fallbackAreaSqft != null
+          ? `~${Math.round(fallbackAreaSqft)} sq ft (from rooms)`
+          : rooms && rooms.rooms.length > 0
+            ? 'See room list below'
+            : '—';
+
+  const inferredUnit = (rooms?.rooms ?? []).some((room) => room.width_ft != null || room.depth_ft != null)
+    ? 'imperial'
+    : (rooms?.rooms ?? []).some((room) => room.width_m != null || room.depth_m != null)
+      ? 'metric'
+      : null;
+  const measurementUnitText = rooms?.scale?.unit_system || inferredUnit || '—';
+
+  const subTypeLabel = getBuildingSubTypeLabel(project.building_type, project.building_sub_type);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-2xl md:max-w-3xl overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>{project.project_name}</SheetTitle>
-          <SheetDescription>
-            {project.client_name}
-            {project.site_address ? ` · ${project.site_address}` : ''}
-          </SheetDescription>
-        </SheetHeader>
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-none lg:w-[88vw] xl:max-w-6xl">
+        <div className="mx-auto space-y-6 pb-8">
+          <SheetHeader className="pr-8">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <SheetTitle className="text-2xl">{project.project_name}</SheetTitle>
+                <SheetDescription className="mt-1">
+                  {project.client_name}
+                  {project.site_address ? ` · ${project.site_address}` : ''}
+                </SheetDescription>
+              </div>
+              <Badge variant={getStatusBadgeVariant(project.status)}>{getStatusLabel(project.status)}</Badge>
+            </div>
+          </SheetHeader>
 
-        <div className="mt-6 space-y-8">
-          <section className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase text-muted-foreground tracking-wide">GIS Analysis</h3>
-            {gis ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between rounded-lg border p-4">
-                  <div>
-                    <div className="text-sm font-medium">Site Suitability Score</div>
-                    <div className="text-xs text-muted-foreground">Higher = more suitable for construction</div>
+          <Card>
+            <CardContent className="grid grid-cols-1 gap-4 p-5 text-sm sm:grid-cols-2 xl:grid-cols-5">
+              <div>
+                <p className="text-muted-foreground">Project ID</p>
+                <p className="font-mono text-xs font-medium truncate" title={project.id}>
+                  {project.id}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Building Type</p>
+                <p className="font-medium">
+                  {getBuildingTypeLabel(project.building_type)}
+                  {subTypeLabel ? ` / ${subTypeLabel}` : ''}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Blueprint</p>
+                <p className="font-medium truncate" title={project.blueprint_file_name ?? undefined}>
+                  {project.blueprint_file_name || '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Model Status</p>
+                <p className="font-medium">{modelStatusLabel}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Last Updated</p>
+                <p className="font-medium">{format(new Date(project.updated_at), 'MMM d, yyyy')}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.35fr_1fr]">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Sparkles className="h-5 w-5" />
+                    3D Model and Blueprint Results
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  {results?.model_3d_url ? (
+                    <Model3DViewer modelUrl={results.model_3d_url} modelName={project.project_name} />
+                  ) : (
+                    <div className="flex min-h-[280px] items-center justify-center rounded-lg border border-dashed bg-muted/30 p-6 text-center">
+                      <div className="max-w-md">
+                        <Building2 className="mx-auto h-10 w-10 text-muted-foreground" />
+                        <p className="mt-3 font-medium">{modelPlaceholderText}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
+                    <div className="rounded-md border p-3">
+                      <p className="text-muted-foreground">Dimensions</p>
+                      <p className="mt-1 font-medium">{dimensionsText}</p>
+                    </div>
+                    <div className="rounded-md border p-3">
+                      <p className="text-muted-foreground">Measurement Unit</p>
+                      <p className="mt-1 font-medium capitalize">{measurementUnitText}</p>
+                    </div>
+                    <div className="rounded-md border p-3">
+                      <p className="text-muted-foreground">Rooms Detected</p>
+                      <p className="mt-1 font-medium">{rooms?.roomCount ?? '—'}</p>
+                    </div>
                   </div>
-                  <Badge variant={suitabilityBadgeVariant(gis.suitability.color)} className="text-base px-3 py-1">
-                    {gis.suitability.score}/10
-                  </Badge>
-                </div>
 
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="rounded-lg border p-4 space-y-1">
-                    <div className="text-xs font-medium text-muted-foreground">Flood Risk</div>
-                    <div className="text-sm font-semibold">{gis.flood.riskLevel}</div>
-                    <div className="text-xs text-muted-foreground">{gis.flood.explanation}</div>
-                    {gis.flood.highestZone && (
-                      <div className="text-xs text-muted-foreground">Zone: {gis.flood.highestZone}</div>
+                  {rooms?.walls && rooms.walls.length > 0 && (
+                    <div className="text-xs text-muted-foreground">
+                      {rooms.walls.filter((w) => w.wall_type === 'exterior_wall').length} exterior ·{' '}
+                      {rooms.walls.filter((w) => w.wall_type === 'interior_wall').length} interior ·{' '}
+                      {rooms.walls.filter((w) => w.wall_type === 'load_bearing_wall').length} load-bearing walls
+                    </div>
+                  )}
+
+                  <div>
+                    <p className="text-sm font-medium">Room labels</p>
+                    {rooms && rooms.rooms.length > 0 ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {rooms.rooms.map((room, index) => {
+                          const dims = getRoomDimensionsText(room);
+                          return (
+                            <Badge key={index} variant="secondary" className="capitalize">
+                              {getRoomLabel(room, index)}
+                              {dims ? ` — ${dims}` : ''}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-sm text-muted-foreground">No rooms detected in this blueprint.</p>
                     )}
                   </div>
+                </CardContent>
+              </Card>
 
-                  <div className="rounded-lg border p-4 space-y-1">
-                    <div className="text-xs font-medium text-muted-foreground">Protected Areas</div>
-                    <div className="text-sm font-semibold">{gis.protected.count} nearby</div>
-                    {gis.protected.closest.slice(0, 3).map((p, i) => (
-                      <div key={i} className="text-xs text-muted-foreground">
-                        {p.name} — {p.agency}
-                        {p.distanceMiles != null ? ` (${p.distanceMiles.toFixed(2)} mi)` : ''}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="rounded-lg border p-4 space-y-1">
-                    <div className="text-xs font-medium text-muted-foreground">Soils & Wetlands</div>
-                    <div className="text-sm font-semibold">{gis.soils.dominantSoil || 'No data'}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {gis.soils.wetlandsPresent
-                        ? `Wetlands present: ${gis.soils.wetlandTypes.join(', ') || 'Yes'}`
-                        : 'No wetlands detected'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No GIS results available.</p>
-            )}
-          </section>
-
-          <Separator />
-
-          <section className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase text-muted-foreground tracking-wide">Room Analysis</h3>
-            {rooms ? (
-              <div className="space-y-4">
-                <div className="flex flex-wrap gap-8">
-                  <div>
-                    <div className="text-2xl font-bold">{rooms.roomCount}</div>
-                    <div className="text-xs text-muted-foreground">Rooms detected</div>
-                  </div>
-                  {(rooms.building?.total_area_sqft != null || rooms.building?.total_area_m2 != null) && (
-                    <div>
-                      <div className="text-2xl font-bold">
-                        {rooms.building?.total_area_sqft != null
-                          ? `${Math.round(rooms.building.total_area_sqft)} sq ft`
-                          : `${rooms.building?.total_area_m2} m²`}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Total area</div>
-                    </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <MessageSquare className="h-5 w-5" />
+                    Client Feedback
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {project.feedback ? (
+                    <p className="text-sm whitespace-pre-wrap">{project.feedback}</p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No feedback yet.</p>
                   )}
-                  {rooms.scale?.unit_system && (
-                    <div>
-                      <div className="text-sm font-semibold capitalize pt-1.5">
-                        {rooms.scale.scale_text || rooms.scale.scale_source || 'estimated'}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <ShieldCheck className="h-5 w-5" />
+                    Compliance Results
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">Compliance analysis coming soon.</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <MapPinned className="h-5 w-5" />
+                    Site Risk and GIS
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  {gis ? (
+                    <>
+                      <div className="flex items-center justify-between rounded-md border p-3">
+                        <div>
+                          <p className="font-medium">Site Suitability</p>
+                          <p className="text-xs text-muted-foreground">Higher = more suitable for construction</p>
+                        </div>
+                        <Badge variant={suitabilityBadgeVariant(gis.suitability.color)} className="text-base px-3 py-1">
+                          {gis.suitability.score}/10
+                        </Badge>
                       </div>
-                      <div className="text-xs text-muted-foreground">Scale ({rooms.scale.unit_system})</div>
-                    </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-md border p-3">
+                          <p className="text-xs font-medium text-muted-foreground">Flood Risk</p>
+                          <p className="mt-1 font-medium">{gis.flood.riskLevel}</p>
+                          {gis.flood.highestZone && (
+                            <p className="text-xs text-muted-foreground">Zone: {gis.flood.highestZone}</p>
+                          )}
+                        </div>
+                        <div className="rounded-md border p-3">
+                          <p className="text-xs font-medium text-muted-foreground">Protected / Wetlands</p>
+                          <p className="mt-1 font-medium">{gis.protected.count} nearby</p>
+                          <p className="text-xs text-muted-foreground">
+                            {gis.soils.wetlandsPresent
+                              ? `Wetlands: ${gis.soils.wetlandTypes.join(', ') || 'Present'}`
+                              : 'No wetlands detected'}
+                          </p>
+                        </div>
+                        <div className="rounded-md border p-3 col-span-2">
+                          <p className="text-xs font-medium text-muted-foreground">Soils</p>
+                          <p className="mt-1 font-medium">{gis.soils.dominantSoil || 'No data available'}</p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No GIS results available.</p>
                   )}
-                </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
 
-                {rooms.walls && rooms.walls.length > 0 && (
-                  <div className="text-xs text-muted-foreground">
-                    {rooms.walls.filter((w) => w.wall_type === 'exterior_wall').length} exterior ·{' '}
-                    {rooms.walls.filter((w) => w.wall_type === 'interior_wall').length} interior ·{' '}
-                    {rooms.walls.filter((w) => w.wall_type === 'load_bearing_wall').length} load-bearing walls
-                  </div>
-                )}
-
-                {rooms.rooms.length > 0 ? (
-                  <div className="rounded-md border divide-y">
-                    {rooms.rooms.map((room, index) => (
-                      <div key={index} className="flex items-center justify-between px-4 py-2 text-sm">
-                        <span className="font-medium capitalize">{getRoomLabel(room, index)}</span>
-                        <span className="text-muted-foreground">
-                          {getRoomDimensionsText(room) ?? '—'}
-                          {room.confidence != null ? ` · ${Math.round(room.confidence * 100)}%` : ''}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No rooms detected in this blueprint.</p>
-                )}
+          <div className="sticky bottom-0 rounded-lg border bg-background/95 p-4 shadow-sm backdrop-blur">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex max-w-3xl items-start gap-2 text-sm">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" />
+                <p className="text-muted-foreground">
+                  These results are preliminary and are not a substitute for review by a licensed professional.
+                </p>
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No room analysis available.</p>
-            )}
-          </section>
 
-          <Separator />
-
-          <section className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase text-muted-foreground tracking-wide">3D Model</h3>
-            {results?.model_3d_url ? (
-              <Model3DViewer modelUrl={results.model_3d_url} modelName={project.project_name} />
-            ) : (
-              <p className="text-sm text-muted-foreground">3D model not available.</p>
-            )}
-          </section>
-
-          <Separator />
-
-          <section className="space-y-2">
-            <h3 className="text-sm font-semibold uppercase text-muted-foreground tracking-wide">Compliance</h3>
-            <p className="text-sm text-muted-foreground">Compliance analysis coming soon.</p>
-          </section>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" disabled>
+                  <FileUp className="mr-2 h-4 w-4" />
+                  Re-upload Revision
+                </Button>
+                <Button variant="outline" disabled>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
+                </Button>
+                <Button onClick={onApprove} disabled={!onApprove || project.status === 'approved'}>
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  {project.status === 'approved' ? 'Approved' : 'Approve Project'}
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </SheetContent>
     </Sheet>
