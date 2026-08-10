@@ -1,31 +1,12 @@
 
 import { useCallback } from 'react';
-import { Loader } from '@googlemaps/js-api-loader';
 import { supabase } from '@/integrations/supabase/client';
 import { useAdvancedGIS } from '@/hooks/useAdvancedGIS';
 import { useBlueprintFileUpload } from '@/hooks/blueprint/useBlueprintFileUpload';
 import { buildAnalysisSummary } from '@/components/gis/utils/analysisSummary';
 import { callBlueprintPipeline, decodeGlbBase64 } from '@/lib/blueprintPipeline';
+import { loadGoogleMaps } from '@/lib/googleMapsLoader';
 import { ClientPortalProject, ClientPortalRoomResults } from './clientPortalTypes';
-
-// Cached across calls so the Maps JS script (and its API key fetch) only loads once,
-// same pattern as AddressAutocompleteInput.tsx's loadGoogleMapsApiKey.
-let mapsPromise: Promise<typeof google> | null = null;
-const loadGoogleMaps = (): Promise<typeof google> => {
-  if (!mapsPromise) {
-    mapsPromise = supabase.functions
-      .invoke('get-google-maps-key')
-      .then(({ data, error }) => {
-        if (error || !data?.apiKey) {
-          mapsPromise = null;
-          throw new Error(error?.message || data?.error || 'Failed to load Google Maps API key');
-        }
-        const loader = new Loader({ apiKey: data.apiKey, version: 'weekly', libraries: [] });
-        return loader.load();
-      });
-  }
-  return mapsPromise;
-};
 
 // Mirrors GoogleMapsGIS.tsx's extractLocationFromPlace() city/state extraction exactly —
 // gis_layers rows are keyed by these strings, so drift here means buildAnalysisSummary
@@ -73,6 +54,8 @@ const resolveCityState = async (lat: number, lng: number): Promise<{ city: strin
 const toErrorMessage = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
 export interface RunAnalysisOutcome {
+  // Reflects only the core (room/3D) analysis — GIS is independent and never
+  // flips this to 'failed' on its own. See the status derivation below.
   status: 'complete' | 'failed';
   errorMessage: string | null;
 }
@@ -82,6 +65,10 @@ export interface RunAnalysisOutcome {
  * functions the GIS page and upload flow use, then saves the results into
  * client_portal_project_results. Does not render anything and never touches
  * the GIS or upload pages.
+ *
+ * Room/3D (YOLO) and GIS are independent of each other and run in parallel —
+ * GIS doesn't need the blueprint pipeline's output, and the pipeline doesn't
+ * need GIS's — so neither should block or be aborted by the other.
  */
 export const useClientPortalProjectAnalysis = () => {
   const { uploadFile } = useBlueprintFileUpload();
@@ -93,36 +80,43 @@ export const useClientPortalProjectAnalysis = () => {
       resultsId: string,
       file?: File | null
     ): Promise<RunAnalysisOutcome> => {
-      const errors: string[] = [];
+      const roomErrors: string[] = [];
+      const gisErrors: string[] = [];
       let gisResults: unknown = null;
       let roomResults: ClientPortalRoomResults | null = null;
       let model3DUrl: string | null = null;
-      let publicUrl: string | null = project.blueprint_public_url ?? null;
-
-      // Upload only happens on the first run, when a fresh File is available.
-      // Retries reuse the publicUrl already persisted on the project row.
-      if (file) {
-        try {
-          const uploadData = await uploadFile(file);
-          if (!uploadData) throw new Error('Blueprint upload failed');
-
-          publicUrl = uploadData.publicUrl;
-
-          const { error: urlError } = await supabase
-            .from('client_portal_projects')
-            .update({ blueprint_public_url: publicUrl })
-            .eq('id', project.id);
-          if (urlError) throw urlError;
-        } catch (err) {
-          errors.push(`Blueprint upload failed: ${toErrorMessage(err)}`);
-          publicUrl = null;
-        }
-      }
 
       // Room + 3D analysis — reuses the exact same YOLO + EasyOCR pipeline call
       // BlueprintUpload.tsx's trigger3DGeneration makes (same URL, same request
       // body, same response fields), via the shared src/lib/blueprintPipeline.ts.
-      if (publicUrl) {
+      const roomAnalysisPromise = (async () => {
+        // Upload only happens on the first run, when a fresh File is available.
+        // Retries reuse the publicUrl already persisted on the project row.
+        let publicUrl: string | null = project.blueprint_public_url ?? null;
+
+        if (file) {
+          try {
+            const uploadData = await uploadFile(file);
+            if (!uploadData) throw new Error('Blueprint upload failed');
+
+            publicUrl = uploadData.publicUrl;
+
+            const { error: urlError } = await supabase
+              .from('client_portal_projects')
+              .update({ blueprint_public_url: publicUrl })
+              .eq('id', project.id);
+            if (urlError) throw urlError;
+          } catch (err) {
+            roomErrors.push(`Blueprint upload failed: ${toErrorMessage(err)}`);
+            publicUrl = null;
+          }
+        }
+
+        if (!publicUrl) {
+          roomErrors.push('Room analysis skipped: no blueprint image available.');
+          return;
+        }
+
         try {
           const pipelineResult = await callBlueprintPipeline(publicUrl);
           const rooms = Array.isArray(pipelineResult.rooms) ? pipelineResult.rooms : [];
@@ -154,15 +148,19 @@ export const useClientPortalProjectAnalysis = () => {
             }
           }
         } catch (err) {
-          errors.push(`Room analysis failed: ${toErrorMessage(err)}`);
+          roomErrors.push(`Room analysis failed: ${toErrorMessage(err)}`);
         }
-      } else {
-        errors.push('Room analysis skipped: no blueprint image available.');
-      }
+      })();
 
       // GIS analysis — reverse geocode, then reuse the exact real-gis-integration
-      // calls + buildAnalysisSummary() from the GIS page.
-      if (project.latitude != null && project.longitude != null) {
+      // calls + buildAnalysisSummary() from the GIS page. Independent of the
+      // room/3D pipeline above: it starts immediately instead of waiting on it.
+      const gisAnalysisPromise = (async () => {
+        if (project.latitude == null || project.longitude == null) {
+          gisErrors.push('GIS analysis skipped: project has no coordinates.');
+          return;
+        }
+
         try {
           const { city, state } = await resolveCityState(project.latitude, project.longitude);
 
@@ -192,14 +190,21 @@ export const useClientPortalProjectAnalysis = () => {
 
           gisResults = buildAnalysisSummary(layers || [], city, state, project.latitude, project.longitude);
         } catch (err) {
-          errors.push(`GIS analysis failed: ${toErrorMessage(err)}`);
+          gisErrors.push(`GIS analysis failed: ${toErrorMessage(err)}`);
         }
-      } else {
-        errors.push('GIS analysis skipped: project has no coordinates.');
-      }
+      })();
 
-      const status: 'complete' | 'failed' = errors.length === 0 ? 'complete' : 'failed';
-      const combinedError = errors.length ? errors.join(' | ') : null;
+      // allSettled (rather than all/race) so a rejection either side doesn't
+      // matter — both promises already catch their own errors internally, but
+      // this keeps the parallel-and-independent contract explicit even if that
+      // ever changes.
+      await Promise.allSettled([roomAnalysisPromise, gisAnalysisPromise]);
+
+      // Core status reflects room/3D only — a GIS failure never marks the
+      // whole project 'failed' when the core analysis succeeded.
+      const coreStatus: 'complete' | 'failed' = roomErrors.length === 0 ? 'complete' : 'failed';
+      const combinedErrors = [...roomErrors, ...gisErrors];
+      const combinedError = combinedErrors.length ? combinedErrors.join(' | ') : null;
 
       const { error: saveError } = await supabase
         .from('client_portal_project_results')
@@ -207,7 +212,7 @@ export const useClientPortalProjectAnalysis = () => {
           gis_results: gisResults,
           room_results: roomResults,
           model_3d_url: model3DUrl,
-          processing_status: status,
+          processing_status: coreStatus,
           error_message: combinedError,
         })
         .eq('id', resultsId);
@@ -216,11 +221,13 @@ export const useClientPortalProjectAnalysis = () => {
         console.error('Failed to save client portal project analysis results:', saveError);
       }
 
-      if (status === 'complete') {
+      // Advance the project once the core analysis succeeds, regardless of
+      // whether GIS succeeded — GIS is a secondary enrichment, not a gate.
+      if (coreStatus === 'complete') {
         await supabase.from('client_portal_projects').update({ status: 'uploaded' }).eq('id', project.id);
       }
 
-      return { status, errorMessage: combinedError };
+      return { status: coreStatus, errorMessage: combinedError };
     },
     [uploadFile, fetchFEMAFloodData, fetchEnvironmentalData]
   );
