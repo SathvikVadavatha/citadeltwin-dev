@@ -17,6 +17,7 @@ const ViewBlueprints = React.lazy(() => import('./pages/ViewBlueprints').then(m 
 const Settings = React.lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const Users = React.lazy(() => import('./pages/Users').then(m => ({ default: m.Users })));
 const Compliance = React.lazy(() => import('./pages/Compliance').then(m => ({ default: m.Compliance })));
+const SiteRequirements = React.lazy(() => import('./pages/SiteRequirements').then(m => ({ default: m.SiteRequirements })));
 const ClientPortal = React.lazy(() => import('./pages/ClientPortal').then(m => ({ default: m.ClientPortal })));
 const DocumentManagementDashboard = React.lazy(() => import('@/components/documents/DocumentManagementDashboard').then(m => ({ default: m.DocumentManagementDashboard })));
 const Security = React.lazy(() => import('./pages/Security'));
@@ -142,6 +143,16 @@ function App() {
                     <RouteErrorBoundary routeName="Compliance">
                       <EnhancedResponsiveLayout>
                         <Compliance />
+                      </EnhancedResponsiveLayout>
+                    </RouteErrorBoundary>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/site-requirements" element={
+                  <ProtectedRoute>
+                    <RouteErrorBoundary routeName="Site & Federal Requirements">
+                      <EnhancedResponsiveLayout>
+                        <SiteRequirements />
                       </EnhancedResponsiveLayout>
                     </RouteErrorBoundary>
                   </ProtectedRoute>

@@ -12,6 +12,7 @@ import {
   Share2,
   Map,
   Box,
+  Landmark,
   LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -25,6 +26,7 @@ const navigation = [
   { name: 'View Blueprints', href: '/blueprints/view', icon: FileText },
   { name: 'GIS Analysis', href: '/gis', icon: Map },
   { name: 'Compliance', href: '/compliance', icon: Shield },
+  { name: 'Site & Federal Requirements', href: '/site-requirements', icon: Landmark },
   { name: 'Documents', href: '/documents', icon: FileText },
   { name: 'Client Portal', href: '/client-portal', icon: Share2 },
   { name: 'Users', href: '/users', icon: Users },
