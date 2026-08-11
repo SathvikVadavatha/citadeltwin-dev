@@ -6,7 +6,18 @@ import { useBlueprintFileUpload } from '@/hooks/blueprint/useBlueprintFileUpload
 import { buildAnalysisSummary } from '@/components/gis/utils/analysisSummary';
 import { callBlueprintPipeline, decodeGlbBase64 } from '@/lib/blueprintPipeline';
 import { loadGoogleMaps } from '@/lib/googleMapsLoader';
-import { ClientPortalProject, ClientPortalRoomResults } from './clientPortalTypes';
+import { ClientPortalProject, ClientPortalRoomResults, ClientPortalComplianceResults } from './clientPortalTypes';
+
+// US addresses end in a 5-digit ZIP, optionally ZIP+4 — take the 5-digit part.
+const extractZip = (address: string): string => {
+  const match = address.match(/(\d{5})(?:-\d{4})?\s*$/);
+  return match ? match[1] : '';
+};
+
+// Site & Federal Requirements' own propertyType is only 'residential' | 'commercial'
+// — industrial (and anything else) is treated as commercial for now.
+const mapToRequirementsPropertyType = (buildingType: string | null): 'residential' | 'commercial' =>
+  buildingType === 'residential' ? 'residential' : 'commercial';
 
 // Mirrors GoogleMapsGIS.tsx's extractLocationFromPlace() city/state extraction exactly —
 // gis_layers rows are keyed by these strings, so drift here means buildAnalysisSummary
@@ -82,9 +93,11 @@ export const useClientPortalProjectAnalysis = () => {
     ): Promise<RunAnalysisOutcome> => {
       const roomErrors: string[] = [];
       const gisErrors: string[] = [];
+      const requirementsErrors: string[] = [];
       let gisResults: unknown = null;
       let roomResults: ClientPortalRoomResults | null = null;
       let model3DUrl: string | null = null;
+      let complianceResults: ClientPortalComplianceResults | null = null;
 
       // Room + 3D analysis — reuses the exact same YOLO + EasyOCR pipeline call
       // BlueprintUpload.tsx's trigger3DGeneration makes (same URL, same request
@@ -194,16 +207,48 @@ export const useClientPortalProjectAnalysis = () => {
         }
       })();
 
-      // allSettled (rather than all/race) so a rejection either side doesn't
-      // matter — both promises already catch their own errors internally, but
+      // Site & Federal Requirements — reuses the exact resolve-location edge
+      // function the Site & Federal Requirements page calls via useResolveLocation.ts
+      // (same request body shape). Called directly here since this is a plain
+      // function, not a component that can call a hook. Independent of room/3D
+      // and GIS: it starts immediately and a failure here never blocks either.
+      const requirementsAnalysisPromise = (async () => {
+        if (!project.site_address) {
+          requirementsErrors.push('Site & federal requirements skipped: project has no address.');
+          return;
+        }
+
+        const zip = extractZip(project.site_address);
+        const propertyType = mapToRequirementsPropertyType(project.building_type);
+
+        try {
+          const { data, error } = await supabase.functions.invoke('resolve-location', {
+            body: { address: project.site_address, zip, propertyType },
+          });
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
+
+          complianceResults = {
+            project: data.project,
+            siteConditions: data.siteConditions ?? [],
+            warnings: data.warnings ?? [],
+            propertyType,
+          };
+        } catch (err) {
+          requirementsErrors.push(`Site & federal requirements failed: ${toErrorMessage(err)}`);
+        }
+      })();
+
+      // allSettled (rather than all/race) so a rejection on any one side doesn't
+      // matter — each promise already catches its own errors internally, but
       // this keeps the parallel-and-independent contract explicit even if that
       // ever changes.
-      await Promise.allSettled([roomAnalysisPromise, gisAnalysisPromise]);
+      await Promise.allSettled([roomAnalysisPromise, gisAnalysisPromise, requirementsAnalysisPromise]);
 
-      // Core status reflects room/3D only — a GIS failure never marks the
-      // whole project 'failed' when the core analysis succeeded.
+      // Core status reflects room/3D only — a GIS or requirements-lookup failure
+      // never marks the whole project 'failed' when the core analysis succeeded.
       const coreStatus: 'complete' | 'failed' = roomErrors.length === 0 ? 'complete' : 'failed';
-      const combinedErrors = [...roomErrors, ...gisErrors];
+      const combinedErrors = [...roomErrors, ...gisErrors, ...requirementsErrors];
       const combinedError = combinedErrors.length ? combinedErrors.join(' | ') : null;
 
       const { error: saveError } = await supabase
@@ -211,6 +256,7 @@ export const useClientPortalProjectAnalysis = () => {
         .update({
           gis_results: gisResults,
           room_results: roomResults,
+          compliance_results: complianceResults,
           model_3d_url: model3DUrl,
           processing_status: coreStatus,
           error_message: combinedError,

@@ -6,6 +6,7 @@ import type {
   BlueprintPipelineScaleInfo,
   BlueprintPipelineBuildingInfo,
 } from '@/lib/blueprintPipeline';
+import type { ReqProject, ReqSiteCondition } from '@/hooks/site-requirements/useResolveLocation';
 
 export interface ClientPortalProject {
   id: string;
@@ -67,12 +68,22 @@ export interface ClientPortalRoomResults {
   building?: BlueprintPipelineBuildingInfo;
 }
 
+// Saved from the Site & Federal Requirements feature's `resolve-location` edge
+// function response (see supabase/functions/resolve-location/index.ts) — reuses
+// that feature's own ReqProject/ReqSiteCondition shapes rather than redefining them.
+export interface ClientPortalComplianceResults {
+  project: ReqProject;
+  siteConditions: ReqSiteCondition[];
+  warnings: string[];
+  propertyType: 'residential' | 'commercial';
+}
+
 export interface ClientPortalProjectResults {
   id: string;
   project_id: string;
   gis_results: AnalysisSummary | null;
   room_results: ClientPortalRoomResults | null;
-  compliance_results: unknown | null;
+  compliance_results: ClientPortalComplianceResults | null;
   model_3d_url: string | null;
   processing_status: ClientPortalProcessingStatus;
   error_message: string | null;
