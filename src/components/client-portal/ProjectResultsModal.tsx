@@ -10,9 +10,9 @@ import {
   CheckCircle2,
   Download,
   FileUp,
+  Landmark,
   MapPinned,
   MessageSquare,
-  ShieldCheck,
   Sparkles,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -20,6 +20,10 @@ import { Model3DViewer } from '@/components/3d/Model3DViewer';
 import { ClientPortalProject, ClientPortalProjectResults } from '@/hooks/useClientPortalProjects';
 import { getRoomLabel, getRoomDimensionsText } from '@/lib/blueprintPipeline';
 import { BUILDING_TYPES } from './buildingTypeOptions';
+import { useFederalRules } from '@/hooks/site-requirements/useFederalRules';
+import { useJurisdictionLinks } from '@/hooks/site-requirements/useJurisdictionLinks';
+import { FederalRequirementsTable } from '@/components/site-requirements/FederalRequirementsTable';
+import { JurisdictionLinksSection } from '@/components/site-requirements/JurisdictionLinksSection';
 
 interface ProjectResultsModalProps {
   open: boolean;
@@ -68,6 +72,23 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
   results,
   onApprove,
 }) => {
+  const complianceResults = results?.compliance_results ?? null;
+
+  // Federal rules only need the property type, which we always know from the
+  // project itself — this works even when the resolve-location call hasn't
+  // run yet/failed, unlike jurisdiction links below (which need a resolved state).
+  const mappedPropertyType: 'residential' | 'commercial' =
+    complianceResults?.propertyType ?? (project?.building_type === 'residential' ? 'residential' : 'commercial');
+
+  // Hooks must run unconditionally on every render (rules of hooks), so these
+  // are called before the `if (!project)` guard below, disabled via null input
+  // when there's nothing to show yet.
+  const { rules: federalRules, rulesLoading: federalRulesLoading, rulesError: federalRulesError } =
+    useFederalRules(project ? mappedPropertyType : null);
+
+  const { stateLinks, nationalLinks, linksLoading: jurisdictionLinksLoading, linksError: jurisdictionLinksError } =
+    useJurisdictionLinks(complianceResults?.project.state_code ?? null);
+
   if (!project) return null;
 
   const gis = results?.gis_results;
@@ -266,14 +287,92 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
-                    <ShieldCheck className="h-5 w-5" />
-                    Compliance Results
+                    <Landmark className="h-5 w-5" />
+                    Site &amp; Federal Requirements
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">Compliance analysis coming soon.</p>
+                <CardContent className="space-y-4">
+                  <p className="text-xs text-muted-foreground">
+                    This surfaces federal requirements and site hazard data; it does not review
+                    your design or determine compliance.
+                  </p>
+
+                  {complianceResults ? (
+                    <>
+                      {complianceResults.warnings.length > 0 && (
+                        <div className="space-y-1 rounded-md border border-orange-200 bg-orange-50 p-3 text-xs text-orange-800">
+                          {complianceResults.warnings.map((warning, index) => (
+                            <p key={index}>{warning}</p>
+                          ))}
+                        </div>
+                      )}
+
+                      <div>
+                        <p className="text-sm font-medium">Site conditions</p>
+                        {complianceResults.siteConditions.length > 0 ? (
+                          <div className="mt-2 space-y-2">
+                            {complianceResults.siteConditions.map((condition) => (
+                              <div key={condition.id} className="rounded-md border p-3 text-sm">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="font-medium">{condition.label}</p>
+                                  <p className="font-medium">
+                                    {condition.value}
+                                    {condition.unit ? ` ${condition.unit}` : ''}
+                                  </p>
+                                </div>
+                                {condition.note && (
+                                  <p className="mt-1 text-xs text-muted-foreground">{condition.note}</p>
+                                )}
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  Source:{' '}
+                                  {condition.source_url ? (
+                                    <a
+                                      href={condition.source_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-primary hover:underline"
+                                    >
+                                      {condition.source}
+                                      {condition.source_edition ? ` (${condition.source_edition})` : ''}
+                                    </a>
+                                  ) : (
+                                    <>
+                                      {condition.source}
+                                      {condition.source_edition ? ` (${condition.source_edition})` : ''}
+                                    </>
+                                  )}
+                                  {' · retrieved '}
+                                  {format(new Date(condition.retrieved_at), 'MMM d, yyyy')}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mt-2 text-sm text-muted-foreground">No site conditions retrieved.</p>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Site &amp; federal data not available.</p>
+                  )}
                 </CardContent>
               </Card>
+
+              <FederalRequirementsTable
+                rules={federalRules}
+                isLoading={federalRulesLoading}
+                error={federalRulesError}
+                propertyType={mappedPropertyType}
+              />
+
+              <JurisdictionLinksSection
+                stateName={complianceResults?.project.state_name ?? null}
+                placeName={complianceResults?.project.place_name ?? null}
+                stateLinks={stateLinks}
+                nationalLinks={nationalLinks}
+                isLoading={jurisdictionLinksLoading}
+                error={jurisdictionLinksError}
+              />
 
               <Card>
                 <CardHeader>

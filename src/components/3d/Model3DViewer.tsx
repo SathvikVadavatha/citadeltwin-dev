@@ -1,7 +1,7 @@
 
 import React, { Suspense, useRef, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, useGLTF } from '@react-three/drei';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,95 +20,15 @@ interface Model3DViewerProps {
   onDownload?: () => void;
 }
 
-// Enhanced 3D scene with better geometry and materials
-const DefaultScene = () => {
-  const meshRef = useRef<THREE.Group>(null);
-
-  useFrame(() => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y += 0.005;
-    }
-  });
-
-  return (
-    <group ref={meshRef}>
-      {/* Floor with better material */}
-      <mesh position={[0, -2, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[12, 12]} />
-        <meshStandardMaterial color="#f5f5f5" roughness={0.8} metalness={0.1} />
-      </mesh>
-      
-      {/* Main building structure */}
-      <mesh position={[0, 0, 0]} castShadow receiveShadow>
-        <boxGeometry args={[5, 3.5, 7]} />
-        <meshStandardMaterial color="#e8f4fd" roughness={0.7} metalness={0.1} />
-      </mesh>
-      
-      {/* Roof */}
-      <mesh position={[0, 2.25, 0]} castShadow>
-        <coneGeometry args={[3.8, 1.5, 4]} />
-        <meshStandardMaterial color="#8b4513" roughness={0.9} metalness={0.0} />
-      </mesh>
-      
-      {/* Front Door */}
-      <mesh position={[2.6, -0.5, 0]} castShadow>
-        <boxGeometry args={[0.15, 2.2, 1.2]} />
-        <meshStandardMaterial color="#654321" roughness={0.8} metalness={0.0} />
-      </mesh>
-      
-      {/* Door handle */}
-      <mesh position={[2.65, -0.3, -0.3]} castShadow>
-        <sphereGeometry args={[0.05]} />
-        <meshStandardMaterial color="#ffd700" roughness={0.2} metalness={0.8} />
-      </mesh>
-      
-      {/* Windows */}
-      <mesh position={[2.6, 0.5, -2]} castShadow>
-        <boxGeometry args={[0.15, 1.2, 1.2]} />
-        <meshStandardMaterial color="#87ceeb" transparent opacity={0.8} roughness={0.1} metalness={0.0} />
-      </mesh>
-      
-      <mesh position={[2.6, 0.5, 2]} castShadow>
-        <boxGeometry args={[0.15, 1.2, 1.2]} />
-        <meshStandardMaterial color="#87ceeb" transparent opacity={0.8} roughness={0.1} metalness={0.0} />
-      </mesh>
-      
-      {/* Side windows */}
-      <mesh position={[-1, 0.5, 3.6]} castShadow>
-        <boxGeometry args={[1.2, 1.2, 0.15]} />
-        <meshStandardMaterial color="#87ceeb" transparent opacity={0.8} roughness={0.1} metalness={0.0} />
-      </mesh>
-      
-      <mesh position={[1, 0.5, 3.6]} castShadow>
-        <boxGeometry args={[1.2, 1.2, 0.15]} />
-        <meshStandardMaterial color="#87ceeb" transparent opacity={0.8} roughness={0.1} metalness={0.0} />
-      </mesh>
-      
-      {/* Decorative elements */}
-      <mesh position={[0, -1.5, 3.8]} castShadow>
-        <boxGeometry args={[6, 0.3, 0.2]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.5} metalness={0.0} />
-      </mesh>
-      
-      {/* Simple landscaping */}
-      <mesh position={[-4, -1.8, -2]} receiveShadow>
-        <cylinderGeometry args={[0.5, 0.5, 0.4]} />
-        <meshStandardMaterial color="#228b22" roughness={0.9} metalness={0.0} />
-      </mesh>
-      
-      <mesh position={[4, -1.8, 2]} receiveShadow>
-        <cylinderGeometry args={[0.6, 0.6, 0.4]} />
-        <meshStandardMaterial color="#228b22" roughness={0.9} metalness={0.0} />
-      </mesh>
-    </group>
-  );
-};
-
-const Model3D = ({ url }: { url: string }) => {
+const Model3D = ({ url, onError }: { url: string; onError: () => void }) => {
   const meshRef = useRef<THREE.Group>(null);
   const [hasError, setHasError] = useState(false);
   const prevUrlRef = useRef<string | null>(null);
-  const { camera } = useThree();
+  const { camera, size: canvasSize } = useThree();
+  // Set once the loaded model's bounding box is known, then reused by the
+  // resize-driven fit effect below (so re-fitting on a canvas resize doesn't
+  // need to re-run the material/normalization work every time).
+  const fittedRef = useRef<{ maxDim: number; scale: number } | null>(null);
 
   // Clear stale GLTF cache before loading a new URL to prevent Three.js
   // from serving a cached blob that may have already been revoked.
@@ -134,71 +54,107 @@ const Model3D = ({ url }: { url: string }) => {
   useEffect(() => {
     if (loadError) {
       setHasError(true);
+      onError();
       return;
     }
 
     if (gltf?.scene) {
       try {
-        // Force opaque rendering with vertex colors on every mesh.
-        // trimesh exports GLB with vertex colors but without explicit material
-        // opacity settings, causing Three.js to default to semi-transparent blue.
+        const box = new THREE.Box3().setFromObject(gltf.scene);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        // Bottom ~15% of the model's height counts as "floor-like" for the
+        // per-mesh heuristic below.
+        const floorCeilingY = box.min.y + size.y * 0.15;
+
+        // Force opaque rendering and override the surface color/roughness on
+        // every mesh. The trimesh export's vertex colors often come through
+        // very dark (near-black), which combined with the scene's lighting
+        // made walls unreadable against the background — so instead of
+        // trusting whatever base/vertex color the export shipped with, force
+        // a light, neutral surface. Meshes named like a floor/slab, or whose
+        // own geometry sits low and flat relative to the whole model, get a
+        // slightly different (darker) shade so the floor doesn't visually
+        // merge with the walls.
         gltf.scene.traverse((child: any) => {
           if (child.isMesh && child.material) {
             child.material.transparent = false;
             child.material.opacity = 1.0;
             child.material.depthWrite = true;
             child.material.side = THREE.DoubleSide;
-            if (child.material.vertexColors) {
-              child.material.vertexColors = true;
+            child.material.vertexColors = false;
+            child.material.metalness = 0.0;
+
+            const nameLower = String(child.name || '').toLowerCase();
+            const nameLooksLikeFloor = /floor|ground|slab|\bbase\b/.test(nameLower);
+
+            const meshBox = new THREE.Box3().setFromObject(child);
+            const meshHeight = meshBox.max.y - meshBox.min.y;
+            const meshFootprint = Math.max(
+              meshBox.max.x - meshBox.min.x,
+              meshBox.max.z - meshBox.min.z
+            );
+            const geometryLooksLikeFloor =
+              meshBox.max.y <= floorCeilingY && meshHeight < meshFootprint * 0.25;
+
+            if (nameLooksLikeFloor || geometryLooksLikeFloor) {
+              child.material.color = new THREE.Color('#c3c8ce');
+              child.material.roughness = 0.95;
+            } else {
+              child.material.color = new THREE.Color('#eceef0');
+              child.material.roughness = 0.8;
             }
             child.material.needsUpdate = true;
           }
         });
 
-        const box = new THREE.Box3().setFromObject(gltf.scene);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-
         // Normalized to 6 units (not 3) so the model reads at roughly the same
-        // scale as the default camera/placeholder framing below instead of
-        // looking tiny in the middle of the canvas.
+        // scale as the default camera framing below instead of looking tiny
+        // in the middle of the canvas.
         const maxDim = Math.max(size.x, size.y, size.z);
         const scale = maxDim > 0 ? 6 / maxDim : 1;
 
         gltf.scene.scale.setScalar(scale);
         gltf.scene.position.sub(center.multiplyScalar(scale));
 
-        // Fit the camera to the now-normalized model's bounding box, rather than
-        // relying on one fixed default camera position for every model — a model
-        // that's proportioned very differently from the placeholder scene would
-        // otherwise render tiny (or clipped) in the frame.
-        if (camera instanceof THREE.PerspectiveCamera) {
-          const fittedSize = maxDim * scale;
-          const halfFovY = (camera.fov * Math.PI) / 360;
-          const fitHeightDistance = fittedSize / 2 / Math.tan(halfFovY);
-          const fitWidthDistance = fitHeightDistance / camera.aspect;
-          // 1.35x padding so the model doesn't touch the edges of the frame.
-          const distance = 1.35 * Math.max(fitHeightDistance, fitWidthDistance);
-
-          const direction = new THREE.Vector3(1, 0.65, 1).normalize();
-          camera.position.copy(direction.multiplyScalar(distance));
-          camera.near = Math.max(0.1, distance / 100);
-          camera.far = distance * 100;
-          camera.lookAt(0, 0, 0);
-          camera.updateProjectionMatrix();
-        }
+        fittedRef.current = { maxDim, scale };
       } catch (err) {
         console.error('Error processing 3D model:', err);
         setHasError(true);
+        onError();
       }
     }
-  }, [gltf, loadError, camera]);
+  }, [gltf, loadError, onError]);
+
+  // Fit the camera to the model's bounding box whenever the canvas actually
+  // resizes — not just once at load — so entering/exiting fullscreen (which
+  // swaps in a differently-sized canvas) re-frames the whole plan instead of
+  // keeping whatever distance was computed for the old aspect ratio.
+  useEffect(() => {
+    if (!fittedRef.current || !(camera instanceof THREE.PerspectiveCamera)) return;
+    if (canvasSize.width === 0 || canvasSize.height === 0) return;
+
+    const { maxDim, scale } = fittedRef.current;
+    const fittedSize = maxDim * scale;
+    const halfFovY = (camera.fov * Math.PI) / 360;
+    const fitHeightDistance = fittedSize / 2 / Math.tan(halfFovY);
+    const fitWidthDistance = fitHeightDistance / camera.aspect;
+    // 1.35x padding so the model doesn't touch the edges of the frame.
+    const distance = 1.35 * Math.max(fitHeightDistance, fitWidthDistance);
+
+    const direction = new THREE.Vector3(1, 0.65, 1).normalize();
+    camera.position.copy(direction.multiplyScalar(distance));
+    camera.near = Math.max(0.1, distance / 100);
+    camera.far = distance * 100;
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+  }, [camera, canvasSize.width, canvasSize.height]);
 
   if (hasError || loadError) {
-    return <DefaultScene />;
+    return null;
   }
 
-  return gltf?.scene ? <primitive ref={meshRef} object={gltf.scene} /> : <DefaultScene />;
+  return gltf?.scene ? <primitive ref={meshRef} object={gltf.scene} /> : null;
 };
 
 const LoadingFallback = () => (
@@ -220,6 +176,7 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [useEnhancedViewer, setUseEnhancedViewer] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
+  const [modelLoadFailed, setModelLoadFailed] = useState(false);
 
   // Log the uploadId whenever it changes so we can verify the correct ID is received
   useEffect(() => {
@@ -270,6 +227,12 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
     return () => clearTimeout(timer);
   }, []);
 
+  // Give a freshly-supplied URL a clean slate instead of carrying over a
+  // previous model's load failure.
+  useEffect(() => {
+    setModelLoadFailed(false);
+  }, [finalModelUrl]);
+
   const handleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
   };
@@ -285,11 +248,20 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
     );
   }
 
+  // A model is only "missing" once we're done trying to get one — while a DB
+  // lookup is still in flight, that's a loading state, not a not-available state.
+  const showEmptyState = sceneReady && (modelLoadFailed || (!finalModelUrl && !isLoading));
+  const emptyStateMessage = modelLoadFailed
+    ? '3D model failed to load.'
+    : isLoading
+      ? 'Loading model…'
+      : '3D model not available.';
+
   const viewerContent = (
     <div
       className={
         isFullscreen
-          ? 'fixed inset-0 z-[100] h-screen w-screen bg-background'
+          ? 'fixed inset-0 z-[100] h-screen w-screen bg-background pointer-events-auto'
           : 'relative w-full aspect-[16/10] min-h-[420px] max-h-[70vh]'
       }
     >
@@ -300,19 +272,18 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
           near: 0.1,
           far: 1000
         }}
-        style={{
-          width: '100%',
-          height: '100%',
-          background: 'linear-gradient(to bottom, #87CEEB 0%, #98D8E8 50%, #B0E0E6 100%)'
-        }}
+        style={{ width: '100%', height: '100%' }}
         shadows={{ enabled: true, type: THREE.PCFSoftShadowMap }}
         gl={{ antialias: true, alpha: false }}
         onCreated={() => setSceneReady(true)}
       >
-        <ambientLight intensity={0.4} color="#ffffff" />
-        <directionalLight 
-          position={[15, 15, 10]} 
-          intensity={1.0}
+        {/* Muted dark slate — not pure black, but dark enough that the light
+            walls (#eceef0) and floor (#c3c8ce) both read clearly against it. */}
+        <color attach="background" args={['#2b3038']} />
+        <ambientLight intensity={0.8} color="#ffffff" />
+        <directionalLight
+          position={[15, 15, 10]}
+          intensity={1.5}
           castShadow
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
@@ -322,29 +293,36 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
           shadow-camera-top={10}
           shadow-camera-bottom={-10}
         />
-        <pointLight position={[-10, 5, -10]} intensity={0.3} color="#fff8dc" />
-        <hemisphereLight args={['#87CEEB', '#f0f8ff', 0.3]} />
-        
+        <pointLight position={[-10, 5, -10]} intensity={0.5} color="#ffffff" />
+        <hemisphereLight args={['#ffffff', '#dfe3e6', 0.5]} />
+
         <Suspense fallback={<LoadingFallback />}>
-          {finalModelUrl && sceneReady ? (
-            <Model3D url={finalModelUrl} />
-          ) : (
-            <DefaultScene />
-          )}
+          {finalModelUrl && sceneReady && !modelLoadFailed ? (
+            <Model3D url={finalModelUrl} onError={() => setModelLoadFailed(true)} />
+          ) : null}
         </Suspense>
-        
+
         <OrbitControls
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
           minDistance={4}
-          maxDistance={50}
+          maxDistance={150}
           enableDamping
           dampingFactor={0.05}
           maxPolarAngle={Math.PI / 2.2}
         />
       </Canvas>
-      
+
+      {showEmptyState && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/85 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-2 text-center text-muted-foreground px-4">
+            <AlertCircle className="h-8 w-8" />
+            <p className="text-sm">{emptyStateMessage}</p>
+          </div>
+        </div>
+      )}
+
       {/* Enhanced 3D Viewer Controls */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
         <Button
@@ -437,9 +415,9 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
         {viewerContent}
         <div className="mt-4 text-sm text-muted-foreground text-center space-y-2">
           <p>Use mouse to rotate, zoom, and pan the 3D model</p>
-          {!finalModelUrl && !hasElements && (
+          {!finalModelUrl && !hasElements && !isLoading && (
             <p className="text-blue-600">
-              🏠 Showing enhanced architectural model - upload a blueprint to generate a custom 3D model
+              Upload a blueprint to generate a custom 3D model.
             </p>
           )}
           {hasElements && !useEnhancedViewer && (
