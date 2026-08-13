@@ -45,6 +45,19 @@ DOOR_CLASS_IDS    = {CLS_DOOR, CLS_SLIDING_DOOR}
 WINDOW_CLASS_IDS  = {CLS_WINDOW}
 EXCLUDE_CLASS_IDS = {CLS_DIMENSION, CLS_RAILING, CLS_COLUMN}
 
+# ---------------------------------------------------------------------------
+# Per-class minimum confidence
+# ---------------------------------------------------------------------------
+
+MIN_CONFIDENCE = {
+    CLS_WALL: 0.05,
+    CLS_CURTAIN_WALL: 0.05,
+    CLS_DOOR: 0.4,
+    CLS_SLIDING_DOOR: 0.4,
+    CLS_WINDOW: 0.4,
+}
+DEFAULT_MIN_CONFIDENCE = 0.25
+
 # Module-level cache so the model only downloads once per container lifetime
 _CACHED_MODEL = None
 
@@ -98,6 +111,10 @@ def _run_yolo(image: np.ndarray, model) -> dict:
             cls_id = int(box.cls[0])
             x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
             conf = float(box.conf[0])
+
+            if cls_id == CLS_WINDOW and conf < MIN_CONFIDENCE.get(cls_id, DEFAULT_MIN_CONFIDENCE):
+                continue
+
             det = {"bbox": [x1, y1, x2, y2], "confidence": conf, "class_id": cls_id}
 
             if cls_id in WALL_CLASS_IDS:
