@@ -308,7 +308,7 @@ export const AddProjectModal: React.FC<AddProjectModalProps> = ({ open, onOpenCh
               </Button>
               <Button type="submit" disabled={!isValid || submitting}>
                 {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {isEditMode ? 'Save Changes' : 'Add Project'}
+                {isEditMode ? 'Save Changes' : 'Submit'}
               </Button>
             </div>
           </form>

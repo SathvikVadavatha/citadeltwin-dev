@@ -11,6 +11,7 @@ import {
   Download,
   FileUp,
   Landmark,
+  Loader2,
   MapPinned,
   MessageSquare,
   Sparkles,
@@ -73,6 +74,9 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
   onApprove,
 }) => {
   const complianceResults = results?.compliance_results ?? null;
+  const isProcessing = Boolean(project) && (
+    !results || results.processing_status === 'running' || results.processing_status === 'pending'
+  );
 
   // Federal rules only need the property type, which we always know from the
   // project itself — this works even when the resolve-location call hasn't
@@ -84,16 +88,15 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
   // are called before the `if (!project)` guard below, disabled via null input
   // when there's nothing to show yet.
   const { rules: federalRules, rulesLoading: federalRulesLoading, rulesError: federalRulesError } =
-    useFederalRules(project ? mappedPropertyType : null);
+    useFederalRules(project && !isProcessing ? mappedPropertyType : null);
 
   const { stateLinks, nationalLinks, linksLoading: jurisdictionLinksLoading, linksError: jurisdictionLinksError } =
-    useJurisdictionLinks(complianceResults?.project.state_code ?? null);
+    useJurisdictionLinks(!isProcessing ? complianceResults?.project.state_code ?? null : null);
 
   if (!project) return null;
 
   const gis = results?.gis_results;
   const rooms = results?.room_results;
-  const isProcessing = results?.processing_status === 'running' || results?.processing_status === 'pending';
 
   // Coherent with the row/project status: once the model is ready, say so — and call
   // out GIS specifically if it's the only piece missing, instead of showing "Model
@@ -154,22 +157,57 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-none lg:w-[88vw] xl:max-w-6xl">
-        <div className="mx-auto space-y-6 pb-8">
-          <SheetHeader className="pr-8">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <SheetTitle className="text-2xl">{project.project_name}</SheetTitle>
+      <SheetContent
+        side="right"
+        className="h-dvh w-screen max-w-none overflow-y-auto overflow-x-hidden border-0 p-0 sm:max-w-none [&>button]:right-5 [&>button]:top-5 [&>button]:flex [&>button]:h-11 [&>button]:w-11 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-xl [&>button]:border [&>button]:border-border [&>button]:bg-background [&>button]:opacity-100 [&>button]:shadow-md [&>button]:transition-all [&>button]:duration-200 hover:[&>button]:border-primary/40 hover:[&>button]:bg-accent hover:[&>button]:shadow-lg [&>button>svg]:h-5 [&>button>svg]:w-5"
+      >
+        <div className="mx-auto w-full min-w-0 max-w-[1800px] space-y-6 px-4 pb-8 pt-6 sm:px-6 lg:px-8">
+          <SheetHeader className="pr-16">
+            <div className="flex min-w-0 items-center justify-between gap-4">
+              <div className="min-w-0">
+                <SheetTitle className="truncate text-2xl" title={project.project_name}>
+                  {project.project_name}
+                </SheetTitle>
                 <SheetDescription className="mt-1">
                   {project.client_name}
                   {project.site_address ? ` · ${project.site_address}` : ''}
                 </SheetDescription>
               </div>
-              <Badge variant={getStatusBadgeVariant(project.status)}>{getStatusLabel(project.status)}</Badge>
+              <Badge
+                variant={getStatusBadgeVariant(project.status)}
+                className="shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold tracking-wide shadow-sm ring-1 ring-border/60"
+              >
+                {getStatusLabel(project.status)}
+              </Badge>
             </div>
           </SheetHeader>
 
-          <Card>
+          {isProcessing ? (
+            <div className="flex min-h-[calc(100dvh-10rem)] items-center justify-center">
+              <div
+                className="flex flex-col items-center rounded-3xl border border-border/70 bg-card/95 px-12 py-10 text-center shadow-xl shadow-primary/10"
+                role="status"
+                aria-live="polite"
+              >
+                <div className="relative flex h-20 w-20 items-center justify-center">
+                  <div className="absolute inset-0 animate-pulse rounded-full bg-primary/10" />
+                  <div className="absolute inset-2 rounded-full border border-primary/20 bg-background shadow-inner" />
+                  <Loader2 className="relative h-10 w-10 animate-spin text-primary" />
+                </div>
+                <p className="mt-6 text-lg font-semibold text-foreground">Preparing project results</p>
+                <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+                  Analyzing the blueprint and assembling the project information.
+                </p>
+                <div className="mt-5 flex items-center gap-1.5" aria-hidden="true">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary [animation-delay:-300ms]" />
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary [animation-delay:-150ms]" />
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+            <Card>
             <CardContent className="grid grid-cols-1 gap-4 p-5 text-sm sm:grid-cols-2 xl:grid-cols-5">
               <div>
                 <p className="text-muted-foreground">Project ID</p>
@@ -201,8 +239,8 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.35fr_1fr]">
-            <div className="space-y-6">
+          <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(360px,1fr)]">
+            <div className="min-w-0 space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -212,7 +250,11 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
                 </CardHeader>
                 <CardContent className="space-y-5">
                   {results?.model_3d_url ? (
-                    <Model3DViewer modelUrl={results.model_3d_url} modelName={project.project_name} />
+                    <Model3DViewer
+                      modelUrl={results.model_3d_url}
+                      modelName={project.project_name}
+                      largeViewport
+                    />
                   ) : (
                     <div className="flex min-h-[280px] items-center justify-center rounded-lg border border-dashed bg-muted/30 p-6 text-center">
                       <div className="max-w-md">
@@ -283,7 +325,7 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
               </Card>
             </div>
 
-            <div className="space-y-6">
+            <div className="min-w-0 space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -450,6 +492,8 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
               </div>
             </div>
           </div>
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>
