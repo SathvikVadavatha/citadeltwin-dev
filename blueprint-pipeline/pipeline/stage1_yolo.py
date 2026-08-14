@@ -58,6 +58,16 @@ MIN_CONFIDENCE = {
 }
 DEFAULT_MIN_CONFIDENCE = 0.25
 
+
+# ---------------------------------------------------------------------------
+# Per-class minimum confidence
+# ---------------------------------------------------------------------------
+
+WINDOW_SILL_HEIGHT_FT   = 3.0   # default sill height — cannot be derived from a top-down floor plan, needs a real elevation source later
+WINDOW_HEIGHT_FT        = 4.0   # default window height, same caveat
+WALL_SAMPLE_PAD_PX       = 20   # how far outside the window bbox to search for real wall pixels
+WALL_THICKNESS_SAMPLE_OFFSET_PX = 4  # how far past the bbox edge to sample thickness, to avoid reading the window's own filled-in bbox as "wall"
+
 # Module-level cache so the model only downloads once per container lifetime
 _CACHED_MODEL = None
 
@@ -287,6 +297,99 @@ def _morphological_fallback(image: np.ndarray) -> np.ndarray:
     logger.info("Morphological fallback: %d wall pixels found", int(np.sum(wall_mask > 0)))
     return wall_mask
 
+# ---------------------------------------------------------------------------
+# Wall cut logic
+# ---------------------------------------------------------------------------
+
+def _build_window_cuts(combined_boundary: np.ndarray, window_bboxes: list[dict]) -> list[dict]:
+    cuts = []
+    for win in window_bboxes:
+        bbox = [win["x"], win["y"], win["x"] + win["width"], win["y"] + win["height"]]
+        horizontal = _local_wall_orientation(combined_boundary, bbox)
+        band = _local_wall_band(combined_boundary, bbox, horizontal)
+
+        cuts.append({
+            "bbox": bbox,
+            "confidence": win["confidence"],
+            "orientation": "horizontal" if horizontal else "vertical",
+            "width_px": max(win["width"], win["height"]),
+            "wall_thickness_px": band[0] if band else None,
+            "wall_centerline_px": band[1] if band else None,
+            "sill_height_ft": WINDOW_SILL_HEIGHT_FT,
+            "window_height_ft": WINDOW_HEIGHT_FT,
+        })
+    return cuts
+
+
+# ---------------------------------------------------------------------------
+# Wall cut detection helpers
+# ---------------------------------------------------------------------------
+
+def _local_wall_orientation(combined_boundary: np.ndarray, bbox: list[int], pad: int = WALL_SAMPLE_PAD_PX) -> bool:
+    x1, y1, x2, y2 = bbox
+    h, w = combined_boundary.shape
+
+    top = combined_boundary[max(0, y1 - pad):y1, x1:x2]
+    bottom = combined_boundary[y2:min(h, y2 + pad), x1:x2]
+    top_bottom_px = int(np.sum(top > 0) + np.sum(bottom > 0))
+    top_bottom_area = max(1, top.size + bottom.size)
+    top_bottom_density = top_bottom_px / top_bottom_area
+
+    left = combined_boundary[y1:y2, max(0, x1 - pad):x1]
+    right = combined_boundary[y1:y2, x2:min(w, x2 + pad)]
+    left_right_px = int(np.sum(left > 0) + np.sum(right > 0))
+    left_right_area = max(1, left.size + right.size)
+    left_right_density = left_right_px / left_right_area
+
+    return left_right_density >= top_bottom_density
+
+def _local_wall_band(combined_boundary: np.ndarray, bbox: list[int], horizontal_wall: bool,
+                      offset: int = WALL_THICKNESS_SAMPLE_OFFSET_PX,
+                      pad: int = WALL_SAMPLE_PAD_PX) -> tuple[float, float] | None:
+    """
+    Measure the wall's actual thickness and centerline position perpendicular
+    to its run, sampled just past the bbox edges (not through the bbox
+    itself, which is filled solid and would give a false thickness reading).
+
+    Returns (thickness_px, centerline_coord) or None if no wall pixels found.
+    """
+    x1, y1, x2, y2 = bbox
+    h, w = combined_boundary.shape
+
+    if horizontal_wall:
+        # sample columns just left of x1 and just right of x2
+        sample_cols = [x1 - offset, x2 + offset]
+        cy = (y1 + y2) // 2
+        lo, hi = max(0, cy - pad), min(h, cy + pad)
+        thicknesses, centers = [], []
+        for sx in sample_cols:
+            if not (0 <= sx < w):
+                continue
+            col = combined_boundary[lo:hi, sx]
+            wall_rows = np.where(col > 0)[0]
+            if len(wall_rows) == 0:
+                continue
+            thicknesses.append(float(wall_rows.max() - wall_rows.min() + 1))
+            centers.append(lo + (wall_rows.max() + wall_rows.min()) / 2)
+    else:
+        sample_rows = [y1 - offset, y2 + offset]
+        cx = (x1 + x2) // 2
+        lo, hi = max(0, cx - pad), min(w, cx + pad)
+        thicknesses, centers = [], []
+        for sy in sample_rows:
+            if not (0 <= sy < h):
+                continue
+            row = combined_boundary[sy, lo:hi]
+            wall_cols = np.where(row > 0)[0]
+            if len(wall_cols) == 0:
+                continue
+            thicknesses.append(float(wall_cols.max() - wall_cols.min() + 1))
+            centers.append(lo + (wall_cols.max() + wall_cols.min()) / 2)
+
+    if not thicknesses:
+        return None
+    return float(np.median(thicknesses)), float(np.median(centers))
+
 
 # ---------------------------------------------------------------------------
 # Bbox helpers
@@ -379,6 +482,7 @@ def run(image: np.ndarray, context: dict) -> dict:
     ctx["combined_boundary"]     = combined
     ctx["door_bboxes"]           = _extract_door_bboxes(detections)
     ctx["window_bboxes"]         = _extract_window_bboxes(detections)
+    ctx["window_cuts"]           = _build_window_cuts(combined, ctx["window_bboxes"])
     ctx["yolo_detections"]       = detections
     ctx["wall_detection_method"] = method
     ctx["image_height"], ctx["image_width"] = image.shape[:2]
