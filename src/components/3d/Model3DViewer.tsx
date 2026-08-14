@@ -1,5 +1,5 @@
 
-import React, { Suspense, useRef, useEffect, useState } from 'react';
+import React, { Suspense, useCallback, useRef, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, useGLTF } from '@react-three/drei';
@@ -18,6 +18,7 @@ interface Model3DViewerProps {
   uploadId?: string;
   projectId?: string;
   onDownload?: () => void;
+  largeViewport?: boolean;
 }
 
 const Model3D = ({ url, onError }: { url: string; onError: () => void }) => {
@@ -41,23 +42,11 @@ const Model3D = ({ url, onError }: { url: string; onError: () => void }) => {
     prevUrlRef.current = url;
   }, [url]);
 
-  let gltf;
-  let loadError = false;
-
-  try {
-    gltf = useGLTF(url);
-  } catch (err) {
-    console.error('Error loading 3D model:', err);
-    loadError = true;
-  }
+  // useGLTF participates in Suspense and must always run in the same hook
+  // order. Network/parse errors are handled by ModelLoadErrorBoundary below.
+  const gltf = useGLTF(url);
 
   useEffect(() => {
-    if (loadError) {
-      setHasError(true);
-      onError();
-      return;
-    }
-
     if (gltf?.scene) {
       try {
         const box = new THREE.Box3().setFromObject(gltf.scene);
@@ -76,36 +65,42 @@ const Model3D = ({ url, onError }: { url: string; onError: () => void }) => {
         // own geometry sits low and flat relative to the whole model, get a
         // slightly different (darker) shade so the floor doesn't visually
         // merge with the walls.
-        gltf.scene.traverse((child: any) => {
-          if (child.isMesh && child.material) {
-            child.material.transparent = false;
-            child.material.opacity = 1.0;
-            child.material.depthWrite = true;
-            child.material.side = THREE.DoubleSide;
-            child.material.vertexColors = false;
-            child.material.metalness = 0.0;
+        gltf.scene.traverse((child) => {
+          if (!(child instanceof THREE.Mesh) || !child.material) return;
 
-            const nameLower = String(child.name || '').toLowerCase();
-            const nameLooksLikeFloor = /floor|ground|slab|\bbase\b/.test(nameLower);
+          const nameLower = String(child.name || '').toLowerCase();
+          const nameLooksLikeFloor = /floor|ground|slab|\bbase\b/.test(nameLower);
 
-            const meshBox = new THREE.Box3().setFromObject(child);
-            const meshHeight = meshBox.max.y - meshBox.min.y;
-            const meshFootprint = Math.max(
-              meshBox.max.x - meshBox.min.x,
-              meshBox.max.z - meshBox.min.z
-            );
-            const geometryLooksLikeFloor =
-              meshBox.max.y <= floorCeilingY && meshHeight < meshFootprint * 0.25;
+          const meshBox = new THREE.Box3().setFromObject(child);
+          const meshHeight = meshBox.max.y - meshBox.min.y;
+          const meshFootprint = Math.max(
+            meshBox.max.x - meshBox.min.x,
+            meshBox.max.z - meshBox.min.z
+          );
+          const geometryLooksLikeFloor =
+            meshBox.max.y <= floorCeilingY && meshHeight < meshFootprint * 0.25;
+          const surfaceColor = nameLooksLikeFloor || geometryLooksLikeFloor
+            ? '#c3c8ce'
+            : '#eceef0';
 
-            if (nameLooksLikeFloor || geometryLooksLikeFloor) {
-              child.material.color = new THREE.Color('#c3c8ce');
-              child.material.roughness = 0.95;
-            } else {
-              child.material.color = new THREE.Color('#eceef0');
-              child.material.roughness = 0.8;
+          const materials = Array.isArray(child.material) ? child.material : [child.material];
+          materials.forEach((material) => {
+            material.transparent = false;
+            material.opacity = 1.0;
+            material.depthWrite = true;
+            material.side = THREE.DoubleSide;
+
+            if (material instanceof THREE.MeshStandardMaterial) {
+              material.vertexColors = false;
+              material.metalness = 0.0;
+              material.color.set(surfaceColor);
+              material.roughness = nameLooksLikeFloor || geometryLooksLikeFloor ? 0.95 : 0.8;
+            } else if (material instanceof THREE.MeshBasicMaterial) {
+              material.vertexColors = false;
+              material.color.set(surfaceColor);
             }
-            child.material.needsUpdate = true;
-          }
+            material.needsUpdate = true;
+          });
         });
 
         // Normalized to 6 units (not 3) so the model reads at roughly the same
@@ -124,7 +119,7 @@ const Model3D = ({ url, onError }: { url: string; onError: () => void }) => {
         onError();
       }
     }
-  }, [gltf, loadError, onError]);
+  }, [gltf, onError]);
 
   // Fit the camera to the model's bounding box whenever the canvas actually
   // resizes — not just once at load — so entering/exiting fullscreen (which
@@ -150,7 +145,7 @@ const Model3D = ({ url, onError }: { url: string; onError: () => void }) => {
     camera.updateProjectionMatrix();
   }, [camera, canvasSize.width, canvasSize.height]);
 
-  if (hasError || loadError) {
+  if (hasError) {
     return null;
   }
 
@@ -166,17 +161,45 @@ const LoadingFallback = () => (
   </Html>
 );
 
+class ModelLoadErrorBoundary extends React.Component<
+  { children: React.ReactNode; resetKey: string; onError: () => void },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('Error loading 3D model:', error);
+    this.props.onError();
+  }
+
+  componentDidUpdate(previousProps: { resetKey: string }) {
+    if (previousProps.resetKey !== this.props.resetKey && this.state.hasError) {
+      this.setState({ hasError: false });
+    }
+  }
+
+  render() {
+    return this.state.hasError ? null : this.props.children;
+  }
+}
+
 export const Model3DViewer: React.FC<Model3DViewerProps> = ({ 
   modelUrl, 
   modelName = "3D Model",
   uploadId,
   projectId,
-  onDownload 
+  onDownload,
+  largeViewport = false,
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [useEnhancedViewer, setUseEnhancedViewer] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
   const [modelLoadFailed, setModelLoadFailed] = useState(false);
+  const handleModelLoadError = useCallback(() => setModelLoadFailed(true), []);
 
   // Log the uploadId whenever it changes so we can verify the correct ID is received
   useEffect(() => {
@@ -262,7 +285,9 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
       className={
         isFullscreen
           ? 'fixed inset-0 z-[100] h-screen w-screen bg-background pointer-events-auto'
-          : 'relative w-full aspect-[16/10] min-h-[420px] max-h-[70vh]'
+          : largeViewport
+            ? 'relative h-[clamp(520px,68vh,760px)] w-full'
+            : 'relative w-full aspect-[16/10] min-h-[420px] max-h-[70vh]'
       }
     >
       <Canvas
@@ -298,7 +323,12 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
 
         <Suspense fallback={<LoadingFallback />}>
           {finalModelUrl && sceneReady && !modelLoadFailed ? (
-            <Model3D url={finalModelUrl} onError={() => setModelLoadFailed(true)} />
+            <ModelLoadErrorBoundary
+              resetKey={finalModelUrl}
+              onError={handleModelLoadError}
+            >
+              <Model3D url={finalModelUrl} onError={handleModelLoadError} />
+            </ModelLoadErrorBoundary>
           ) : null}
         </Suspense>
 
@@ -388,15 +418,17 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
   }
 
   return (
-    <Card>
+    <Card className="min-w-0 overflow-hidden">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Eye className="h-5 w-5" />
             3D Model Viewer
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary">{finalModelName}</Badge>
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+            <Badge variant="secondary" className="max-w-[min(22rem,70vw)] truncate">
+              {finalModelName}
+            </Badge>
             {isLoading && <Badge variant="outline">Loading...</Badge>}
             {hasElements && (
               <Badge variant="default" className="bg-green-600">
