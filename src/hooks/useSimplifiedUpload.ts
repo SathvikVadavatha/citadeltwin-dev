@@ -304,7 +304,7 @@ export const useSimplifiedUpload = () => {
 
         await supabase
           .from('blueprint_uploads')
-          .update({ upload_status: 'error' })
+          .update({ upload_status: 'failed' })
           .eq('id', uploadId);
           
         console.log(`Error logged for upload ${uploadId}`);
