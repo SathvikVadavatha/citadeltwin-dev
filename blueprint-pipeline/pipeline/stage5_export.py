@@ -73,10 +73,10 @@ def _find_building_bbox(boundary: np.ndarray) -> tuple[int, int, int, int]:
         return 0, 0, w, h
     bx, by, bw, bh = cv2.boundingRect(coords)
     # Shrink by 10 px per edge to discard border noise
-    bx = max(0, bx + 8)
-    by = max(0, by + 8)
-    bw = max(10, bw - 16)
-    bh = max(10, bh - 16)
+    # bx = max(0, bx + 8)
+    # by = max(0, by + 8)
+    # bw = max(10, bw - 16)
+    # bh = max(10, bh - 16)
     return bx, by, bw, bh
 
 
@@ -118,7 +118,7 @@ def _row_scan_walls(
                 run_width_ft = run_width_px / ppf
                 strip_depth_ft = STRIP_HEIGHT / ppf
                 center_x_ft = (run_start + run_width_px / 2) / ppf
-                center_y_ft = (py - by + STRIP_HEIGHT / 2) / ppf
+                center_y_ft = (bh - (py - by + STRIP_HEIGHT / 2)) / ppf
 
                 # Check if this run overlaps a door bbox
                 is_door = False
