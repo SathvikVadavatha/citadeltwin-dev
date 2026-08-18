@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +42,8 @@ interface ProjectsListProps {
   onUpdate: (id: string, input: UpdateClientPortalProject) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onRetryAnalysis: (project: ClientPortalProject) => Promise<void>;
+  requestedResultsProject?: ClientPortalProject | null;
+  onResultsProjectOpenRequestHandled?: () => void;
 }
 
 const getBuildingTypeLabel = (value: string | null) =>
@@ -71,6 +73,8 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
   onUpdate,
   onDelete,
   onRetryAnalysis,
+  requestedResultsProject,
+  onResultsProjectOpenRequestHandled,
 }) => {
   const { toast } = useToast();
   const [editingProject, setEditingProject] = useState<ClientPortalProject | null>(null);
@@ -81,6 +85,12 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
   const [deletingProject, setDeletingProject] = useState<ClientPortalProject | null>(null);
   const [viewingResultsProject, setViewingResultsProject] = useState<ClientPortalProject | null>(null);
   const [retryingId, setRetryingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!requestedResultsProject) return;
+    setViewingResultsProject(requestedResultsProject);
+    onResultsProjectOpenRequestHandled?.();
+  }, [requestedResultsProject, onResultsProjectOpenRequestHandled]);
 
   const openFeedbackDialog = (project: ClientPortalProject) => {
     setFeedbackProject(project);
@@ -155,7 +165,9 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
     }
   };
 
-  if (loading) {
+  // A background results refresh must not unmount an open modal. Reserve the
+  // full-list spinner for the initial load, before any projects are available.
+  if (loading && projects.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>

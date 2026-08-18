@@ -1,19 +1,24 @@
-
 import React from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+  Activity,
   AlertTriangle,
+  BookOpenCheck,
   Building2,
   CheckCircle2,
   Download,
   FileUp,
   Landmark,
+  Loader2,
+  MapPin,
   MapPinned,
   MessageSquare,
+  ShieldCheck,
   Sparkles,
+  Waves,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Model3DViewer } from '@/components/3d/Model3DViewer';
@@ -24,6 +29,22 @@ import { useFederalRules } from '@/hooks/site-requirements/useFederalRules';
 import { useJurisdictionLinks } from '@/hooks/site-requirements/useJurisdictionLinks';
 import { FederalRequirementsTable } from '@/components/site-requirements/FederalRequirementsTable';
 import { JurisdictionLinksSection } from '@/components/site-requirements/JurisdictionLinksSection';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  PolarAngleAxis,
+  RadialBar,
+  RadialBarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 interface ProjectResultsModalProps {
   open: boolean;
@@ -65,6 +86,36 @@ const getBuildingSubTypeLabel = (buildingType: string | null, subType: string | 
   return type?.subTypes.find((s) => s.value === subType)?.label || subType;
 };
 
+const CHART_COLORS = ['#2563eb', '#7c3aed', '#0891b2', '#ea580c', '#16a34a'];
+
+const titleCase = (value: string) =>
+  value
+    .replace(/[_-]+/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
+const floodRiskClasses = (riskLevel: string) => {
+  switch (riskLevel) {
+    case 'HIGH':
+      return 'border-red-200 bg-red-50 text-red-700';
+    case 'MODERATE':
+      return 'border-amber-200 bg-amber-50 text-amber-700';
+    case 'LOW':
+      return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+    default:
+      return 'border-border bg-muted/40 text-muted-foreground';
+  }
+};
+
+const suitabilityClasses = (score: number | null) => {
+  if (score == null) return 'border-border bg-muted/40';
+  if (score >= 8) return 'border-emerald-200 bg-emerald-50';
+  if (score >= 5) return 'border-amber-200 bg-amber-50';
+  return 'border-red-200 bg-red-50';
+};
+
 export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
   open,
   onOpenChange,
@@ -73,6 +124,9 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
   onApprove,
 }) => {
   const complianceResults = results?.compliance_results ?? null;
+  const isProcessing = Boolean(project) && (
+    !results || results.processing_status === 'running' || results.processing_status === 'pending'
+  );
 
   // Federal rules only need the property type, which we always know from the
   // project itself — this works even when the resolve-location call hasn't
@@ -84,16 +138,15 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
   // are called before the `if (!project)` guard below, disabled via null input
   // when there's nothing to show yet.
   const { rules: federalRules, rulesLoading: federalRulesLoading, rulesError: federalRulesError } =
-    useFederalRules(project ? mappedPropertyType : null);
+    useFederalRules(project && !isProcessing ? mappedPropertyType : null);
 
   const { stateLinks, nationalLinks, linksLoading: jurisdictionLinksLoading, linksError: jurisdictionLinksError } =
-    useJurisdictionLinks(complianceResults?.project.state_code ?? null);
+    useJurisdictionLinks(!isProcessing ? complianceResults?.project.state_code ?? null : null);
 
   if (!project) return null;
 
   const gis = results?.gis_results;
   const rooms = results?.room_results;
-  const isProcessing = results?.processing_status === 'running' || results?.processing_status === 'pending';
 
   // Coherent with the row/project status: once the model is ready, say so — and call
   // out GIS specifically if it's the only piece missing, instead of showing "Model
@@ -152,24 +205,185 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
 
   const subTypeLabel = getBuildingSubTypeLabel(project.building_type, project.building_sub_type);
 
+  const federalRequirementRows = federalRules.filter((rule) => rule.comparator !== 'note');
+  const siteConditionsCount = complianceResults?.siteConditions.length ?? 0;
+  const warningsCount = complianceResults?.warnings.length ?? 0;
+  const jurisdictionResourceCount = stateLinks.length + nationalLinks.length;
+  const suitabilityScore = gis?.suitability.score ?? null;
+
+  const siteSuitabilityNote =
+    suitabilityScore == null
+      ? 'No GIS suitability score is available for this project yet.'
+      : suitabilityScore >= 8
+        ? 'Strong suitability in the available GIS analysis, with fewer identified site constraints.'
+        : suitabilityScore >= 5
+          ? 'Moderate suitability; some location conditions may need closer review.'
+          : 'Lower suitability; the identified site constraints should be reviewed carefully.';
+
+  const floodRiskNote = !gis
+    ? 'No flood-risk result is available for this project yet.'
+    : gis.flood.riskLevel === 'HIGH'
+      ? 'High flood exposure is an important site factor to review for this project.'
+      : gis.flood.riskLevel === 'MODERATE'
+        ? 'Moderate flood exposure is present and may need closer review.'
+        : gis.flood.riskLevel === 'LOW'
+          ? 'Low flood exposure is indicated in the available GIS result.'
+          : 'A flood-risk value was returned, but it is not classified as Low, Moderate, or High.';
+
+  const requirementSourceData = [
+    { name: 'Federal rules', value: federalRequirementRows.length },
+    { name: 'State resources', value: stateLinks.length },
+    { name: 'National resources', value: nationalLinks.length },
+    { name: 'Site conditions', value: siteConditionsCount },
+  ].filter((item) => item.value > 0);
+
+  const federalCategoryData = Array.from(
+    federalRequirementRows.reduce((acc, rule) => {
+      const category = titleCase(rule.category || 'Other');
+      acc.set(category, (acc.get(category) ?? 0) + 1);
+      return acc;
+    }, new Map<string, number>())
+  ).map(([category, count]) => ({ category, count }));
+
+  const gisSignalData = gis
+    ? [
+        { label: 'Flood zones', count: gis.flood.zoneCount },
+        { label: 'Protected areas', count: gis.protected.count },
+        { label: 'Wetland types', count: gis.soils.wetlandTypes.length },
+        { label: 'Site conditions', count: siteConditionsCount },
+      ]
+    : [];
+
+  const environmentalSignalTotal = gisSignalData.reduce((sum, item) => sum + item.count, 0);
+
+  const closestProtectedArea = gis?.protected.closest.find(
+    (area) => typeof area.distanceMiles === 'number'
+  );
+
+  const localJurisdictionLabel = complianceResults
+    ? [
+        complianceResults.project.place_name,
+        complianceResults.project.county_name,
+        complianceResults.project.state_name,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : project.site_address || 'Location not resolved';
+
+  const insightItems: Array<{ title: string; detail: string }> = [];
+
+  if (gis) {
+    insightItems.push({
+      title: 'Site suitability',
+      detail: `The current GIS suitability score is ${gis.suitability.score}/10.`,
+    });
+
+    insightItems.push({
+      title: 'Flood exposure',
+      detail: `${titleCase(gis.flood.riskLevel)} flood risk${
+        gis.flood.highestZone ? ` with highest mapped zone ${gis.flood.highestZone}` : ''
+      }.`,
+    });
+
+    insightItems.push({
+      title: 'Wetlands',
+      detail: gis.soils.wetlandsPresent
+        ? `Wetlands were detected${
+            gis.soils.wetlandTypes.length > 0 ? `: ${gis.soils.wetlandTypes.join(', ')}` : ''
+          }.`
+        : 'No wetlands were detected in the available GIS result.',
+    });
+
+    if (closestProtectedArea) {
+      insightItems.push({
+        title: 'Nearby protected area',
+        detail: `${closestProtectedArea.name} is ${
+          closestProtectedArea.distanceMiles?.toFixed(2) ?? '—'
+        } miles away.`,
+      });
+    }
+  }
+
+  if (!federalRulesLoading && !federalRulesError) {
+    insightItems.push({
+      title: 'Federal requirement coverage',
+      detail: `${federalRequirementRows.length} applicable federal requirement${
+        federalRequirementRows.length === 1 ? '' : 's'
+      } are available for this ${mappedPropertyType} project.`,
+    });
+  }
+
+  if (!jurisdictionLinksLoading && !jurisdictionLinksError) {
+    insightItems.push({
+      title: 'Jurisdiction resources',
+      detail: `${stateLinks.length} state resource${stateLinks.length === 1 ? '' : 's'} and ${
+        nationalLinks.length
+      } national resource${nationalLinks.length === 1 ? '' : 's'} are available.`,
+    });
+  }
+
+  if (warningsCount > 0) {
+    insightItems.push({
+      title: 'Items to review',
+      detail: `${warningsCount} site / requirements warning${warningsCount === 1 ? '' : 's'} ${
+        warningsCount === 1 ? 'is' : 'are'
+      } currently surfaced for review.`,
+    });
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-none lg:w-[88vw] xl:max-w-6xl">
-        <div className="mx-auto space-y-6 pb-8">
-          <SheetHeader className="pr-8">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <SheetTitle className="text-2xl">{project.project_name}</SheetTitle>
+      <SheetContent
+        side="right"
+        className="h-dvh w-screen max-w-none overflow-y-auto overflow-x-hidden border-0 p-0 sm:max-w-none [&>button]:right-5 [&>button]:top-5 [&>button]:flex [&>button]:h-11 [&>button]:w-11 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-xl [&>button]:border [&>button]:border-border [&>button]:bg-background [&>button]:opacity-100 [&>button]:shadow-md [&>button]:transition-all [&>button]:duration-200 hover:[&>button]:border-primary/40 hover:[&>button]:bg-accent hover:[&>button]:shadow-lg [&>button>svg]:h-5 [&>button>svg]:w-5"
+      >
+        <div className="mx-auto w-full min-w-0 max-w-[1800px] space-y-6 px-4 pb-8 pt-6 sm:px-6 lg:px-8">
+          <SheetHeader className="pr-16">
+            <div className="flex min-w-0 items-center justify-between gap-4">
+              <div className="min-w-0">
+                <SheetTitle className="truncate text-2xl" title={project.project_name}>
+                  {project.project_name}
+                </SheetTitle>
                 <SheetDescription className="mt-1">
                   {project.client_name}
                   {project.site_address ? ` · ${project.site_address}` : ''}
                 </SheetDescription>
               </div>
-              <Badge variant={getStatusBadgeVariant(project.status)}>{getStatusLabel(project.status)}</Badge>
+              <Badge
+                variant={getStatusBadgeVariant(project.status)}
+                className="shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold tracking-wide shadow-sm ring-1 ring-border/60"
+              >
+                {getStatusLabel(project.status)}
+              </Badge>
             </div>
           </SheetHeader>
 
-          <Card>
+          {isProcessing ? (
+            <div className="flex min-h-[calc(100dvh-10rem)] items-center justify-center">
+              <div
+                className="flex flex-col items-center rounded-3xl border border-border/70 bg-card/95 px-12 py-10 text-center shadow-xl shadow-primary/10"
+                role="status"
+                aria-live="polite"
+              >
+                <div className="relative flex h-20 w-20 items-center justify-center">
+                  <div className="absolute inset-0 animate-pulse rounded-full bg-primary/10" />
+                  <div className="absolute inset-2 rounded-full border border-primary/20 bg-background shadow-inner" />
+                  <Loader2 className="relative h-10 w-10 animate-spin text-primary" />
+                </div>
+                <p className="mt-6 text-lg font-semibold text-foreground">Preparing project results</p>
+                <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+                  Analyzing the blueprint and assembling the project information.
+                </p>
+                <div className="mt-5 flex items-center gap-1.5" aria-hidden="true">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary [animation-delay:-300ms]" />
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary [animation-delay:-150ms]" />
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+            <Card>
             <CardContent className="grid grid-cols-1 gap-4 p-5 text-sm sm:grid-cols-2 xl:grid-cols-5">
               <div>
                 <p className="text-muted-foreground">Project ID</p>
@@ -201,8 +415,8 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.35fr_1fr]">
-            <div className="space-y-6">
+          <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(360px,1fr)]">
+            <div className="min-w-0 space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -212,7 +426,11 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
                 </CardHeader>
                 <CardContent className="space-y-5">
                   {results?.model_3d_url ? (
-                    <Model3DViewer modelUrl={results.model_3d_url} modelName={project.project_name} />
+                    <Model3DViewer
+                      modelUrl={results.model_3d_url}
+                      modelName={project.project_name}
+                      largeViewport
+                    />
                   ) : (
                     <div className="flex min-h-[280px] items-center justify-center rounded-lg border border-dashed bg-muted/30 p-6 text-center">
                       <div className="max-w-md">
@@ -266,6 +484,279 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
                 </CardContent>
               </Card>
 
+              <Card className="overflow-hidden border-primary/15 bg-gradient-to-br from-background via-background to-primary/[0.04] shadow-sm">
+
+                <CardContent className="space-y-6 p-5">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className={`rounded-xl border p-4 ${suitabilityClasses(suitabilityScore)}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Site suitability</p>
+                          <p className="mt-2 text-2xl font-semibold">
+                            {suitabilityScore != null ? `${suitabilityScore}/10` : '—'}
+                          </p>
+                          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                            {siteSuitabilityNote}
+                          </p>
+                        </div>
+                        <ShieldCheck className="h-7 w-7 text-emerald-600" />
+                      </div>
+                    </div>
+
+                    <div className={`rounded-xl border p-4 ${floodRiskClasses(gis?.flood.riskLevel ?? 'UNKNOWN')}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-medium uppercase tracking-wide opacity-75">Flood risk</p>
+                          <p className="mt-2 text-2xl font-semibold">
+                            {gis ? titleCase(gis.flood.riskLevel) : '—'}
+                          </p>
+                          <p className="mt-2 text-[11px] leading-relaxed opacity-80">
+                            {floodRiskNote}
+                          </p>
+                        </div>
+                        <Waves className="h-7 w-7" />
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border bg-background p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Federal rules</p>
+                          <p className="mt-2 text-2xl font-semibold">
+                            {federalRulesLoading ? '…' : federalRequirementRows.length}
+                          </p>
+                          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                            Applicable structured federal rule records for this property type; this is not a violation count.
+                          </p>
+                        </div>
+                        <BookOpenCheck className="h-7 w-7 text-primary" />
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border bg-background p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Jurisdiction resources</p>
+                          <p className="mt-2 text-2xl font-semibold">
+                            {jurisdictionLinksLoading ? '…' : jurisdictionResourceCount}
+                          </p>
+                          <p className="mt-1 text-[11px] text-muted-foreground">State + national</p>
+                          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                            Reference resources found for the resolved project location; these are not approvals or violations.
+                          </p>
+                        </div>
+                        <Landmark className="h-7 w-7 text-violet-600" />
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border bg-background p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Review signals</p>
+                          <p className="mt-2 text-2xl font-semibold">{warningsCount}</p>
+                          <p className="mt-1 text-[11px] text-muted-foreground">Site / requirement warnings</p>
+                          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                            Explicit warnings currently surfaced for review; zero does not mean the project is fully compliant.
+                          </p>
+                        </div>
+                        <Activity className="h-7 w-7 text-orange-600" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border bg-background/80 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-lg bg-primary/10 p-2">
+                        <MapPin className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Resolved jurisdiction context</p>
+                        <p className="mt-1 font-medium">{localJurisdictionLabel}</p>
+                        {complianceResults?.project.geocode_match_quality && (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Location match: {titleCase(complianceResults.project.geocode_match_quality)}
+                          </p>
+                        )}
+                        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                          This confirms the city, county, and state used to determine the location-based GIS and regulatory resources for this project.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
+                    <div className="rounded-xl border bg-background p-4">
+                      <div className="mb-3">
+                        <p className="font-medium">Site suitability</p>
+                        <p className="text-xs text-muted-foreground">Current GIS-derived suitability score</p>
+                      </div>
+                      {gis ? (
+                        <div className="relative h-[230px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <RadialBarChart
+                              cx="50%"
+                              cy="50%"
+                              innerRadius="68%"
+                              outerRadius="100%"
+                              barSize={18}
+                              data={[{ name: 'Suitability', value: gis.suitability.score, fill: CHART_COLORS[4] }]}
+                              startAngle={90}
+                              endAngle={-270}
+                            >
+                              <PolarAngleAxis type="number" domain={[0, 10]} angleAxisId={0} tick={false} />
+                              <RadialBar dataKey="value" background cornerRadius={10} />
+                              <Tooltip formatter={(value) => [`${value}/10`, 'Suitability']} />
+                            </RadialBarChart>
+                          </ResponsiveContainer>
+                          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                            <span className="text-3xl font-semibold">{gis.suitability.score}</span>
+                            <span className="text-xs text-muted-foreground">out of 10</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex h-[230px] items-center justify-center text-sm text-muted-foreground">
+                          No GIS suitability result available.
+                        </div>
+                      )}
+                      <p className="mt-3 border-t pt-3 text-xs leading-relaxed text-muted-foreground">
+                        Inference: {siteSuitabilityNote}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border bg-background p-4">
+                      <div className="mb-3">
+                        <p className="font-medium">Environmental signals</p>
+                        <p className="text-xs text-muted-foreground">Counts surfaced by GIS and site analysis</p>
+                      </div>
+                      {gisSignalData.length > 0 ? (
+                        <div className="h-[230px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={gisSignalData} layout="vertical" margin={{ left: 8, right: 16 }}>
+                              <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.25} />
+                              <XAxis type="number" allowDecimals={false} tickLine={false} axisLine={false} />
+                              <YAxis
+                                type="category"
+                                dataKey="label"
+                                width={100}
+                                tickLine={false}
+                                axisLine={false}
+                                tick={{ fontSize: 11 }}
+                              />
+                              <Tooltip />
+                              <Bar dataKey="count" name="Signals" fill={CHART_COLORS[0]} radius={[0, 6, 6, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      ) : (
+                        <div className="flex h-[230px] items-center justify-center text-sm text-muted-foreground">
+                          No environmental signal data available.
+                        </div>
+                      )}
+                      <p className="mt-3 border-t pt-3 text-xs leading-relaxed text-muted-foreground">
+                        Inference: {gis
+                          ? `${environmentalSignalTotal} total environmental/site signals are represented. Higher counts mean more factors were identified for review, not automatically higher overall risk.`
+                          : 'Environmental signals will appear when GIS results are available.'}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border bg-background p-4">
+                      <div className="mb-3">
+                        <p className="font-medium">Requirements &amp; resource coverage</p>
+                        <p className="text-xs text-muted-foreground">Available federal, state, national, and site information</p>
+                      </div>
+                      {requirementSourceData.length > 0 ? (
+                        <div className="h-[230px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={requirementSourceData}
+                                dataKey="value"
+                                nameKey="name"
+                                cx="50%"
+                                cy="45%"
+                                innerRadius={48}
+                                outerRadius={78}
+                                paddingAngle={3}
+                              >
+                                {requirementSourceData.map((entry, index) => (
+                                  <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip />
+                              <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: 11 }} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                      ) : (
+                        <div className="flex h-[230px] items-center justify-center text-sm text-muted-foreground">
+                          Requirement and jurisdiction data is not available yet.
+                        </div>
+                      )}
+                      <p className="mt-3 border-t pt-3 text-xs leading-relaxed text-muted-foreground">
+                        Inference: This shows where the available regulatory and site information comes from. It is a data-coverage breakdown, not a compliance percentage.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="rounded-xl border bg-background p-4">
+                      <div className="mb-3">
+                        <p className="font-medium">Federal requirement categories</p>
+                        <p className="text-xs text-muted-foreground">Applicable requirements grouped by the stored category</p>
+                      </div>
+                      {federalCategoryData.length > 0 ? (
+                        <div className="h-[220px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={federalCategoryData} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.25} />
+                              <XAxis dataKey="category" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+                              <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
+                              <Tooltip />
+                              <Bar dataKey="count" name="Requirements" fill={CHART_COLORS[1]} radius={[6, 6, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      ) : (
+                        <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
+                          No federal requirement categories are available for this project type.
+                        </div>
+                      )}
+                      <p className="mt-3 border-t pt-3 text-xs leading-relaxed text-muted-foreground">
+                        Inference: This shows which federal requirement categories contain the most applicable rule records. Higher bars mean more applicable requirements in that category, not more violations.
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border bg-background p-4">
+                      <div className="mb-3 flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                        <div>
+                          <p className="font-medium">Key project insights</p>
+                          <p className="text-xs text-muted-foreground">Plain-language interpretation of the available project data</p>
+                        </div>
+                      </div>
+
+                      {insightItems.length > 0 ? (
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {insightItems.slice(0, 8).map((insight) => (
+                            <div key={insight.title} className="rounded-lg border bg-muted/20 p-3">
+                              <p className="text-sm font-medium">{insight.title}</p>
+                              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{insight.detail}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex min-h-[220px] items-center justify-center text-sm text-muted-foreground">
+                          Insights will appear when GIS and requirements data is available.
+                        </div>
+                      )}
+                      <p className="mt-3 border-t pt-3 text-xs leading-relaxed text-muted-foreground">
+                        Inference: These cards summarize the same available GIS and regulatory findings in plain language so the main project conditions can be reviewed quickly.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -283,7 +774,7 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
               </Card>
             </div>
 
-            <div className="space-y-6">
+            <div className="min-w-0 space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
@@ -450,6 +941,8 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
               </div>
             </div>
           </div>
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>

@@ -120,15 +120,27 @@ export const useClientPortalProjects = () => {
       throw resultsError;
     }
 
-    await fetchAll();
-
     // Fire-and-forget: the modal/UI shouldn't block on GIS + room analysis completing.
     // The row shows "Processing…" until this resolves and refreshes the lists.
-    runAnalysis(project as ClientPortalProject, resultsRow.id, file ?? null)
+    const createdProject = project as ClientPortalProject;
+    const createdResults = resultsRow as ClientPortalProjectResults;
+
+    // Both inserts are confirmed, so publish them locally instead of delaying
+    // the results page behind another round trip. The analysis refresh below
+    // will reconcile these rows when processing finishes.
+    setProjects((current) => [createdProject, ...current.filter((item) => item.id !== createdProject.id)]);
+    setProjectResults((current) => [
+      createdResults,
+      ...current.filter((item) => item.id !== createdResults.id),
+    ]);
+
+    runAnalysis(createdProject, resultsRow.id, file ?? null)
       .catch((err) => console.error('Client portal project analysis failed:', err))
       .finally(() => {
         fetchAll();
       });
+
+    return createdProject;
   };
 
   const retryAnalysis = async (project: ClientPortalProject) => {
