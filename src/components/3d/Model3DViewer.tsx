@@ -57,14 +57,19 @@ const Model3D = ({ url, onError }: { url: string; onError: () => void }) => {
         const floorCeilingY = box.min.y + size.y * 0.15;
 
         // Force opaque rendering and override the surface color/roughness on
-        // every mesh. The trimesh export's vertex colors often come through
+        // every mesh WITHOUT its own vertex-color data. Some exports ship no
+        // COLOR_0 attribute at all, and their default material came through
         // very dark (near-black), which combined with the scene's lighting
-        // made walls unreadable against the background — so instead of
-        // trusting whatever base/vertex color the export shipped with, force
-        // a light, neutral surface. Meshes named like a floor/slab, or whose
-        // own geometry sits low and flat relative to the whole model, get a
-        // slightly different (darker) shade so the floor doesn't visually
-        // merge with the walls.
+        // made walls unreadable against the background — for those, force a
+        // light, neutral surface instead of trusting an absent/near-black
+        // base color. Meshes named like a floor/slab, or whose own geometry
+        // sits low and flat relative to the whole model, get a slightly
+        // different (darker) shade so the floor doesn't visually merge with
+        // the walls. Meshes that DO carry real per-vertex colors (e.g. the
+        // blueprint pipeline's room/door/wall coloring, verified present via
+        // a COLOR_0 attribute on the geometry) keep them untouched — GLTFLoader
+        // already wires vertexColors=true for those, matching how the
+        // <model-viewer> web component (also three.js-backed) renders them.
         gltf.scene.traverse((child) => {
           if (!(child instanceof THREE.Mesh) || !child.material) return;
 
@@ -82,6 +87,7 @@ const Model3D = ({ url, onError }: { url: string; onError: () => void }) => {
           const surfaceColor = nameLooksLikeFloor || geometryLooksLikeFloor
             ? '#c3c8ce'
             : '#eceef0';
+          const hasVertexColors = Boolean(child.geometry?.attributes?.color);
 
           const materials = Array.isArray(child.material) ? child.material : [child.material];
           materials.forEach((material) => {
@@ -91,13 +97,21 @@ const Model3D = ({ url, onError }: { url: string; onError: () => void }) => {
             material.side = THREE.DoubleSide;
 
             if (material instanceof THREE.MeshStandardMaterial) {
-              material.vertexColors = false;
               material.metalness = 0.0;
-              material.color.set(surfaceColor);
               material.roughness = nameLooksLikeFloor || geometryLooksLikeFloor ? 0.95 : 0.8;
+              if (hasVertexColors) {
+                material.vertexColors = true;
+              } else {
+                material.vertexColors = false;
+                material.color.set(surfaceColor);
+              }
             } else if (material instanceof THREE.MeshBasicMaterial) {
-              material.vertexColors = false;
-              material.color.set(surfaceColor);
+              if (hasVertexColors) {
+                material.vertexColors = true;
+              } else {
+                material.vertexColors = false;
+                material.color.set(surfaceColor);
+              }
             }
             material.needsUpdate = true;
           });

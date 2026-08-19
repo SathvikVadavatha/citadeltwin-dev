@@ -9,7 +9,16 @@
  * buildingInfo rendering).
  */
 
-export const BLUEPRINT_PIPELINE_URL = 'https://sathvikvadavatha-citadeltwin-pipeline.hf.space';
+// Falls back to the known HF Space if the env var isn't set, so existing
+// deployments/dev setups without VITE_BLUEPRINT_PIPELINE_URL keep working.
+export const BLUEPRINT_PIPELINE_URL =
+  import.meta.env.VITE_BLUEPRINT_PIPELINE_URL || 'https://sathvikvadavatha-citadeltwin-pipeline.hf.space';
+
+// The pipeline runs a real CV pipeline (YOLO + OCR + voronoi + topology + GLB
+// export) on a free-tier HF Space that may need to cold-start (~60s per
+// existing UI copy) before processing even starts — 3 minutes gives real runs
+// room without leaving a caller's spinner hanging indefinitely on a dead request.
+export const DEFAULT_PIPELINE_TIMEOUT_MS = 180_000;
 
 // Room items are defensively read in UploadResultsTabs.tsx via several possible
 // key names — label/class/type for the room label, and either precise OCR-derived
@@ -87,19 +96,39 @@ export interface BlueprintPipelineResponse {
 /**
  * POSTs a public blueprint image URL to the pipeline's /process endpoint —
  * identical request shape to BlueprintUpload.tsx's trigger3DGeneration.
+ *
+ * Aborts after `timeoutMs` (default DEFAULT_PIPELINE_TIMEOUT_MS) so a hung
+ * request can't leave a caller's loading state spinning forever.
  */
-export const callBlueprintPipeline = async (imageUrl: string): Promise<BlueprintPipelineResponse> => {
-  const response = await fetch(`${BLUEPRINT_PIPELINE_URL}/process`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ image_url: imageUrl }),
-  });
+export const callBlueprintPipeline = async (
+  imageUrl: string,
+  options?: { timeoutMs?: number }
+): Promise<BlueprintPipelineResponse> => {
+  const timeoutMs = options?.timeoutMs ?? DEFAULT_PIPELINE_TIMEOUT_MS;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!response.ok) {
-    throw new Error(`Pipeline error: ${response.statusText}`);
+  try {
+    const response = await fetch(`${BLUEPRINT_PIPELINE_URL}/process`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_url: imageUrl }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Pipeline error: ${response.statusText}`);
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(`Pipeline request timed out after ${Math.round(timeoutMs / 1000)}s.`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-
-  return response.json();
 };
 
 /** Decodes the pipeline's base64 GLB into raw bytes — same decode BlueprintUpload.tsx uses. */
