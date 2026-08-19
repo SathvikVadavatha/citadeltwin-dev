@@ -27,10 +27,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-WALL_HEIGHT = 9.0       # feet
-FLOOR_THICK = 0.1       # feet
-STRIP_HEIGHT = 3         # pixels per row-scan strip
-WALL_THICKNESS = 0.5     # feet — rendered thickness for wall boxes
+WALL_HEIGHT           = 9.0       # feet
+FLOOR_THICK           = 0.1       # feet
+STRIP_HEIGHT          = 3         # pixels per row-scan strip
+WALL_THICKNESS        = 0.5       # feet — rendered thickness for wall boxes
+WINDOW_SILL_HEIGHT_FT = 3.0       # from floor to bottom of window opening
+WINDOW_HEIGHT_FT      = 4.0       # opening height above the sill
 
 ROOM_COLORS: dict[str, list[int]] = {
     "LIVING":   [46, 79, 23],
@@ -48,8 +50,9 @@ ROOM_COLORS: dict[str, list[int]] = {
     "ROOM":     [70, 70, 70],
 }
 
-WALL_COLOR = [180, 175, 165, 255]    # warm off-white
-GROUND_COLOR = [30, 30, 30, 255]     # dark grey — visibly darker than floor tiles
+WALL_COLOR   = [180, 175, 165, 255]    # warm off-white
+GROUND_COLOR = [30, 30, 30, 255]       # dark grey — visibly darker than floor tiles
+WINDOW_COLOR = [150, 200, 220, 180]    # light blue-glass tint, semi-transparent
 
 
 def _color_for_label(label: str) -> list[int]:
@@ -85,6 +88,7 @@ def _row_scan_walls(
     bx: int, by: int, bw: int, bh: int,
     ppf: float,
     door_bboxes: list[dict],
+    window_bboxes: list[dict],
 ) -> list[trimesh.Trimesh]:
     """
     Scan rows of the wall mask in strips.  For each horizontal run of
@@ -122,6 +126,7 @@ def _row_scan_walls(
 
                 # Check if this run overlaps a door bbox
                 is_door = False
+                is_window = False
                 abs_cx = bx + run_start + run_width_px // 2
                 abs_cy = py + STRIP_HEIGHT // 2
                 for door in door_bboxes:
@@ -129,6 +134,13 @@ def _row_scan_walls(
                     if dx <= abs_cx <= dx + dw and dy <= abs_cy <= dy + dh:
                         is_door = True
                         break
+                
+                if not is_door:
+                    for win in window_bboxes:
+                        wx, wy, ww, wh = win["x"], win["y"], win["width"], win["height"]
+                        if wx <= abs_cx <= wx + ww and wy <= abs_cy <= wy + wh:
+                            is_window = True
+                            break
 
                 if is_door:
                     # Thin door indicator (0.1 ft tall) — brown tint
@@ -139,6 +151,56 @@ def _row_scan_walls(
                     # FIX 2b: per-face color so trimesh renders it correctly
                     door_color = [100, 70, 40, 255]
                     box.visual.face_colors = np.tile(door_color, (len(box.faces), 1))
+                    meshes.append(box)
+                
+                elif is_window:
+                    win_x1 = win["x"]
+                    win_x2 = win["x"] + win["width"]
+                    # window's own center, in ft, relative to bx
+                    win_cx_ft = (win_x1 + win_x2 - 2 * bx) / (2 * ppf)
+                    win_w_ft = win["width"] / ppf
+
+                    # Wall segment before the window (if the run extends past win_x1)
+                    pre_start_px = run_start
+                    pre_end_px = max(run_start, win_x1 - bx)
+                    if pre_end_px > pre_start_px:
+                        pre_w_ft = (pre_end_px - pre_start_px) / ppf
+                        pre_cx_ft = (pre_start_px + pre_end_px) / 2 / ppf
+                        wall = trimesh.creation.box(extents=[pre_w_ft, strip_depth_ft, WALL_HEIGHT])
+                        wall.apply_translation([pre_cx_ft, center_y_ft, WALL_HEIGHT / 2])
+                        wall.visual.face_colors = np.tile(WALL_COLOR, (len(wall.faces), 1))
+                        meshes.append(wall)
+
+                    # Window stack, sized/positioned from the window's real bbox
+                    below = trimesh.creation.box(extents=[win_w_ft, strip_depth_ft, WINDOW_SILL_HEIGHT_FT])
+                    below.apply_translation([win_cx_ft, center_y_ft, WINDOW_SILL_HEIGHT_FT / 2])
+                    below.visual.face_colors = np.tile(WALL_COLOR, (len(below.faces), 1))
+                    meshes.append(below)
+
+                    above_start = WINDOW_SILL_HEIGHT_FT + WINDOW_HEIGHT_FT
+                    above_height = WALL_HEIGHT - above_start
+                    if above_height > 0:
+                        above = trimesh.creation.box(extents=[win_w_ft, strip_depth_ft, above_height])
+                        above.apply_translation([win_cx_ft, center_y_ft, above_start + above_height / 2])
+                        above.visual.face_colors = np.tile(WALL_COLOR, (len(above.faces), 1))
+                        meshes.append(above)
+
+                    pane = trimesh.creation.box(extents=[win_w_ft, strip_depth_ft, WINDOW_HEIGHT_FT])
+                    pane.apply_translation([win_cx_ft, center_y_ft, WINDOW_SILL_HEIGHT_FT + WINDOW_HEIGHT_FT / 2])
+                    pane.visual.face_colors = np.tile(WINDOW_COLOR, (len(pane.faces), 1))
+                    meshes.append(pane)
+
+                    # Wall segment after the window (if the run extends past win_x2)
+                    post_start_px = min(run_end, win_x2 - bx)
+                    post_end_px = run_end
+                    if post_end_px > post_start_px:
+                        post_w_ft = (post_end_px - post_start_px) / ppf
+                        post_cx_ft = (post_start_px + post_end_px) / 2 / ppf
+                        wall = trimesh.creation.box(extents=[post_w_ft, strip_depth_ft, WALL_HEIGHT])
+                        wall.apply_translation([post_cx_ft, center_y_ft, WALL_HEIGHT / 2])
+                        wall.visual.face_colors = np.tile(WALL_COLOR, (len(wall.faces), 1))
+                        meshes.append(wall)
+
                 else:
                     # Full wall
                     box = trimesh.creation.box(
@@ -147,8 +209,8 @@ def _row_scan_walls(
                     box.apply_translation([center_x_ft, center_y_ft, WALL_HEIGHT / 2])
                     # FIX 2b: per-face color so trimesh renders it correctly
                     box.visual.face_colors = np.tile(WALL_COLOR, (len(box.faces), 1))
+                    meshes.append(box)
 
-                meshes.append(box)
                 run_start = None
 
     return meshes
@@ -227,6 +289,7 @@ def run(image: np.ndarray, context: dict) -> dict:
     rooms = ctx["rooms"]
     px_per_sqft = ctx["px_per_sqft"]
     door_bboxes = ctx.get("door_bboxes", [])
+    window_bboxes = ctx.get("window_bboxes", [])
 
     # Pixels-per-foot (linear)
     ppf = math.sqrt(px_per_sqft)
@@ -244,7 +307,7 @@ def run(image: np.ndarray, context: dict) -> dict:
     scene = trimesh.Scene()
 
     # --- Walls ---
-    wall_meshes = _row_scan_walls(boundary, bx, by, bw, bh, ppf, door_bboxes)
+    wall_meshes = _row_scan_walls(boundary, bx, by, bw, bh, ppf, door_bboxes, window_bboxes)
     for i, m in enumerate(wall_meshes):
         scene.add_geometry(m, node_name=f"wall_{i}")
 
