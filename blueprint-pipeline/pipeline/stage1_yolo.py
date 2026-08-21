@@ -251,7 +251,17 @@ def _build_combined_boundary(image: np.ndarray, detections: dict) -> np.ndarray:
         y1 = max(0, y1 - pad)
         x2 = min(combined.shape[1], x2 + pad)
         y2 = min(combined.shape[0], y2 + pad)
-        combined[y1:y2, x1:x2] = 0
+        
+        region = combined[y1:y2, x1:x2]
+        wall_fraction = np.sum(region > 0) / max(1, region.size)
+        
+        # A real dimension/annotation mark sits in open space and is not
+        # embedded in wall geometry. If most of this region is already 
+        # wall pixels, it's more likely a short wall segment is
+        # misclassified as CLS_DIMENSION/CLS_COLUMN/CLS_RAILING than an
+        # actual annotation. So we keep it and don't erase it.
+        if wall_fraction < 0.5:
+            combined[y1:y2, x1:x2] = 0
 
     # Close door openings — fill each door bbox with white
     for det in detections.get("doors", []):
