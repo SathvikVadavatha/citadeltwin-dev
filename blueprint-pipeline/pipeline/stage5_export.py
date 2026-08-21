@@ -31,6 +31,7 @@ WALL_HEIGHT           = 9.0       # feet
 FLOOR_THICK           = 0.1       # feet
 STRIP_HEIGHT          = 3         # pixels per row-scan strip
 WALL_THICKNESS        = 0.5       # feet — rendered thickness for wall boxes
+SEAL_THICKNESS        = 8         # parameter sealing wall thickness
 WINDOW_SILL_HEIGHT_FT = 3.0       # from floor to bottom of window opening
 WINDOW_HEIGHT_FT      = 4.0       # opening height above the sill
 
@@ -318,11 +319,18 @@ def run(image: np.ndarray, context: dict) -> dict:
         "Building bbox: bx=%d by=%d bw=%d bh=%d  → %.1f × %.1f ft  ppf=%.2f",
         bx, by, bw, bh, floor_w_ft, floor_h_ft, ppf,
     )
-
+    
+    # Clear the 5px artificial perimeter seal from the wall boundary for 3D extrusion
+    wall_mask = boundary.copy()
+    wall_mask[by : by + SEAL_THICKNESS, :] = 0
+    wall_mask[by + bh - SEAL_THICKNESS : by + bh, :] = 0
+    wall_mask[:, bx : bx + SEAL_THICKNESS] = 0
+    wall_mask[:, bx + bw - SEAL_THICKNESS : bx + bw] = 0
+    
     scene = trimesh.Scene()
 
     # --- Walls ---
-    wall_meshes = _row_scan_walls(boundary, bx, by, bw, bh, ppf, door_bboxes, window_bboxes)
+    wall_meshes = _row_scan_walls(wall_mask, bx, by, bw, bh, ppf, door_bboxes, window_bboxes)
     for i, m in enumerate(wall_meshes):
         scene.add_geometry(m, node_name=f"wall_{i}")
 
