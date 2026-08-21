@@ -148,6 +148,29 @@ def run(image: np.ndarray, context: dict) -> dict:
     else:
         image_ocr = image
     results = reader.readtext(image_ocr)
+    
+    # Erase all OCR-detected text regions from combined_boundary so text
+    # doesn't get picked up as wall material downstream. EasyOCR ran on a
+    # resized copy (image_ocr) for speed, so bbox coordinates must be
+    # scaled back up to the original image's resolution before erasing.
+    
+    if "combined_boundary" in ctx:
+        boundary = ctx["combined_boundary"]
+        scale_x = w / image_ocr.shape[1]
+        scale_y = h / image_ocr.shape[0]
+        for bbox, text, conf in results:
+            xs = [pt[0] * scale_x for pt in bbox]
+            ys = [pt[1] * scale_y for pt in bbox]
+            x1, x2 = int(min(xs)), int(max(xs))
+            y1, y2 = int(min(ys)), int(max(ys))
+            pad = 3
+            x1 = max(0, x1 - pad)
+            y1 = max(0, y1 - pad)
+            x2 = min(boundary.shape[1], x2 + pad)
+            y2 = min(boundary.shape[0], y2 + pad)
+            boundary[y1:y2, x1:x2] = 0
+        ctx["combined_boundary"] = boundary
+        logger.info("Erased %d OCR text regions from combined_boundary", len(results))
 
     room_labels: list[dict] = []
     dimensions: list[str] = []
