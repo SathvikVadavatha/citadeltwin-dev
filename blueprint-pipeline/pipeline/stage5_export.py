@@ -153,51 +153,66 @@ def _row_scan_walls(
                     box.visual.face_colors = np.tile(door_color, (len(box.faces), 1))
                     meshes.append(box)
                 
-                elif is_window:
-                    win_x1 = win["x"]
-                    win_x2 = win["x"] + win["width"]
-                    # window's own center, in ft, relative to bx
-                    win_cx_ft = (win_x1 + win_x2 - 2 * bx) / (2 * ppf)
-                    win_w_ft = win["width"] / ppf
+                elif any(
+                    win["x"] < (bx + run_end) and (win["x"] + win["width"]) > (bx + run_start)
+                    and (win["y"] - 25) <= abs_cy <= (win["y"] + win["height"] + 25)
+                    for win in window_bboxes
+                ):
+                    # Find all windows intersecting this horizontal run, sorted left-to-right
+                    row_windows = [
+                        win for win in window_bboxes
+                        if win["x"] < (bx + run_end) and (win["x"] + win["width"]) > (bx + run_start)
+                        and (win["y"] - 25) <= abs_cy <= (win["y"] + win["height"] + 25)
+                    ]
+                    row_windows.sort(key=lambda w: w["x"])
 
-                    # Wall segment before the window (if the run extends past win_x1)
-                    pre_start_px = run_start
-                    pre_end_px = max(run_start, win_x1 - bx)
-                    if pre_end_px > pre_start_px:
-                        pre_w_ft = (pre_end_px - pre_start_px) / ppf
-                        pre_cx_ft = (pre_start_px + pre_end_px) / 2 / ppf
-                        wall = trimesh.creation.box(extents=[pre_w_ft, strip_depth_ft, WALL_HEIGHT])
-                        wall.apply_translation([pre_cx_ft, center_y_ft, WALL_HEIGHT / 2])
-                        wall.visual.face_colors = np.tile(WALL_COLOR, (len(wall.faces), 1))
-                        meshes.append(wall)
+                    cur_x_px = run_start
+                    for win in row_windows:
+                        win_x1 = max(run_start, win["x"] - bx)
+                        win_x2 = min(run_end, win["x"] + win["width"] - bx)
 
-                    # Window stack, sized/positioned from the window's real bbox
-                    below = trimesh.creation.box(extents=[win_w_ft, strip_depth_ft, WINDOW_SILL_HEIGHT_FT])
-                    below.apply_translation([win_cx_ft, center_y_ft, WINDOW_SILL_HEIGHT_FT / 2])
-                    below.visual.face_colors = np.tile(WALL_COLOR, (len(below.faces), 1))
-                    meshes.append(below)
+                        # 1. Wall segment before this window
+                        if win_x1 > cur_x_px:
+                            seg_w_ft = (win_x1 - cur_x_px) / ppf
+                            seg_cx_ft = (cur_x_px + win_x1) / 2.0 / ppf
+                            wall = trimesh.creation.box(extents=[seg_w_ft, strip_depth_ft, WALL_HEIGHT])
+                            wall.apply_translation([seg_cx_ft, center_y_ft, WALL_HEIGHT / 2.0])
+                            wall.visual.face_colors = np.tile(WALL_COLOR, (len(wall.faces), 1))
+                            meshes.append(wall)
 
-                    above_start = WINDOW_SILL_HEIGHT_FT + WINDOW_HEIGHT_FT
-                    above_height = WALL_HEIGHT - above_start
-                    if above_height > 0:
-                        above = trimesh.creation.box(extents=[win_w_ft, strip_depth_ft, above_height])
-                        above.apply_translation([win_cx_ft, center_y_ft, above_start + above_height / 2])
-                        above.visual.face_colors = np.tile(WALL_COLOR, (len(above.faces), 1))
-                        meshes.append(above)
+                        # 2. Window stack (Sill, Pane, Header)
+                        win_w_ft = (win_x2 - win_x1) / ppf
+                        win_cx_ft = (win_x1 + win_x2) / 2.0 / ppf
 
-                    pane = trimesh.creation.box(extents=[win_w_ft, strip_depth_ft, WINDOW_HEIGHT_FT])
-                    pane.apply_translation([win_cx_ft, center_y_ft, WINDOW_SILL_HEIGHT_FT + WINDOW_HEIGHT_FT / 2])
-                    pane.visual.face_colors = np.tile(WINDOW_COLOR, (len(pane.faces), 1))
-                    meshes.append(pane)
+                        # Sill
+                        below = trimesh.creation.box(extents=[win_w_ft, strip_depth_ft, WINDOW_SILL_HEIGHT_FT])
+                        below.apply_translation([win_cx_ft, center_y_ft, WINDOW_SILL_HEIGHT_FT / 2.0])
+                        below.visual.face_colors = np.tile(WALL_COLOR, (len(below.faces), 1))
+                        meshes.append(below)
 
-                    # Wall segment after the window (if the run extends past win_x2)
-                    post_start_px = min(run_end, win_x2 - bx)
-                    post_end_px = run_end
-                    if post_end_px > post_start_px:
-                        post_w_ft = (post_end_px - post_start_px) / ppf
-                        post_cx_ft = (post_start_px + post_end_px) / 2 / ppf
-                        wall = trimesh.creation.box(extents=[post_w_ft, strip_depth_ft, WALL_HEIGHT])
-                        wall.apply_translation([post_cx_ft, center_y_ft, WALL_HEIGHT / 2])
+                        # Header
+                        above_start = WINDOW_SILL_HEIGHT_FT + WINDOW_HEIGHT_FT
+                        above_height = max(0.0, WALL_HEIGHT - above_start)
+                        if above_height > 0:
+                            above = trimesh.creation.box(extents=[win_w_ft, strip_depth_ft, above_height])
+                            above.apply_translation([win_cx_ft, center_y_ft, above_start + above_height / 2.0])
+                            above.visual.face_colors = np.tile(WALL_COLOR, (len(above.faces), 1))
+                            meshes.append(above)
+
+                        # Glass Pane
+                        pane = trimesh.creation.box(extents=[win_w_ft, strip_depth_ft, WINDOW_HEIGHT_FT])
+                        pane.apply_translation([win_cx_ft, center_y_ft, WINDOW_SILL_HEIGHT_FT + WINDOW_HEIGHT_FT / 2.0])
+                        pane.visual.face_colors = np.tile(WINDOW_COLOR, (len(pane.faces), 1))
+                        meshes.append(pane)
+
+                        cur_x_px = win_x2
+
+                    # 3. Wall segment after the last window
+                    if cur_x_px < run_end:
+                        tail_w_ft = (run_end - cur_x_px) / ppf
+                        tail_cx_ft = (cur_x_px + run_end) / 2.0 / ppf
+                        wall = trimesh.creation.box(extents=[tail_w_ft, strip_depth_ft, WALL_HEIGHT])
+                        wall.apply_translation([tail_cx_ft, center_y_ft, WALL_HEIGHT / 2.0])
                         wall.visual.face_colors = np.tile(WALL_COLOR, (len(wall.faces), 1))
                         meshes.append(wall)
 
