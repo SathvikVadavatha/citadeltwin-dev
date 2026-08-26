@@ -60,14 +60,13 @@ DEFAULT_MIN_CONFIDENCE = 0.25
 
 
 # ---------------------------------------------------------------------------
-# Per-class minimum confidence
+# Calculation Constants
 # ---------------------------------------------------------------------------
 
-WINDOW_SILL_HEIGHT_FT   = 3.0   # default sill height — cannot be derived from a top-down floor plan, needs a real elevation source later
-WINDOW_HEIGHT_FT        = 4.0   # default window height, same caveat
-WALL_SAMPLE_PAD_PX       = 20   # how far outside the window bbox to search for real wall pixels
-WALL_THICKNESS_SAMPLE_OFFSET_PX = 4  # how far past the bbox edge to sample thickness, to avoid reading the window's own filled-in bbox as "wall"
-
+MAX_WALL_BBOX_AREA_RATIO        = 0.15   # a single wall box covering >15% of the image is not one wall segment
+MIN_WALL_BBOX_ASPECT            = 2.5    # real wall boxes are elongated; near-square boxes are noise, not linear walls
+WALL_SAMPLE_PAD_PX              = 20     # how far outside the window bbox to search for real wall pixels
+WALL_THICKNESS_SAMPLE_OFFSET_PX = 4      # how far past the bbox edge to sample thickness, to avoid reading the window's own filled-in bbox as "wall"
 # Module-level cache so the model only downloads once per container lifetime
 _CACHED_MODEL = None
 
@@ -147,6 +146,28 @@ def _run_yolo(image: np.ndarray, model) -> dict:
     )
     return detections
 
+def _filter_wall_detections(detections: dict, image_shape: tuple[int, int]) -> list[dict]:
+    """
+    YOLO's wall-class boxes are frequently large, near-square, heavily
+    overlapping regions rather than tight boxes around a single wall run. 
+    Drawing a centerline across a box like that produces erroneous long 
+    line ("ghost wall") through unrelated rooms. This filters those out 
+    before line-drawing, independent of confidence.
+    """
+    h, w = image_shape[:2]
+    image_area = h * w
+    good = []
+    for det in detections.get("walls", []):
+        x1, y1, x2, y2 = det["bbox"]
+        bw, bh = x2 - x1, y2 - y1
+        area = bw * bh
+        aspect = max(bw, bh) / (min(bw, bh) + 1e-6)
+        if area > image_area * MAX_WALL_BBOX_AREA_RATIO:
+            continue
+        if aspect < MIN_WALL_BBOX_ASPECT:
+            continue
+        good.append(det)
+    return good
 
 # ---------------------------------------------------------------------------
 # Boundary construction (notebook approach)
@@ -230,7 +251,17 @@ def _build_combined_boundary(image: np.ndarray, detections: dict) -> np.ndarray:
         y1 = max(0, y1 - pad)
         x2 = min(combined.shape[1], x2 + pad)
         y2 = min(combined.shape[0], y2 + pad)
-        combined[y1:y2, x1:x2] = 0
+        
+        region = combined[y1:y2, x1:x2]
+        wall_fraction = np.sum(region > 0) / max(1, region.size)
+        
+        # A real dimension/annotation mark sits in open space and is not
+        # embedded in wall geometry. If most of this region is already 
+        # wall pixels, it's more likely a short wall segment is
+        # misclassified as CLS_DIMENSION/CLS_COLUMN/CLS_RAILING than an
+        # actual annotation. So we keep it and don't erase it.
+        if wall_fraction < 0.5:
+            combined[y1:y2, x1:x2] = 0
 
     # Close door openings — fill each door bbox with white
     for det in detections.get("doors", []):
@@ -315,8 +346,6 @@ def _build_window_cuts(combined_boundary: np.ndarray, window_bboxes: list[dict])
             "width_px": max(win["width"], win["height"]),
             "wall_thickness_px": band[0] if band else None,
             "wall_centerline_px": band[1] if band else None,
-            "sill_height_ft": WINDOW_SILL_HEIGHT_FT,
-            "window_height_ft": WINDOW_HEIGHT_FT,
         })
     return cuts
 
@@ -450,6 +479,7 @@ def run(image: np.ndarray, context: dict) -> dict:
     try:
         model = ctx.get("yolo_model") or _load_floor_plan_model()
         detections = _run_yolo(image, model)
+        detections["walls"] = _filter_wall_detections(detections, image.shape)
 
         if len(detections.get("walls", [])) > 0:
             combined = _build_combined_boundary(image, detections)
