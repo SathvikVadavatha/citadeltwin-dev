@@ -60,18 +60,18 @@ export const EnhancedResponsiveLayout: React.FC<EnhancedResponsiveLayoutProps> =
 
           <MobileBottomNav />
 
-          {/* Mobile Sidebar Overlay */}
+          {/* Mobile Sidebar Overlay — anchored to the left edge, matching the desktop sidebar's side */}
           {sidebarOpen && (
             <div className="fixed inset-0 z-50 flex">
-              <div 
-                className="flex-1 bg-black/50 backdrop-blur-sm" 
-                onClick={() => setSidebarOpen(false)}
-              />
-              <div className="w-80 bg-background border-l shadow-xl animate-slide-in-right">
-                <div className="p-4">
+              <div className="h-dvh w-80 bg-background border-r shadow-xl animate-slide-in-left">
+                <div className="h-full flex flex-col p-4">
                   <AppSidebar />
                 </div>
               </div>
+              <div
+                className="flex-1 bg-black/50 backdrop-blur-sm"
+                onClick={() => setSidebarOpen(false)}
+              />
             </div>
           )}
         </div>

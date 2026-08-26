@@ -188,9 +188,92 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
     );
   }
 
+  // Shared between the desktop table row and the mobile card — same status-dependent
+  // name rendering (complete / failed+retry / processing) in both presentations.
+  const renderProjectNameContent = (project: ClientPortalProject, status: string, isRetrying: boolean) => {
+    if (status === 'complete') {
+      return <span className="hover:underline underline-offset-2">{project.project_name}</span>;
+    }
+    if (status === 'failed') {
+      return (
+        <div className="flex flex-wrap items-center gap-2">
+          <span>{project.project_name}</span>
+          <Badge variant="outline" className="text-destructive border-destructive/40">
+            Analysis failed
+          </Badge>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs"
+            disabled={isRetrying}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRetry(project);
+            }}
+          >
+            {isRetrying ? (
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            ) : (
+              <RotateCw className="h-3 w-3 mr-1" />
+            )}
+            Retry
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <span>{project.project_name}</span>
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        <span className="text-xs">Processing…</span>
+      </div>
+    );
+  };
+
+  // Same actions menu instance reused by both the desktop table row and the mobile card —
+  // no duplicated menu items/handlers, just a different container around it.
+  const renderActionsMenu = (project: ClientPortalProject) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+          <MoreHorizontal className="h-4 w-4" />
+          <span className="sr-only">Open actions</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => setViewingResultsProject(project)}>
+          <Eye className="h-4 w-4 mr-2" />
+          View
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => setEditingProject(project)}>
+          <Pencil className="h-4 w-4 mr-2" />
+          Edit details
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => openFeedbackDialog(project)}>
+          <MessageSquare className="h-4 w-4 mr-2" />
+          {project.feedback ? 'Edit feedback' : 'Add feedback'}
+        </DropdownMenuItem>
+        {project.status !== 'approved' && (
+          <DropdownMenuItem onClick={() => setApprovingProject(project)}>
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Change status to Approved
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem
+          className="text-destructive focus:text-destructive"
+          onClick={() => setDeletingProject(project)}
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
     <>
-      <div className="rounded-md border">
+      {/* Desktop table — unchanged, hidden below md (matches the app's MOBILE_BREAKPOINT of 768px) */}
+      <div className="hidden md:block rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -220,39 +303,7 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
                 }}
               >
                 <TableCell className="font-medium">
-                  {status === 'complete' ? (
-                    <span className="hover:underline underline-offset-2">{project.project_name}</span>
-                  ) : status === 'failed' ? (
-                    <div className="flex items-center gap-2">
-                      <span>{project.project_name}</span>
-                      <Badge variant="outline" className="text-destructive border-destructive/40">
-                        Analysis failed
-                      </Badge>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2 text-xs"
-                        disabled={isRetrying}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRetry(project);
-                        }}
-                      >
-                        {isRetrying ? (
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        ) : (
-                          <RotateCw className="h-3 w-3 mr-1" />
-                        )}
-                        Retry
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <span>{project.project_name}</span>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span className="text-xs">Processing…</span>
-                    </div>
-                  )}
+                  {renderProjectNameContent(project, status, isRetrying)}
                 </TableCell>
                 <TableCell className="text-muted-foreground">{project.client_name}</TableCell>
                 <TableCell className="text-muted-foreground">{getBuildingTypeLabel(project.building_type)}</TableCell>
@@ -263,47 +314,53 @@ export const ProjectsList: React.FC<ProjectsListProps> = ({
                   {format(new Date(project.created_at), 'MMM d, yyyy')}
                 </TableCell>
                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Open actions</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setViewingResultsProject(project)}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setEditingProject(project)}>
-                        <Pencil className="h-4 w-4 mr-2" />
-                        Edit details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => openFeedbackDialog(project)}>
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        {project.feedback ? 'Edit feedback' : 'Add feedback'}
-                      </DropdownMenuItem>
-                      {project.status !== 'approved' && (
-                        <DropdownMenuItem onClick={() => setApprovingProject(project)}>
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Change status to Approved
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => setDeletingProject(project)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {renderActionsMenu(project)}
                 </TableCell>
               </TableRow>
               );
             })}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Mobile card rows — same data/actions as the desktop table, reflowed for small screens */}
+      <div className="md:hidden space-y-3">
+        {projects.map((project) => {
+          const analysis = resultsByProjectId[project.id];
+          const status = analysis?.processing_status ?? 'running';
+          const isRetrying = retryingId === project.id;
+          const isClickable = status === 'complete';
+
+          return (
+            <Card
+              key={project.id}
+              className={isClickable ? 'cursor-pointer active:bg-muted/50' : ''}
+              onClick={() => {
+                if (isClickable) setViewingResultsProject(project);
+              }}
+            >
+              <CardContent className="p-4 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1 font-medium text-sm">
+                    {renderProjectNameContent(project, status, isRetrying)}
+                  </div>
+                  <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                    {renderActionsMenu(project)}
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                  <Badge variant={getStatusBadgeVariant(project.status)}>{getStatusLabel(project.status)}</Badge>
+                  <span className="truncate">{project.client_name}</span>
+                  <span>·</span>
+                  <span className="truncate">{getBuildingTypeLabel(project.building_type)}</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {format(new Date(project.created_at), 'MMM d, yyyy')}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       <AddProjectModal
