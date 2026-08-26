@@ -429,6 +429,7 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
                     <Model3DViewer
                       modelUrl={results.model_3d_url}
                       modelName={project.project_name}
+                      blueprintPublicUrl={project.blueprint_public_url}
                       largeViewport
                     />
                   ) : (
