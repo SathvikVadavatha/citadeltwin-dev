@@ -51,7 +51,7 @@ export const AppSidebar: React.FC = () => {
           <span className="text-xl font-bold text-foreground">CitadelTwin</span>
         </Link>
       </div>
-      <nav className="flex-1 space-y-1 px-2 py-4">
+      <nav className="flex-1 space-y-1 px-2 py-4 overflow-y-auto">
         {navigation.map((item) => {
           const isActive = location.pathname === item.href;
           return (
@@ -76,7 +76,7 @@ export const AppSidebar: React.FC = () => {
           );
         })}
       </nav>
-      <div className="border-t border-border px-2 py-4">
+      <div className="border-t border-border px-2 py-4 shrink-0">
         {user && (
           <div className="px-2 mb-2 text-xs text-muted-foreground truncate">
             {user.email}
