@@ -41,8 +41,10 @@ export const ClientPortalDashboard: React.FC = () => {
     [projectResults]
   );
 
+  // Single source of truth for both the stat-card counts and the tab lists below —
+  // deriving both from the same filtered arrays keeps them from drifting apart.
   const inProgressProjects = useMemo(
-    () => projects.filter((p) => p.status === 'in_progress'),
+    () => projects.filter((p) => p.status !== 'approved'),
     [projects]
   );
   const approvedProjects = useMemo(
@@ -50,8 +52,8 @@ export const ClientPortalDashboard: React.FC = () => {
     [projects]
   );
   const feedbackProjects = useMemo(
-    () => inProgressProjects.filter((p) => !!p.feedback && p.feedback.trim().length > 0),
-    [inProgressProjects]
+    () => projects.filter((p) => !!p.feedback && p.feedback.trim().length > 0),
+    [projects]
   );
 
   const handleCreateProject = async (input: NewClientPortalProject, file?: File) => {
