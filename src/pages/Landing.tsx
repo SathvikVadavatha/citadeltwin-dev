@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import {
   ArrowRight,
   Upload,
@@ -14,13 +14,13 @@ import {
   Factory,
   Landmark,
   Home,
-  Sparkles,
   CheckCircle2,
   Layers,
   Gauge,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+import productWorkspace from "@/assets/citadeltwin-product-workspace.jpg";
 
 // ------- Reusable motion primitives -------
 const fadeUp: any = {
@@ -82,104 +82,22 @@ const Header = () => {
   );
 };
 
-// ------- Animated blueprint mockup -------
-const BlueprintMock = () => {
-  const prefersReduced = useReducedMotion();
-  return (
-    <div className="relative aspect-[4/3] w-full rounded-xl overflow-hidden skeuo-card">
-      <div className="absolute inset-0 skeuo-drafting-grid" />
-      {/* drifting accent glow */}
-      <motion.div
-        aria-hidden
-        className="absolute -inset-20 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(600px 300px at 30% 30%, hsl(21 90% 48% / 0.18), transparent 60%), radial-gradient(500px 280px at 80% 70%, hsl(215 30% 40% / 0.18), transparent 60%)",
-        }}
-        animate={prefersReduced ? undefined : { x: [0, 20, -10, 0], y: [0, -15, 10, 0] }}
-        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-      />
-      {/* floor plan svg */}
-      <svg viewBox="0 0 400 300" className="absolute inset-0 w-full h-full p-6">
-        <defs>
-          <linearGradient id="wall" x1="0" x2="1">
-            <stop offset="0%" stopColor="hsl(215 25% 22%)" />
-            <stop offset="100%" stopColor="hsl(215 25% 32%)" />
-          </linearGradient>
-        </defs>
-        {/* outer walls */}
-        <motion.rect
-          x="30" y="30" width="340" height="240" rx="2" fill="none" stroke="url(#wall)" strokeWidth="4"
-          initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }} viewport={{ once: true }}
-          transition={{ duration: 1.4, ease: "easeInOut" }}
-        />
-        {/* interior partitions */}
-        {[
-          ["M180 30 L180 170", 0.2],
-          ["M30 170 L370 170", 0.4],
-          ["M260 170 L260 270", 0.6],
-        ].map(([d, delay], i) => (
-          <motion.path
-            key={i} d={d as string} stroke="hsl(215 20% 33%)" strokeWidth="2.5" fill="none"
-            initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }} viewport={{ once: true }}
-            transition={{ duration: 1, ease: "easeInOut", delay: delay as number }}
-          />
-        ))}
-        {/* room labels */}
-        {[
-          { x: 105, y: 100, t: "LIVING" },
-          { x: 275, y: 100, t: "KITCHEN" },
-          { x: 105, y: 225, t: "BED" },
-          { x: 215, y: 225, t: "BATH" },
-          { x: 315, y: 225, t: "OFFICE" },
-        ].map((r, i) => (
-          <motion.text
-            key={r.t} x={r.x} y={r.y} textAnchor="middle" fontSize="10" fontFamily="DM Sans"
-            fill="hsl(215 14% 46%)" letterSpacing="2"
-            initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-            transition={{ delay: 0.8 + i * 0.1 }}
-          >
-            {r.t}
-          </motion.text>
-        ))}
-        {/* dimension marker */}
-        <motion.g
-          initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-          transition={{ delay: 1.6 }}
-        >
-          <line x1="30" y1="18" x2="370" y2="18" stroke="hsl(21 90% 48%)" strokeWidth="1" />
-          <line x1="30" y1="14" x2="30" y2="22" stroke="hsl(21 90% 48%)" strokeWidth="1" />
-          <line x1="370" y1="14" x2="370" y2="22" stroke="hsl(21 90% 48%)" strokeWidth="1" />
-          <text x="200" y="14" textAnchor="middle" fontSize="9" fill="hsl(21 90% 48%)" fontFamily="DM Sans">
-            42'-0"
-          </text>
-        </motion.g>
-        {/* scanning beam */}
-        {!prefersReduced && (
-          <motion.rect
-            x="30" y="30" width="340" height="6" fill="hsl(21 90% 48% / 0.35)"
-            initial={{ y: 30 }} animate={{ y: 264 }}
-            transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", repeatType: "reverse" }}
-          />
-        )}
-      </svg>
-      {/* floating callout */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-        transition={{ delay: 1.2 }}
-        className="absolute bottom-4 left-4 right-4 md:right-auto md:max-w-[60%] glass-effect rounded-lg p-3 flex items-center gap-3"
-      >
-        <div className="h-8 w-8 rounded-md bg-accent/15 text-accent flex items-center justify-center">
-          <Sparkles className="h-4 w-4" />
-        </div>
-        <div className="text-xs">
-          <div className="font-semibold text-foreground">Parsed in 8m 42s</div>
-          <div className="text-muted-foreground">5 rooms · 14 walls · 3 openings · IBC-compliant</div>
-        </div>
-      </motion.div>
-    </div>
-  );
-};
+// ------- Product workspace preview -------
+const ProductWorkspace = () => (
+  <figure className="relative aspect-[3/2] w-full overflow-hidden rounded-lg skeuo-card bg-card">
+    <img
+      src={productWorkspace}
+      alt="CitadelTwin workspace showing a building digital twin, structural stress analysis, GIS utilities, and compliance results"
+      width={1536}
+      height={1024}
+      fetchPriority="high"
+      className="h-full w-full object-cover"
+    />
+    <figcaption className="sr-only">
+      A representative CitadelTwin project workspace combining BIM, FEA, GIS, and compliance tools.
+    </figcaption>
+  </figure>
+);
 
 // ------- Hero -------
 const Hero = () => {
@@ -261,7 +179,7 @@ const Hero = () => {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
         >
-          <BlueprintMock />
+          <ProductWorkspace />
         </motion.div>
       </div>
     </section>
