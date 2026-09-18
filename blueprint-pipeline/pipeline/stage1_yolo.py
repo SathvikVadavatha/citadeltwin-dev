@@ -45,6 +45,47 @@ DOOR_CLASS_IDS    = {CLS_DOOR, CLS_SLIDING_DOOR}
 WINDOW_CLASS_IDS  = {CLS_WINDOW}
 EXCLUDE_CLASS_IDS = {CLS_DIMENSION, CLS_RAILING, CLS_COLUMN}
 
+# ---------------------------------------------------------------------------
+# Per-class minimum confidence
+# ---------------------------------------------------------------------------
+# origin/main (Tanzim, signed off by leads): pre-filters windows below 0.4
+# confidence out of `detections["windows"]` entirely, inside `_run_yolo`.
+# Kept exactly as-is below, untouched.
+#
+# RESOLVED (previously flagged as a conflict with the local LLM-review path,
+# which only ever looked at windows with confidence < 0.3 — a range his 0.4
+# filter had already discarded, making that branch dead code). Rather than
+# touch his filter, `_run_yolo` now separately stashes a copy of any window
+# in [WINDOW_LLM_REVIEW_MIN_CONFIDENCE, MIN_CONFIDENCE[CLS_WINDOW]) into
+# `detections["windows_pending_review"]` *before* his filter line drops it
+# from `detections["windows"]`. `run()` sends only that stashed, narrower
+# band through `_optional_llm_review_window`, and re-adds anything the LLM
+# confirms. Windows below WINDOW_LLM_REVIEW_MIN_CONFIDENCE are still dropped
+# outright with no review, same as before.
+MIN_CONFIDENCE = {
+    CLS_WALL: 0.05,
+    CLS_CURTAIN_WALL: 0.05,
+    CLS_DOOR: 0.4,
+    CLS_SLIDING_DOOR: 0.4,
+    CLS_WINDOW: 0.4,
+}
+DEFAULT_MIN_CONFIDENCE = 0.25
+
+# Lower bound for the LLM-review "second chance" band described above.
+# Windows scoring below this are treated as hopeless noise and dropped with
+# no review, same as plain MIN_CONFIDENCE behavior.
+WINDOW_LLM_REVIEW_MIN_CONFIDENCE = 0.2
+
+
+# ---------------------------------------------------------------------------
+# Calculation Constants
+# ---------------------------------------------------------------------------
+
+MAX_WALL_BBOX_AREA_RATIO        = 0.15   # a single wall box covering >15% of the image is not one wall segment
+MIN_WALL_BBOX_ASPECT            = 2.5    # real wall boxes are elongated; near-square boxes are noise, not linear walls
+WALL_SAMPLE_PAD_PX              = 20     # how far outside the window bbox to search for real wall pixels
+WALL_THICKNESS_SAMPLE_OFFSET_PX = 4      # how far past the bbox edge to sample thickness, to avoid reading the window's own filled-in bbox as "wall"
+
 # Module-level cache so the model only downloads once per container lifetime
 _CACHED_MODEL = None
 
@@ -98,6 +139,20 @@ def _run_yolo(image: np.ndarray, model) -> dict:
             cls_id = int(box.cls[0])
             x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
             conf = float(box.conf[0])
+
+            # Stash a copy of borderline windows for possible LLM rescue
+            # (see WINDOW_LLM_REVIEW_MIN_CONFIDENCE above) *before* his
+            # filter below drops them from `detections["windows"]`. This
+            # does not alter his filter's condition or behavior at all.
+            if (cls_id == CLS_WINDOW
+                    and WINDOW_LLM_REVIEW_MIN_CONFIDENCE <= conf < MIN_CONFIDENCE.get(cls_id, DEFAULT_MIN_CONFIDENCE)):
+                detections.setdefault("windows_pending_review", []).append(
+                    {"bbox": [x1, y1, x2, y2], "confidence": conf, "class_id": cls_id}
+                )
+
+            if cls_id == CLS_WINDOW and conf < MIN_CONFIDENCE.get(cls_id, DEFAULT_MIN_CONFIDENCE):
+                continue
+
             det = {"bbox": [x1, y1, x2, y2], "confidence": conf, "class_id": cls_id}
 
             if cls_id in WALL_CLASS_IDS:
@@ -119,6 +174,30 @@ def _run_yolo(image: np.ndarray, model) -> dict:
         len(detections["dimensions"]),
     )
     return detections
+
+
+def _filter_wall_detections(detections: dict, image_shape: tuple[int, int]) -> list[dict]:
+    """
+    YOLO's wall-class boxes are frequently large, near-square, heavily
+    overlapping regions rather than tight boxes around a single wall run.
+    Drawing a centerline across a box like that produces erroneous long
+    line ("ghost wall") through unrelated rooms. This filters those out
+    before line-drawing, independent of confidence.
+    """
+    h, w = image_shape[:2]
+    image_area = h * w
+    good = []
+    for det in detections.get("walls", []):
+        x1, y1, x2, y2 = det["bbox"]
+        bw, bh = x2 - x1, y2 - y1
+        area = bw * bh
+        aspect = max(bw, bh) / (min(bw, bh) + 1e-6)
+        if area > image_area * MAX_WALL_BBOX_AREA_RATIO:
+            continue
+        if aspect < MIN_WALL_BBOX_ASPECT:
+            continue
+        good.append(det)
+    return good
 
 
 # ---------------------------------------------------------------------------
@@ -203,7 +282,17 @@ def _build_combined_boundary(image: np.ndarray, detections: dict) -> np.ndarray:
         y1 = max(0, y1 - pad)
         x2 = min(combined.shape[1], x2 + pad)
         y2 = min(combined.shape[0], y2 + pad)
-        combined[y1:y2, x1:x2] = 0
+
+        region = combined[y1:y2, x1:x2]
+        wall_fraction = np.sum(region > 0) / max(1, region.size)
+
+        # A real dimension/annotation mark sits in open space and is not
+        # embedded in wall geometry. If most of this region is already
+        # wall pixels, it's more likely a short wall segment is
+        # misclassified as CLS_DIMENSION/CLS_COLUMN/CLS_RAILING than an
+        # actual annotation. So we keep it and don't erase it.
+        if wall_fraction < 0.5:
+            combined[y1:y2, x1:x2] = 0
 
     # Close door openings — fill each door bbox with white
     for det in detections.get("doors", []):
@@ -270,6 +359,153 @@ def _morphological_fallback(image: np.ndarray) -> np.ndarray:
     logger.info("Morphological fallback: %d wall pixels found", int(np.sum(wall_mask > 0)))
     return wall_mask
 
+# ---------------------------------------------------------------------------
+# Wall cut logic
+# ---------------------------------------------------------------------------
+
+def _build_window_cuts(combined_boundary: np.ndarray, window_bboxes: list[dict]) -> list[dict]:
+    cuts = []
+    for win in window_bboxes:
+        bbox = [win["x"], win["y"], win["x"] + win["width"], win["y"] + win["height"]]
+        horizontal = _local_wall_orientation(combined_boundary, bbox)
+        band = _local_wall_band(combined_boundary, bbox, horizontal)
+
+        cuts.append({
+            "bbox": bbox,
+            "confidence": win["confidence"],
+            "orientation": "horizontal" if horizontal else "vertical",
+            "width_px": max(win["width"], win["height"]),
+            "wall_thickness_px": band[0] if band else None,
+            "wall_centerline_px": band[1] if band else None,
+        })
+    return cuts
+
+
+# ---------------------------------------------------------------------------
+# Wall cut detection helpers
+# ---------------------------------------------------------------------------
+
+def _local_wall_orientation(combined_boundary: np.ndarray, bbox: list[int], pad: int = WALL_SAMPLE_PAD_PX) -> bool:
+    x1, y1, x2, y2 = bbox
+    h, w = combined_boundary.shape
+
+    top = combined_boundary[max(0, y1 - pad):y1, x1:x2]
+    bottom = combined_boundary[y2:min(h, y2 + pad), x1:x2]
+    top_bottom_px = int(np.sum(top > 0) + np.sum(bottom > 0))
+    top_bottom_area = max(1, top.size + bottom.size)
+    top_bottom_density = top_bottom_px / top_bottom_area
+
+    left = combined_boundary[y1:y2, max(0, x1 - pad):x1]
+    right = combined_boundary[y1:y2, x2:min(w, x2 + pad)]
+    left_right_px = int(np.sum(left > 0) + np.sum(right > 0))
+    left_right_area = max(1, left.size + right.size)
+    left_right_density = left_right_px / left_right_area
+
+    return left_right_density >= top_bottom_density
+
+def _local_wall_band(combined_boundary: np.ndarray, bbox: list[int], horizontal_wall: bool,
+                      offset: int = WALL_THICKNESS_SAMPLE_OFFSET_PX,
+                      pad: int = WALL_SAMPLE_PAD_PX) -> tuple[float, float] | None:
+    """
+    Measure the wall's actual thickness and centerline position perpendicular
+    to its run, sampled just past the bbox edges (not through the bbox
+    itself, which is filled solid and would give a false thickness reading).
+
+    Returns (thickness_px, centerline_coord) or None if no wall pixels found.
+    """
+    x1, y1, x2, y2 = bbox
+    h, w = combined_boundary.shape
+
+    if horizontal_wall:
+        # sample columns just left of x1 and just right of x2
+        sample_cols = [x1 - offset, x2 + offset]
+        cy = (y1 + y2) // 2
+        lo, hi = max(0, cy - pad), min(h, cy + pad)
+        thicknesses, centers = [], []
+        for sx in sample_cols:
+            if not (0 <= sx < w):
+                continue
+            col = combined_boundary[lo:hi, sx]
+            wall_rows = np.where(col > 0)[0]
+            if len(wall_rows) == 0:
+                continue
+            thicknesses.append(float(wall_rows.max() - wall_rows.min() + 1))
+            centers.append(lo + (wall_rows.max() + wall_rows.min()) / 2)
+    else:
+        sample_rows = [y1 - offset, y2 + offset]
+        cx = (x1 + x2) // 2
+        lo, hi = max(0, cx - pad), min(w, cx + pad)
+        thicknesses, centers = [], []
+        for sy in sample_rows:
+            if not (0 <= sy < h):
+                continue
+            row = combined_boundary[sy, lo:hi]
+            wall_cols = np.where(row > 0)[0]
+            if len(wall_cols) == 0:
+                continue
+            thicknesses.append(float(wall_cols.max() - wall_cols.min() + 1))
+            centers.append(lo + (wall_cols.max() + wall_cols.min()) / 2)
+
+    if not thicknesses:
+        return None
+    return float(np.median(thicknesses)), float(np.median(centers))
+
+
+# ---------------------------------------------------------------------------
+# Optional LLM Review
+# ---------------------------------------------------------------------------
+
+def _optional_llm_review_window(image: np.ndarray, w_dict: dict) -> bool:
+    """
+    Sends cropped window image to OpenAI for review if ENABLE_LLM_REVIEW is true.
+    Returns True if LLM confirms it is a window, False otherwise.
+    """
+    import os
+    import base64
+    import httpx
+
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if os.environ.get("ENABLE_LLM_REVIEW", "false").lower() != "true" or not api_key:
+        return False
+
+    x, y, w, h = int(w_dict["x"]), int(w_dict["y"]), int(w_dict["width"]), int(w_dict["height"])
+    # Add padding to crop context
+    pad = 30
+    img_h, img_w = image.shape[:2]
+    x1, y1 = max(0, x - pad), max(0, y - pad)
+    x2, y2 = min(img_w, x + w + pad), min(img_h, y + h + pad)
+
+    crop = image[y1:y2, x1:x2]
+    _, buf = cv2.imencode('.jpg', crop)
+    b64_img = base64.b64encode(buf).decode('utf-8')
+
+    try:
+        resp = httpx.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={
+                "model": "gpt-4o",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "Is there a window shown in this cropped section of a floor plan? Reply ONLY with 'Yes' or 'No'."},
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64_img}"}}
+                        ]
+                    }
+                ],
+                "max_tokens": 10
+            },
+            timeout=10.0
+        )
+        resp.raise_for_status()
+        reply = resp.json()["choices"][0]["message"]["content"].strip().lower()
+        return reply.startswith("yes")
+    except Exception as e:
+        logger.warning("LLM review failed: %s", e)
+        return False
+
+
 
 # ---------------------------------------------------------------------------
 # Bbox helpers
@@ -330,6 +566,7 @@ def run(image: np.ndarray, context: dict) -> dict:
     try:
         model = ctx.get("yolo_model") or _load_floor_plan_model()
         detections = _run_yolo(image, model)
+        detections["walls"] = _filter_wall_detections(detections, image.shape)
 
         if len(detections.get("walls", [])) > 0:
             combined = _build_combined_boundary(image, detections)
@@ -362,6 +599,21 @@ def run(image: np.ndarray, context: dict) -> dict:
     ctx["combined_boundary"]     = combined
     ctx["door_bboxes"]           = _extract_door_bboxes(detections)
     ctx["window_bboxes"]         = _extract_window_bboxes(detections)
+
+    # LLM rescue for windows Tanzim's MIN_CONFIDENCE[CLS_WINDOW]=0.4 filter
+    # already dropped, but that scored at/above WINDOW_LLM_REVIEW_MIN_CONFIDENCE
+    # (see comment above MIN_CONFIDENCE). This only ever *adds* windows back
+    # in on LLM confirmation — his filter and `window_bboxes` extraction
+    # above are untouched.
+    pending = _extract_window_bboxes({"windows": detections.get("windows_pending_review", [])}) if detections else []
+    for w in pending:
+        w["llm_confirmed"] = _optional_llm_review_window(image, w)
+        if w["llm_confirmed"]:
+            logger.info("LLM rescued low-confidence window (conf=%.2f) at x=%d, y=%d", w["confidence"], w["x"], w["y"])
+            ctx["window_bboxes"].append(w)
+
+    ctx["window_cuts"]           = _build_window_cuts(combined, ctx["window_bboxes"])
+
     ctx["yolo_detections"]       = detections
     ctx["wall_detection_method"] = method
     ctx["image_height"], ctx["image_width"] = image.shape[:2]
