@@ -41,8 +41,10 @@ export const ClientPortalDashboard: React.FC = () => {
     [projectResults]
   );
 
+  // Single source of truth for both the stat-card counts and the tab lists below —
+  // deriving both from the same filtered arrays keeps them from drifting apart.
   const inProgressProjects = useMemo(
-    () => projects.filter((p) => p.status === 'in_progress'),
+    () => projects.filter((p) => p.status !== 'approved'),
     [projects]
   );
   const approvedProjects = useMemo(
@@ -50,8 +52,8 @@ export const ClientPortalDashboard: React.FC = () => {
     [projects]
   );
   const feedbackProjects = useMemo(
-    () => inProgressProjects.filter((p) => !!p.feedback && p.feedback.trim().length > 0),
-    [inProgressProjects]
+    () => projects.filter((p) => !!p.feedback && p.feedback.trim().length > 0),
+    [projects]
   );
 
   const handleCreateProject = async (input: NewClientPortalProject, file?: File) => {
@@ -92,51 +94,51 @@ export const ClientPortalDashboard: React.FC = () => {
         onSubmit={handleCreateProject}
       />
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Quick Stats — compact 2x2 grid on mobile, original 4-across cards from md: up */}
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 md:p-6">
             <div className="flex items-center gap-2">
-              <Eye className="h-8 w-8 text-blue-500" />
-              <div>
-                <div className="text-2xl font-bold">{projects.length}</div>
-                <div className="text-sm text-muted-foreground">Projects</div>
+              <Eye className="h-5 w-5 md:h-8 md:w-8 text-blue-500 flex-shrink-0" />
+              <div className="min-w-0">
+                <div className="text-lg md:text-2xl font-bold leading-tight">{projects.length}</div>
+                <div className="text-[11px] md:text-sm text-muted-foreground truncate">Projects</div>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 md:p-6">
             <div className="flex items-center gap-2">
-              <Clock className="h-8 w-8 text-orange-500" />
-              <div>
-                <div className="text-2xl font-bold">{inProgressProjects.length}</div>
-                <div className="text-sm text-muted-foreground">In Progress</div>
+              <Clock className="h-5 w-5 md:h-8 md:w-8 text-orange-500 flex-shrink-0" />
+              <div className="min-w-0">
+                <div className="text-lg md:text-2xl font-bold leading-tight">{inProgressProjects.length}</div>
+                <div className="text-[11px] md:text-sm text-muted-foreground truncate">In Progress</div>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 md:p-6">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-8 w-8 text-purple-500" />
-              <div>
-                <div className="text-2xl font-bold">{approvedProjects.length}</div>
-                <div className="text-sm text-muted-foreground">Approved</div>
+              <CheckCircle className="h-5 w-5 md:h-8 md:w-8 text-purple-500 flex-shrink-0" />
+              <div className="min-w-0">
+                <div className="text-lg md:text-2xl font-bold leading-tight">{approvedProjects.length}</div>
+                <div className="text-[11px] md:text-sm text-muted-foreground truncate">Approved</div>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 md:p-6">
             <div className="flex items-center gap-2">
-              <MessageSquare className="h-8 w-8 text-green-500" />
-              <div>
-                <div className="text-2xl font-bold">{feedbackProjects.length}</div>
-                <div className="text-sm text-muted-foreground">Feedback</div>
+              <MessageSquare className="h-5 w-5 md:h-8 md:w-8 text-green-500 flex-shrink-0" />
+              <div className="min-w-0">
+                <div className="text-lg md:text-2xl font-bold leading-tight">{feedbackProjects.length}</div>
+                <div className="text-[11px] md:text-sm text-muted-foreground truncate">Feedback</div>
               </div>
             </div>
           </CardContent>

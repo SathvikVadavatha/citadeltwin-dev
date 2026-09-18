@@ -19,6 +19,8 @@ interface Model3DViewerProps {
   projectId?: string;
   onDownload?: () => void;
   largeViewport?: boolean;
+  /** Public URL of the uploaded blueprint image, used by the 2D side of the 2D/3D toggle. */
+  blueprintPublicUrl?: string | null;
 }
 
 const Model3D = ({ url, onError }: { url: string; onError: () => void }) => {
@@ -201,18 +203,21 @@ class ModelLoadErrorBoundary extends React.Component<
   }
 }
 
-export const Model3DViewer: React.FC<Model3DViewerProps> = ({ 
-  modelUrl, 
+export const Model3DViewer: React.FC<Model3DViewerProps> = ({
+  modelUrl,
   modelName = "3D Model",
   uploadId,
   projectId,
   onDownload,
   largeViewport = false,
+  blueprintPublicUrl,
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [useEnhancedViewer, setUseEnhancedViewer] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
   const [modelLoadFailed, setModelLoadFailed] = useState(false);
+  const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
+  const hasBlueprintImage = Boolean(blueprintPublicUrl);
   const handleModelLoadError = useCallback(() => setModelLoadFailed(true), []);
 
   // Log the uploadId whenever it changes so we can verify the correct ID is received
@@ -304,67 +309,96 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
             : 'relative w-full aspect-[16/10] min-h-[420px] max-h-[70vh]'
       }
     >
-      <Canvas
-        camera={{
-          position: [8, 6, 8],
-          fov: 50,
-          near: 0.1,
-          far: 1000
-        }}
-        style={{ width: '100%', height: '100%' }}
-        shadows={{ enabled: true, type: THREE.PCFSoftShadowMap }}
-        gl={{ antialias: true, alpha: false }}
-        onCreated={() => setSceneReady(true)}
-      >
-        {/* Muted dark slate — not pure black, but dark enough that the light
-            walls (#eceef0) and floor (#c3c8ce) both read clearly against it. */}
-        <color attach="background" args={['#2b3038']} />
-        <ambientLight intensity={0.8} color="#ffffff" />
-        <directionalLight
-          position={[15, 15, 10]}
-          intensity={1.5}
-          castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
-          shadow-camera-far={50}
-          shadow-camera-left={-10}
-          shadow-camera-right={10}
-          shadow-camera-top={10}
-          shadow-camera-bottom={-10}
-        />
-        <pointLight position={[-10, 5, -10]} intensity={0.5} color="#ffffff" />
-        <hemisphereLight args={['#ffffff', '#dfe3e6', 0.5]} />
-
-        <Suspense fallback={<LoadingFallback />}>
-          {finalModelUrl && sceneReady && !modelLoadFailed ? (
-            <ModelLoadErrorBoundary
-              resetKey={finalModelUrl}
-              onError={handleModelLoadError}
-            >
-              <Model3D url={finalModelUrl} onError={handleModelLoadError} />
-            </ModelLoadErrorBoundary>
-          ) : null}
-        </Suspense>
-
-        <OrbitControls
-          enablePan={true}
-          enableZoom={true}
-          enableRotate={true}
-          minDistance={4}
-          maxDistance={150}
-          enableDamping
-          dampingFactor={0.05}
-          maxPolarAngle={Math.PI / 2.2}
-        />
-      </Canvas>
-
-      {showEmptyState && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/85 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-2 text-center text-muted-foreground px-4">
-            <AlertCircle className="h-8 w-8" />
-            <p className="text-sm">{emptyStateMessage}</p>
-          </div>
+      {viewMode === '2d' ? (
+        <div className="flex h-full w-full items-center justify-center bg-muted/20">
+          {hasBlueprintImage ? (
+            <img
+              src={blueprintPublicUrl ?? ''}
+              alt={`${finalModelName} blueprint`}
+              className="max-h-full max-w-full object-contain"
+            />
+          ) : (
+            <div className="flex flex-col items-center gap-2 text-center text-muted-foreground px-4">
+              <AlertCircle className="h-8 w-8" />
+              <p className="text-sm">Blueprint image not available.</p>
+            </div>
+          )}
         </div>
+      ) : (
+        <>
+          <Canvas
+            camera={{
+              position: [8, 6, 8],
+              fov: 50,
+              near: 0.1,
+              far: 1000
+            }}
+            style={{ width: '100%', height: '100%' }}
+            shadows={{ enabled: true, type: THREE.PCFSoftShadowMap }}
+            gl={{ antialias: true, alpha: false }}
+            onCreated={() => setSceneReady(true)}
+          >
+            {/* Muted dark slate — not pure black, but dark enough that the light
+                walls (#eceef0) and floor (#c3c8ce) both read clearly against it. */}
+            <color attach="background" args={['#2b3038']} />
+            <ambientLight intensity={0.8} color="#ffffff" />
+            <directionalLight
+              position={[15, 15, 10]}
+              intensity={1.5}
+              castShadow
+              shadow-mapSize-width={2048}
+              shadow-mapSize-height={2048}
+              shadow-camera-far={50}
+              shadow-camera-left={-10}
+              shadow-camera-right={10}
+              shadow-camera-top={10}
+              shadow-camera-bottom={-10}
+            />
+            <pointLight position={[-10, 5, -10]} intensity={0.5} color="#ffffff" />
+            <hemisphereLight args={['#ffffff', '#dfe3e6', 0.5]} />
+
+            <Suspense fallback={<LoadingFallback />}>
+              {finalModelUrl && sceneReady && !modelLoadFailed ? (
+                <ModelLoadErrorBoundary
+                  resetKey={finalModelUrl}
+                  onError={handleModelLoadError}
+                >
+                  <Model3D url={finalModelUrl} onError={handleModelLoadError} />
+                </ModelLoadErrorBoundary>
+              ) : null}
+            </Suspense>
+
+            <OrbitControls
+              enablePan={true}
+              enableZoom={true}
+              enableRotate={true}
+              minDistance={4}
+              maxDistance={150}
+              enableDamping
+              dampingFactor={0.05}
+              maxPolarAngle={Math.PI / 2.2}
+            />
+          </Canvas>
+
+          {showEmptyState && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/85 backdrop-blur-sm">
+              <div className="flex flex-col items-center gap-2 text-center text-muted-foreground px-4">
+                <AlertCircle className="h-8 w-8" />
+                <p className="text-sm">{emptyStateMessage}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Scene loading indicator */}
+          {!sceneReady && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm">
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <span className="text-sm">Initializing 3D scene...</span>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Enhanced 3D Viewer Controls */}
@@ -387,7 +421,7 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
             <Download className="h-4 w-4" />
           </Button>
         )}
-        {hasElements && (
+        {viewMode === '3d' && hasElements && (
           <Button
             variant="outline"
             size="sm"
@@ -410,16 +444,6 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
           </Button>
         </div>
       )}
-
-      {/* Scene loading indicator */}
-      {!sceneReady && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm">
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <span className="text-sm">Initializing 3D scene...</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 
@@ -440,33 +464,56 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
             3D Model Viewer
           </div>
           <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
-            <Badge variant="secondary" className="max-w-[min(22rem,70vw)] truncate">
-              {finalModelName}
-            </Badge>
             {isLoading && <Badge variant="outline">Loading...</Badge>}
             {hasElements && (
               <Badge variant="default" className="bg-green-600">
                 {elementCount} Elements
               </Badge>
             )}
-            {sceneReady && (
-              <Badge variant="outline" className="bg-blue-600 text-white">
-                Ready
-              </Badge>
-            )}
+            <div
+              role="group"
+              aria-label="View mode"
+              className="relative inline-flex h-8 items-center rounded-full border border-border bg-muted/60 p-1 shadow-inner"
+            >
+              <span
+                aria-hidden="true"
+                className="absolute inset-y-1 left-1 h-6 w-12 rounded-full bg-accent shadow-sm transition-transform duration-300 ease-out"
+                style={{ transform: viewMode === '3d' ? 'translateX(3rem)' : 'translateX(0)' }}
+              />
+              <button
+                type="button"
+                onClick={() => hasBlueprintImage && setViewMode('2d')}
+                disabled={!hasBlueprintImage}
+                title={hasBlueprintImage ? undefined : 'No blueprint image available for this project'}
+                className={`relative z-10 h-6 w-12 rounded-full text-xs font-semibold transition-colors ${
+                  viewMode === '2d' ? 'text-accent-foreground' : 'text-muted-foreground'
+                } ${!hasBlueprintImage ? 'cursor-not-allowed opacity-50' : ''}`}
+              >
+                2D
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('3d')}
+                className={`relative z-10 h-6 w-12 rounded-full text-xs font-semibold transition-colors ${
+                  viewMode === '3d' ? 'text-accent-foreground' : 'text-muted-foreground'
+                }`}
+              >
+                3D
+              </button>
+            </div>
           </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
         {viewerContent}
         <div className="mt-4 text-sm text-muted-foreground text-center space-y-2">
-          <p>Use mouse to rotate, zoom, and pan the 3D model</p>
+          <p>{viewMode === '2d' ? 'Viewing the uploaded blueprint image' : 'Use mouse to rotate, zoom, and pan the 3D model'}</p>
           {!finalModelUrl && !hasElements && !isLoading && (
             <p className="text-blue-600">
               Upload a blueprint to generate a custom 3D model.
             </p>
           )}
-          {hasElements && !useEnhancedViewer && (
+          {viewMode === '3d' && hasElements && !useEnhancedViewer && (
             <div className="mt-4">
               <Button
                 variant="outline"
