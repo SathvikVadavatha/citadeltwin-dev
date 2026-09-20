@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/providers/AuthProvider'
 import { toast } from 'sonner'
 
-export type AIRequestType = 'text-analysis' | 'code-generation' | 'technical-consulting' | 'engineering-calculations' | 'blueprint-analysis' | '3d-generation' | 'architectural-modeling'
+export type AIRequestType = 'text-analysis' | 'code-generation' | 'technical-consulting' | 'engineering-calculations' | 'blueprint-analysis' | '3d-generation' | 'architectural-modeling' | 'app-navigation'
 
 export interface AIRequest {
   prompt: string

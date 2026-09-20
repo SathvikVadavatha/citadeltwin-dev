@@ -23,7 +23,8 @@ interface GeminiRequest {
     | "technical-consulting"
     | "blueprint-analysis"
     | "3d-generation"
-    | "architectural-modeling";
+    | "architectural-modeling"
+    | "app-navigation";
   context?: string;
   maxTokens?: number;
   imageData?: string; // Base64 encoded image for vision tasks
@@ -243,6 +244,9 @@ function buildSystemPrompt(type: string): string {
       Focus on creating livable, functional spaces that meet modern building standards.
       Return structured JSON with detailed architectural specifications.`;
 
+    case "app-navigation":
+      return `You are the in-app assistant embedded in CitadelTwin. Follow the instructions, rules, and scope boundaries provided in the "Context" section of this request exactly — they define your entire role, constraints, and allowed knowledge for this conversation. Do not fall back on general engineering, architecture, or building-code knowledge beyond what the Context explicitly provides.`;
+
     default:
       return `You are an AI assistant specialized in civil engineering and digital twin platforms.
       Provide helpful, accurate, and professional responses.`;
@@ -357,6 +361,13 @@ serve(async (req) => {
         temperature: type === "3d-generation" || type === "blueprint-analysis" ? 0.2 : 0.7,
         topP: 0.8,
         topK: 40,
+        // gemini-2.5-flash thinks by default, and thinking tokens are billed
+        // against maxOutputTokens — for a short templated lookup answer like
+        // app-navigation, that silently ate most of the budget and truncated
+        // the visible reply mid-sentence even at a generous cap. This task
+        // needs no extended reasoning, so thinking is disabled outright.
+        // Scoped to app-navigation only — other request types are unaffected.
+        ...(type === "app-navigation" ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
       },
       safetySettings: [
         {
