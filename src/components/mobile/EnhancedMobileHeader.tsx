@@ -66,9 +66,8 @@ export const EnhancedMobileHeader: React.FC<EnhancedMobileHeaderProps> = ({
           )}
           
           <div className="flex items-center gap-2 flex-1">
-            <img src="/logo-transparent.png" alt="CitadelTwin" className="h-6 w-6 object-contain" />
+            <img src={"/citadeltwin-logo.png"} alt="CitadelTwin" className="h-9 w-auto max-w-[8rem] object-contain" />
             <div className="flex flex-col">
-              <span className="font-bold text-base leading-none">CitadelTwin</span>
               {title && (
                 <span className="text-xs text-muted-foreground leading-none mt-0.5">
                   {title}

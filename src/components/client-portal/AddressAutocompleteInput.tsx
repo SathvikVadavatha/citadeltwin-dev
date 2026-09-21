@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
-import { loadGoogleMaps } from '@/lib/googleMapsLoader';
+import { loadGoogleMaps, type GoogleMapsApi } from '@/lib/googleMapsLoader';
+
+type Geocoder = InstanceType<GoogleMapsApi['maps']['Geocoder']>;
+type GeocodeCallback = NonNullable<Parameters<Geocoder['geocode']>[1]>;
+type GeocoderResults = NonNullable<Parameters<GeocodeCallback>[0]>;
 
 export interface ResolvedAddress {
   formattedAddress: string;
@@ -38,7 +42,7 @@ export const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> =
     let cancelled = false;
 
     loadGoogleMaps()
-      .then((googleMaps: typeof google) => {
+      .then((googleMaps) => {
         if (cancelled || !inputRef.current) return;
 
         const autocomplete = new googleMaps.maps.places.Autocomplete(inputRef.current, {
@@ -74,10 +78,10 @@ export const AddressAutocompleteInput: React.FC<AddressAutocompleteInputProps> =
           event.preventDefault();
           const geocoder = new googleMaps.maps.Geocoder();
           try {
-            const results = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
+            const results = await new Promise<GeocoderResults>((resolve, reject) => {
               geocoder.geocode(
                 { address, componentRestrictions: { country: 'US' } },
-                (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
+                (results, status) => {
                   if (status === googleMaps.maps.GeocoderStatus.OK && results) resolve(results);
                   else reject(new Error(`Geocoding failed: ${status}`));
                 }
