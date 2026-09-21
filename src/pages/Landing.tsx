@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LandingFooter } from "@/components/landing/LandingFooter";
-import heroImage from "@/assets/architectural-drafting-blueprint-to-3d.jpg.asset.json";
 
 // ------- Reusable motion primitives -------
 const fadeUp: any = {
@@ -86,7 +85,7 @@ const BlueprintMock = () => {
   return (
     <div className="relative aspect-[1438/736] w-full overflow-hidden rounded-xl skeuo-card">
       <img
-        src={heroImage.url}
+        src="/architectural-drafting-blueprint-to-3d.jpg"
         alt="Architectural blueprint transitioning into a detailed 3D building model"
         className="h-full w-full object-cover"
       />
