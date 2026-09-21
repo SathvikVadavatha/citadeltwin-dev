@@ -58,8 +58,7 @@ const Header = () => {
     >
       <div className="container mx-auto px-6 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3">
-          <img src="/logo-transparent.png" alt="CitadelTwin" className="h-10 w-10 object-contain" />
-          <span className="font-semibold tracking-tight text-foreground">CitadelTwin</span>
+          <img src={"/citadeltwin-logo.png"} alt="CitadelTwin" className="h-11 w-auto max-w-[9rem] object-contain" />
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
           <a href="#capabilities" className="hover:text-foreground transition-colors">Capabilities</a>
