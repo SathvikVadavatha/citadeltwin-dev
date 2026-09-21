@@ -48,6 +48,7 @@ export const AppSidebar: React.FC = () => {
       <div className="flex h-20 items-center px-6 border-b border-border">
         <Link to="/home" className="flex items-center space-x-2">
           <img src={"/citadeltwin-logo.png"} alt="CitadelTwin" className="h-[72px] w-auto max-w-[15rem] object-contain" />
+          <span className="text-lg font-semibold tracking-tight text-foreground whitespace-nowrap">Citadel<span className="text-accent">Twin</span></span>
         </Link>
       </div>
       <nav className="flex-1 space-y-1 px-2 py-4 overflow-y-auto">
