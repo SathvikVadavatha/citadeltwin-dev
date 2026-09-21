@@ -57,9 +57,8 @@ const Header = () => {
       className="fixed top-0 inset-x-0 z-50 border-b backdrop-blur-md"
     >
       <div className="container mx-auto px-6 h-20 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-3">
           <img src={"/citadeltwin-logo.png"} alt="CitadelTwin" className="h-[66px] w-auto max-w-[13.5rem] object-contain" />
-          <span className="hidden sm:inline text-xl font-semibold tracking-tight text-foreground whitespace-nowrap">Citadel<span className="text-accent">Twin</span></span>
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
           <a href="#capabilities" className="hover:text-foreground transition-colors">Capabilities</a>
