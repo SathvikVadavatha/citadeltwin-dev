@@ -28,6 +28,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuToggle }) => {
           
           <div className="flex items-center gap-2">
             <img src={"/citadeltwin-logo.png"} alt="CitadelTwin" className="h-[54px] w-auto max-w-[12rem] object-contain" />
+            <span className="text-sm font-semibold tracking-tight text-foreground whitespace-nowrap">Citadel<span className="text-accent">Twin</span></span>
           </div>
         </div>
 
