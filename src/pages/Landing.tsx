@@ -89,7 +89,6 @@ const BlueprintMock = () => {
         src={heroImage.url}
         alt="Structural digital twin with finite element stress analysis overlays"
         className="h-full w-full object-cover"
-        fetchPriority="high"
       />
     </div>
   );
