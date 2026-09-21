@@ -1,4 +1,4 @@
-import logoAsset from "@/assets/citadeltwin-logo.png.asset.json";
+import logoAsset from "@/assets/citadeltwin-logo.webp.asset.json";
 
 interface BrandLogoProps {
   className?: string;

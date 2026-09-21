@@ -40,7 +40,7 @@ import {
   disasterIcon,
   disasterBadgeColor
 } from '@/components/gis/utils/analysisSummary';
-import logoAsset from '@/assets/citadeltwin-logo.png.asset.json';
+import logoAsset from '@/assets/citadeltwin-logo.webp.asset.json';
 
 interface LayerToggle {
   id: string;
