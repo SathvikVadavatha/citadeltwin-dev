@@ -88,7 +88,7 @@ const BlueprintMock = () => {
   return (
     <div className="relative w-full [perspective:1200px]">
       <motion.div
-        className="relative aspect-[16/9] w-full overflow-hidden rounded-xl skeuo-card [transform-style:preserve-3d]"
+        className="relative aspect-[4/3] w-full overflow-hidden rounded-xl skeuo-card [transform-style:preserve-3d]"
         animate={reduceMotion ? undefined : { rotateY: [-3, 3, -3], rotateX: [1, -1, 1] }}
         transition={{ duration: 12, ease: "easeInOut", repeat: Infinity }}
       >
