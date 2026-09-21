@@ -5,10 +5,15 @@ import { useAdvancedGIS } from '@/hooks/useAdvancedGIS';
 import { useBlueprintFileUpload } from '@/hooks/blueprint/useBlueprintFileUpload';
 import { buildAnalysisSummary } from '@/components/gis/utils/analysisSummary';
 import { callBlueprintPipeline, decodeGlbBase64 } from '@/lib/blueprintPipeline';
-import { loadGoogleMaps } from '@/lib/googleMapsLoader';
+import { loadGoogleMaps, type GoogleMapsApi } from '@/lib/googleMapsLoader';
 import { ClientPortalProject, ClientPortalRoomResults, ClientPortalComplianceResults } from './clientPortalTypes';
 import type { Json } from '@/integrations/supabase/types';
 import type { AnalysisSummary } from '@/components/gis/utils/analysisSummary';
+
+type Geocoder = InstanceType<GoogleMapsApi['maps']['Geocoder']>;
+type GeocodeCallback = NonNullable<Parameters<Geocoder['geocode']>[1]>;
+type GeocoderResults = NonNullable<Parameters<GeocodeCallback>[0]>;
+type GeocoderAddressComponents = GeocoderResults[number]['address_components'];
 
 // US addresses end in a 5-digit ZIP, optionally ZIP+4 — take the 5-digit part.
 const extractZip = (address: string): string => {
@@ -25,7 +30,7 @@ const mapToRequirementsPropertyType = (buildingType: string | null): 'residentia
 // gis_layers rows are keyed by these strings, so drift here means buildAnalysisSummary
 // silently finds no matching rows. Keep in sync if that logic ever changes.
 const extractCityState = (
-  components: google.maps.GeocoderAddressComponent[] | undefined
+  components: GeocoderAddressComponents
 ): { city: string; state: string } => {
   let city = '';
   let state = '';
@@ -51,7 +56,7 @@ const resolveCityState = async (lat: number, lng: number): Promise<{ city: strin
   const googleMaps = await loadGoogleMaps();
   const geocoder = new googleMaps.maps.Geocoder();
 
-  const results = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
+  const results = await new Promise<GeocoderResults>((resolve, reject) => {
     geocoder.geocode({ location: { lat, lng } }, (results, status) => {
       if (status === googleMaps.maps.GeocoderStatus.OK && results && results.length > 0) {
         resolve(results);

@@ -7,9 +7,11 @@ import { supabase } from '@/integrations/supabase/client';
 // different options." Every consumer in the Client Portal (AddressAutocompleteInput.tsx,
 // useClientPortalProjectAnalysis.ts) must go through this one instance with one fixed
 // set of options so they can never race each other into that conflict.
-let mapsPromise: Promise<typeof google> | null = null;
+export type GoogleMapsApi = Awaited<ReturnType<Loader['load']>>;
 
-export const loadGoogleMaps = (): Promise<typeof google> => {
+let mapsPromise: Promise<GoogleMapsApi> | null = null;
+
+export const loadGoogleMaps = (): Promise<GoogleMapsApi> => {
   if (!mapsPromise) {
     mapsPromise = supabase.functions
       .invoke('get-google-maps-key')
