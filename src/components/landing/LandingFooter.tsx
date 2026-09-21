@@ -1,6 +1,5 @@
 
 import { Mail, Phone } from "lucide-react";
-import { BrandLogo } from "@/components/BrandLogo";
 
 export const LandingFooter = () => {
   return (
@@ -58,7 +57,8 @@ export const LandingFooter = () => {
         
         <div className="section-divider border-t pt-8 flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center mb-4 md:mb-0">
-            <BrandLogo className="h-12 w-auto max-w-[190px] object-contain" />
+            <img src="/logo-transparent.png" alt="CitadelTwin" className="h-8 w-8 object-contain mr-3" />
+            <span className="text-xl font-bold text-foreground">CitadelTwin</span>
           </div>
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} CitadelTwin. All rights reserved. Transforming civil engineering through intelligent digital twins.

@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Phone, Mail, ExternalLink } from 'lucide-react';
-import { BrandLogo } from '@/components/BrandLogo';
 
 const PLATFORM_LINKS = [
   { label: 'Upload Blueprint',    route: '/blueprints/upload' },
@@ -43,8 +42,18 @@ export function HomePageFooter() {
 
         {/* Column 1 — Brand */}
         <div className="flex flex-col gap-4" style={{ minWidth: 200 }}>
-          <div className="flex items-center">
-            <BrandLogo className="h-16 w-auto max-w-[210px] object-contain" />
+          <div className="flex items-center gap-2">
+            <img
+              src="/logo-transparent.png"
+              alt="CitadelTwin"
+              style={{ width: 32, height: 32, objectFit: 'contain' }}
+            />
+            <span
+              className="text-lg font-bold"
+              style={{ color: 'hsl(var(--foreground))' }}
+            >
+              CitadelTwin
+            </span>
           </div>
           <p
             className="text-sm leading-relaxed"

@@ -1,6 +1,5 @@
 
 import { Button } from "@/components/ui/button";
-import { BrandLogo } from "@/components/BrandLogo";
 
 interface LandingHeaderProps {
   setShowLogin: (isLogin: boolean) => void;
@@ -11,8 +10,11 @@ export const LandingHeader = ({ setShowLogin, scrollToSection }: LandingHeaderPr
   return (
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
       <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-        <div className="flex items-center">
-          <BrandLogo className="h-12 w-auto max-w-[184px] object-contain" />
+        <div className="flex items-center space-x-3">
+          <img src="/logo-transparent.png" alt="CitadelTwin" className="h-10 w-10 object-contain" />
+          <h1 className="text-xl font-bold text-foreground">
+            CitadelTwin
+          </h1>
         </div>
         
         <nav className="hidden md:flex items-center space-x-8">

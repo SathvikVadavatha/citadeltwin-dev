@@ -199,7 +199,7 @@ export const GISSidebar: React.FC<GISSidebarProps> = ({
 
     // ---- PAGE 1: HEADER ----
     try {
-      const logoResponse = await fetch('/citadeltwin-logo.webp');
+      const logoResponse = await fetch('/logo.png');
       const blob = await logoResponse.blob();
       const reader = new FileReader();
       const dataUrl: string = await new Promise((resolve, reject) => {
