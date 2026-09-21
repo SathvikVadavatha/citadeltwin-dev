@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import {
   ArrowRight,
   Upload,
@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+import heroImage from "@/assets/architectural-drafting-blueprint-brand.jpg";
 
 // ------- Reusable motion primitives -------
 const fadeUp: any = {
@@ -82,13 +83,21 @@ const Header = () => {
 
 // ------- Structural analysis hero visual -------
 const BlueprintMock = () => {
+  const reduceMotion = useReducedMotion();
+
   return (
-    <div className="relative aspect-[1438/736] w-full overflow-hidden rounded-xl skeuo-card">
-      <img
-        src="/architectural-drafting-blueprint-to-3d.jpg"
-        alt="Architectural blueprint transitioning into a detailed 3D building model"
-        className="h-full w-full object-cover"
-      />
+    <div className="relative w-full [perspective:1200px]">
+      <motion.div
+        className="relative aspect-[16/9] w-full overflow-hidden rounded-xl skeuo-card [transform-style:preserve-3d]"
+        animate={reduceMotion ? undefined : { rotateY: [-3, 3, -3], rotateX: [1, -1, 1] }}
+        transition={{ duration: 12, ease: "easeInOut", repeat: Infinity }}
+      >
+        <img
+          src={heroImage}
+          alt="Architectural blueprint transitioning into a detailed 3D building model"
+          className="h-full w-full object-cover"
+        />
+      </motion.div>
     </div>
   );
 };
