@@ -40,6 +40,7 @@ import {
   disasterIcon,
   disasterBadgeColor
 } from '@/components/gis/utils/analysisSummary';
+import logoAsset from '@/assets/citadeltwin-logo.png.asset.json';
 
 interface LayerToggle {
   id: string;
@@ -199,7 +200,7 @@ export const GISSidebar: React.FC<GISSidebarProps> = ({
 
     // ---- PAGE 1: HEADER ----
     try {
-      const logoResponse = await fetch('/logo.png');
+      const logoResponse = await fetch(logoAsset.url);
       const blob = await logoResponse.blob();
       const reader = new FileReader();
       const dataUrl: string = await new Promise((resolve, reject) => {
