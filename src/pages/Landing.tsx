@@ -95,7 +95,7 @@ const BlueprintMock = () => {
         <img
           src={heroImage}
           alt="Architectural blueprint transitioning into a detailed 3D building model"
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover object-[15%_center]"
         />
       </motion.div>
     </div>
