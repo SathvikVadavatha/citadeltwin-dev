@@ -207,11 +207,11 @@ export const GISSidebar: React.FC<GISSidebarProps> = ({
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
-      pdf.addImage(dataUrl, 'PNG', margin, y, 16, 16);
+      pdf.addImage(dataUrl, 'PNG', margin, y, 24, 24);
     } catch {
       // Logo is optional — skip silently if fetch fails
     }
-    y += 22;
+    y += 30;
 
     addHeading('GIS Site Analysis Report', 22);
     y += 2;
