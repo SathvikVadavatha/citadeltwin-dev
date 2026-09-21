@@ -75,7 +75,7 @@ export default function OAuthConsent() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-3">
           <div className="flex items-center gap-2">
-            <img src={"/citadeltwin-logo.png"} alt="CitadelTwin" className="h-[72px] w-auto max-w-[16.5rem] object-contain" />
+            <img src={"/citadeltwin-logo.png"} alt="CitadelTwin" className="h-[48px] w-auto max-w-[11rem] object-contain" />
           </div>
           {error ? (
             <>

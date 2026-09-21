@@ -13,7 +13,7 @@ export const AuthLayout = ({ children, title, subtitle }: AuthLayoutProps) => {
       <div className="w-full max-w-md space-y-8">
         {/* Logo and Branding */}
         <div className="text-center">
-          <img src={"/citadeltwin-logo.png"} alt="CitadelTwin" className="h-[168px] w-auto max-w-full object-contain mx-auto mb-4" />
+          <img src={"/citadeltwin-logo.png"} alt="CitadelTwin" className="h-[112px] w-auto max-w-full object-contain mx-auto mb-4" />
           <p className="mt-2 text-sm text-muted-foreground">
             Unified Civil Engineering Digital Twin Platform
           </p>

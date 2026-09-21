@@ -46,7 +46,7 @@ export function HomePageFooter() {
             <img
               src={"/citadeltwin-logo.png"}
               alt="CitadelTwin"
-              className="h-[84px] w-auto max-w-[16.5rem] object-contain"
+              className="h-[56px] w-auto max-w-[11rem] object-contain"
             />
           </div>
           <p

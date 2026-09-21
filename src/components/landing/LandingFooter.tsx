@@ -57,7 +57,7 @@ export const LandingFooter = () => {
         
         <div className="section-divider border-t pt-8 flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center mb-4 md:mb-0">
-            <img src={"/citadeltwin-logo.png"} alt="CitadelTwin" className="h-[84px] w-auto max-w-[16.5rem] object-contain" />
+            <img src={"/citadeltwin-logo.png"} alt="CitadelTwin" className="h-[56px] w-auto max-w-[11rem] object-contain" />
           </div>
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} CitadelTwin. All rights reserved. Transforming civil engineering through intelligent digital twins.
