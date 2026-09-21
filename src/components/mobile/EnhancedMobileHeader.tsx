@@ -19,6 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { BrandLogo } from '@/components/BrandLogo';
 
 interface EnhancedMobileHeaderProps {
   onMenuToggle: () => void;
@@ -65,10 +66,9 @@ export const EnhancedMobileHeader: React.FC<EnhancedMobileHeaderProps> = ({
             </Button>
           )}
           
-          <div className="flex items-center gap-2 flex-1">
-            <img src="/logo-transparent.png" alt="CitadelTwin" className="h-6 w-6 object-contain" />
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <BrandLogo className="h-9 w-auto max-w-[116px] object-contain shrink-0" />
             <div className="flex flex-col">
-              <span className="font-bold text-base leading-none">CitadelTwin</span>
               {title && (
                 <span className="text-xs text-muted-foreground leading-none mt-0.5">
                   {title}

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 
 type OAuthNamespace = {
   getAuthorizationDetails: (id: string) => Promise<{ data: any; error: any }>;
@@ -74,9 +75,8 @@ export default function OAuthConsent() {
     <main className="min-h-screen flex items-center justify-center bg-background p-6">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-3">
-          <div className="flex items-center gap-2">
-            <img src="/logo-transparent.png" alt="CitadelTwin" className="h-8 w-8 object-contain" />
-            <span className="text-lg font-bold text-foreground">CitadelTwin</span>
+          <div className="flex items-center">
+            <BrandLogo className="h-16 w-auto max-w-[210px] object-contain" />
           </div>
           {error ? (
             <>
