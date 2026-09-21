@@ -7,6 +7,8 @@ import { buildAnalysisSummary } from '@/components/gis/utils/analysisSummary';
 import { callBlueprintPipeline, decodeGlbBase64 } from '@/lib/blueprintPipeline';
 import { loadGoogleMaps } from '@/lib/googleMapsLoader';
 import { ClientPortalProject, ClientPortalRoomResults, ClientPortalComplianceResults } from './clientPortalTypes';
+import type { Json } from '@/integrations/supabase/types';
+import type { AnalysisSummary } from '@/components/gis/utils/analysisSummary';
 
 // US addresses end in a 5-digit ZIP, optionally ZIP+4 — take the 5-digit part.
 const extractZip = (address: string): string => {
@@ -94,7 +96,7 @@ export const useClientPortalProjectAnalysis = () => {
       const roomErrors: string[] = [];
       const gisErrors: string[] = [];
       const requirementsErrors: string[] = [];
-      let gisResults: unknown = null;
+      let gisResults: AnalysisSummary | null = null;
       let roomResults: ClientPortalRoomResults | null = null;
       let model3DUrl: string | null = null;
       let complianceResults: ClientPortalComplianceResults | null = null;
@@ -254,9 +256,9 @@ export const useClientPortalProjectAnalysis = () => {
       const { error: saveError } = await supabase
         .from('client_portal_project_results')
         .update({
-          gis_results: gisResults,
-          room_results: roomResults,
-          compliance_results: complianceResults,
+          gis_results: gisResults as unknown as Json,
+          room_results: roomResults as unknown as Json,
+          compliance_results: complianceResults as unknown as Json,
           model_3d_url: model3DUrl,
           processing_status: coreStatus,
           error_message: combinedError,

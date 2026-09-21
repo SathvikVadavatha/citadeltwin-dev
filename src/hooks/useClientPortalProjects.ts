@@ -61,7 +61,7 @@ export const useClientPortalProjects = () => {
         return;
       }
 
-      setProjectResults((data || []) as ClientPortalProjectResults[]);
+      setProjectResults((data || []) as unknown as ClientPortalProjectResults[]);
     } catch (error) {
       console.error('Error fetching client portal project results:', error);
     }
@@ -123,7 +123,7 @@ export const useClientPortalProjects = () => {
     // Fire-and-forget: the modal/UI shouldn't block on GIS + room analysis completing.
     // The row shows "Processing…" until this resolves and refreshes the lists.
     const createdProject = project as ClientPortalProject;
-    const createdResults = resultsRow as ClientPortalProjectResults;
+    const createdResults = resultsRow as unknown as ClientPortalProjectResults;
 
     // Both inserts are confirmed, so publish them locally instead of delaying
     // the results page behind another round trip. The analysis refresh below
