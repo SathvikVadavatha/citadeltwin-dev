@@ -21,6 +21,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import heroImage from "@/assets/architectural-drafting-blueprint-brand.jpg";
+import feaImage from "@/assets/landing-fea-analysis.jpg";
+import gisImage from "@/assets/landing-gis-context.jpg";
+import documentsImage from "@/assets/landing-permit-documents.jpg";
 
 // ------- Reusable motion primitives -------
 const fadeUp: any = {
@@ -213,6 +216,39 @@ const capabilities = [
   { icon: FileText, title: "Permit-ready exports", body: "DWG, IFC, structural calcs, PDF/DOCX narratives, and full permit packages in one click." },
 ];
 
+const visualCapabilities = [
+  {
+    image: feaImage,
+    icon: Activity,
+    eyebrow: "Structural intelligence",
+    title: "See the forces shaping every decision.",
+    body: "Stress contours, deflection, and load paths appear directly on the twin, so engineering judgment stays connected to the model.",
+    alt: "Cutaway structural model with finite element stress contours across beams and columns",
+    readout: "FEA SOLVER",
+    metric: "4.2 s",
+  },
+  {
+    image: gisImage,
+    icon: Map,
+    eyebrow: "Site intelligence",
+    title: "Design in the context of the real world.",
+    body: "Bring parcels, roads, terrain, and utilities into one spatial view before plans become expensive field decisions.",
+    alt: "Aerial site model with parcels, roads, terrain contours, and utility overlays",
+    readout: "LAYERS SYNCED",
+    metric: "24",
+  },
+  {
+    image: documentsImage,
+    icon: FileText,
+    eyebrow: "Permit delivery",
+    title: "Turn a coordinated model into a complete package.",
+    body: "Generate drawings, calculations, compliance summaries, and presentation-ready documents from the same source of truth.",
+    alt: "Coordinated architectural plans, structural calculations, and permit documents on a drafting table",
+    readout: "PACKAGE STATUS",
+    metric: "Ready",
+  },
+];
+
 const Capabilities = () => (
   <section id="capabilities" className="py-24 lg:py-32">
     <div className="container mx-auto px-6">
@@ -227,19 +263,55 @@ const Capabilities = () => (
         </p>
       </Reveal>
 
+      <div className="space-y-6">
+        {visualCapabilities.map(({ image, icon: Icon, eyebrow, title, body, alt, readout, metric }, index) => (
+          <Reveal key={title}>
+            <article className="grid overflow-hidden border border-border bg-card shadow-[var(--skeuo-shadow-card)] lg:grid-cols-12">
+              <div className={`relative min-h-[300px] overflow-hidden lg:col-span-7 lg:min-h-[430px] ${index % 2 === 1 ? "lg:order-2" : ""}`}>
+                <motion.img
+                  src={image}
+                  alt={alt}
+                  loading="lazy"
+                  width={1536}
+                  height={1024}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  whileHover={{ scale: 1.025 }}
+                  transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                />
+                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-background/90 via-background/35 to-transparent p-5 pt-20">
+                  <div className="font-mono text-[10px] uppercase text-foreground/80">CT / {String(index + 1).padStart(2, "0")}</div>
+                  <div className="flex items-center gap-3 border border-border bg-card/90 px-3 py-2 backdrop-blur-sm">
+                    <span className="font-mono text-[9px] uppercase text-muted-foreground">{readout}</span>
+                    <span className="font-mono text-sm font-semibold text-accent">{metric}</span>
+                  </div>
+                </div>
+              </div>
+              <div className={`flex flex-col justify-center p-7 md:p-10 lg:col-span-5 lg:p-12 ${index % 2 === 1 ? "lg:order-1" : ""}`}>
+                <div className="mb-8 flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center border border-border bg-secondary text-accent shadow-[var(--skeuo-shadow-raised)]">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="font-mono text-[10px] uppercase text-muted-foreground">{eyebrow}</span>
+                </div>
+                <h3 className="text-2xl font-semibold leading-tight text-foreground md:text-3xl">{title}</h3>
+                <p className="mt-4 text-base leading-relaxed text-muted-foreground">{body}</p>
+                <div className="mt-8 h-px bg-border" />
+                <div className="mt-5 grid grid-cols-3 gap-3 font-mono text-[9px] uppercase text-muted-foreground">
+                  <span>Model linked</span><span>Versioned</span><span>Exportable</span>
+                </div>
+              </div>
+            </article>
+          </Reveal>
+        ))}
+      </div>
+
       <motion.div
         initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
-        variants={stagger} className="grid md:grid-cols-2 lg:grid-cols-3 gap-5"
+        variants={stagger} className="mt-6 grid md:grid-cols-2 lg:grid-cols-3 gap-5"
       >
-        {capabilities.map(({ icon: Icon, title, body }, i) => (
-          <motion.div
-            key={title} variants={fadeUp}
-            whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 260, damping: 22 }}
-            className={`skeuo-card p-6 group ${i === 0 ? "lg:row-span-1" : ""}`}
-          >
-            <div className="h-11 w-11 rounded-md bg-accent/12 text-accent flex items-center justify-center mb-5 transition-colors group-hover:bg-accent group-hover:text-accent-foreground">
-              <Icon className="h-5 w-5" />
-            </div>
+        {capabilities.slice(0, 3).map(({ icon: Icon, title, body }) => (
+          <motion.div key={title} variants={fadeUp} className="skeuo-card p-6 group">
+            <Icon className="mb-5 h-6 w-6 text-accent" />
             <h3 className="font-semibold text-foreground mb-2">{title}</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
           </motion.div>
@@ -265,6 +337,30 @@ const Workflow = () => (
         <h2 className="mt-4 text-3xl md:text-4xl font-semibold text-foreground tracking-tight">
           Four steps. Hours instead of weeks.
         </h2>
+      </Reveal>
+      <Reveal className="mb-14">
+        <div className="relative overflow-hidden border border-border bg-background p-5 shadow-[var(--skeuo-shadow-inset)] md:p-8">
+          <div className="absolute inset-0 skeuo-drafting-grid opacity-30" aria-hidden />
+          <div className="relative grid grid-cols-4 items-center gap-2 md:gap-6">
+            {[Upload, Boxes, Activity, FileText].map((Icon, index) => (
+              <div key={index} className="relative flex flex-col items-center">
+                {index < 3 && <div className="absolute left-1/2 top-7 h-px w-full bg-border" aria-hidden />}
+                <motion.div
+                  className="relative z-10 flex h-14 w-14 items-center justify-center border border-border bg-card text-accent shadow-[var(--skeuo-shadow-raised)] md:h-16 md:w-16"
+                  whileInView={{ scale: [0.92, 1.04, 1] }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.14, duration: 0.5 }}
+                >
+                  <Icon className="h-5 w-5 md:h-6 md:w-6" />
+                </motion.div>
+                <span className="mt-3 text-center font-mono text-[8px] uppercase text-muted-foreground md:text-[10px]">{steps[index].title}</span>
+              </div>
+            ))}
+          </div>
+          <div className="relative mt-7 grid grid-cols-3 border-t border-border pt-4 font-mono text-[8px] uppercase text-muted-foreground md:text-[10px]">
+            <span>One source model</span><span className="text-center">Continuous validation</span><span className="text-right">Traceable output</span>
+          </div>
+        </div>
       </Reveal>
       <div className="relative grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* connector line on desktop */}
