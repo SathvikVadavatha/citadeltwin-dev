@@ -263,11 +263,11 @@ const Capabilities = () => (
         </p>
       </Reveal>
 
-      <div className="space-y-6">
+      <div className="mx-auto max-w-6xl space-y-20 lg:space-y-28">
         {visualCapabilities.map(({ image, icon: Icon, eyebrow, title, body, alt, readout, metric }, index) => (
           <Reveal key={title}>
-            <article className="grid overflow-hidden border border-border bg-card shadow-[var(--skeuo-shadow-card)] lg:grid-cols-12">
-              <div className={`relative min-h-[300px] overflow-hidden lg:col-span-7 lg:min-h-[430px] ${index % 2 === 1 ? "lg:order-2" : ""}`}>
+            <article className="grid items-center gap-8 md:gap-12 lg:grid-cols-2 lg:gap-16 xl:gap-20">
+              <div className={`relative order-1 aspect-[16/10] overflow-hidden border border-border bg-card shadow-[var(--skeuo-shadow-card)] ${index % 2 === 0 ? "lg:order-2" : "lg:order-1"}`}>
                 <motion.img
                   src={image}
                   alt={alt}
@@ -286,16 +286,16 @@ const Capabilities = () => (
                   </div>
                 </div>
               </div>
-              <div className={`flex flex-col justify-center p-7 md:p-10 lg:col-span-5 lg:p-12 ${index % 2 === 1 ? "lg:order-1" : ""}`}>
-                <div className="mb-8 flex items-center gap-3">
+              <div className={`order-2 flex flex-col justify-center px-1 md:px-4 lg:px-0 ${index % 2 === 0 ? "lg:order-1" : "lg:order-2"}`}>
+                <div className="mb-6 flex items-center gap-3">
                   <span className="flex h-10 w-10 items-center justify-center border border-border bg-secondary text-accent shadow-[var(--skeuo-shadow-raised)]">
                     <Icon className="h-5 w-5" />
                   </span>
                   <span className="font-mono text-[10px] uppercase text-muted-foreground">{eyebrow}</span>
                 </div>
-                <h3 className="text-2xl font-semibold leading-tight text-foreground md:text-3xl">{title}</h3>
-                <p className="mt-4 text-base leading-relaxed text-muted-foreground">{body}</p>
-                <div className="mt-8 h-px bg-border" />
+                <h3 className="max-w-md text-2xl font-semibold leading-tight text-foreground md:text-3xl lg:text-4xl">{title}</h3>
+                <p className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground lg:text-lg">{body}</p>
+                <div className="mt-8 max-w-md h-px bg-border" />
                 <div className="mt-5 grid grid-cols-3 gap-3 font-mono text-[9px] uppercase text-muted-foreground">
                   <span>Model linked</span><span>Versioned</span><span>Exportable</span>
                 </div>
@@ -307,7 +307,7 @@ const Capabilities = () => (
 
       <motion.div
         initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
-        variants={stagger} className="mt-6 grid md:grid-cols-2 lg:grid-cols-3 gap-5"
+        variants={stagger} className="mx-auto mt-20 grid max-w-6xl gap-5 border-t border-border pt-10 md:grid-cols-2 lg:mt-28 lg:grid-cols-3"
       >
         {capabilities.slice(0, 3).map(({ icon: Icon, title, body }) => (
           <motion.div key={title} variants={fadeUp} className="skeuo-card p-6 group">
