@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LandingFooter } from "@/components/landing/LandingFooter";
-import heroImage from "@/assets/architectural-drafting-blueprint-brand.jpg";
+import heroImage from "@/assets/architectural-drafting-blueprint-brand-3x2.jpg";
 import feaImage from "@/assets/landing-fea-analysis.jpg";
 import gisImage from "@/assets/landing-gis-context.jpg";
 import documentsImage from "@/assets/landing-permit-documents.jpg";
@@ -97,14 +97,8 @@ const BlueprintMock = () => {
       >
         <img
           src={heroImage}
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 h-full w-full scale-110 object-cover opacity-20 blur-xl"
-        />
-        <img
-          src={heroImage}
           alt="Architectural blueprint transitioning into a detailed 3D building model"
-          className="relative h-full w-full object-contain"
+          className="h-full w-full object-cover"
         />
       </motion.div>
     </div>
