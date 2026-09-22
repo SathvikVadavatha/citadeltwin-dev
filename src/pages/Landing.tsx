@@ -267,7 +267,7 @@ const Capabilities = () => (
         {visualCapabilities.map(({ image, icon: Icon, eyebrow, title, body, alt, readout, metric }, index) => (
           <Reveal key={title}>
             <article className="grid items-center gap-8 md:gap-12 lg:grid-cols-2 lg:gap-16 xl:gap-20">
-              <div className={`relative order-1 aspect-[16/10] overflow-hidden border border-border bg-card shadow-[var(--skeuo-shadow-card)] ${index % 2 === 0 ? "lg:order-2" : "lg:order-1"}`}>
+              <div className={`relative order-1 aspect-[16/10] overflow-hidden rounded-xl border border-border bg-card shadow-[var(--skeuo-shadow-card)] ${index % 2 === 0 ? "lg:order-2" : "lg:order-1"}`}>
                 <motion.img
                   src={image}
                   alt={alt}
