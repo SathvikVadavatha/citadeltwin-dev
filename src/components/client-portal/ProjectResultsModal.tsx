@@ -29,6 +29,8 @@ import { useFederalRules } from '@/hooks/site-requirements/useFederalRules';
 import { useJurisdictionLinks } from '@/hooks/site-requirements/useJurisdictionLinks';
 import { FederalRequirementsTable } from '@/components/site-requirements/FederalRequirementsTable';
 import { JurisdictionLinksSection } from '@/components/site-requirements/JurisdictionLinksSection';
+import { useDocumentExports } from '@/hooks/useDocumentExports';
+import { useToast } from '@/components/ui/use-toast';
 import {
   Bar,
   BarChart,
@@ -142,6 +144,9 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
 
   const { stateLinks, nationalLinks, linksLoading: jurisdictionLinksLoading, linksError: jurisdictionLinksError } =
     useJurisdictionLinks(!isProcessing ? complianceResults?.project.state_code ?? null : null);
+
+  const { toast } = useToast();
+  const { generateDocument, downloadDocument } = useDocumentExports();
 
   if (!project) return null;
 
@@ -330,6 +335,44 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
       } currently surfaced for review.`,
     });
   }
+
+  // Folds this project's already-loaded/saved GIS, site-requirements, and blueprint data
+  // into the compliance_report document type's project_data.description — no new AI calls,
+  // no schema changes; reuses the exact Phase 1 generate-advanced-document contract.
+  // document_exports.upload_id has an FK to blueprint_uploads (a different, unrelated
+  // pipeline), so it's left unset here; the project id is recorded in the description
+  // text itself for traceability instead of forcing it into that column.
+  const handleGenerateDocument = async () => {
+    const descriptionLines = [
+      `Client Portal Project ID: ${project.id}`,
+      `Address: ${project.site_address || 'Not resolved'}`,
+      `Building type: ${getBuildingTypeLabel(project.building_type)}${subTypeLabel ? ` / ${subTypeLabel}` : ''}`,
+      dimensionsText !== '—' ? `Approximate size: ${dimensionsText}` : null,
+      '',
+      ...insightItems.map((insight) => `${insight.title}: ${insight.detail}`),
+    ].filter((line): line is string => line !== null);
+
+    try {
+      const result = await generateDocument.mutateAsync({
+        templateType: 'compliance_report',
+        title: project.project_name,
+        description: descriptionLines.join('\n'),
+        jurisdiction: complianceResults?.project.state_code ?? undefined,
+        clientRequirements: project.feedback ?? undefined,
+        formatType: 'pdf',
+      });
+
+      if (result?.exportId) {
+        await downloadDocument(result.exportId);
+        toast({
+          title: 'Document downloaded',
+          description: `A compliance report for "${project.project_name}" was generated and downloaded.`,
+        });
+      }
+    } catch {
+      // generateDocument's own onError toast already surfaces the failure — nothing more to do here.
+    }
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -931,9 +974,17 @@ export const ProjectResultsModal: React.FC<ProjectResultsModalProps> = ({
                   <FileUp className="mr-2 h-4 w-4" />
                   Re-upload Revision
                 </Button>
-                <Button variant="outline" disabled>
-                  <Download className="mr-2 h-4 w-4" />
-                  Export
+                <Button
+                  variant="outline"
+                  disabled={isProcessing || generateDocument.isPending}
+                  onClick={handleGenerateDocument}
+                >
+                  {generateDocument.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
+                  Generate Document
                 </Button>
                 <Button onClick={onApprove} disabled={!onApprove || project.status === 'approved'}>
                   <CheckCircle2 className="mr-2 h-4 w-4" />

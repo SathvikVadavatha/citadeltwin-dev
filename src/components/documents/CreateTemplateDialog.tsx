@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,52 +11,91 @@ import { useDocumentTemplates, DocumentTemplate } from '@/hooks/useDocumentTempl
 
 type CreateTemplateData = Omit<DocumentTemplate, 'id' | 'created_at' | 'updated_at' | 'created_by'>;
 
-export const CreateTemplateDialog: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [formData, setFormData] = useState<CreateTemplateData>({
-    name: '',
-    template_type: 'custom',
-    category: 'general',
-    description: '',
-    format_type: 'both',
-    template_content: {},
-    variables: [],
-    is_active: true,
-  });
+const emptyFormData: CreateTemplateData = {
+  name: '',
+  template_type: 'custom',
+  category: 'general',
+  description: '',
+  format_type: 'both',
+  template_content: {},
+  variables: [],
+  is_active: true,
+};
 
-  const { createTemplate } = useDocumentTemplates();
+const formDataFromTemplate = (template: DocumentTemplate): CreateTemplateData => ({
+  name: template.name,
+  template_type: template.template_type,
+  category: template.category,
+  description: template.description ?? '',
+  format_type: template.format_type,
+  template_content: template.template_content,
+  variables: template.variables,
+  is_active: template.is_active,
+});
 
-  const handleCreateTemplate = () => {
+interface CreateTemplateDialogProps {
+  /** When set, the dialog edits this template instead of creating a new one. */
+  template?: DocumentTemplate | null;
+  /** Controlled open state — used when the dialog is opened from outside (e.g. an
+   *  Edit button in a list row) instead of its own built-in trigger. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export const CreateTemplateDialog: React.FC<CreateTemplateDialogProps> = ({
+  template = null,
+  open,
+  onOpenChange,
+}) => {
+  const isEditMode = !!template;
+  const isControlled = open !== undefined;
+
+  const [internalOpen, setInternalOpen] = useState(false);
+  const dialogOpen = isControlled ? open : internalOpen;
+  const setDialogOpen = isControlled ? (onOpenChange ?? (() => {})) : setInternalOpen;
+
+  const [formData, setFormData] = useState<CreateTemplateData>(emptyFormData);
+
+  // Re-seed the form every time the dialog opens — from the template being edited,
+  // or back to blank when creating.
+  useEffect(() => {
+    if (!dialogOpen) return;
+    setFormData(template ? formDataFromTemplate(template) : emptyFormData);
+  }, [dialogOpen, template]);
+
+  const { createTemplate, updateTemplate } = useDocumentTemplates();
+  const isPending = isEditMode ? updateTemplate.isPending : createTemplate.isPending;
+
+  const handleSave = () => {
+    if (isEditMode && template) {
+      updateTemplate.mutate({ id: template.id, ...formData }, {
+        onSuccess: () => setDialogOpen(false),
+      });
+      return;
+    }
+
     createTemplate.mutate(formData, {
-      onSuccess: () => {
-        setIsOpen(false);
-        setFormData({
-          name: '',
-          template_type: 'custom',
-          category: 'general',
-          description: '',
-          format_type: 'both',
-          template_content: {},
-          variables: [],
-          is_active: true,
-        });
-      },
+      onSuccess: () => setDialogOpen(false),
     });
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Template
-        </Button>
-      </DialogTrigger>
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Template
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Create Document Template</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Edit Document Template' : 'Create Document Template'}</DialogTitle>
           <DialogDescription>
-            Create a new template for automated document generation
+            {isEditMode
+              ? 'Update this template\'s details.'
+              : 'Create a new template for automated document generation'}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -127,11 +166,13 @@ export const CreateTemplateDialog: React.FC = () => {
           </div>
         </div>
         <div className="flex justify-end space-x-2">
-          <Button variant="outline" onClick={() => setIsOpen(false)}>
+          <Button variant="outline" onClick={() => setDialogOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={handleCreateTemplate} disabled={createTemplate.isPending}>
-            {createTemplate.isPending ? 'Creating...' : 'Create Template'}
+          <Button onClick={handleSave} disabled={isPending}>
+            {isPending
+              ? (isEditMode ? 'Saving...' : 'Creating...')
+              : (isEditMode ? 'Save Changes' : 'Create Template')}
           </Button>
         </div>
       </DialogContent>

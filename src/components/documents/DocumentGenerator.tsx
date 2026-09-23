@@ -16,7 +16,7 @@ interface DocumentGeneratorProps {
 export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }) => {
   const { withErrorHandling } = useErrorHandler();
   const { templates, isLoading: templatesLoading, error: templatesError } = useOptimizedDocumentTemplates();
-  const { exports, generateDocument, downloadDocument, isLoading: exportsLoading, error: exportsError } = useOptimizedDocumentExports(uploadId);
+  const { exports, generateDocument, downloadDocument, retryDocument, isLoading: exportsLoading, error: exportsError } = useOptimizedDocumentExports(uploadId);
 
   const handleGenerate = useCallback(async (data: {
     templateId: string;
@@ -26,16 +26,25 @@ export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }
   }) => {
     await withErrorHandling(async () => {
       const selectedTemplate = templates.find(t => t.id === data.templateId);
-      
+
+      // DocumentGeneratorForm only collects the template's named variables, not a free-text
+      // description — build a readable description out of whatever variables were filled in
+      // so generate-advanced-document's project_data.description isn't empty.
+      const { project_name, generation_timestamp, ...variableFields } = data.generationData ?? {};
+      const description =
+        Object.entries(variableFields)
+          .map(([key, value]) => `${key.replace(/_/g, ' ')}: ${value}`)
+          .join('\n') || data.title;
+
       await generateDocument.mutateAsync({
+        templateType: selectedTemplate?.template_type || 'custom',
         templateId: data.templateId,
         uploadId,
-        documentType: selectedTemplate?.template_type || 'custom',
         title: data.title,
+        description,
         formatType: data.formatType,
-        generationData: data.generationData,
       });
-      
+
       toast.success('Document generation started successfully');
     }, 'Document generation');
   }, [withErrorHandling, generateDocument, uploadId, templates]);
@@ -46,6 +55,12 @@ export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }
       toast.success('Download started');
     }, 'Document download');
   }, [withErrorHandling, downloadDocument]);
+
+  const handleRetry = useCallback(async (exportItem: { generation_data?: Record<string, unknown> | null }) => {
+    await withErrorHandling(async () => {
+      await retryDocument.mutateAsync(exportItem);
+    }, 'Document retry');
+  }, [withErrorHandling, retryDocument]);
 
   if (templatesLoading) {
     return (
@@ -89,6 +104,7 @@ export const DocumentGenerator: React.FC<DocumentGeneratorProps> = ({ uploadId }
         isLoading={exportsLoading}
         error={exportsError}
         onDownload={handleDownload}
+        onRetry={handleRetry}
       />
     </div>
   );
