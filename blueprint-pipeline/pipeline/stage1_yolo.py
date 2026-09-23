@@ -67,6 +67,7 @@ MAX_WALL_BBOX_AREA_RATIO        = 0.15   # a single wall box covering >15% of th
 MIN_WALL_BBOX_ASPECT            = 2.5    # real wall boxes are elongated; near-square boxes are noise, not linear walls
 WALL_SAMPLE_PAD_PX              = 20     # how far outside the window bbox to search for real wall pixels
 WALL_THICKNESS_SAMPLE_OFFSET_PX = 4      # how far past the bbox edge to sample thickness, to avoid reading the window's own filled-in bbox as "wall"
+DOOR_FRAME_THICKNESS_PX         = 4
 # Module-level cache so the model only downloads once per container lifetime
 _CACHED_MODEL = None
 
@@ -181,7 +182,8 @@ def _build_yolo_wall_lines(image: np.ndarray, detections: dict) -> np.ndarray:
     """
     h, w = image.shape[:2]
     mask = np.zeros((h, w), dtype=np.uint8)
-
+    half_th = 2
+    
     for det in detections.get("walls", []):
         x1, y1, x2, y2 = det["bbox"]
         bw = x2 - x1
@@ -191,10 +193,12 @@ def _build_yolo_wall_lines(image: np.ndarray, detections: dict) -> np.ndarray:
 
         if bw >= bh:
             # Horizontal wall
-            cv2.line(mask, (x1, cy), (x2, cy), 255, thickness=4)
+            half_th = max(1, bh // 2)
+            cv2.rectangle(mask, (x1, cy - half_th), (x2, cy + half_th), 255, thickness=-1)
         else:
             # Vertical wall
-            cv2.line(mask, (cx, y1), (cx, y2), 255, thickness=4)
+            half_th = max(1, bw // 2)
+            cv2.rectangle(mask, (cx - half_th, y1), (cx + half_th, y2), 255, thickness=-1)
 
     return mask
 
@@ -227,6 +231,84 @@ def _build_thick_line_mask(image: np.ndarray) -> np.ndarray:
     return mask
 
 
+def _detect_door_frame_line(image: np.ndarray, bbox: list[int]) -> dict | None:
+    """
+    Find the door's leaf/frame line inside its bbox. Handles two symbol
+    styles: a single medium-thick stroke, or two parallel thin lines
+    (frame outline). Both cases are normalized to one representative line
+    by clustering same-orientation, closely-parallel segments and
+    averaging them.
+    """
+    x1, y1, x2, y2 = bbox
+    crop = image[y1:y2, x1:x2]
+    gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY) if len(crop.shape) == 3 else crop
+    _, binary = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY_INV)
+
+    lines = cv2.HoughLinesP(
+        binary, rho=1, theta=np.pi / 180, threshold=15,
+        minLineLength=min(x2 - x1, y2 - y1) * 0.4,
+        maxLineGap=3,
+    )
+    if lines is None:
+        return None
+
+    segments = []
+    lines = lines.reshape(-1, 4)
+    for lx1, ly1, lx2, ly2 in lines:
+        length = ((lx2 - lx1) ** 2 + (ly2 - ly1) ** 2) ** 0.5
+        angle = np.arctan2(ly2 - ly1, lx2 - lx1)
+        # normalize angle to [0, pi) so opposite-direction same-line segments group together
+        angle = angle % np.pi
+        segments.append((length, angle, lx1, ly1, lx2, ly2))
+
+    # keep only reasonably long candidates (filter out short arc fragments)
+    max_len = max(s[0] for s in segments)
+    segments = [s for s in segments if s[0] >= max_len * 0.5]
+
+    # cluster by angle (same orientation within ~10 degrees)
+    clusters = []
+    for s in segments:
+        placed = False
+        for cluster in clusters:
+            if abs(s[1] - cluster[0][1]) < np.radians(10):
+                cluster.append(s)
+                placed = True
+                break
+        if not placed:
+            clusters.append([s])
+
+    # pick the cluster with the most total length (handles both single
+    # thick line and two-parallel-thin-lines cases — both cluster together
+    # if roughly same angle)
+    best_cluster = max(clusters, key=lambda c: sum(s[0] for s in c))
+
+    xs = [pt for s in best_cluster for pt in (s[2], s[4])]
+    ys = [pt for s in best_cluster for pt in (s[3], s[5])]
+
+    # representative line = extremes along the dominant direction
+    angle = best_cluster[0][1]
+    if abs(np.cos(angle)) > abs(np.sin(angle)):
+        # more horizontal — use x extremes
+        lx1_i, lx2_i = int(min(xs)), int(max(xs))
+        ly = int(np.mean(ys))
+        line = {"x1": x1 + lx1_i, "y1": y1 + ly, "x2": x1 + lx2_i, "y2": y1 + ly}
+    else:
+        # more vertical — use y extremes
+        ly1_i, ly2_i = int(min(ys)), int(max(ys))
+        lx = int(np.mean(xs))
+        line = {"x1": x1 + lx, "y1": y1 + ly1_i, "x2": x1 + lx, "y2": y1 + ly2_i}
+
+    return line
+
+def _clean_wall_protrusions(mask: np.ndarray, wall_min_thickness: int = 6) -> np.ndarray:
+    kernel = cv2.getStructuringElement(
+        cv2.MORPH_RECT, (wall_min_thickness, wall_min_thickness)
+    )
+    eroded = cv2.erode(mask, kernel, iterations=1)
+    cleaned = cv2.dilate(eroded, kernel, iterations=1)
+    return cleaned
+
+
 def _build_combined_boundary(image: np.ndarray, detections: dict) -> np.ndarray:
     """
     Full notebook-style boundary construction:
@@ -240,6 +322,11 @@ def _build_combined_boundary(image: np.ndarray, detections: dict) -> np.ndarray:
     yolo_walls  = _build_yolo_wall_lines(image, detections)
     thick_walls = _build_thick_line_mask(image)
     combined    = cv2.bitwise_or(yolo_walls, thick_walls)
+    OUT_DIR = "./logs/visual_debug"
+    import os
+    os.makedirs(OUT_DIR, exist_ok=True)
+    cv2.imwrite(f"{OUT_DIR}/debug_yolo_walls.png", yolo_walls)
+    cv2.imwrite(f"{OUT_DIR}/debug_thick_walls.png", thick_walls)
 
     # Erase dimension annotation regions from boundary
     # These are text/arrow annotations that get incorrectly extruded as walls
@@ -264,9 +351,9 @@ def _build_combined_boundary(image: np.ndarray, detections: dict) -> np.ndarray:
             combined[y1:y2, x1:x2] = 0
 
     # Close door openings — fill each door bbox with white
-    for det in detections.get("doors", []):
-        x1, y1, x2, y2 = det["bbox"]
-        cv2.rectangle(combined, (x1, y1), (x2, y2), 255, thickness=cv2.FILLED)
+    # for det in detections.get("doors", []):
+    #     x1, y1, x2, y2 = det["bbox"]
+    #     cv2.rectangle(combined, (x1, y1), (x2, y2), 255, thickness=cv2.FILLED)
 
     # Close window openings — fill each window bbox with white
     for det in detections.get("windows", []):
@@ -280,7 +367,7 @@ def _build_combined_boundary(image: np.ndarray, detections: dict) -> np.ndarray:
         cv2.rectangle(combined, (rx, ry), (rx + rw, ry + rh), 255, thickness=5)
 
     logger.info("Combined boundary: %d wall pixels after full construction", int(np.sum(combined > 0)))
-    return combined
+    return _clean_wall_protrusions(combined)
 
 
 # ---------------------------------------------------------------------------
@@ -331,6 +418,72 @@ def _morphological_fallback(image: np.ndarray) -> np.ndarray:
 # ---------------------------------------------------------------------------
 # Wall cut logic
 # ---------------------------------------------------------------------------
+
+def _door_cut_from_line(door: dict, line: dict) -> dict:
+    lx1, ly1, lx2, ly2 = line["x1"], line["y1"], line["x2"], line["y2"]
+    length = ((lx2 - lx1) ** 2 + (ly2 - ly1) ** 2) ** 0.5
+    horizontal = abs(lx2 - lx1) >= abs(ly2 - ly1)
+
+    if horizontal:
+        cx = (lx1 + lx2) / 2
+        cy = (ly1 + ly2) / 2
+        x1 = int(cx - length / 2)
+        x2 = int(cx + length / 2)
+        y1 = int(cy - DOOR_FRAME_THICKNESS_PX / 2)
+        y2 = int(cy + DOOR_FRAME_THICKNESS_PX / 2)
+    else:
+        cx = (lx1 + lx2) / 2
+        cy = (ly1 + ly2) / 2
+        y1 = int(cy - length / 2)
+        y2 = int(cy + length / 2)
+        x1 = int(cx - DOOR_FRAME_THICKNESS_PX / 2)
+        x2 = int(cx + DOOR_FRAME_THICKNESS_PX / 2)
+
+    return {
+        "x": x1, "y": y1,
+        "width": x2 - x1, "height": y2 - y1,
+        "horizontal": horizontal,
+        "confidence": door["confidence"],
+    }
+
+
+def _build_door_cuts(image: np.ndarray, door_bboxes: list[dict]) -> list[dict]:
+    cuts = []
+    for door in door_bboxes:
+        raw_bbox = [door["x"], door["y"], door["x"] + door["width"], door["y"] + door["height"]]
+        line = _detect_door_frame_line(image, raw_bbox)
+
+        if line is not None:
+            cut_rect = _door_cut_from_line(door, line)
+            horizontal = cut_rect["horizontal"]
+            bbox = [cut_rect["x"], cut_rect["y"],
+                    cut_rect["x"] + cut_rect["width"], cut_rect["y"] + cut_rect["height"]]
+
+            if horizontal:
+                bbox[0] = raw_bbox[0]
+                bbox[2] = raw_bbox[2]
+            else:
+                bbox[1] = raw_bbox[1]
+                bbox[3] = raw_bbox[3]
+
+            width_px = max(bbox[2] - bbox[0], bbox[3] - bbox[1])
+            wall_thickness_px = DOOR_FRAME_THICKNESS_PX
+        else:
+            horizontal = door["width"] >= door["height"]
+            bbox = raw_bbox
+            width_px = max(door["width"], door["height"])
+            wall_thickness_px = None
+
+        cuts.append({
+            "bbox": bbox,
+            "confidence": door["confidence"],
+            "orientation": "horizontal" if horizontal else "vertical",
+            "width_px": width_px,
+            "wall_thickness_px": wall_thickness_px,
+            "wall_centerline_px": None,
+        })
+    return cuts
+
 
 def _build_window_cuts(combined_boundary: np.ndarray, window_bboxes: list[dict]) -> list[dict]:
     cuts = []
@@ -511,6 +664,7 @@ def run(image: np.ndarray, context: dict) -> dict:
 
     ctx["combined_boundary"]     = combined
     ctx["door_bboxes"]           = _extract_door_bboxes(detections)
+    ctx["door_cuts"]             = _build_door_cuts(image, ctx["door_bboxes"])
     ctx["window_bboxes"]         = _extract_window_bboxes(detections)
     ctx["window_cuts"]           = _build_window_cuts(combined, ctx["window_bboxes"])
     ctx["yolo_detections"]       = detections

@@ -54,6 +54,10 @@ ROOM_COLORS: dict[str, list[int]] = {
 WALL_COLOR   = [180, 175, 165, 255]    # warm off-white
 GROUND_COLOR = [30, 30, 30, 255]       # dark grey — visibly darker than floor tiles
 WINDOW_COLOR = [150, 200, 220, 180]    # light blue-glass tint, semi-transparent
+DOOR_COLOR = [100, 70, 40, 255]
+JAMB_COLOR = [60, 42, 62, 180]
+DOOR_FRAME_THICKNESS_PX = 4  # nominal thickness for a door cut, independent of wall band sampling
+JAMB_DEPTH_PX = 3.0
 
 
 def _color_for_label(label: str) -> list[int]:
@@ -84,11 +88,206 @@ def _find_building_bbox(boundary: np.ndarray) -> tuple[int, int, int, int]:
     return bx, by, bw, bh
 
 
+def _build_door_meshes(door_cuts: list[dict], bx: int, by: int, bh: int, ppf: float) -> list[trimesh.Trimesh]:
+    meshes = []
+    
+    for door in door_cuts:
+        dx1, dy1, dx2, dy2 = door["bbox"]
+        w_ft = (dx2 - dx1) / ppf
+        d_ft = (dy2 - dy1) / ppf
+        cx_ft = (dx1 + dx2 - 2 * bx) / (2 * ppf)
+        cy_px = (dy1 + dy2) / 2 - by
+        cy_ft = (bh - cy_px) / ppf
+
+        box = trimesh.creation.box(extents=[w_ft, d_ft, WALL_HEIGHT])
+        box.apply_translation([cx_ft, cy_ft, WALL_HEIGHT / 2])
+        box.visual.face_colors = np.tile(DOOR_COLOR, (len(box.faces), 1))
+        meshes.append(box)
+    return meshes
+
+
+def _build_door_jambs(
+    door_cuts: list[dict],
+    wall_mask: np.ndarray,
+    bx: int, by: int, bh: int, ppf: float,
+) -> list[trimesh.Trimesh]:
+    """
+    Places compact square jamb posts flush against the wall surface.
+    """
+    meshes: list[trimesh.Trimesh] = []
+    placed_positions: set[tuple[int, int]] = set()
+    JAMB_SIZE_PX = 6.0  # Fixed square cross-section
+    half_jamb = JAMB_SIZE_PX / 2.0
+    jamb_w_ft = JAMB_SIZE_PX / ppf
+
+    for door in door_cuts:
+        x1, y1, x2, y2 = door["bbox"]
+        horizontal = door.get("orientation") == "horizontal"
+
+        if horizontal:
+            points = {"left": (x1, (y1 + y2) // 2), "right": (x2, (y1 + y2) // 2)}
+            dirs = {"up": (0, -1), "down": (0, 1)}
+            max_search = int(abs(x2 - x1) * 1.5)
+        else:
+            points = {"top": ((x1 + x2) // 2, y1), "bottom": ((x1 + x2) // 2, y2)}
+            dirs = {"left": (-1, 0), "right": (1, 0)}
+            max_search = int(abs(y2 - y1) * 1.5)
+
+        for point_name, (px, py) in points.items():
+            hits = {}
+            for dir_name, (dx, dy) in dirs.items():
+                step = _walk_to_wall(wall_mask, px, py, dx, dy, max_search)
+                if step < max_search:
+                    hits[dir_name] = (px + dx * step, py + dy * step, dx, dy)
+
+            if len(hits) == 2:
+                for dir_name, (hx, hy, dx, dy) in hits.items():
+                    # Back off the center by half the jamb width so the jamb sits flush against the wall edge
+                    cx_px = hx - (dx * half_jamb)
+                    cy_px = hy - (dy * half_jamb)
+
+                    pos_key = (round(cx_px / 3) * 3, round(cy_px / 3) * 3)
+                    if pos_key in placed_positions:
+                        continue
+                    placed_positions.add(pos_key)
+
+                    cx_ft = (cx_px - bx) / ppf
+                    cy_ft = (bh - (cy_px - by)) / ppf
+
+                    # Fixed-size square post flush against the opening
+                    jamb = trimesh.creation.box(extents=[jamb_w_ft, jamb_w_ft, WALL_HEIGHT])
+                    jamb.apply_translation([cx_ft, cy_ft, WALL_HEIGHT / 2.0])
+                    jamb.visual.face_colors = np.tile(JAMB_COLOR, (len(jamb.faces), 1))
+                    meshes.append(jamb)
+
+    return meshes
+
+def _walk_to_wall(mask: np.ndarray, x: int, y: int, dx: int, dy: int, max_dist: int) -> int:
+    """Distance to first wall pixel walking (dx,dy) from (x,y), or max_dist if none found."""
+    h, w = mask.shape
+    for step in range(1, max_dist + 1):
+        px, py = x + dx * step, y + dy * step
+        if not (0 <= px < w and 0 <= py < h):
+            return max_dist
+        if mask[py, px] > 0:
+            return step
+    return max_dist
+
+
+def _walk_inside_wall_to_edge(wall_mask: np.ndarray, px: int, py: int, dx: int, dy: int, max_dist: int) -> int:
+    """Walks starting from INSIDE wall_mask (1) until hitting background (0) or max_dist."""
+    h, w = wall_mask.shape
+    for step in range(1, max_dist + 1):
+        nx, ny = px + dx * step, py + dy * step
+        if nx < 0 or nx >= w or ny < 0 or ny >= h or wall_mask[int(ny), int(nx)] == 0:
+            return step
+    return max_dist
+
+def _build_doors_and_jambs(
+    door_cuts: list[dict],
+    wall_mask: np.ndarray,
+    bx: int, by: int, bh: int, ppf: float,
+) -> tuple[list[trimesh.Trimesh], list[trimesh.Trimesh]]:
+    jamb_meshes: list[trimesh.Trimesh] = []
+    door_meshes: list[trimesh.Trimesh] = []
+
+    for idx, door in enumerate(door_cuts):
+        x1, y1, x2, y2 = door["bbox"]
+        horizontal = door.get("orientation") == "horizontal"
+        orient_str = "HORIZONTAL" if horizontal else "VERTICAL"
+
+        if horizontal:
+            points = {"left": (x1, (y1 + y2) // 2), "right": (x2, (y1 + y2) // 2)}
+            primary_dirs = {"up": (0, -1), "down": (0, 1)}
+            secondary_dirs = [(-1, 0), (1, 0)]
+            max_search = int(abs(x2 - x1) * 1.5)
+        else:
+            points = {"top": ((x1 + x2) // 2, y1), "bottom": ((x1 + x2) // 2, y2)}
+            primary_dirs = {"left": (-1, 0), "right": (1, 0)}
+            secondary_dirs = [(0, -1), (0, 1)]
+            max_search = int(abs(y2 - y1) * 1.5)
+
+        for point_name, (px, py) in points.items():
+            hits = {}
+            for dir_name, (dx, dy) in primary_dirs.items():
+                step = _walk_to_wall(wall_mask, px, py, dx, dy, max_search)
+                if step < max_search:
+                    hits[dir_name] = (px + dx * step, py + dy * step, dx, dy)
+                else:
+                    print(f"Primary Hit '{dir_name}': EXPIRED (No wall face found within {max_search}px)")
+
+            if len(hits) == 2:
+                hit_list = list(hits.values())
+                actual_door_opening_px = math.hypot(
+                    hit_list[0][0] - hit_list[1][0], 
+                    hit_list[0][1] - hit_list[1][1]
+                )
+                max_thick_cap = int(actual_door_opening_px//3)
+
+                for dir_name, (hx, hy, dx, dy) in hits.items():
+                    in_x = int(hx + dx)
+                    in_y = int(hy + dy)
+                    
+                    # Verify pixel value at starting step-in
+                    start_val = wall_mask[in_y, in_x] if (0 <= in_y < wall_mask.shape[0] and 0 <= in_x < wall_mask.shape[1]) else -1
+
+                    step_lengths = []
+                    for s_idx, (sdx, sdy) in enumerate(secondary_dirs):
+                        step_len = _walk_inside_wall_to_edge(
+                            wall_mask, in_x, in_y, sdx, sdy, max_dist=max_thick_cap
+                        )
+                        step_lengths.append(step_len)
+
+                    total_wall_thick_px = sum(step_lengths)
+                    final_wall_thick_px = max(min(total_wall_thick_px, max_thick_cap), 6.0)
+
+                    # Pull back by half jamb depth so it sits FLUSH against the wall surface
+                    cx_px = hx - (dx * (JAMB_DEPTH_PX / 2.0))
+                    cy_px = hy - (dy * (JAMB_DEPTH_PX / 2.0))
+
+                    thick_offset_px = (step_lengths[1] - step_lengths[0]) / 2.0
+
+                    if horizontal:
+                        # step_lengths[0] is LEFT (-x), step_lengths[1] is RIGHT (+x)
+                        start_edge_px = in_x - step_lengths[0]
+                        end_edge_px = in_x + step_lengths[1]
+                        
+                        final_wall_thick_px = max(min(end_edge_px - start_edge_px, max_thick_cap), 6.0)
+                        
+                        cx_px = (start_edge_px + end_edge_px) / 2.0
+                        cy_px = hy - (dy * (JAMB_DEPTH_PX / 2.0))
+                    else:
+                        # step_lengths[0] is UP (-y), step_lengths[1] is DOWN (+y)
+                        start_edge_px = in_y - step_lengths[0]
+                        end_edge_px = in_y + step_lengths[1]
+                        
+                        final_wall_thick_px = max(min(end_edge_px - start_edge_px, max_thick_cap), 6.0)
+                        
+                        cx_px = hx - (dx * (JAMB_DEPTH_PX / 2.0))
+                        cy_px = (start_edge_px + end_edge_px) / 2.0
+                        
+                    cx_ft = (cx_px - bx) / ppf
+                    cy_ft = (bh - (cy_px - by)) / ppf
+                    wall_thick_ft = final_wall_thick_px / ppf
+                    jamb_depth_ft = JAMB_DEPTH_PX / ppf
+
+                    if horizontal:
+                        extents = [wall_thick_ft, jamb_depth_ft, WALL_HEIGHT]
+                    else:
+                        extents = [jamb_depth_ft, wall_thick_ft, WALL_HEIGHT] 
+
+                    jamb = trimesh.creation.box(extents=extents)
+                    jamb.apply_translation([cx_ft, cy_ft, WALL_HEIGHT / 2.0])
+                    jamb.visual.face_colors = np.tile(JAMB_COLOR, (len(jamb.faces), 1))
+                    jamb_meshes.append(jamb)
+
+    return jamb_meshes, door_meshes
+
+
 def _row_scan_walls(
     boundary: np.ndarray,
     bx: int, by: int, bw: int, bh: int,
     ppf: float,
-    door_bboxes: list[dict],
     window_bboxes: list[dict],
 ) -> list[trimesh.Trimesh]:
     """
@@ -125,36 +324,18 @@ def _row_scan_walls(
                 center_x_ft = (run_start + run_width_px / 2) / ppf
                 center_y_ft = (bh - (py - by + STRIP_HEIGHT / 2)) / ppf
 
-                # Check if this run overlaps a door bbox
-                is_door = False
+                # Check if this run overlaps a window bbox
                 is_window = False
                 abs_cx = bx + run_start + run_width_px // 2
                 abs_cy = py + STRIP_HEIGHT // 2
-                for door in door_bboxes:
-                    dx, dy, dw, dh = door["x"], door["y"], door["width"], door["height"]
-                    if dx <= abs_cx <= dx + dw and dy <= abs_cy <= dy + dh:
-                        is_door = True
-                        break
-                
-                if not is_door:
-                    for win in window_bboxes:
-                        wx, wy, ww, wh = win["x"], win["y"], win["width"], win["height"]
-                        if wx <= abs_cx <= wx + ww and wy <= abs_cy <= wy + wh:
-                            is_window = True
-                            break
 
-                if is_door:
-                    # Thin door indicator (0.1 ft tall) — brown tint
-                    box = trimesh.creation.box(
-                        extents=[run_width_ft, strip_depth_ft, 0.1]
-                    )
-                    box.apply_translation([center_x_ft, center_y_ft, 0.05])
-                    # FIX 2b: per-face color so trimesh renders it correctly
-                    door_color = [100, 70, 40, 255]
-                    box.visual.face_colors = np.tile(door_color, (len(box.faces), 1))
-                    meshes.append(box)
-                
-                elif any(
+                for win in window_bboxes:
+                    wx, wy, ww, wh = win["x"], win["y"], win["width"], win["height"]
+                    if wx <= abs_cx <= wx + ww and wy <= abs_cy <= wy + wh:
+                        is_window = True
+                        break
+
+                if any(
                     win["x"] < (bx + run_end) and (win["x"] + win["width"]) > (bx + run_start)
                     and (win["y"] - 25) <= abs_cy <= (win["y"] + win["height"] + 25)
                     for win in window_bboxes
@@ -305,6 +486,7 @@ def run(image: np.ndarray, context: dict) -> dict:
     rooms = ctx["rooms"]
     px_per_sqft = ctx["px_per_sqft"]
     door_bboxes = ctx.get("door_bboxes", [])
+    door_cuts = ctx.get("door_cuts", [])
     window_bboxes = ctx.get("window_bboxes", [])
 
     # Pixels-per-foot (linear)
@@ -326,18 +508,30 @@ def run(image: np.ndarray, context: dict) -> dict:
     wall_mask[by + bh - SEAL_THICKNESS : by + bh, :] = 0
     wall_mask[:, bx : bx + SEAL_THICKNESS] = 0
     wall_mask[:, bx + bw - SEAL_THICKNESS : bx + bw] = 0
-    
-    scene = trimesh.Scene()
 
-    # --- Walls ---
-    wall_meshes = _row_scan_walls(wall_mask, bx, by, bw, bh, ppf, door_bboxes, window_bboxes)
+    for door in door_bboxes:
+        dx1, dy1 = door["x"], door["y"]
+        dx2, dy2 = dx1 + door["width"], dy1 + door["height"]
+        wall_mask[dy1:dy2, dx1:dx2] = 0
+    
+    clean_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+    wall_mask = cv2.morphologyEx(wall_mask, cv2.MORPH_OPEN, clean_kernel)
+
+    scene = trimesh.Scene()
+    wall_meshes = _row_scan_walls(wall_mask, bx, by, bw, bh, ppf, window_bboxes)
     for i, m in enumerate(wall_meshes):
         scene.add_geometry(m, node_name=f"wall_{i}")
+        
+    # New workflow to build both doors and jambs together cleanly
+    # jamb_meshes, door_meshes = _build_doors_and_jambs(door_cuts, wall_mask, bx, by, bh, ppf)
+    
+    door_meshes = _build_door_meshes(door_cuts, bx, by, bh, ppf)
+    for i, m in enumerate(door_meshes):
+        scene.add_geometry(m, node_name=f"door_{i}")
 
-    # --- Floor tiles ---
-    # tile_meshes = _room_floor_tiles(claimed, rooms, bx, by, bw, bh, ppf)
-    # for i, m in enumerate(tile_meshes):
-    #     scene.add_geometry(m, node_name=f"tile_{i}")
+    jamb_meshes = _build_door_jambs(door_cuts, wall_mask, bx, by, bh, ppf)
+    for i, m in enumerate(jamb_meshes):
+        scene.add_geometry(m, node_name=f"door_jamb_{i}")    
     tile_meshes = []
 
     # --- Ground plane ---
