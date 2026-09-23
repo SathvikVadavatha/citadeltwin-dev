@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Sparkles, Download, Eye, Settings, CheckCircle, Edit2, RotateCcw } from 'lucide-react';
+import { FileText, Sparkles, Download, Eye, Settings, CheckCircle, Edit2, RotateCcw, Clock } from 'lucide-react';
 import { useDocumentExports } from '@/hooks/useDocumentExports';
 import { useGeminiAI } from '@/hooks/useGeminiAI';
 
@@ -28,6 +28,8 @@ interface ExtendedDocumentExport {
   template_id?: string;
   generated_at: string;
   ai_generated_content?: any;
+  file_path?: string | null;
+  generation_data?: Record<string, unknown> | null;
 }
 
 export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps> = ({
@@ -54,7 +56,7 @@ export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps>
     createVisualElements: true
   });
 
-  const { generateDocument, exports } = useDocumentExports(uploadId);
+  const { generateDocument, exports, downloadDocument, previewDocument, retryDocument } = useDocumentExports(uploadId);
   const { generateContent } = useGeminiAI();
 
   const documentTypes = [
@@ -144,22 +146,23 @@ export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps>
   // Step 2: Export the (possibly edited) AI content as a document
   const handleFinalExport = async () => {
     await generateDocument.mutateAsync({
-      templateId: selectedTemplateType,
+      templateType: selectedTemplateType,
       uploadId,
-      documentType: selectedTemplateType,
       title: documentTitle,
+      description: projectDescription,
+      jurisdiction: selectedJurisdiction,
+      clientRequirements,
       formatType: 'pdf',
-      generationData: {
-        project_name: documentTitle,
-        project_description: projectDescription,
-        client_requirements: clientRequirements,
-        ai_enhanced_narrative: aiPreviewContent.narrative,
-        ai_compliance_analysis: aiPreviewContent.compliance,
-        ai_executive_summary: aiPreviewContent.executiveSummary,
-        jurisdiction: selectedJurisdiction,
-        ai_optimizations: aiOptimizations,
-        generation_timestamp: new Date().toISOString()
-      }
+      aiEnhancements: {
+        enhanced_narrative: aiPreviewContent.narrative,
+        compliance_analysis: aiPreviewContent.compliance,
+        executive_summary: aiPreviewContent.executiveSummary,
+      },
+      formatPreferences: {
+        includeExecutiveSummary: aiOptimizations.generateExecutiveSummary,
+        includeVisualizations: aiOptimizations.createVisualElements,
+        clientCustomization: true,
+      },
     });
   };
 
@@ -429,7 +432,11 @@ export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {exports.slice(0, 5).map((exportItem) => (
+              {exports.slice(0, 5).map((exportItem) => {
+                const item = exportItem as ExtendedDocumentExport;
+                const canOpen = item.status === 'completed' && !!item.file_path;
+
+                return (
                 <div key={exportItem.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-3">
                     <FileText className="h-8 w-8 text-blue-500" />
@@ -439,21 +446,44 @@ export const AdvancedDocumentGenerator: React.FC<AdvancedDocumentGeneratorProps>
                         {exportItem.document_type} • {exportItem.format_type.toUpperCase()} •{' '}
                         {new Date(exportItem.generated_at).toLocaleDateString()}
                       </p>
-                      {(exportItem as ExtendedDocumentExport).ai_generated_content && (
+                      {item.ai_generated_content && (
                         <Badge className="mt-1">AI Enhanced</Badge>
+                      )}
+                      {item.status === 'failed' && item.error_message && (
+                        <p className="mt-1 text-xs text-red-600">{item.error_message}</p>
                       )}
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      <Download className="h-4 w-4" />
-                    </Button>
+                    {canOpen ? (
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => previewDocument(exportItem.id)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => downloadDocument(exportItem.id)}>
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </>
+                    ) : item.status === 'failed' ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={retryDocument.isPending}
+                        onClick={() => retryDocument.mutateAsync(item)}
+                      >
+                        <RotateCcw className="h-4 w-4 mr-1" />
+                        Retry
+                      </Button>
+                    ) : (
+                      <Badge variant="outline" className="gap-1">
+                        <Clock className="h-3 w-3 animate-pulse" />
+                        Generating…
+                      </Badge>
+                    )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>

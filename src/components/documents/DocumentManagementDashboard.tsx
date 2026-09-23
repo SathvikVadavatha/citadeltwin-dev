@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DocumentTemplateLibrary } from './DocumentTemplateLibrary';
@@ -16,8 +16,6 @@ export const DocumentManagementDashboard: React.FC<DocumentManagementDashboardPr
   uploadId,
   selectedJurisdiction
 }) => {
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
-
   return (
     <div className="space-y-6">
       <Card>
@@ -37,10 +35,7 @@ export const DocumentManagementDashboard: React.FC<DocumentManagementDashboardPr
             </TabsList>
 
             <TabsContent value="library">
-              <DocumentTemplateLibrary
-                onTemplateSelect={setSelectedTemplateId}
-                selectedJurisdiction={selectedJurisdiction}
-              />
+              <DocumentTemplateLibrary />
             </TabsContent>
 
             <TabsContent value="generator">

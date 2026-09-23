@@ -1,103 +1,17 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Plus, Download, Sparkles } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { useDocumentTemplates } from '@/hooks/useDocumentTemplates';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { CreateTemplateDialog } from './CreateTemplateDialog';
 
-interface TemplateLibraryProps {
-  onTemplateSelect: (templateId: string) => void;
-  selectedJurisdiction?: string;
-}
-
-export const DocumentTemplateLibrary: React.FC<TemplateLibraryProps> = ({
-  onTemplateSelect,
-  selectedJurisdiction
-}) => {
+export const DocumentTemplateLibrary: React.FC = () => {
   const [filterType, setFilterType] = useState<string>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  
-  const { templates, createTemplate } = useDocumentTemplates();
 
-  const templateCategories = {
-    residential: {
-      name: 'Residential',
-      icon: '🏠',
-      templates: [
-        'Single Family Permit Package',
-        'Residential Addition Report',
-        'Home Renovation Documentation'
-      ]
-    },
-    commercial: {
-      name: 'Commercial',
-      icon: '🏢',
-      templates: [
-        'Commercial Building Permit',
-        'Tenant Improvement Package',
-        'Office Complex Documentation'
-      ]
-    },
-    industrial: {
-      name: 'Industrial',
-      icon: '🏭',
-      templates: [
-        'Manufacturing Facility Report',
-        'Warehouse Compliance Package',
-        'Industrial Safety Documentation'
-      ]
-    },
-    infrastructure: {
-      name: 'Infrastructure',
-      icon: '🛣️',
-      templates: [
-        'Bridge Engineering Report',
-        'Road Construction Package',
-        'Utility Infrastructure Documentation'
-      ]
-    }
-  };
-
-  const jurisdictionSpecificTemplates = {
-    'OH': [
-      'Ohio Snow Load Analysis Report',
-      'Ohio Energy Code Compliance Package',
-      'Ohio Frost Protection Documentation'
-    ],
-    'FL': [
-      'Florida Hurricane Resistance Report',
-      'Florida Coastal Construction Package',
-      'Florida Flood Zone Compliance Documentation'
-    ],
-    'CA': [
-      'California Seismic Analysis Report',
-      'California Title 24 Energy Package',
-      'California Accessibility Compliance'
-    ]
-  };
-
-  const aiPoweredTemplates = [
-    {
-      name: 'AI-Enhanced Permit Application',
-      description: 'Automatically generates project descriptions, code analysis, and compliance summaries',
-      aiFeatures: ['Auto-generated project narrative', 'Compliance risk assessment', 'Code reference lookup']
-    },
-    {
-      name: 'Smart Structural Report',
-      description: 'AI-powered structural analysis documentation with automated calculations',
-      aiFeatures: ['Automated load calculations', 'Material optimization', 'Safety factor analysis']
-    },
-    {
-      name: 'Intelligent Presentation Deck',
-      description: 'Professional client presentations with AI-optimized content and visuals',
-      aiFeatures: ['Auto-generated executive summary', 'Visual optimization', 'Client-specific customization']
-    }
-  ];
+  const { templates } = useDocumentTemplates();
 
   const filteredTemplates = templates.filter(template => {
     if (filterType !== 'all' && template.template_type !== filterType) return false;
@@ -113,26 +27,13 @@ export const DocumentTemplateLibrary: React.FC<TemplateLibraryProps> = ({
             <div>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-blue-500" />
-                Advanced Document Template Library
+                Document Template Library
               </CardTitle>
               <CardDescription>
-                Sophisticated templates with AI-powered content optimization for different project types and jurisdictions
+                Browse, filter, and create document templates used for automated generation
               </CardDescription>
             </div>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Template
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-4xl">
-                <DialogHeader>
-                  <DialogTitle>Create Advanced Document Template</DialogTitle>
-                </DialogHeader>
-                {/* Template creation form would go here */}
-              </DialogContent>
-            </Dialog>
+            <CreateTemplateDialog />
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -150,7 +51,7 @@ export const DocumentTemplateLibrary: React.FC<TemplateLibraryProps> = ({
                   <SelectItem value="structural_report">Structural Reports</SelectItem>
                   <SelectItem value="technical_documentation">Technical Documentation</SelectItem>
                   <SelectItem value="compliance_report">Compliance Reports</SelectItem>
-                  <SelectItem value="presentation">Presentations</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -171,101 +72,11 @@ export const DocumentTemplateLibrary: React.FC<TemplateLibraryProps> = ({
             </div>
           </div>
 
-          {/* AI-Powered Templates Section */}
-          <div>
-            <h3 className="text-lg font-semibold text-primary mb-3 flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
-              AI-Enhanced Templates
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {aiPoweredTemplates.map((template, index) => (
-                <Card key={index} className="border-primary/30 bg-gradient-to-br from-cyan-900/10 to-blue-900/10">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <h4 className="font-medium text-primary">{template.name}</h4>
-                      <Sparkles className="h-4 w-4 text-primary" />
-                    </div>
-                    <p className="text-sm text-foreground mb-3">{template.description}</p>
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-primary">AI Features:</p>
-                      {template.aiFeatures.map((feature, idx) => (
-                        <Badge key={idx} variant="outline" className="text-xs mr-1 mb-1">
-                          {feature}
-                        </Badge>
-                      ))}
-                    </div>
-                    <Button 
-                      size="sm" 
-                      className="w-full mt-3 bg-primary hover:bg-primary/90"
-                      onClick={() => onTemplateSelect(`ai-${index}`)}
-                    >
-                      Use Template
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* Category-Based Templates */}
-          <div>
-            <h3 className="text-lg font-semibold text-primary mb-3">Templates by Category</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {Object.entries(templateCategories).map(([key, category]) => (
-                <Card key={key} className="border-border">
-                  <CardContent className="p-4">
-                    <div className="text-center mb-3">
-                      <div className="text-2xl mb-2">{category.icon}</div>
-                      <h4 className="font-medium">{category.name}</h4>
-                    </div>
-                    <div className="space-y-2">
-                      {category.templates.map((template, idx) => (
-                        <Button
-                          key={idx}
-                          variant="outline"
-                          size="sm"
-                          className="w-full text-xs"
-                          onClick={() => onTemplateSelect(`${key}-${idx}`)}
-                        >
-                          {template}
-                        </Button>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* Jurisdiction-Specific Templates */}
-          {selectedJurisdiction && (
-            <div>
-              <h3 className="text-lg font-semibold text-primary mb-3">
-                Jurisdiction-Specific Templates
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {jurisdictionSpecificTemplates[selectedJurisdiction as keyof typeof jurisdictionSpecificTemplates]?.map((template, idx) => (
-                  <Card key={idx} className="border-yellow-500/30">
-                    <CardContent className="p-4">
-                      <h4 className="font-medium text-yellow-300 mb-2">{template}</h4>
-                      <p className="text-xs text-muted-foreground mb-3">
-                        Customized for {selectedJurisdiction} specific requirements
-                      </p>
-                      <Button 
-                        size="sm" 
-                        className="w-full"
-                        onClick={() => onTemplateSelect(`jurisdiction-${selectedJurisdiction}-${idx}`)}
-                      >
-                        Use Template
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Existing Templates */}
+          {/* Templates — real rows from document_templates only; the decorative
+              AI-Enhanced/Category/Jurisdiction showcase sections that used to live here
+              were fabricated placeholder content with no template behind them and were
+              removed rather than wired up, since nothing in the app models "AI-powered"
+              or per-jurisdiction templates today. */}
           <div>
             <h3 className="text-lg font-semibold text-primary mb-3">Available Templates</h3>
             {filteredTemplates.length === 0 ? (
@@ -277,22 +88,17 @@ export const DocumentTemplateLibrary: React.FC<TemplateLibraryProps> = ({
                 {filteredTemplates.map((template) => (
                   <Card key={template.id} className="border-border">
                     <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <FileText className="h-8 w-8 text-blue-500" />
-                          <div>
-                            <h4 className="font-medium">{template.name}</h4>
-                            <p className="text-sm text-muted-foreground">{template.description}</p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <Badge>{template.template_type.replace('_', ' ')}</Badge>
-                              <Badge variant="outline">{template.category}</Badge>
-                              <Badge variant="outline">{template.format_type}</Badge>
-                            </div>
+                      <div className="flex items-center gap-4">
+                        <FileText className="h-8 w-8 text-blue-500" />
+                        <div>
+                          <h4 className="font-medium">{template.name}</h4>
+                          <p className="text-sm text-muted-foreground">{template.description}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Badge>{template.template_type.replace('_', ' ')}</Badge>
+                            <Badge variant="outline">{template.category}</Badge>
+                            <Badge variant="outline">{template.format_type}</Badge>
                           </div>
                         </div>
-                        <Button onClick={() => onTemplateSelect(template.id)}>
-                          Select Template
-                        </Button>
                       </div>
                     </CardContent>
                   </Card>

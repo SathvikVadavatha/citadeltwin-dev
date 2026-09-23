@@ -100,6 +100,8 @@ export const useOptimizedDocumentTemplates = () => {
 
   const updateTemplate = useMutation({
     mutationFn: useCallback(async ({ id, ...updates }: Partial<DocumentTemplate> & { id: string }) => {
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('document_templates')
         .update(updates)
@@ -109,9 +111,35 @@ export const useOptimizedDocumentTemplates = () => {
 
       if (error) throw error;
       return data;
-    }, []),
+    }, [user]),
     onSuccess: onUpdateSuccess,
     onError: onUpdateError,
+  });
+
+  // Memoize delete success/error callbacks
+  const onDeleteSuccess = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey });
+    toast.success('Document template deleted successfully');
+  }, [queryClient, queryKey]);
+
+  const onDeleteError = useCallback((error: Error) => {
+    toast.error(`Failed to delete template: ${error.message}`);
+  }, []);
+
+  const deleteTemplate = useMutation({
+    mutationFn: useCallback(async (id: string) => {
+      if (!user) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('document_templates')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return id;
+    }, [user]),
+    onSuccess: onDeleteSuccess,
+    onError: onDeleteError,
   });
 
   // Memoize return object to prevent unnecessary re-renders
@@ -121,5 +149,6 @@ export const useOptimizedDocumentTemplates = () => {
     error,
     createTemplate,
     updateTemplate,
-  }), [templates, isLoading, error, createTemplate, updateTemplate]);
+    deleteTemplate,
+  }), [templates, isLoading, error, createTemplate, updateTemplate, deleteTemplate]);
 };
