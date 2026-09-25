@@ -13,14 +13,14 @@ Stages:
     5. 3D Export        — trimesh row-scan extrusion → GLB
 """
 
-from pipeline.stage1_yolo import run as stage1_wall_detection
-from pipeline.stage2_ocr import run as stage2_ocr
-from pipeline.stage3_voronoi import run as stage3_voronoi
-from pipeline.stage4_topology import run as stage4_topology
-from pipeline.stage5_export import run as stage5_export
+from pipeline import stage1_yolo
+from pipeline import stage2_ocr
+from pipeline import stage3_voronoi
+from pipeline import stage4_topology
+from pipeline import stage5_export
 
 __all__ = [
-    "stage1_wall_detection",
+    "stage1_yolo",
     "stage2_ocr",
     "stage3_voronoi",
     "stage4_topology",

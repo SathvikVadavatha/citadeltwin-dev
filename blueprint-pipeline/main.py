@@ -108,6 +108,15 @@ class WallInfo(BaseModel):
     height: float
 
 
+class WindowInfo(BaseModel):
+    x: float
+    y: float
+    width: float
+    height: float
+    confidence: float
+
+
+
 class PipelineMetadata(BaseModel):
     building_width_ft: float
     building_height_ft: float
@@ -116,10 +125,24 @@ class PipelineMetadata(BaseModel):
     validation_warnings: list[str]
 
 
+class DimensionPoint(BaseModel):
+    x: float
+    y: float
+    z: float
+
+
+class DimensionAnnotation(BaseModel):
+    position: DimensionPoint
+    label: str
+    kind: str
+
+
 class ProcessResponse(BaseModel):
     glb_base64: str
     rooms: list[RoomInfo]
     walls: list[WallInfo]
+    windows: list[WindowInfo]
+    dimensions: list[DimensionAnnotation]
     metadata: PipelineMetadata
 
 
@@ -178,11 +201,19 @@ def run_pipeline(image_url: str) -> dict:
     elapsed = time.perf_counter() - t0
     logger.info("Pipeline engine complete in %.2f s", elapsed)
 
+    # Filter windows based on threshold or LLM confirmation
+    valid_windows = []
+    for w in ctx.get("window_bboxes", []):
+        if w.get("confidence", 1.0) >= 0.3 or w.get("llm_confirmed"):
+            valid_windows.append(w)
+
     # Transform internal ctx into response-ready dict
     return {
         "glb_base64": ctx["glb_base64"],
         "rooms": ctx["room_output"],
         "walls": ctx["wall_output"],
+        "windows": valid_windows,
+        "dimensions": ctx.get("dimension_annotations", []),
         "metadata": {
             "building_width_ft": ctx["building_width_ft"],
             "building_height_ft": ctx["building_height_ft"],
@@ -212,6 +243,8 @@ async def process_blueprint(req: ProcessRequest):
             glb_base64=result["glb_base64"],
             rooms=[RoomInfo(**r) for r in result["rooms"]],
             walls=[WallInfo(**w) for w in result["walls"]],
+            windows=[WindowInfo(**w) for w in result["windows"]],
+            dimensions=[DimensionAnnotation(**d) for d in result.get("dimensions", [])],
             metadata=PipelineMetadata(**result["metadata"])
         )
         
