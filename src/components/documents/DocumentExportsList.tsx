@@ -14,6 +14,8 @@ interface DocumentExport {
   status: string;
   error_message?: string;
   template_id?: string;
+  file_path?: string | null;
+  generation_data?: Record<string, unknown> | null;
 }
 
 interface DocumentExportsListProps {
@@ -111,7 +113,7 @@ export const DocumentExportsList: React.FC<DocumentExportsListProps> = ({
                   <Badge className={getStatusColor(exportItem.status)}>
                     {exportItem.status}
                   </Badge>
-                  {exportItem.status === 'completed' && (
+                  {exportItem.status === 'completed' && exportItem.file_path && (
                     <Button
                       size="sm"
                       variant="outline"

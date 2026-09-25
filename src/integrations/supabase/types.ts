@@ -483,6 +483,116 @@ export type Database = {
         }
         Relationships: []
       }
+      client_portal_project_results: {
+        Row: {
+          compliance_results: Json | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          gis_results: Json | null
+          id: string
+          model_3d_url: string | null
+          processing_status: string
+          project_id: string
+          room_results: Json | null
+          updated_at: string
+        }
+        Insert: {
+          compliance_results?: Json | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          gis_results?: Json | null
+          id?: string
+          model_3d_url?: string | null
+          processing_status?: string
+          project_id: string
+          room_results?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          compliance_results?: Json | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          gis_results?: Json | null
+          id?: string
+          model_3d_url?: string | null
+          processing_status?: string
+          project_id?: string
+          room_results?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_portal_project_results_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "client_portal_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_portal_projects: {
+        Row: {
+          blueprint_file_name: string | null
+          blueprint_file_size: number | null
+          blueprint_file_type: string | null
+          blueprint_public_url: string | null
+          building_sub_type: string | null
+          building_type: string | null
+          client_name: string
+          created_at: string
+          created_by: string | null
+          feedback: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          project_name: string
+          site_address: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          blueprint_file_name?: string | null
+          blueprint_file_size?: number | null
+          blueprint_file_type?: string | null
+          blueprint_public_url?: string | null
+          building_sub_type?: string | null
+          building_type?: string | null
+          client_name: string
+          created_at?: string
+          created_by?: string | null
+          feedback?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          project_name: string
+          site_address?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          blueprint_file_name?: string | null
+          blueprint_file_size?: number | null
+          blueprint_file_type?: string | null
+          blueprint_public_url?: string | null
+          building_sub_type?: string | null
+          building_type?: string | null
+          client_name?: string
+          created_at?: string
+          created_by?: string | null
+          feedback?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          project_name?: string
+          site_address?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       collaboration_changes: {
         Row: {
           applied_at: string | null
@@ -1320,6 +1430,7 @@ export type Database = {
       generated_3d_models: {
         Row: {
           created_at: string
+          error_message: string | null
           file_size: number
           generation_prompt: string | null
           generation_status: string
@@ -1333,6 +1444,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          error_message?: string | null
           file_size: number
           generation_prompt?: string | null
           generation_status?: string
@@ -1346,6 +1458,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          error_message?: string | null
           file_size?: number
           generation_prompt?: string | null
           generation_status?: string
@@ -2214,6 +2327,197 @@ export type Database = {
         }
         Relationships: []
       }
+      req_federal_rules: {
+        Row: {
+          applies_to: string
+          category: string
+          citation: string
+          comparator: string | null
+          created_at: string
+          display_order: number
+          id: string
+          note: string | null
+          requirement: string
+          source_title: string
+          source_url: string
+          unit: string | null
+          value: string
+          verified_at: string
+        }
+        Insert: {
+          applies_to: string
+          category: string
+          citation: string
+          comparator?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          note?: string | null
+          requirement: string
+          source_title: string
+          source_url: string
+          unit?: string | null
+          value: string
+          verified_at: string
+        }
+        Update: {
+          applies_to?: string
+          category?: string
+          citation?: string
+          comparator?: string | null
+          created_at?: string
+          display_order?: number
+          id?: string
+          note?: string | null
+          requirement?: string
+          source_title?: string
+          source_url?: string
+          unit?: string | null
+          value?: string
+          verified_at?: string
+        }
+        Relationships: []
+      }
+      req_jurisdiction_links: {
+        Row: {
+          display_order: number
+          id: string
+          label: string
+          link_type: string
+          note: string | null
+          state_code: string
+          url: string
+        }
+        Insert: {
+          display_order?: number
+          id?: string
+          label: string
+          link_type: string
+          note?: string | null
+          state_code: string
+          url: string
+        }
+        Update: {
+          display_order?: number
+          id?: string
+          label?: string
+          link_type?: string
+          note?: string | null
+          state_code?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      req_projects: {
+        Row: {
+          county_name: string | null
+          created_at: string
+          fips_code: string | null
+          geocode_match_quality: string | null
+          geocode_source: string | null
+          id: string
+          input_address: string
+          input_zip: string | null
+          latitude: number | null
+          longitude: number | null
+          name: string | null
+          place_name: string | null
+          property_type: string
+          resolved_at: string | null
+          state_code: string | null
+          state_name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          county_name?: string | null
+          created_at?: string
+          fips_code?: string | null
+          geocode_match_quality?: string | null
+          geocode_source?: string | null
+          id?: string
+          input_address: string
+          input_zip?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string | null
+          place_name?: string | null
+          property_type: string
+          resolved_at?: string | null
+          state_code?: string | null
+          state_name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          county_name?: string | null
+          created_at?: string
+          fips_code?: string | null
+          geocode_match_quality?: string | null
+          geocode_source?: string | null
+          id?: string
+          input_address?: string
+          input_zip?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string | null
+          place_name?: string | null
+          property_type?: string
+          resolved_at?: string | null
+          state_code?: string | null
+          state_name?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      req_site_conditions: {
+        Row: {
+          criterion: string
+          id: string
+          label: string
+          note: string | null
+          project_id: string
+          retrieved_at: string
+          source: string
+          source_edition: string | null
+          source_url: string | null
+          unit: string | null
+          value: string
+        }
+        Insert: {
+          criterion: string
+          id?: string
+          label: string
+          note?: string | null
+          project_id: string
+          retrieved_at?: string
+          source: string
+          source_edition?: string | null
+          source_url?: string | null
+          unit?: string | null
+          value: string
+        }
+        Update: {
+          criterion?: string
+          id?: string
+          label?: string
+          note?: string | null
+          project_id?: string
+          retrieved_at?: string
+          source?: string
+          source_edition?: string | null
+          source_url?: string | null
+          unit?: string | null
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "req_site_conditions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "req_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       roles: {
         Row: {
           id: number
@@ -2854,12 +3158,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2883,11 +3187,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2908,11 +3212,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2933,11 +3237,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2950,11 +3254,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

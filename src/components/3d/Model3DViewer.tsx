@@ -1,6 +1,7 @@
 
-import React, { Suspense, useRef, useEffect, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import React, { Suspense, useCallback, useRef, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Html, useGLTF, Line } from '@react-three/drei';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,100 +59,19 @@ interface Model3DViewerProps {
   uploadId?: string;
   projectId?: string;
   onDownload?: () => void;
+  largeViewport?: boolean;
+  /** Public URL of the uploaded blueprint image, used by the 2D side of the 2D/3D toggle. */
+  blueprintPublicUrl?: string | null;
   dimensions?: DimensionAnnotation[];
   // Room name labels, printed inside the scene at each room's own center —
   // separate from `dimensions` (see RoomNameLabel above).
   roomLabels?: RoomNameLabel[];
   // Optional camera start position override. Defaults to the existing
-  // isometric-ish [10, 8, 10] used everywhere today — only the dev
-  // verification page (src/pages/DevViewerTest.tsx) passes a different
-  // value, for a clearer near-top-down read on dense floor plans.
+  // [8, 6, 8] used everywhere today — only the dev verification page
+  // (src/pages/DevViewerTest.tsx) passes a different value, for a clearer
+  // near-top-down read on dense floor plans.
   cameraPosition?: [number, number, number];
 }
-
-// Enhanced 3D scene with better geometry and materials
-const DefaultScene = () => {
-  const meshRef = useRef<THREE.Group>(null);
-
-  useFrame(() => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y += 0.005;
-    }
-  });
-
-  return (
-    <group ref={meshRef}>
-      {/* Floor with better material */}
-      <mesh position={[0, -2, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[12, 12]} />
-        <meshStandardMaterial color="#f5f5f5" roughness={0.8} metalness={0.1} />
-      </mesh>
-      
-      {/* Main building structure */}
-      <mesh position={[0, 0, 0]} castShadow receiveShadow>
-        <boxGeometry args={[5, 3.5, 7]} />
-        <meshStandardMaterial color="#e8f4fd" roughness={0.7} metalness={0.1} />
-      </mesh>
-      
-      {/* Roof */}
-      <mesh position={[0, 2.25, 0]} castShadow>
-        <coneGeometry args={[3.8, 1.5, 4]} />
-        <meshStandardMaterial color="#8b4513" roughness={0.9} metalness={0.0} />
-      </mesh>
-      
-      {/* Front Door */}
-      <mesh position={[2.6, -0.5, 0]} castShadow>
-        <boxGeometry args={[0.15, 2.2, 1.2]} />
-        <meshStandardMaterial color="#654321" roughness={0.8} metalness={0.0} />
-      </mesh>
-      
-      {/* Door handle */}
-      <mesh position={[2.65, -0.3, -0.3]} castShadow>
-        <sphereGeometry args={[0.05]} />
-        <meshStandardMaterial color="#ffd700" roughness={0.2} metalness={0.8} />
-      </mesh>
-      
-      {/* Windows */}
-      <mesh position={[2.6, 0.5, -2]} castShadow>
-        <boxGeometry args={[0.15, 1.2, 1.2]} />
-        <meshStandardMaterial color="#87ceeb" transparent opacity={0.8} roughness={0.1} metalness={0.0} />
-      </mesh>
-      
-      <mesh position={[2.6, 0.5, 2]} castShadow>
-        <boxGeometry args={[0.15, 1.2, 1.2]} />
-        <meshStandardMaterial color="#87ceeb" transparent opacity={0.8} roughness={0.1} metalness={0.0} />
-      </mesh>
-      
-      {/* Side windows */}
-      <mesh position={[-1, 0.5, 3.6]} castShadow>
-        <boxGeometry args={[1.2, 1.2, 0.15]} />
-        <meshStandardMaterial color="#87ceeb" transparent opacity={0.8} roughness={0.1} metalness={0.0} />
-      </mesh>
-      
-      <mesh position={[1, 0.5, 3.6]} castShadow>
-        <boxGeometry args={[1.2, 1.2, 0.15]} />
-        <meshStandardMaterial color="#87ceeb" transparent opacity={0.8} roughness={0.1} metalness={0.0} />
-      </mesh>
-      
-      {/* Decorative elements */}
-      <mesh position={[0, -1.5, 3.8]} castShadow>
-        <boxGeometry args={[6, 0.3, 0.2]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.5} metalness={0.0} />
-      </mesh>
-      
-      {/* Simple landscaping */}
-      <mesh position={[-4, -1.8, -2]} receiveShadow>
-        <cylinderGeometry args={[0.5, 0.5, 0.4]} />
-        <meshStandardMaterial color="#228b22" roughness={0.9} metalness={0.0} />
-      </mesh>
-      
-      <mesh position={[4, -1.8, 2]} receiveShadow>
-        <cylinderGeometry args={[0.6, 0.6, 0.4]} />
-        <meshStandardMaterial color="#228b22" roughness={0.9} metalness={0.0} />
-      </mesh>
-    </group>
-  );
-};
 
 // Each dimension is a label at `position`, plus — for entries measuring an
 // actual span (room_width, room_height, wall_length) — a plain straight
@@ -409,11 +329,13 @@ const RoomNameOverlay = ({
 
 const Model3D = ({
   url,
+  onError,
   dimensions = [],
   roomLabels = [],
-  showDimensions = false
+  showDimensions = false,
 }: {
   url: string;
+  onError: () => void;
   dimensions?: DimensionAnnotation[];
   roomLabels?: RoomNameLabel[];
   showDimensions?: boolean;
@@ -422,6 +344,11 @@ const Model3D = ({
   const [hasError, setHasError] = useState(false);
   const [transform, setTransform] = useState<{ scale: number; offset: THREE.Vector3 } | null>(null);
   const prevUrlRef = useRef<string | null>(null);
+  const { camera, size: canvasSize } = useThree();
+  // Set once the loaded model's bounding box is known, then reused by the
+  // resize-driven fit effect below (so re-fitting on a canvas resize doesn't
+  // need to re-run the material/normalization work every time).
+  const fittedRef = useRef<{ maxDim: number; scale: number } | null>(null);
 
   // Clear stale GLTF cache before loading a new URL to prevent Three.js
   // from serving a cached blob that may have already been revoked.
@@ -434,117 +361,131 @@ const Model3D = ({
     prevUrlRef.current = url;
   }, [url]);
 
-  let gltf;
-  let loadError = false;
-
-  try {
-    gltf = useGLTF(url);
-  } catch (err) {
-    // useGLTF is Suspense-integrated: while the resource is still loading it
-    // deliberately throws the pending Promise so the nearest <Suspense>
-    // boundary can catch it and show LoadingFallback. This try/catch used to
-    // swallow that throw unconditionally and treat it as a load failure —
-    // meaning on first render (before anything was cached) it *always* fell
-    // back to the placeholder cottage scene instead of ever actually
-    // rendering a real generated model. Re-throw pending promises so
-    // Suspense still gets them; only treat genuine Error objects (e.g. a
-    // malformed GLB) as a real load failure.
-    if (err instanceof Promise) {
-      throw err;
-    }
-    console.error('Error loading 3D model:', err);
-    loadError = true;
-  }
-
-  useFrame(() => {
-    if (meshRef.current && !hasError && !loadError) {
-      meshRef.current.rotation.y += 0.005;
-    }
-  });
+  // useGLTF participates in Suspense and must always run in the same hook
+  // order. Network/parse errors are handled by ModelLoadErrorBoundary below.
+  const gltf = useGLTF(url);
 
   useEffect(() => {
-    if (loadError) {
-      setHasError(true);
-      return;
-    }
-
     if (gltf?.scene) {
       try {
-        // trimesh exports GLB with real per-vertex RGBA color data but no
-        // explicit material opacity settings, causing Three.js to default to
-        // semi-transparent blue. We used to force every mesh fully opaque
-        // and gate vertex-color rendering on `material.vertexColors`, but
-        // standard GLTF loaders never set that flag to true on their own
-        // even when the geometry carries real COLOR_0 data — so that check
-        // was always false, meaning colored geometry likely never rendered
-        // its intended per-vertex colors here. Instead, read the geometry's
-        // own color attribute directly, and decide transparency per mesh
-        // from its actual alpha value (e.g. window panes, which are
-        // deliberately exported translucent) rather than forcing every
-        // mesh — including intentionally translucent ones — to opaque.
-        //
-        // Also found while building the dev verification harness: trimesh's
-        // default exported material is fully metallic (metalness=1) with no
-        // environment map. A fully metallic PBR material has near-zero
-        // diffuse reflectance and relies on specular/IBL reflections for any
-        // visible color — under this scene's plain point/directional lights
-        // (no envMap) that rendered every mesh as solid black regardless of
-        // its vertex color, which is why the model appeared to not render at
-        // all. Forcing metalness to 0 here (architectural surfaces — walls,
-        // tiles, doors, windows — aren't metal anyway) restores a normal
-        // diffuse response so vertex colors are actually visible.
-        gltf.scene.traverse((child: any) => {
-          if (child.isMesh && child.material) {
-            const colorAttr = child.geometry?.attributes?.color;
-            let alpha = 1.0;
-
-            if (colorAttr) {
-              child.material.vertexColors = true;
-              if (colorAttr.itemSize >= 4 && colorAttr.count > 0) {
-                // colorAttr.getW() returns the RAW stored value, not a
-                // normalized 0..1 float — for a normalized Uint8Array
-                // (trimesh's default COLOR_0 export) that's an integer
-                // 0-255, so it must be divided down before comparing
-                // against an 0..1 alpha threshold below.
-                const raw = colorAttr.array[3];
-                alpha = colorAttr.normalized ? raw / 255 : raw;
-              }
-            }
-
-            child.material.metalness = 0;
-            const isTranslucent = alpha < 0.98;
-            child.material.transparent = isTranslucent;
-            child.material.opacity = isTranslucent ? alpha : 1.0;
-            child.material.depthWrite = !isTranslucent;
-            child.material.side = THREE.DoubleSide;
-            child.material.needsUpdate = true;
-          }
-        });
-
         const box = new THREE.Box3().setFromObject(gltf.scene);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
+        // Bottom ~15% of the model's height counts as "floor-like" for the
+        // per-mesh heuristic below.
+        const floorCeilingY = box.min.y + size.y * 0.15;
 
+        // Force opaque rendering and override the surface color/roughness on
+        // every mesh WITHOUT its own vertex-color data. Some exports ship no
+        // COLOR_0 attribute at all, and their default material came through
+        // very dark (near-black), which combined with the scene's lighting
+        // made walls unreadable against the background — for those, force a
+        // light, neutral surface instead of trusting an absent/near-black
+        // base color. Meshes named like a floor/slab, or whose own geometry
+        // sits low and flat relative to the whole model, get a slightly
+        // different (darker) shade so the floor doesn't visually merge with
+        // the walls. Meshes that DO carry real per-vertex colors (e.g. the
+        // blueprint pipeline's room/door/wall coloring, verified present via
+        // a COLOR_0 attribute on the geometry) keep them untouched — GLTFLoader
+        // already wires vertexColors=true for those, matching how the
+        // <model-viewer> web component (also three.js-backed) renders them.
+        gltf.scene.traverse((child) => {
+          if (!(child instanceof THREE.Mesh) || !child.material) return;
+
+          const nameLower = String(child.name || '').toLowerCase();
+          const nameLooksLikeFloor = /floor|ground|slab|\bbase\b/.test(nameLower);
+
+          const meshBox = new THREE.Box3().setFromObject(child);
+          const meshHeight = meshBox.max.y - meshBox.min.y;
+          const meshFootprint = Math.max(
+            meshBox.max.x - meshBox.min.x,
+            meshBox.max.z - meshBox.min.z
+          );
+          const geometryLooksLikeFloor =
+            meshBox.max.y <= floorCeilingY && meshHeight < meshFootprint * 0.25;
+          const surfaceColor = nameLooksLikeFloor || geometryLooksLikeFloor
+            ? '#c3c8ce'
+            : '#eceef0';
+          const hasVertexColors = Boolean(child.geometry?.attributes?.color);
+
+          const materials = Array.isArray(child.material) ? child.material : [child.material];
+          materials.forEach((material) => {
+            material.transparent = false;
+            material.opacity = 1.0;
+            material.depthWrite = true;
+            material.side = THREE.DoubleSide;
+
+            if (material instanceof THREE.MeshStandardMaterial) {
+              material.metalness = 0.0;
+              material.roughness = nameLooksLikeFloor || geometryLooksLikeFloor ? 0.95 : 0.8;
+              if (hasVertexColors) {
+                material.vertexColors = true;
+              } else {
+                material.vertexColors = false;
+                material.color.set(surfaceColor);
+              }
+            } else if (material instanceof THREE.MeshBasicMaterial) {
+              if (hasVertexColors) {
+                material.vertexColors = true;
+              } else {
+                material.vertexColors = false;
+                material.color.set(surfaceColor);
+              }
+            }
+            material.needsUpdate = true;
+          });
+        });
+
+        // Normalized to 6 units (not 3) so the model reads at roughly the same
+        // scale as the default camera framing below instead of looking tiny
+        // in the middle of the canvas.
         const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = maxDim > 0 ? 3 / maxDim : 1;
+        const scale = maxDim > 0 ? 6 / maxDim : 1;
         const offset = center.clone().multiplyScalar(scale);
 
         gltf.scene.scale.setScalar(scale);
         gltf.scene.position.sub(offset);
         setTransform({ scale, offset });
+
+        fittedRef.current = { maxDim, scale };
       } catch (err) {
         console.error('Error processing 3D model:', err);
         setHasError(true);
+        onError();
       }
     }
-  }, [gltf, loadError]);
+  }, [gltf, onError]);
 
-  if (hasError || loadError) {
-    return <DefaultScene />;
+  // Fit the camera to the model's bounding box whenever the canvas actually
+  // resizes — not just once at load — so entering/exiting fullscreen (which
+  // swaps in a differently-sized canvas) re-frames the whole plan instead of
+  // keeping whatever distance was computed for the old aspect ratio.
+  useEffect(() => {
+    if (!fittedRef.current || !(camera instanceof THREE.PerspectiveCamera)) return;
+    if (canvasSize.width === 0 || canvasSize.height === 0) return;
+
+    const { maxDim, scale } = fittedRef.current;
+    const fittedSize = maxDim * scale;
+    const halfFovY = (camera.fov * Math.PI) / 360;
+    const fitHeightDistance = fittedSize / 2 / Math.tan(halfFovY);
+    const fitWidthDistance = fitHeightDistance / camera.aspect;
+    // 1.35x padding so the model doesn't touch the edges of the frame.
+    const distance = 1.35 * Math.max(fitHeightDistance, fitWidthDistance);
+
+    const direction = new THREE.Vector3(1, 0.65, 1).normalize();
+    camera.position.copy(direction.multiplyScalar(distance));
+    camera.near = Math.max(0.1, distance / 100);
+    camera.far = distance * 100;
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+  }, [camera, canvasSize.width, canvasSize.height]);
+
+  if (hasError) {
+    return null;
   }
 
   if (!gltf?.scene) {
-    return <DefaultScene />;
+    return null;
   }
 
   return (
@@ -569,20 +510,52 @@ const LoadingFallback = () => (
   </Html>
 );
 
+class ModelLoadErrorBoundary extends React.Component<
+  { children: React.ReactNode; resetKey: string; onError: () => void },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('Error loading 3D model:', error);
+    this.props.onError();
+  }
+
+  componentDidUpdate(previousProps: { resetKey: string }) {
+    if (previousProps.resetKey !== this.props.resetKey && this.state.hasError) {
+      this.setState({ hasError: false });
+    }
+  }
+
+  render() {
+    return this.state.hasError ? null : this.props.children;
+  }
+}
+
 export const Model3DViewer: React.FC<Model3DViewerProps> = ({
   modelUrl,
   modelName = "3D Model",
   uploadId,
   projectId,
   onDownload,
+  largeViewport = false,
+  blueprintPublicUrl,
   dimensions = [],
   roomLabels = [],
-  cameraPosition = [10, 8, 10]
+  cameraPosition = [8, 6, 8],
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [useEnhancedViewer, setUseEnhancedViewer] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
+  const [modelLoadFailed, setModelLoadFailed] = useState(false);
+  const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
   const [showDimensions, setShowDimensions] = useState(false);
+  const hasBlueprintImage = Boolean(blueprintPublicUrl);
+  const handleModelLoadError = useCallback(() => setModelLoadFailed(true), []);
 
   // Log the uploadId whenever it changes so we can verify the correct ID is received
   useEffect(() => {
@@ -594,18 +567,18 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
   // DB-polling hook when no direct URL is available.
   const skipDbQuery = Boolean(modelUrl);
 
-  const { 
+  const {
     model3DUrl: fetchedModelUrl,
     loading: modelDataLoading,
     modelMetadata: fetchedMetadata
   } = use3DModelViewer(skipDbQuery ? undefined : uploadId);
 
-  const { 
-    hasElements, 
-    elements, 
-    feaResults, 
+  const {
+    hasElements,
+    elements,
+    feaResults,
     loading: elementsLoading,
-    elementCount 
+    elementCount
   } = use3DViewer(uploadId, projectId);
 
   // Prefer the directly-supplied prop URL; fall back to DB-fetched URL
@@ -633,6 +606,12 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
     return () => clearTimeout(timer);
   }, []);
 
+  // Give a freshly-supplied URL a clean slate instead of carrying over a
+  // previous model's load failure.
+  useEffect(() => {
+    setModelLoadFailed(false);
+  }, [finalModelUrl]);
+
   const handleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
   };
@@ -648,70 +627,139 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
     );
   }
 
+  // A model is only "missing" once we're done trying to get one — while a DB
+  // lookup is still in flight, that's a loading state, not a not-available state.
+  const showEmptyState = sceneReady && (modelLoadFailed || (!finalModelUrl && !isLoading));
+  const emptyStateMessage = modelLoadFailed
+    ? '3D model failed to load.'
+    : isLoading
+      ? 'Loading model…'
+      : '3D model not available.';
+
   const viewerContent = (
-    <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : 'h-96'}`}>
-      <Canvas
-        camera={{
-          position: cameraPosition,
-          fov: 50,
-          near: 0.1,
-          far: 1000
-        }}
-        style={{ background: 'linear-gradient(to bottom, #87CEEB 0%, #98D8E8 50%, #B0E0E6 100%)' }}
-        shadows={{ enabled: true, type: THREE.PCFSoftShadowMap }}
-        gl={{ antialias: true, alpha: false }}
-        onCreated={() => setSceneReady(true)}
-      >
-        <ambientLight intensity={0.4} color="#ffffff" />
-        <directionalLight 
-          position={[15, 15, 10]} 
-          intensity={1.0}
-          castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
-          shadow-camera-far={50}
-          shadow-camera-left={-10}
-          shadow-camera-right={10}
-          shadow-camera-top={10}
-          shadow-camera-bottom={-10}
-        />
-        <pointLight position={[-10, 5, -10]} intensity={0.3} color="#fff8dc" />
-        <hemisphereLight args={['#87CEEB', '#f0f8ff', 0.3]} />
-        
-        <Suspense fallback={<LoadingFallback />}>
-          {finalModelUrl && sceneReady ? (
-            <Model3D url={finalModelUrl} dimensions={dimensions} roomLabels={roomLabels} showDimensions={showDimensions} />
+    <div
+      className={
+        isFullscreen
+          ? 'fixed inset-0 z-[100] h-screen w-screen bg-background pointer-events-auto'
+          : largeViewport
+            ? 'relative h-[clamp(520px,68vh,760px)] w-full'
+            : 'relative w-full aspect-[16/10] min-h-[420px] max-h-[70vh]'
+      }
+    >
+      {viewMode === '2d' ? (
+        <div className="flex h-full w-full items-center justify-center bg-muted/20">
+          {hasBlueprintImage ? (
+            <img
+              src={blueprintPublicUrl ?? ''}
+              alt={`${finalModelName} blueprint`}
+              className="max-h-full max-w-full object-contain"
+            />
           ) : (
-            <DefaultScene />
+            <div className="flex flex-col items-center gap-2 text-center text-muted-foreground px-4">
+              <AlertCircle className="h-8 w-8" />
+              <p className="text-sm">Blueprint image not available.</p>
+            </div>
           )}
-        </Suspense>
-        
-        <OrbitControls 
-          enablePan={true}
-          enableZoom={true}
-          enableRotate={true}
-          minDistance={3}
-          maxDistance={50}
-          enableDamping
-          dampingFactor={0.05}
-          maxPolarAngle={Math.PI / 2.2}
-        />
-      </Canvas>
-      
+        </div>
+      ) : (
+        <>
+          <Canvas
+            camera={{
+              position: cameraPosition,
+              fov: 50,
+              near: 0.1,
+              far: 1000
+            }}
+            style={{ width: '100%', height: '100%' }}
+            shadows={{ enabled: true, type: THREE.PCFSoftShadowMap }}
+            gl={{ antialias: true, alpha: false }}
+            onCreated={() => setSceneReady(true)}
+          >
+            {/* Muted dark slate — not pure black, but dark enough that the light
+                walls (#eceef0) and floor (#c3c8ce) both read clearly against it. */}
+            <color attach="background" args={['#2b3038']} />
+            <ambientLight intensity={0.8} color="#ffffff" />
+            <directionalLight
+              position={[15, 15, 10]}
+              intensity={1.5}
+              castShadow
+              shadow-mapSize-width={2048}
+              shadow-mapSize-height={2048}
+              shadow-camera-far={50}
+              shadow-camera-left={-10}
+              shadow-camera-right={10}
+              shadow-camera-top={10}
+              shadow-camera-bottom={-10}
+            />
+            <pointLight position={[-10, 5, -10]} intensity={0.5} color="#ffffff" />
+            <hemisphereLight args={['#ffffff', '#dfe3e6', 0.5]} />
+
+            <Suspense fallback={<LoadingFallback />}>
+              {finalModelUrl && sceneReady && !modelLoadFailed ? (
+                <ModelLoadErrorBoundary
+                  resetKey={finalModelUrl}
+                  onError={handleModelLoadError}
+                >
+                  <Model3D
+                    url={finalModelUrl}
+                    onError={handleModelLoadError}
+                    dimensions={dimensions}
+                    roomLabels={roomLabels}
+                    showDimensions={showDimensions}
+                  />
+                </ModelLoadErrorBoundary>
+              ) : null}
+            </Suspense>
+
+            <OrbitControls
+              enablePan={true}
+              enableZoom={true}
+              enableRotate={true}
+              minDistance={4}
+              maxDistance={150}
+              enableDamping
+              dampingFactor={0.05}
+              maxPolarAngle={Math.PI / 2.2}
+            />
+          </Canvas>
+
+          {showEmptyState && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/85 backdrop-blur-sm">
+              <div className="flex flex-col items-center gap-2 text-center text-muted-foreground px-4">
+                <AlertCircle className="h-8 w-8" />
+                <p className="text-sm">{emptyStateMessage}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Scene loading indicator */}
+          {!sceneReady && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-sm">
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <span className="text-sm">Initializing 3D scene...</span>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
       {/* Enhanced 3D Viewer Controls */}
-      <div className="absolute top-4 right-4 flex flex-col gap-2">
-        <Button
-          variant={showDimensions ? "default" : "outline"}
-          size="sm"
-          onClick={() => setShowDimensions(!showDimensions)}
-          className={`bg-background/80 backdrop-blur-sm flex items-center gap-1.5 ${
-            showDimensions ? 'bg-primary text-primary-foreground' : ''
-          }`}
-          title="Toggle Dimensions Overlay"
-        >
-          <Ruler className="h-4 w-4" />
-          <span className="text-xs font-medium hidden sm:inline">Dimensions</span>
-        </Button>
+      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+        {viewMode === '3d' && (dimensions.length > 0 || roomLabels.length > 0) && (
+          <Button
+            variant={showDimensions ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowDimensions(!showDimensions)}
+            className={`bg-background/80 backdrop-blur-sm flex items-center gap-1.5 ${
+              showDimensions ? 'bg-primary text-primary-foreground' : ''
+            }`}
+            title="Toggle Dimensions Overlay"
+          >
+            <Ruler className="h-4 w-4" />
+            <span className="text-xs font-medium hidden sm:inline">Dimensions</span>
+          </Button>
+        )}
         <Button
           variant="outline"
           size="sm"
@@ -730,7 +778,7 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
             <Download className="h-4 w-4" />
           </Button>
         )}
-        {hasElements && (
+        {viewMode === '3d' && hasElements && (
           <Button
             variant="outline"
             size="sm"
@@ -744,7 +792,7 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
       </div>
 
       {isFullscreen && (
-        <div className="absolute top-4 left-4">
+        <div className="absolute top-4 left-4 z-10">
           <Button
             variant="outline"
             onClick={() => setIsFullscreen(false)}
@@ -753,57 +801,76 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
           </Button>
         </div>
       )}
-
-      {/* Scene loading indicator */}
-      {!sceneReady && (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm">
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <span className="text-sm">Initializing 3D scene...</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 
   if (isFullscreen) {
-    return viewerContent;
+    // Portal straight to <body> — the results Sheet (and its slide-in animation)
+    // establishes its own containing block via CSS transform, which would
+    // otherwise confine a `position: fixed` element to the Sheet's panel instead
+    // of the real viewport, leaving "fullscreen" visually small.
+    return createPortal(viewerContent, document.body);
   }
 
   return (
-    <Card>
+    <Card className="min-w-0 overflow-hidden">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Eye className="h-5 w-5" />
             3D Model Viewer
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary">{finalModelName}</Badge>
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
             {isLoading && <Badge variant="outline">Loading...</Badge>}
             {hasElements && (
               <Badge variant="default" className="bg-green-600">
                 {elementCount} Elements
               </Badge>
             )}
-            {sceneReady && (
-              <Badge variant="outline" className="bg-blue-600 text-white">
-                Ready
-              </Badge>
-            )}
+            <div
+              role="group"
+              aria-label="View mode"
+              className="relative inline-flex h-8 items-center rounded-full border border-border bg-muted/60 p-1 shadow-inner"
+            >
+              <span
+                aria-hidden="true"
+                className="absolute inset-y-1 left-1 h-6 w-12 rounded-full bg-accent shadow-sm transition-transform duration-300 ease-out"
+                style={{ transform: viewMode === '3d' ? 'translateX(3rem)' : 'translateX(0)' }}
+              />
+              <button
+                type="button"
+                onClick={() => hasBlueprintImage && setViewMode('2d')}
+                disabled={!hasBlueprintImage}
+                title={hasBlueprintImage ? undefined : 'No blueprint image available for this project'}
+                className={`relative z-10 h-6 w-12 rounded-full text-xs font-semibold transition-colors ${
+                  viewMode === '2d' ? 'text-accent-foreground' : 'text-muted-foreground'
+                } ${!hasBlueprintImage ? 'cursor-not-allowed opacity-50' : ''}`}
+              >
+                2D
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('3d')}
+                className={`relative z-10 h-6 w-12 rounded-full text-xs font-semibold transition-colors ${
+                  viewMode === '3d' ? 'text-accent-foreground' : 'text-muted-foreground'
+                }`}
+              >
+                3D
+              </button>
+            </div>
           </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
         {viewerContent}
         <div className="mt-4 text-sm text-muted-foreground text-center space-y-2">
-          <p>Use mouse to rotate, zoom, and pan the 3D model</p>
-          {!finalModelUrl && !hasElements && (
+          <p>{viewMode === '2d' ? 'Viewing the uploaded blueprint image' : 'Use mouse to rotate, zoom, and pan the 3D model'}</p>
+          {!finalModelUrl && !hasElements && !isLoading && (
             <p className="text-blue-600">
-              🏠 Showing enhanced architectural model - upload a blueprint to generate a custom 3D model
+              Upload a blueprint to generate a custom 3D model.
             </p>
           )}
-          {hasElements && !useEnhancedViewer && (
+          {viewMode === '3d' && hasElements && !useEnhancedViewer && (
             <div className="mt-4">
               <Button
                 variant="outline"

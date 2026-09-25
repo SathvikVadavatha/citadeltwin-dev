@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileImage, Loader2, Upload } from 'lucide-react';
+import { Box, FileImage, Loader2, Upload } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,48 @@ import { useAuth } from '@/providers/AuthProvider';
 import { useUploads } from '@/hooks/useUploads';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+
+interface Generated3DModelRef {
+  id: string;
+  model_name: string | null;
+  model_file_path: string | null;
+  generation_status: string | null;
+  created_at: string;
+}
+
+type ModelAction =
+  | { kind: 'view' }
+  | { kind: 'regenerate' } // completed but the stored URL is a dead blob: from before persistence was fixed
+  | { kind: 'generate' }
+  | { kind: 'generating' }
+  | { kind: 'disabled'; reason: string };
+
+const PROCESSED_UPLOAD_STATUSES = new Set(['processed', 'processed_fallback', 'completed']);
+
+const getModelAction = (upload: BlueprintRow): ModelAction => {
+  const models = upload.generated_3d_models ?? [];
+  const latest = [...models].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  )[0];
+
+  if (latest?.generation_status === 'completed') {
+    return latest.model_file_path?.startsWith('blob:') ? { kind: 'regenerate' } : { kind: 'view' };
+  }
+
+  if (latest?.generation_status === 'pending' || latest?.generation_status === 'generating') {
+    return { kind: 'generating' };
+  }
+
+  const uploadStatus = upload.upload_status || '';
+  if (PROCESSED_UPLOAD_STATUSES.has(uploadStatus)) {
+    return { kind: 'generate' };
+  }
+
+  return {
+    kind: 'disabled',
+    reason: uploadStatus === 'uploaded' || uploadStatus === 'processing' ? 'Still processing' : 'Processing failed',
+  };
+};
 
 const formatFileSize = (bytes: number | null | undefined): string => {
   if (!bytes || bytes <= 0) return 'Unknown size';
@@ -71,6 +113,7 @@ interface BlueprintRow {
   upload_status: string | null;
   created_at: string;
   storage_path: string | null;
+  generated_3d_models?: Generated3DModelRef[];
 }
 
 const BlueprintCardSkeleton: React.FC = () => (
@@ -129,6 +172,8 @@ const BlueprintCard: React.FC<BlueprintCardProps> = ({ upload }) => {
     }
   };
 
+  const modelAction = getModelAction(upload);
+
   return (
     <Card className="flex flex-col overflow-hidden">
       <div className="relative h-40 w-full overflow-hidden bg-muted">
@@ -158,7 +203,7 @@ const BlueprintCard: React.FC<BlueprintCardProps> = ({ upload }) => {
         </p>
       </CardContent>
 
-      <CardFooter>
+      <CardFooter className="flex flex-col gap-2">
         <Button
           onClick={handleView}
           disabled={!thumbUrl}
@@ -168,6 +213,49 @@ const BlueprintCard: React.FC<BlueprintCardProps> = ({ upload }) => {
         >
           View
         </Button>
+
+        {modelAction.kind === 'view' && (
+          <Button asChild size="sm" className="w-full">
+            <Link to={`/blueprint-3d?uploadId=${upload.id}`}>
+              <Box className="mr-2 h-4 w-4" />
+              View 3D Model
+            </Link>
+          </Button>
+        )}
+
+        {modelAction.kind === 'regenerate' && (
+          <Button asChild size="sm" variant="secondary" className="w-full">
+            <Link to={`/blueprint-3d?uploadId=${upload.id}&intent=regenerate`}>
+              <Box className="mr-2 h-4 w-4" />
+              Regenerate 3D Model
+            </Link>
+          </Button>
+        )}
+
+        {modelAction.kind === 'generate' && (
+          <Button asChild size="sm" variant="secondary" className="w-full">
+            <Link to={`/blueprint-3d?uploadId=${upload.id}`}>
+              <Box className="mr-2 h-4 w-4" />
+              Generate 3D Model
+            </Link>
+          </Button>
+        )}
+
+        {modelAction.kind === 'generating' && (
+          <Button asChild size="sm" variant="secondary" className="w-full">
+            <Link to={`/blueprint-3d?uploadId=${upload.id}`}>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating…
+            </Link>
+          </Button>
+        )}
+
+        {modelAction.kind === 'disabled' && (
+          <Button size="sm" variant="secondary" className="w-full" disabled title={modelAction.reason}>
+            <Box className="mr-2 h-4 w-4" />
+            {modelAction.reason}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

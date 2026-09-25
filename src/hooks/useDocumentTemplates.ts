@@ -75,6 +75,8 @@ export const useDocumentTemplates = () => {
 
   const updateTemplate = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<DocumentTemplate> & { id: string }) => {
+      if (!user) throw new Error('User not authenticated');
+
       const { data, error } = await supabase
         .from('document_templates')
         .update(updates)
@@ -94,11 +96,33 @@ export const useDocumentTemplates = () => {
     },
   });
 
+  const deleteTemplate = useMutation({
+    mutationFn: async (id: string) => {
+      if (!user) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('document_templates')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['document-templates'] });
+      toast.success('Document template deleted successfully');
+    },
+    onError: (error) => {
+      toast.error(`Failed to delete template: ${error.message}`);
+    },
+  });
+
   return {
     templates: templates || [],
     isLoading,
     error,
     createTemplate,
     updateTemplate,
+    deleteTemplate,
   };
 };

@@ -12,6 +12,7 @@ import {
   Share2,
   Map,
   Box,
+  Landmark,
   LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -25,6 +26,7 @@ const navigation = [
   { name: 'View Blueprints', href: '/blueprints/view', icon: FileText },
   { name: 'GIS Analysis', href: '/gis', icon: Map },
   { name: 'Compliance', href: '/compliance', icon: Shield },
+  { name: 'Site & Federal Requirements', href: '/site-requirements', icon: Landmark },
   { name: 'Documents', href: '/documents', icon: FileText },
   { name: 'Client Portal', href: '/client-portal', icon: Share2 },
   { name: 'Users', href: '/users', icon: Users },
@@ -43,13 +45,12 @@ export const AppSidebar: React.FC = () => {
 
   return (
     <div className="flex h-full w-64 flex-col border-r border-border bg-card text-card-foreground">
-      <div className="flex h-16 items-center px-6 border-b border-border">
+      <div className="flex h-20 items-center px-6 border-b border-border">
         <Link to="/home" className="flex items-center space-x-2">
-          <img src="/logo-transparent.png" alt="CitadelTwin" className="h-8 w-8 object-contain" />
-          <span className="text-xl font-bold text-foreground">CitadelTwin</span>
+          <img src={"/citadeltwin-logo.png"} alt="CitadelTwin" className="h-[48px] w-auto max-w-[10rem] object-contain" />
         </Link>
       </div>
-      <nav className="flex-1 space-y-1 px-2 py-4">
+      <nav className="flex-1 space-y-1 px-2 py-4 overflow-y-auto">
         {navigation.map((item) => {
           const isActive = location.pathname === item.href;
           return (
@@ -74,7 +75,7 @@ export const AppSidebar: React.FC = () => {
           );
         })}
       </nav>
-      <div className="border-t border-border px-2 py-4">
+      <div className="border-t border-border px-2 py-4 shrink-0">
         {user && (
           <div className="px-2 mb-2 text-xs text-muted-foreground truncate">
             {user.email}

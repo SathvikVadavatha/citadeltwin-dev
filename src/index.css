@@ -933,6 +933,17 @@
   box-shadow: 0 0 8px hsl(21 90% 48% / 0.5);
 }
 
+/* ============================================
+   GOOGLE PLACES AUTOCOMPLETE — escape Radix Dialog
+   The .pac-container dropdown is portaled to document.body,
+   outside the Dialog's DOM tree, so it needs to stay clickable
+   and render above the modal overlay (z-50).
+   ============================================ */
+.pac-container {
+  pointer-events: auto !important;
+  z-index: 9999 !important;
+}
+
 /* Mobile fallback — stack vertically, no 3D */
 @media (max-width: 640px) {
   .hp-carousel-scene {

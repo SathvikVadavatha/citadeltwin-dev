@@ -16,6 +16,12 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 interface AdvancedDocumentRequest {
   template_type: string;
+  // Optional lineage — set when the caller has a real document_templates row or
+  // blueprint_uploads row to attach this export to. Both columns are nullable.
+  template_id?: string | null;
+  upload_id?: string | null;
+  // Defaults to 'pdf' when omitted, matching the previous hardcoded behavior.
+  format_type?: 'pdf' | 'docx';
   project_data: {
     title: string;
     description: string;
@@ -37,13 +43,19 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Tracked outside the try block so the catch handler can mark an already-created
+  // export row as 'failed' instead of leaving it stuck on 'generating' forever.
+  let exportId: string | undefined;
+
   try {
     const requestData: AdvancedDocumentRequest = await req.json();
 
-    console.log('Starting advanced document generation:', { 
+    console.log('Starting advanced document generation:', {
       template_type: requestData.template_type,
-      project_title: requestData.project_data.title 
+      project_title: requestData.project_data.title
     });
+
+    const formatType: 'pdf' | 'docx' = requestData.format_type === 'docx' ? 'docx' : 'pdf';
 
     // Create document export record
     const { data: exportRecord, error: exportError } = await supabase
@@ -51,9 +63,11 @@ serve(async (req) => {
       .insert({
         title: requestData.project_data.title,
         document_type: requestData.template_type,
-        format_type: 'pdf',
+        format_type: formatType,
         status: 'generating',
         generated_by: requestData.generated_by,
+        template_id: requestData.template_id ?? null,
+        upload_id: requestData.upload_id ?? null,
         generation_data: requestData,
         ai_generated_content: requestData.ai_enhancements
       })
@@ -61,10 +75,10 @@ serve(async (req) => {
       .single();
 
     if (exportError) throw exportError;
+    exportId = exportRecord.id;
 
     // Generate sophisticated document content based on template type
     let documentContent = '';
-    let fileName = `${requestData.project_data.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
 
     switch (requestData.template_type) {
       case 'permit_package':
@@ -83,15 +97,26 @@ serve(async (req) => {
         documentContent = generateStandardDocument(requestData);
     }
 
-    // Simulate file storage (in production, would upload to actual storage)
-    const documentPath = `documents/advanced/${exportRecord.id}/${fileName}`;
-    
+    // Upload the generated document to Storage. downloadDocument() on the client
+    // (useDocumentExports / useOptimizedDocumentExports) always looks up
+    // `exports/${exportId}` in the `documents` bucket, so the object key here must
+    // match that exactly for the download button to find anything.
+    const storagePath = `exports/${exportRecord.id}`;
+    const { error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(storagePath, new Blob([documentContent], { type: 'text/html' }), {
+        contentType: 'text/html',
+        upsert: true,
+      });
+
+    if (uploadError) throw uploadError;
+
     // Update export record with completion
     const { error: updateError } = await supabase
       .from('document_exports')
       .update({
         status: 'completed',
-        file_path: documentPath,
+        file_path: storagePath,
         file_size: documentContent.length,
         completed_at: new Date().toISOString(),
       })
@@ -103,7 +128,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         exportId: exportRecord.id,
-        filePath: documentPath,
+        filePath: storagePath,
         documentContent: documentContent.slice(0, 500) + '...', // Preview
         aiEnhancements: requestData.ai_enhancements,
       }),
@@ -114,7 +139,19 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Advanced document generation error:', error);
-    
+
+    // Leave an honest, terminal state on the export row instead of it hanging on
+    // 'generating' forever — mirrors the failure handling in generate-document/index.ts.
+    if (exportId) {
+      await supabase
+        .from('document_exports')
+        .update({
+          status: 'failed',
+          error_message: error instanceof Error ? error.message : String(error),
+        })
+        .eq('id', exportId);
+    }
+
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       {

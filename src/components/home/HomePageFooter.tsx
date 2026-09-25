@@ -44,16 +44,10 @@ export function HomePageFooter() {
         <div className="flex flex-col gap-4" style={{ minWidth: 200 }}>
           <div className="flex items-center gap-2">
             <img
-              src="/logo-transparent.png"
+              src={"/citadeltwin-logo.png"}
               alt="CitadelTwin"
-              style={{ width: 32, height: 32, objectFit: 'contain' }}
+              className="h-[56px] w-auto max-w-[11rem] object-contain"
             />
-            <span
-              className="text-lg font-bold"
-              style={{ color: 'hsl(var(--foreground))' }}
-            >
-              CitadelTwin
-            </span>
           </div>
           <p
             className="text-sm leading-relaxed"

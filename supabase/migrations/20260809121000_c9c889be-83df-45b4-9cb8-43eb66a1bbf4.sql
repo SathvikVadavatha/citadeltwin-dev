@@ -1,0 +1,62 @@
+-- Seed req_jurisdiction_links: national resources + one building-code authority
+-- link per state. URLs were checked via live search/fetch on 2026-08-09. Several
+-- states (AZ, CO, KS, MO, NE, SD, TX) have no single statewide building-code
+-- agency by design (home rule) — those rows link to the closest statewide
+-- coordinating body and say so in `note`. This table is a directory only; it is
+-- not a substitute for confirming the applicable code with the local building
+-- department (see the disclaimer rendered alongside it in the UI).
+
+insert into req_jurisdiction_links (state_code, link_type, label, url, note, display_order) values
+  ('US', 'model_code', 'ICC Digital Codes (free code viewer)', 'https://codes.iccsafe.org/', 'Free read-only access to current model I-Codes; does not reflect state/local amendments — verify against the applicable state/local code.', 1),
+  ('US', 'model_code', 'eCFR - Electronic Code of Federal Regulations', 'https://www.ecfr.gov/', 'Federal regulatory reference (e.g., accessibility, energy); not a substitute for state/local building code text.', 2),
+
+  ('AL', 'state_agency', 'Alabama Division of Construction Management (Dept. of Finance)', 'https://dcm.alabama.gov/bldg_code.aspx', 'Successor to the former Alabama Building Commission (abolished 2015); administers state building code for state-owned/leased buildings.', 10),
+  ('AK', 'state_agency', 'Alaska Dept. of Public Safety - Division of Fire & Life Safety / State Fire Marshal', 'https://dps.alaska.gov/Fire/regulations', 'Administers Alaska''s adopted building code amendments; some jurisdictions are "deferred" and self-administer.', 20),
+  ('AZ', 'state_agency', 'Arizona Dept. of Forestry and Fire Management - Office of the State Fire Marshal', 'https://dffm.az.gov/fire-marshals-office', 'Arizona has no single statewide general building code; codes are adopted/amended locally. Listed office is the closest statewide coordinating authority (fire code, state/county-owned buildings).', 30),
+  ('AR', 'state_agency', 'Arkansas Dept. of Public Safety - State Fire Marshal''s Office', 'https://dps.arkansas.gov/emergency-management/adem/state-fire-marshals-office/', 'Enforces/revises the Arkansas Fire Prevention Code (3 volumes incl. Building and Residential Code).', 40),
+  ('CA', 'state_agency', 'California Building Standards Commission (Dept. of General Services)', 'https://www.dgs.ca.gov/BSC', null, 50),
+  ('CO', 'state_agency', 'Colorado Dept. of Local Affairs - Building Codes & Standards', 'https://cdola.colorado.gov/building-codes-and-standards', 'Colorado has no single statewide general building code; DOLA coordinates model/energy code adoption assistance to local governments.', 60),
+  ('CT', 'state_agency', 'Connecticut Office of the State Building Inspector (Dept. of Administrative Services)', 'https://portal.ct.gov/das/office-of-state-building-inspector', null, 70),
+  ('DE', 'state_agency', 'Delaware Office of the State Fire Marshal', 'https://statefiremarshal.delaware.gov/', 'Reviews plans/specs for new construction and additions under state Fire Prevention Regulations.', 80),
+  ('FL', 'state_agency', 'Florida Building Commission', 'https://www.floridabuilding.org/bc/bc_default.aspx', 'Official state portal (hosted on .org domain co-administered with DBPR).', 90),
+  ('GA', 'state_agency', 'Georgia Dept. of Community Affairs - Construction Codes', 'https://dca.georgia.gov/community-assistance/construction-codes', null, 100),
+  ('HI', 'state_agency', 'Hawaii State Building Code Council (Dept. of Accounting & General Services)', 'https://ags.hawaii.gov/bcc/building-code-rules/', null, 110),
+  ('ID', 'state_agency', 'Idaho Division of Occupational and Professional Licenses - Building Safety', 'https://dopl.idaho.gov/bld/', null, 120),
+  ('IL', 'state_agency', 'Illinois Capital Development Board', 'https://cdb.illinois.gov/business/codes/buildingcodesregulations.html', 'Statewide code requirement phased in per Public Act 103-0510 (eff. 1/1/2025); previously local option.', 130),
+  ('IN', 'state_agency', 'Indiana Fire Prevention and Building Safety Commission (Dept. of Homeland Security)', 'https://secure.in.gov/dhs/boards-and-commissions/fire-prevention-and-building-safety-commission/', null, 140),
+  ('IA', 'state_agency', 'Iowa Dept. of Inspections, Appeals & Licensing - Building Code', 'https://dia.iowa.gov/licensing/building-code', 'Building Code Bureau moved from DPS to this department July 2023.', 150),
+  ('KS', 'state_agency', 'Kansas Dept. of Administration - Office of Facilities & Property Management', 'https://admin.ks.gov/offices/facilities-property-management/design-construction--compliance', 'Kansas is a home-rule state with no statewide general building code; this office sets codes for state-owned buildings only. Agency URL not independently confirmed as the single authoritative statewide resource — verify with a search of official state resources.', 160),
+  ('KY', 'state_agency', 'Kentucky Dept. of Housing, Buildings and Construction', 'https://dhbc.ky.gov/', null, 170),
+  ('LA', 'state_agency', 'Louisiana State Uniform Construction Code Council', 'https://lsuccc.dps.louisiana.gov/', null, 180),
+  ('ME', 'state_agency', 'Maine Division of Building Codes and Standards (Office of Community Affairs)', 'https://www.maine.gov/moca/programs/code-enforcement', 'Administers the Maine Uniform Building and Energy Code (MUBEC); page relocated from DPS/Fire Marshal in recent reorg.', 190),
+  ('MD', 'state_agency', 'Maryland Dept. of Labor - Building Codes Administration', 'https://labor.maryland.gov/labor/build/buildstatecodes.shtml', null, 200),
+  ('MA', 'state_agency', 'Massachusetts Board of Building Regulations and Standards', 'https://www.mass.gov/orgs/board-of-building-regulations-and-standards', null, 210),
+  ('MI', 'state_agency', 'Michigan Bureau of Construction Codes (LARA)', 'https://www.michigan.gov/lara/bureau-list/bcc', null, 220),
+  ('MN', 'state_agency', 'Minnesota Dept. of Labor and Industry - Construction Codes and Licensing Division', 'https://www.dli.mn.gov/our-areas-service/construction-codes-and-licensing-division/code-services', null, 230),
+  ('MS', 'state_agency', 'Mississippi Insurance Dept. - State Fire Marshal''s Office (Uniform Building Codes)', 'https://www.mid.ms.gov/sfmo/mississippi-uniform-building-codes/', null, 240),
+  ('MO', 'state_agency', 'Missouri Dept. of Public Safety - Division of Fire Safety', 'https://dfs.dps.mo.gov/fire/', 'Missouri historically had no statewide building code (home rule). A 2024 law creates a Building Codes Commission within this division, phasing in over time — verify current adoption status independently.', 250),
+  ('MT', 'state_agency', 'Montana Building Standards Division (Dept. of Labor & Industry)', 'https://bsd.dli.mt.gov/building-codes-permits/current-codes', null, 260),
+  ('NE', 'state_agency', 'Nebraska State Fire Marshal', 'https://sfm.nebraska.gov/regulations', 'Nebraska has no mandatory statewide general building code; codes adopted locally. SFM has statewide authority for specific occupancy types.', 270),
+  ('NV', 'state_agency', 'Nevada Public Works Division - State Public Works Board', 'https://publicworks.nv.gov/SPWB/', 'Adopts codes for state-owned buildings; other construction governed by local jurisdiction adoption.', 280),
+  ('NH', 'state_agency', 'New Hampshire State Building Code Review Board (Division of Fire Safety)', 'https://www.firemarshal.dos.nh.gov/laws-rules-regulatory/state-building-code', null, 290),
+  ('NJ', 'state_agency', 'New Jersey Dept. of Community Affairs - Division of Codes and Standards', 'https://www.nj.gov/dca/codes/codreg/current.shtml', null, 300),
+  ('NM', 'state_agency', 'New Mexico Regulation & Licensing Dept. - Construction Industries Division', 'https://www.rld.nm.gov/construction-industries/find-a-bureau/bureaus/rules-laws-and-building-codes/', null, 310),
+  ('NY', 'state_agency', 'New York Dept. of State - Division of Building Standards and Codes', 'https://dos.ny.gov/building-standards-and-codes', null, 320),
+  ('NC', 'state_agency', 'North Carolina Dept. of Insurance - Building Code Council (Office of State Fire Marshal)', 'https://www.ncosfm.gov/codes/building-code-council-bcc', null, 330),
+  ('ND', 'state_agency', 'North Dakota Dept. of Commerce - Division of Community Services', 'https://www.commerce.nd.gov/community-services/building-codes', null, 340),
+  ('OH', 'state_agency', 'Ohio Board of Building Standards (Dept. of Commerce)', 'https://com.ohio.gov/divisions-and-programs/industrial-compliance/boards/board-of-building-standards', null, 350),
+  ('OK', 'state_agency', 'Oklahoma Uniform Building Code Commission', 'https://oklahoma.gov/oubcc.html', null, 360),
+  ('OR', 'state_agency', 'Oregon Building Codes Division (Dept. of Consumer and Business Services)', 'https://www.oregon.gov/bcd/codes-stand/Pages/adopted-codes.aspx', null, 370),
+  ('PA', 'state_agency', 'Pennsylvania Dept. of Labor & Industry - Uniform Construction Code', 'https://www.dli.pa.gov/ucc/Pages/default.aspx', null, 380),
+  ('RI', 'state_agency', 'Rhode Island Building Code Commission (Dept. of Business Regulation)', 'https://ribcc.ri.gov/', null, 390),
+  ('SC', 'state_agency', 'South Carolina Building Codes Council (Dept. of Labor, Licensing and Regulation)', 'https://llr.sc.gov/bcc/bccinfo.aspx', null, 400),
+  ('SD', 'state_agency', 'South Dakota Dept. of Public Safety', 'https://www.sd.gov/dps', 'South Dakota has no statewide building code; all codes adopted/enforced locally by cities/counties. Agency URL not independently confirmed as an authoritative building-code page — verify with a search of official state resources.', 410),
+  ('TN', 'state_agency', 'Tennessee Dept. of Commerce & Insurance - State Fire Marshal, Codes Enforcement', 'https://www.tn.gov/commerce/fire/codes-enforcement.html', null, 420),
+  ('TX', 'state_agency', 'Texas Dept. of Licensing and Regulation (TDLR)', 'https://www.tdlr.texas.gov/', 'Texas has no statewide general building code; municipalities adopt/amend ICC codes locally. TDLR administers statewide Texas Accessibility Standards and specific codes (electrical, elevators, boilers, industrialized housing) only.', 430),
+  ('UT', 'state_agency', 'Utah Uniform Building Code Commission (Dept. of Commerce / DOPL)', 'https://dopl.utah.gov/uniform-building-codes/', null, 440),
+  ('VT', 'state_agency', 'Vermont Division of Fire Safety - Building Code', 'https://firesafety.vermont.gov/buildingcode/codes', null, 450),
+  ('VA', 'state_agency', 'Virginia Dept. of Housing and Community Development - Uniform Statewide Building Code (USBC)', 'https://www.dhcd.virginia.gov/virginia-uniform-statewide-building-code-usbc', null, 460),
+  ('WA', 'state_agency', 'Washington State Building Code Council', 'https://sbcc.wa.gov/', null, 470),
+  ('WV', 'state_agency', 'West Virginia Office of the State Fire Marshal', 'https://firemarshal.wv.gov/', 'State Fire Commission oversees adoption of the State Building Code and State Fire Code.', 480),
+  ('WI', 'state_agency', 'Wisconsin Dept. of Safety and Professional Services', 'https://dsps.wi.gov/Pages/Programs/AdministrativeRules.aspx', null, 490),
+  ('WY', 'state_agency', 'Wyoming State Fire Marshal''s Office', 'https://wsfm.wyo.gov/', 'Enforces statewide building/fire codes by default; municipalities/counties may apply to take over local enforcement.', 500);

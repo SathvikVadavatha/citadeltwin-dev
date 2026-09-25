@@ -88,7 +88,8 @@ export const useUploads = (userId?: string) => {
             id,
             model_name,
             model_file_path,
-            generation_status
+            generation_status,
+            created_at
           )
         `)
         .eq('user_id', userId)

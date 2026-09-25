@@ -11,10 +11,7 @@ export const LandingHeader = ({ setShowLogin, scrollToSection }: LandingHeaderPr
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
       <div className="container mx-auto px-6 py-4 flex justify-between items-center">
         <div className="flex items-center space-x-3">
-          <img src="/logo-transparent.png" alt="CitadelTwin" className="h-10 w-10 object-contain" />
-          <h1 className="text-xl font-bold text-foreground">
-            CitadelTwin
-          </h1>
+          <img src={"/citadeltwin-logo.png"} alt="CitadelTwin" className="h-[48px] w-auto max-w-[10rem] object-contain" />
         </div>
         
         <nav className="hidden md:flex items-center space-x-8">

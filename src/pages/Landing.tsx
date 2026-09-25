@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import {
   ArrowRight,
   Upload,
@@ -14,13 +14,16 @@ import {
   Factory,
   Landmark,
   Home,
-  Sparkles,
   CheckCircle2,
   Layers,
   Gauge,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+import heroImage from "@/assets/architectural-drafting-blueprint-brand-3x2.jpg";
+import feaImage from "@/assets/landing-fea-analysis.jpg";
+import gisImage from "@/assets/landing-gis-context.jpg";
+import documentsImage from "@/assets/landing-permit-documents.jpg";
 
 // ------- Reusable motion primitives -------
 const fadeUp: any = {
@@ -56,10 +59,9 @@ const Header = () => {
       style={{ background: bg, borderColor: border }}
       className="fixed top-0 inset-x-0 z-50 border-b backdrop-blur-md"
     >
-      <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+      <div className="container mx-auto px-6 h-20 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3">
-          <img src="/logo-transparent.png" alt="CitadelTwin" className="h-10 w-10 object-contain" />
-          <span className="font-semibold tracking-tight text-foreground">CitadelTwin</span>
+          <img src={"/citadeltwin-logo.png"} alt="CitadelTwin" className="h-[44px] w-auto max-w-[9rem] object-contain" />
         </Link>
         <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
           <a href="#capabilities" className="hover:text-foreground transition-colors">Capabilities</a>
@@ -82,100 +84,22 @@ const Header = () => {
   );
 };
 
-// ------- Animated blueprint mockup -------
+// ------- Structural analysis hero visual -------
 const BlueprintMock = () => {
-  const prefersReduced = useReducedMotion();
+  const reduceMotion = useReducedMotion();
+
   return (
-    <div className="relative aspect-[4/3] w-full rounded-xl overflow-hidden skeuo-card">
-      <div className="absolute inset-0 skeuo-drafting-grid" />
-      {/* drifting accent glow */}
+    <div className="relative w-full [perspective:1200px]">
       <motion.div
-        aria-hidden
-        className="absolute -inset-20 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(600px 300px at 30% 30%, hsl(21 90% 48% / 0.18), transparent 60%), radial-gradient(500px 280px at 80% 70%, hsl(215 30% 40% / 0.18), transparent 60%)",
-        }}
-        animate={prefersReduced ? undefined : { x: [0, 20, -10, 0], y: [0, -15, 10, 0] }}
-        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-      />
-      {/* floor plan svg */}
-      <svg viewBox="0 0 400 300" className="absolute inset-0 w-full h-full p-6">
-        <defs>
-          <linearGradient id="wall" x1="0" x2="1">
-            <stop offset="0%" stopColor="hsl(215 25% 22%)" />
-            <stop offset="100%" stopColor="hsl(215 25% 32%)" />
-          </linearGradient>
-        </defs>
-        {/* outer walls */}
-        <motion.rect
-          x="30" y="30" width="340" height="240" rx="2" fill="none" stroke="url(#wall)" strokeWidth="4"
-          initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }} viewport={{ once: true }}
-          transition={{ duration: 1.4, ease: "easeInOut" }}
-        />
-        {/* interior partitions */}
-        {[
-          ["M180 30 L180 170", 0.2],
-          ["M30 170 L370 170", 0.4],
-          ["M260 170 L260 270", 0.6],
-        ].map(([d, delay], i) => (
-          <motion.path
-            key={i} d={d as string} stroke="hsl(215 20% 33%)" strokeWidth="2.5" fill="none"
-            initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }} viewport={{ once: true }}
-            transition={{ duration: 1, ease: "easeInOut", delay: delay as number }}
-          />
-        ))}
-        {/* room labels */}
-        {[
-          { x: 105, y: 100, t: "LIVING" },
-          { x: 275, y: 100, t: "KITCHEN" },
-          { x: 105, y: 225, t: "BED" },
-          { x: 215, y: 225, t: "BATH" },
-          { x: 315, y: 225, t: "OFFICE" },
-        ].map((r, i) => (
-          <motion.text
-            key={r.t} x={r.x} y={r.y} textAnchor="middle" fontSize="10" fontFamily="DM Sans"
-            fill="hsl(215 14% 46%)" letterSpacing="2"
-            initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-            transition={{ delay: 0.8 + i * 0.1 }}
-          >
-            {r.t}
-          </motion.text>
-        ))}
-        {/* dimension marker */}
-        <motion.g
-          initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-          transition={{ delay: 1.6 }}
-        >
-          <line x1="30" y1="18" x2="370" y2="18" stroke="hsl(21 90% 48%)" strokeWidth="1" />
-          <line x1="30" y1="14" x2="30" y2="22" stroke="hsl(21 90% 48%)" strokeWidth="1" />
-          <line x1="370" y1="14" x2="370" y2="22" stroke="hsl(21 90% 48%)" strokeWidth="1" />
-          <text x="200" y="14" textAnchor="middle" fontSize="9" fill="hsl(21 90% 48%)" fontFamily="DM Sans">
-            42'-0"
-          </text>
-        </motion.g>
-        {/* scanning beam */}
-        {!prefersReduced && (
-          <motion.rect
-            x="30" y="30" width="340" height="6" fill="hsl(21 90% 48% / 0.35)"
-            initial={{ y: 30 }} animate={{ y: 264 }}
-            transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", repeatType: "reverse" }}
-          />
-        )}
-      </svg>
-      {/* floating callout */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-        transition={{ delay: 1.2 }}
-        className="absolute bottom-4 left-4 right-4 md:right-auto md:max-w-[60%] glass-effect rounded-lg p-3 flex items-center gap-3"
+        className="relative aspect-[3/2] w-full overflow-hidden rounded-xl skeuo-card [transform-style:preserve-3d]"
+        animate={reduceMotion ? undefined : { rotateY: [-3, 3, -3], rotateX: [1, -1, 1] }}
+        transition={{ duration: 12, ease: "easeInOut", repeat: Infinity }}
       >
-        <div className="h-8 w-8 rounded-md bg-accent/15 text-accent flex items-center justify-center">
-          <Sparkles className="h-4 w-4" />
-        </div>
-        <div className="text-xs">
-          <div className="font-semibold text-foreground">Parsed in 8m 42s</div>
-          <div className="text-muted-foreground">5 rooms · 14 walls · 3 openings · IBC-compliant</div>
-        </div>
+        <img
+          src={heroImage}
+          alt="Architectural blueprint transitioning into a detailed 3D building model"
+          className="h-full w-full object-cover"
+        />
       </motion.div>
     </div>
   );
@@ -292,6 +216,39 @@ const capabilities = [
   { icon: FileText, title: "Permit-ready exports", body: "DWG, IFC, structural calcs, PDF/DOCX narratives, and full permit packages in one click." },
 ];
 
+const visualCapabilities = [
+  {
+    image: feaImage,
+    icon: Activity,
+    eyebrow: "Structural intelligence",
+    title: "See the forces shaping every decision.",
+    body: "Stress contours, deflection, and load paths appear directly on the twin, so engineering judgment stays connected to the model.",
+    alt: "Cutaway structural model with finite element stress contours across beams and columns",
+    readout: "FEA SOLVER",
+    metric: "4.2 s",
+  },
+  {
+    image: gisImage,
+    icon: Map,
+    eyebrow: "Site intelligence",
+    title: "Design in the context of the real world.",
+    body: "Bring parcels, roads, terrain, and utilities into one spatial view before plans become expensive field decisions.",
+    alt: "Aerial site model with parcels, roads, terrain contours, and utility overlays",
+    readout: "LAYERS SYNCED",
+    metric: "24",
+  },
+  {
+    image: documentsImage,
+    icon: FileText,
+    eyebrow: "Permit delivery",
+    title: "Turn a coordinated model into a complete package.",
+    body: "Generate drawings, calculations, compliance summaries, and presentation-ready documents from the same source of truth.",
+    alt: "Coordinated architectural plans, structural calculations, and permit documents on a drafting table",
+    readout: "PACKAGE STATUS",
+    metric: "Ready",
+  },
+];
+
 const Capabilities = () => (
   <section id="capabilities" className="py-24 lg:py-32">
     <div className="container mx-auto px-6">
@@ -306,19 +263,55 @@ const Capabilities = () => (
         </p>
       </Reveal>
 
+      <div className="mx-auto max-w-6xl space-y-20 lg:space-y-28">
+        {visualCapabilities.map(({ image, icon: Icon, eyebrow, title, body, alt, readout, metric }, index) => (
+          <Reveal key={title}>
+            <article className="grid items-center gap-8 md:gap-12 lg:grid-cols-2 lg:gap-16 xl:gap-20">
+              <div className={`relative order-1 aspect-[16/10] overflow-hidden rounded-xl border border-border bg-card shadow-[var(--skeuo-shadow-card)] ${index % 2 === 0 ? "lg:order-2" : "lg:order-1"}`}>
+                <motion.img
+                  src={image}
+                  alt={alt}
+                  loading="lazy"
+                  width={1536}
+                  height={1024}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  whileHover={{ scale: 1.025 }}
+                  transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                />
+                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-background/90 via-background/35 to-transparent p-5 pt-20">
+                  <div className="font-mono text-[10px] uppercase text-foreground/80">CT / {String(index + 1).padStart(2, "0")}</div>
+                  <div className="flex items-center gap-3 border border-border bg-card/90 px-3 py-2 backdrop-blur-sm">
+                    <span className="font-mono text-[9px] uppercase text-muted-foreground">{readout}</span>
+                    <span className="font-mono text-sm font-semibold text-accent">{metric}</span>
+                  </div>
+                </div>
+              </div>
+              <div className={`order-2 flex flex-col justify-center px-1 md:px-4 lg:px-0 ${index % 2 === 0 ? "lg:order-1" : "lg:order-2"}`}>
+                <div className="mb-6 flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center border border-border bg-secondary text-accent shadow-[var(--skeuo-shadow-raised)]">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <span className="font-mono text-[10px] uppercase text-muted-foreground">{eyebrow}</span>
+                </div>
+                <h3 className="max-w-md text-2xl font-semibold leading-tight text-foreground md:text-3xl lg:text-4xl">{title}</h3>
+                <p className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground lg:text-lg">{body}</p>
+                <div className="mt-8 max-w-md h-px bg-border" />
+                <div className="mt-5 grid grid-cols-3 gap-3 font-mono text-[9px] uppercase text-muted-foreground">
+                  <span>Model linked</span><span>Versioned</span><span>Exportable</span>
+                </div>
+              </div>
+            </article>
+          </Reveal>
+        ))}
+      </div>
+
       <motion.div
         initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
-        variants={stagger} className="grid md:grid-cols-2 lg:grid-cols-3 gap-5"
+        variants={stagger} className="mx-auto mt-20 grid max-w-6xl gap-5 border-t border-border pt-10 md:grid-cols-2 lg:mt-28 lg:grid-cols-3"
       >
-        {capabilities.map(({ icon: Icon, title, body }, i) => (
-          <motion.div
-            key={title} variants={fadeUp}
-            whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 260, damping: 22 }}
-            className={`skeuo-card p-6 group ${i === 0 ? "lg:row-span-1" : ""}`}
-          >
-            <div className="h-11 w-11 rounded-md bg-accent/12 text-accent flex items-center justify-center mb-5 transition-colors group-hover:bg-accent group-hover:text-accent-foreground">
-              <Icon className="h-5 w-5" />
-            </div>
+        {capabilities.slice(0, 3).map(({ icon: Icon, title, body }) => (
+          <motion.div key={title} variants={fadeUp} className="skeuo-card p-6 group">
+            <Icon className="mb-5 h-6 w-6 text-accent" />
             <h3 className="font-semibold text-foreground mb-2">{title}</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
           </motion.div>
@@ -344,6 +337,30 @@ const Workflow = () => (
         <h2 className="mt-4 text-3xl md:text-4xl font-semibold text-foreground tracking-tight">
           Four steps. Hours instead of weeks.
         </h2>
+      </Reveal>
+      <Reveal className="mb-14">
+        <div className="relative overflow-hidden border border-border bg-background p-5 shadow-[var(--skeuo-shadow-inset)] md:p-8">
+          <div className="absolute inset-0 skeuo-drafting-grid opacity-30" aria-hidden />
+          <div className="relative grid grid-cols-4 items-center gap-2 md:gap-6">
+            {[Upload, Boxes, Activity, FileText].map((Icon, index) => (
+              <div key={index} className="relative flex flex-col items-center">
+                {index < 3 && <div className="absolute left-1/2 top-7 h-px w-full bg-border" aria-hidden />}
+                <motion.div
+                  className="relative z-10 flex h-14 w-14 items-center justify-center border border-border bg-card text-accent shadow-[var(--skeuo-shadow-raised)] md:h-16 md:w-16"
+                  whileInView={{ scale: [0.92, 1.04, 1] }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.14, duration: 0.5 }}
+                >
+                  <Icon className="h-5 w-5 md:h-6 md:w-6" />
+                </motion.div>
+                <span className="mt-3 text-center font-mono text-[8px] uppercase text-muted-foreground md:text-[10px]">{steps[index].title}</span>
+              </div>
+            ))}
+          </div>
+          <div className="relative mt-7 grid grid-cols-3 border-t border-border pt-4 font-mono text-[8px] uppercase text-muted-foreground md:text-[10px]">
+            <span>One source model</span><span className="text-center">Continuous validation</span><span className="text-right">Traceable output</span>
+          </div>
+        </div>
       </Reveal>
       <div className="relative grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* connector line on desktop */}
