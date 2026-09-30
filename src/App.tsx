@@ -9,6 +9,7 @@ import { RouteErrorBoundary } from './components/error/RouteErrorBoundary';
 import { ErrorBoundary } from './components/error/ErrorBoundary';
 import { AuthPage } from './pages/AuthPage';
 import { Toaster } from './components/ui/toaster';
+import { NavigationAssistant } from './components/assistant/NavigationAssistant';
 
 // Lazy-load all page components to avoid module-level errors blocking the entire app
 const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -246,6 +247,7 @@ function App() {
                 } />
               </Routes>
             </Suspense>
+            <NavigationAssistant />
           </Router>
         </AuthProvider>
       </QueryClientProvider>
