@@ -122,6 +122,8 @@ class PipelineMetadata(BaseModel):
     building_height_ft: float
     total_rooms: int
     wall_mesh_count: int
+    door_count: int
+    window_count: int
     validation_warnings: list[str]
 
 
@@ -219,6 +221,8 @@ def run_pipeline(image_url: str) -> dict:
             "building_height_ft": ctx["building_height_ft"],
             "total_rooms": len(ctx["rooms"]),
             "wall_mesh_count": ctx["wall_mesh_count"],
+            "door_count": ctx.get("door_count", 0),
+            "window_count": ctx.get("window_count", 0),
             "validation_warnings": ctx.get("validation_warnings", []),
         }
     }
