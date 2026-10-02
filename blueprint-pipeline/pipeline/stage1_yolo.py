@@ -667,6 +667,10 @@ def run(image: np.ndarray, context: dict) -> dict:
     ctx["door_cuts"]             = _build_door_cuts(image, ctx["door_bboxes"])
     ctx["window_bboxes"]         = _extract_window_bboxes(detections)
     ctx["window_cuts"]           = _build_window_cuts(combined, ctx["window_bboxes"])
+
+    ctx["door_count"]            = len(ctx.get("door_cuts", []))
+    ctx["window_count"]          = len(ctx.get("window_cuts", []))
+
     ctx["yolo_detections"]       = detections
     ctx["wall_detection_method"] = method
     ctx["image_height"], ctx["image_width"] = image.shape[:2]
