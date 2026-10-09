@@ -11,6 +11,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2",
     "@googlemaps/js-api-loader": "^1.16.10",
     "@hookform/resolvers": "^3.9.0",
     "@lovable.dev/mcp-js": "^0.26.1",
