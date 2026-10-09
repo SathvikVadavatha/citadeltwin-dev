@@ -107,6 +107,8 @@ interface UploadResult {
   scaleInfo?: any;
   buildingInfo?: any;
   walls?: any[];
+  dimensions?: any[];
+  windows?: any[];
 }
 
 interface UploadResultsTabsProps {

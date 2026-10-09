@@ -24,6 +24,8 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({
   const [aiScaleInfo, setAiScaleInfo] = useState<any>(null);
   const [aiBuildingInfo, setAiBuildingInfo] = useState<any>(null);
   const [aiWalls, setAiWalls] = useState<any[] | null>(null);
+  const [aiDimensions, setAiDimensions] = useState<any[] | null>(null);
+  const [aiWindows, setAiWindows] = useState<any[] | null>(null);
 
   const {
     uploading,
@@ -52,7 +54,11 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({
     try {
       console.log('Calling pipeline for upload:', uploadId, 'imageUrl:', imageUrl);
 
-      const PIPELINE_URL = 'https://sathvikvadavatha-citadeltwin-pipeline.hf.space';
+      // Defaults to the deployed HF Space so nothing changes for anyone who
+      // doesn't opt in. Set VITE_PIPELINE_URL=http://localhost:8000 (or
+      // wherever `blueprint-pipeline`'s uvicorn server is running) in a
+      // local .env file to point this at a local backend during development.
+      const PIPELINE_URL = import.meta.env.VITE_PIPELINE_URL || 'https://sathvikvadavatha-citadeltwin-pipeline.hf.space';
 
       const pipelineRes = await fetch(`${PIPELINE_URL}/process`, {
         method: 'POST',
@@ -69,7 +75,7 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({
       const pipelineData = await pipelineRes.json();
       console.log('Pipeline response data:', pipelineData);
 
-      const { glb_base64, rooms, metadata } = pipelineData;
+      const { glb_base64, rooms, walls, windows, dimensions, metadata } = pipelineData;
 
       const glbBytes = Uint8Array.from(atob(glb_base64), c => c.charCodeAt(0));
       const glbBlob = new Blob([glbBytes], { type: 'model/gltf-binary' });
@@ -78,7 +84,13 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({
       // Update local state so the upload results card shows the model
       setModel3DUrl(glbUrl);
       if (rooms) setAiDetections(rooms);
-      if (metadata?.walls) setAiWalls(metadata.walls);
+      // `walls`, `windows`, and `dimensions` are top-level fields on the
+      // pipeline response (see blueprint-pipeline/main.py ProcessResponse),
+      // not nested under `metadata` — metadata only carries building-level
+      // summary stats (width/height/room count/warnings).
+      if (walls) setAiWalls(walls);
+      if (windows) setAiWindows(windows);
+      if (dimensions) setAiDimensions(dimensions);
       if (metadata?.scale) setAiScaleInfo(metadata.scale);
       if (metadata?.building) setAiBuildingInfo(metadata.building);
 
@@ -127,6 +139,8 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({
     setAiScaleInfo(null);
     setAiBuildingInfo(null);
     setAiWalls(null);
+    setAiDimensions(null);
+    setAiWindows(null);
   };
 
   if (uploadResult) {
@@ -146,6 +160,8 @@ export const BlueprintUpload: React.FC<BlueprintUploadProps> = ({
             scaleInfo: aiScaleInfo,
             buildingInfo: aiBuildingInfo,
             walls: aiWalls,
+            dimensions: aiDimensions,
+            windows: aiWindows,
           }}
           onReset={handleReset}
         />

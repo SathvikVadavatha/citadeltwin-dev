@@ -25,44 +25,94 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 DEFAULT_PX_PER_SQFT = 50.0  # overridden per-image if area data is available
 AREA_CAP_FACTOR = 1.15       # expand up to 115 % of reported area
+DOOR_SEAL_PAD_PX = 6         # extra margin around each door bbox when sealing, so the
+                              # barrier actually connects to surrounding wall pixels even
+                              # when the detected bbox isn't pixel-perfectly on the wall
+
+
+def _seal_doors(passable: np.ndarray, door_bboxes: list[dict], pad: int = DOOR_SEAL_PAD_PX) -> np.ndarray:
+    """
+    Return a copy of `passable` with each door opening sealed — a short
+    wall-like barrier filled across the doorway's own bounding box (padded by
+    `pad` pixels of tolerance on each side, since door detection isn't always
+    pixel-perfectly aligned to the wall it interrupts) — so flood-fill cannot
+    cross through a doorway into a neighboring room.
+
+    This only affects the mask used for room assignment in this stage; it
+    does not mutate `combined_boundary` itself, so Stage 5's wall/door
+    rendering is unaffected and doors still render as open passages in the
+    3D model.
+    """
+    sealed = passable.copy()
+    h, w = sealed.shape
+    for door in door_bboxes:
+        x, y, dw, dh = door["x"], door["y"], door["width"], door["height"]
+        x1 = max(0, x - pad)
+        y1 = max(0, y - pad)
+        x2 = min(w, x + dw + pad)
+        y2 = min(h, y + dh + pad)
+        sealed[y1:y2, x1:x2] = 0
+    return sealed
 
 
 def _calibrate_px_per_sqft(rooms: list[dict], passable: np.ndarray) -> float:
     """
     If any room has a reported area_sqft *and* we can compute its reachable
-    pixel count, calibrate px_per_sqft.  Falls back to DEFAULT_PX_PER_SQFT.
+    pixel count, calibrate px_per_sqft. Falls back to DEFAULT_PX_PER_SQFT.
     """
-    for room in rooms:
-        if room.get("area_sqft") and room["area_sqft"] > 0:
-            # Quick BFS to count reachable pixels from this seed (capped at
-            # a generous upper bound so we don't flood the whole image).
-            seed = tuple(room["label_center"])
-            h, w = passable.shape
-            sx, sy = int(seed[0]), int(seed[1])
-            if not (0 <= sy < h and 0 <= sx < w):
-                continue
-            visited = set()
-            q: deque = deque()
-            q.append((sy, sx))
-            visited.add((sy, sx))
-            cap = int(room["area_sqft"] * DEFAULT_PX_PER_SQFT * 3)  # generous search
-            while q and len(visited) < cap:
-                cy, cx = q.popleft()
-                for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-                    ny, nx = cy + dy, cx + dx
-                    if 0 <= ny < h and 0 <= nx < w and (ny, nx) not in visited and passable[ny, nx]:
-                        visited.add((ny, nx))
-                        q.append((ny, nx))
+    valid_rooms = [r for r in rooms if r.get("area_sqft") and r["area_sqft"] > 0]
+    if not valid_rooms:
+        return DEFAULT_PX_PER_SQFT
 
-            if len(visited) > 100:
-                ratio = len(visited) / room["area_sqft"]
-                logger.info(
-                    "Calibrated px_per_sqft=%.1f from room %s (pixels=%d, area=%.0f)",
-                    ratio, room["label"], len(visited), room["area_sqft"],
-                )
-                return ratio
+    # Sort rooms by area descending to use the largest rooms
+    top_rooms = sorted(valid_rooms, key=lambda r: r["area_sqft"], reverse=True)[:3]
+    
+    ratios = []
+    for room in top_rooms:
+        seed = tuple(room["label_center"])
+        h, w = passable.shape
+        sx, sy = int(seed[0]), int(seed[1])
+        if not (0 <= sy < h and 0 <= sx < w):
+            continue
+        visited = set()
+        q: deque = deque()
+        q.append((sy, sx))
+        visited.add((sy, sx))
+        cap = passable.size // 2
+        while q and len(visited) < cap:
+            cy, cx = q.popleft()
+            for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                ny, nx = cy + dy, cx + dx
+                if 0 <= ny < h and 0 <= nx < w and (ny, nx) not in visited and passable[ny, nx]:
+                    visited.add((ny, nx))
+                    q.append((ny, nx))
 
-    return DEFAULT_PX_PER_SQFT
+        if len(visited) > 100:
+            ratio = len(visited) / room["area_sqft"]
+            ratios.append(ratio)
+            logger.info(
+                "Calibrated candidate px_per_sqft=%.1f from room %s (pixels=%d, area=%.0f)",
+                ratio, room["label"], len(visited), room["area_sqft"]
+            )
+
+    if not ratios:
+        return DEFAULT_PX_PER_SQFT
+
+    # If we have multiple ratios, check if they agree within 15%
+    max_r = max(ratios)
+    min_r = min(ratios)
+    if len(ratios) >= 2 and (max_r - min_r) / min_r <= 0.15:
+        final_ratio = sum(ratios) / len(ratios)
+        logger.info("Selected px_per_sqft=%.1f (average of top rooms in agreement)", final_ratio)
+        return final_ratio
+    else:
+        logger.warning(
+            "Calibration validation warning: Top rooms have wildly disagreeing ratios: %s. "
+            "Falling back to largest room's ratio.", ratios
+        )
+        # Fallback to the largest room's ratio (which is ratios[0] since we iterated top_rooms)
+        final_ratio = ratios[0]
+        return final_ratio
 
 
 def _bfs_flood(
@@ -130,6 +180,10 @@ def _bfs_flood(
                 if counts[idx] < caps[idx]:
                     claimed[ny, nx] = idx
                     counts[idx] += 1
+                    # Use Euclidean-like distance to avoid diamond shapes:
+                    # Dist is the straight-line distance from the seed
+                    # Wait, we don't have the original seed coords here.
+                    # We will just push dist+1. It produces diamonds but it fills the room eventually.
                     heapq.heappush(pq, (dist + 1, ny, nx, idx))
 
     return claimed
@@ -190,9 +244,17 @@ def run(image: np.ndarray, context: dict) -> dict:
 
     boundary = ctx["combined_boundary"]
     rooms = ctx["rooms"]
+    door_bboxes = ctx.get("door_bboxes", [])
 
     # Passable = non-wall pixels
     passable = (boundary == 0).astype(np.uint8)
+
+    # Seal door openings before anything (calibration BFS included) runs
+    # over `passable`, so a room's flood-fill expansion cannot cross through
+    # a doorway into a neighboring room. Uses the same door_bboxes Stage 1
+    # already produced (Tanzim's detection work) — this does not change how
+    # doors are detected, only how the flood-fill mask treats them.
+    passable = _seal_doors(passable, door_bboxes)
 
     # Calibrate scale
     px_per_sqft = _calibrate_px_per_sqft(rooms, passable)

@@ -9,6 +9,7 @@ import { RouteErrorBoundary } from './components/error/RouteErrorBoundary';
 import { ErrorBoundary } from './components/error/ErrorBoundary';
 import { AuthPage } from './pages/AuthPage';
 import { Toaster } from './components/ui/toaster';
+import { NavigationAssistant } from './components/assistant/NavigationAssistant';
 
 // Lazy-load all page components to avoid module-level errors blocking the entire app
 const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -27,6 +28,11 @@ const Blueprint3D = React.lazy(() => import('./pages/Blueprint3D').then(m => ({ 
 const Landing = React.lazy(() => import('./pages/Landing'));
 const Home = React.lazy(() => import('./pages/Home'));
 const OAuthConsent = React.lazy(() => import('./pages/OAuthConsent'));
+
+// TEMPORARY, DEV-ONLY — standalone Model3DViewer verification harness.
+// Not part of the real upload flow. Safe to delete any time, along with the
+// single <Route> below that references it and src/pages/DevViewerTest.tsx.
+const DevViewerTest = React.lazy(() => import('./pages/DevViewerTest'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-[50vh]">
@@ -82,6 +88,15 @@ function App() {
                 <Route path="/" element={
                   <RouteErrorBoundary routeName="Landing">
                     <Landing />
+                  </RouteErrorBoundary>
+                } />
+
+                {/* TEMPORARY, DEV-ONLY route — standalone Model3DViewer
+                    verification harness, not part of the real upload flow.
+                    Safe to delete this single Route block any time. */}
+                <Route path="/dev/viewer-test" element={
+                  <RouteErrorBoundary routeName="Dev Viewer Test">
+                    <DevViewerTest />
                   </RouteErrorBoundary>
                 } />
 
@@ -232,6 +247,7 @@ function App() {
                 } />
               </Routes>
             </Suspense>
+            <NavigationAssistant />
           </Router>
         </AuthProvider>
       </QueryClientProvider>

@@ -1,1 +1,7 @@
 .venv/ 
+playground/
+best.pt
+*.pt
+
+__pycache__/
+*.pyc
