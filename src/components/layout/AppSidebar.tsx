@@ -44,7 +44,7 @@ export const AppSidebar: React.FC = () => {
   };
 
   return (
-    <div className="flex h-full w-64 flex-col border-r border-border bg-card text-card-foreground">
+    <div className="flex h-full w-64 flex-col border-r border-border bg-card text-card-foreground pt-safe-top">
       <div className="flex h-20 items-center px-6 border-b border-border">
         <Link to="/home" className="flex items-center space-x-2">
           <img src={"/citadeltwin-logo.png"} alt="CitadelTwin" className="h-[48px] w-auto max-w-[10rem] object-contain" />

@@ -42,7 +42,7 @@ export const EnhancedMobileHeader: React.FC<EnhancedMobileHeaderProps> = ({
   };
 
   return (
-    <header className="bg-background/95 backdrop-blur-sm border-b border-border sticky top-0 z-50">
+    <header className="bg-background/95 backdrop-blur-sm border-b border-border sticky top-0 z-50 pt-safe-top">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3 flex-1">
           {showBackButton && canGoBack ? (

@@ -57,7 +57,7 @@ const Header = () => {
   return (
     <motion.header
       style={{ background: bg, borderColor: border }}
-      className="fixed top-0 inset-x-0 z-50 border-b backdrop-blur-md"
+      className="fixed top-0 inset-x-0 z-50 border-b backdrop-blur-md pt-safe-top"
     >
       <div className="container mx-auto px-6 h-20 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3">
