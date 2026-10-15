@@ -66,6 +66,10 @@ interface Model3DViewerProps {
   // Room name labels, printed inside the scene at each room's own center —
   // separate from `dimensions` (see RoomNameLabel above).
   roomLabels?: RoomNameLabel[];
+  // Start with the dimension / room-name overlay already switched on. Off by
+  // default so every existing caller keeps its current behavior; the upload
+  // results page opts in so people see the labels without an extra click.
+  defaultShowDimensions?: boolean;
   // Optional camera start position override. Defaults to the existing
   // [8, 6, 8] used everywhere today — only the dev verification page
   // (src/pages/DevViewerTest.tsx) passes a different value, for a clearer
@@ -546,6 +550,7 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
   blueprintPublicUrl,
   dimensions = [],
   roomLabels = [],
+  defaultShowDimensions = false,
   cameraPosition = [8, 6, 8],
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -553,7 +558,7 @@ export const Model3DViewer: React.FC<Model3DViewerProps> = ({
   const [sceneReady, setSceneReady] = useState(false);
   const [modelLoadFailed, setModelLoadFailed] = useState(false);
   const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
-  const [showDimensions, setShowDimensions] = useState(false);
+  const [showDimensions, setShowDimensions] = useState(defaultShowDimensions);
   const hasBlueprintImage = Boolean(blueprintPublicUrl);
   const handleModelLoadError = useCallback(() => setModelLoadFailed(true), []);
 

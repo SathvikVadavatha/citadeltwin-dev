@@ -135,6 +135,13 @@ class DimensionAnnotation(BaseModel):
     position: DimensionPoint
     label: str
     kind: str
+    # Set only on wall_length entries (see stage5_export.py); optional so
+    # entries without it still validate.
+    is_perimeter: bool | None = None
+    # Endpoints of the span a room_width / room_height / wall_length label
+    # measures; absent on room_area entries.
+    line_start: DimensionPoint | None = None
+    line_end: DimensionPoint | None = None
 
 
 class ProcessResponse(BaseModel):
